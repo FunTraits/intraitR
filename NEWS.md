@@ -1,3 +1,19 @@
+# intraitR 0.7.4
+
+* Fixed a real `R CMD check` WARNING found by the maintainer:
+  `demo/00Index` separated the demo name and description with two
+  spaces, but "Writing R Extensions" requires a tab or at least three
+  spaces, which was silently treated as missing/empty index information.
+* Fixed a real `R CMD check` NOTE ("Non-standard files/directories found
+  at top level"): `GITHUB_SETUP.md` and the leftover local testing
+  artefacts `specimens.tps`/`P5180033.jpg` are now excluded from the
+  built package via `.Rbuildignore` (they were already excluded from git
+  via `.gitignore`, which does not affect `R CMD build`/`check`).
+* The remaining NOTE ("checking for future file timestamps ... unable to
+  verify current time") is not a package issue: it means the checking
+  machine could not reach a time-verification service over the network,
+  and is unrelated to any file in this package.
+
 # intraitR 0.7.3
 
 * Repository moved to https://github.com/FunTraits/intraitR; `URL`,

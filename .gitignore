@@ -1,0 +1,15 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+inst/doc
+*.Rcheck
+NAMESPACE.bak
+.DS_Store
+
+# Leftover local testing artefacts (not part of the package source):
+# a blank/partial digitize_landmarks() output and a raw specimen photo
+# used to try it out. Remove these two lines if you do want to version
+# real example photographs/digitized data under a different path.
+specimens.tps
+P5180033.jpg

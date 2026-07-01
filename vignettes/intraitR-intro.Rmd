@@ -1,0 +1,338 @@
+---
+title: "Introduction to intraitR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to intraitR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 5
+)
+```
+
+```{r setup}
+library(intraitR)
+```
+
+## Overview
+
+`intraitR` supports a complete workflow for the analysis of morphological
+traits in freshwater fish, from digitized landmark coordinates to
+morphological ratios, morphological space, intraspecific variability, and
+measurement error. This vignette walks through the workflow end to end
+using a simulated data set, so that it runs without any real specimen
+data.
+
+The statistical core of the package (Generalised Procrustes Analysis,
+shape principal component analysis, Procrustes ANOVA and morphological
+disparity) is delegated to the `geomorph` package. `intraitR` adds
+fish-specific conveniences on top: file import, linear ratios, and
+reporting functions geared towards ecomorphological questions.
+
+## 1. Obtaining landmark data
+
+Landmark data can be imported from a `tpsDig`-formatted `.tps` file with
+[read_tps()], or from a generic long-format CSV/data.frame with
+[read_landmarks_csv()]. For this vignette we instead simulate a data set
+of three artificial species, each digitized three times per individual,
+using [simulate_fish_landmarks()]:
+
+```{r}
+set.seed(1)
+fish <- simulate_fish_landmarks(
+  n_per_species = 15,
+  species = c("Species_A", "Species_B", "Species_C"),
+  n_landmarks = 12,
+  n_replicates = 3
+)
+fish
+head(fish$metadata)
+```
+
+Every specimen in `fish$metadata` is tagged with its species, population,
+simulated standard length, and digitization replicate number.
+
+A single configuration can be inspected visually with [plot_landmarks()]:
+
+```{r}
+plot_landmarks(fish, specimen = 1)
+```
+
+If landmarks have not yet been digitized, [digitize_landmarks()] provides
+an interactive, point-and-click front end (built on
+[geomorph::digitize2d()]) that digitizes directly from specimen
+photographs and returns a ready-to-use `"intrait_landmarks"` object; it
+requires a live interactive graphics session and so cannot be run inside
+this vignette, but the intended usage is:
+
+```{r, eval = FALSE}
+lm <- digitize_landmarks(
+  images = c("specimen1.jpg", "specimen2.jpg", "specimen3.jpg"),
+  scheme = "fishmorph", tpsfile = "specimens.tps"
+)
+```
+
+## 2. Generalised Procrustes Analysis
+
+[gpa_fish()] superimposes all configurations, removing differences in
+position, orientation and scale:
+
+```{r}
+gpa <- gpa_fish(fish)
+gpa
+```
+
+`gpa$Csize` holds centroid size, the standard size measure retained
+alongside Procrustes shape coordinates.
+
+## 3. Linear distances and morphological ratios
+
+Classical fish morphometric traits are expressed as ratios of linear
+inter-landmark distances to a reference distance (typically standard
+length). Distance pairs are defined by landmark index and computed on the
+**raw** (pre-Procrustes) coordinates, since Procrustes superimposition
+removes size:
+
+```{r}
+distances <- list(SL = c(1, 7), BD = c(3, 10), HL = c(1, 4))
+morpho_ratios(fish, distances, norm_by = "SL")[1:5, ]
+```
+
+## 4. Morphological space
+
+A morphospace is built from a Principal Component Analysis of the
+Procrustes shape coordinates. By default, `plot()` displays each group as
+its individual points, a "spider" of dashed segments linking every point
+to its group mean, the group mean itself, and a 95% dispersion ellipse
+(`style = "spider"`); pass `style = "hull"` for a classical convex-hull
+display, or `style = "none"` for plain points:
+
+```{r}
+ms <- morpho_space(gpa, groups = fish$metadata$species)
+ms
+plot(ms)
+plot(ms, style = "hull")
+```
+
+## 5. Intraspecific morphological variability
+
+[intraspecific_variability()] reports both a shape-based disparity
+measure (Procrustes variance per group, with a permutation test) and
+classical coefficients of variation for chosen linear traits:
+
+```{r}
+ratios <- morpho_ratios(fish, distances, norm_by = "SL")
+iv <- intraspecific_variability(
+  gpa = gpa,
+  groups = fish$metadata$species,
+  traits = ratios[, c("BD_ratio", "HL_ratio")],
+  iter = 199
+)
+iv
+```
+
+[itv_index()] complements this with a formal variance-partitioning
+approach (Violle et al., 2012; de Bello et al., 2011): the percentage of
+each trait's total variance that lies *within* species (intraspecific
+trait variability, ITV) versus *between* species (interspecific):
+
+```{r}
+itv <- itv_index(ratios[, c("BD_ratio", "HL_ratio")], groups = fish$metadata$species)
+itv
+plot(itv)
+```
+
+Because `fish$metadata` also records a `population` nested within each
+species, the ITV component can be split further into a between-population
+and a within-population (residual) part, following the
+within-/among-population distinction commonly used in ITV meta-analyses
+(e.g. Siefert et al., 2015):
+
+```{r}
+itv_nested <- itv_index(
+  ratios[, c("BD_ratio", "HL_ratio")],
+  groups = fish$metadata$species,
+  nested = fish$metadata$population
+)
+itv_nested
+plot(itv_nested)
+```
+
+## 6. Measurement error
+
+Since our simulated data set includes three digitization replicates per
+individual, [measurement_error()] can quantify how much of the observed
+variance is attributable to digitization noise rather than genuine
+biological variation, following a Procrustes ANOVA (Fruciano, 2016):
+
+```{r}
+individual_id <- sub("_rep[0-9]+$", "", fish$metadata$specimen)
+
+me <- measurement_error(gpa, individual = individual_id, method = "procrustes", iter = 199)
+me
+```
+
+For a single univariate trait (e.g. body depth ratio measured on the same
+individuals multiple times), the classical ANOVA-based percent
+measurement error and repeatability (Bailey & Byrnes, 1990) are also
+available:
+
+```{r}
+me_ratio <- measurement_error(
+  data.frame(value = ratios$BD_ratio, individual = individual_id),
+  individual = "individual",
+  method = "anova"
+)
+me_ratio
+```
+
+## 7. Allometry correction (optional)
+
+If species differ substantially in size, [correct_allometry()] removes
+the shape variation linearly associated with log centroid size before
+further analysis:
+
+```{r}
+corrected <- correct_allometry(gpa, method = "group", groups = fish$metadata$species)
+dim(corrected)
+```
+
+## 8. The FISHMORPH protocol (Brosse et al., 2021)
+
+`intraitR` also implements the specific digitization and trait protocol
+used to build the FISHMORPH database (Brosse et al., 2021), based on a
+fixed scheme of 21 landmarks per specimen (snout, caudal fin basis, body
+depth, head depth, eye position and diameter, mouth, pectoral fin, caudal
+peduncle depth, caudal fin depth) plus an embedded scale bar, and
+optionally a 22nd point to correct standard length for body curvature in
+the picture.
+
+We simulate a small data set following this exact scheme with
+[simulate_fishmorph_points()], and inspect the digitization of one
+specimen with [plot_fishmorph_points()]:
+
+```{r}
+fishmorph_fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+plot_fishmorph_points(fishmorph_fish, specimen = 1)
+```
+
+[fishmorph_segments()] computes the 11 linear measurements of the
+protocol directly from the digitized points, automatically converting
+pixel units to centimetres using the embedded scale bar (landmarks
+20-21):
+
+```{r}
+segments <- fishmorph_segments(fishmorph_fish)
+head(segments)
+```
+
+[fishmorph_ratios()] then derives the 9 unitless FISHMORPH ratios from
+these measurements. The `no_caudal_fin`, `ventral_mouth`, and
+`no_pectoral_fin` arguments implement the special-case rules of Villéger
+et al. (2010) for species with unusual morphologies (e.g. no visible
+caudal fin, a ventrally positioned mouth, or no pectoral fins):
+
+```{r}
+fishmorph_traits <- fishmorph_ratios(segments)
+head(fishmorph_traits)
+```
+
+Finally, [trait_space()] builds a functional trait space from any numeric
+trait table — here the 9 FISHMORPH ratios — by Principal Component
+Analysis (or Principal Coordinate Analysis, `method = "pcoa"`). By
+default, traits are `log10(x + 1)`-transformed (the `+ 1` accommodating
+ratios that can legitimately equal 0 under the Villéger et al., 2010,
+exception rules) and then centred and scaled to unit variance before the
+ordination (`log_transform = TRUE`, `scale = TRUE`); set either to
+`FALSE` to skip that step. As with `morpho_space()`, `plot()` defaults to
+a spider/ellipse display per group:
+
+```{r}
+fts <- trait_space(fishmorph_traits, groups = fishmorph_fish$metadata$species)
+fts
+plot(fts)
+```
+
+Missing trait values, common in real ecomorphological data sets, are
+handled via the `na_action` argument: `"fail"` (default) errors, `"omit"`
+drops incomplete rows, `"impute_mean"`/`"impute_group_mean"` fill missing
+values with column or within-group means, and `"missforest"` uses
+nonparametric random-forest imputation (`missForest::missForest()`,
+Stekhoven & Bühlmann, 2012), exploiting correlations among traits (and
+`groups`, as an auxiliary predictor) rather than filling every missing
+value in a trait with the same mean:
+
+```{r, eval = FALSE}
+fts_imputed <- trait_space(
+  fishmorph_traits_with_gaps, groups = fishmorph_fish$metadata$species,
+  na_action = "missforest"
+)
+```
+
+Each option reports via `message()` how many rows or values were
+affected (and, for `"missforest"`, the out-of-bag imputation error).
+
+[trait_disparity()] complements `trait_space()` with a permutation test
+of whether groups differ in multivariate trait dispersion (the trace of
+each group's trait covariance matrix), computed on the full standardised
+trait matrix rather than on the two axes shown in the plot above:
+
+```{r}
+td <- trait_disparity(fts, iter = 199)
+td
+```
+
+Because `fishmorph_segments()` and `fishmorph_ratios()` return plain
+data frames, they compose directly with [summary_traits()] and
+[intraspecific_variability()] (traits-only mode) exactly as the ratios
+from [morpho_ratios()] do earlier in this vignette.
+
+## References
+
+Adams DC, Collyer ML, Kaliontzopoulou A (2024). geomorph: Software for
+geometric morphometric analyses. R package.
+
+Bailey RC, Byrnes J (1990). A new, old method for assessing measurement
+error in both univariate and multivariate morphometric studies. Systematic
+Zoology, 39(2), 124-130.
+
+Brosse S, Charpin N, Su G, Toussaint A, Herrera-R GA, Tedesco PA, Villéger
+S (2021). FISHMORPH: A global database on morphological traits of
+freshwater fishes. Global Ecology and Biogeography, 30(11), 2330-2336.
+
+de Bello F, Lavorel S, Albert CH, Thuiller W, Grigulis K, Dolezal J,
+Janecek S, Leps J (2011). Quantifying the relative importance of
+intraspecific trait variability and interspecific trait turnover for
+functional diversity. Methods in Ecology and Evolution, 2(2), 163-174.
+
+Fruciano C (2016). Measurement error in geometric morphometrics.
+Development Genes and Evolution, 226, 139-158.
+
+Siefert A, Violle C, Chalmandrier L, et al. (2015). A global meta-analysis
+of the relative extent of intraspecific trait variation in plant
+communities. Ecology Letters, 18(12), 1406-1419.
+
+Stekhoven DJ, Bühlmann P (2012). MissForest -- non-parametric missing
+value imputation for mixed-type data. Bioinformatics, 28(1), 112-118.
+
+Villéger S, Ramos Miranda J, Flores Hernandez D, Mouillot D (2010).
+Contrasting changes in taxonomic vs. functional diversity of tropical
+fish communities after habitat degradation. Ecological Applications,
+20(6), 1512-1522.
+
+Violle C, Enquist BJ, McGill BJ, Jiang L, Albert CH, Hulshof C, Jung V,
+Messier J (2012). The return of the variance: intraspecific variability
+in community ecology. Trends in Ecology & Evolution, 27(4), 244-252.
+
+Winemiller KO (1991). Ecomorphological diversification in lowland
+freshwater fish assemblages from five biotic regions. Ecological
+Monographs, 61(4), 343-365.
+
+Zelditch ML, Swiderski DL, Sheets HD (2012). Geometric Morphometrics for
+Biologists: A Primer (2nd ed). Academic Press.

@@ -1,0 +1,43 @@
+Package: intraitR
+Title: Morphological Trait Analysis Toolkit for Freshwater Fish
+Version: 0.7.3
+Authors@R:
+    person("Aurele", "Toussaint", , "aurele.toussaint@cnrs.fr", role = c("aut", "cre"))
+Description: A toolkit for the analysis of morphological traits in freshwater
+    fish, from raw two-dimensional landmark digitization to derived
+    morphological ratios, morphological space, and functional trait space.
+    Building on the geometric morphometric framework implemented in
+    'geomorph' (Adams, Collyer and Kaliontzopoulou, 2024), the package
+    provides convenience functions to import landmark data from 'tpsDig'
+    files or generic spreadsheets, perform Generalised Procrustes Analysis,
+    compute classical linear morphometric ratios used in fish ecomorphology,
+    build and visualise morphological and functional trait spaces, quantify
+    intraspecific morphological variability, and estimate measurement error
+    from replicated digitization, following Bailey and Byrnes (1990)
+    <doi:10.2307/2992207> and Fruciano (2016) <doi:10.1007/s00427-016-0537-4>.
+    The package also implements the specific 11-measurement, 9-ratio
+    digitization and trait protocol of the FISHMORPH database (Brosse et al.,
+    2021) <doi:10.1111/geb.13395>. Simulated example data sets are included
+    to demonstrate the full workflow.
+License: GPL-3
+URL: https://github.com/FunTraits/intraitR
+BugReports: https://github.com/FunTraits/intraitR/issues
+Depends:
+    R (>= 4.1.0)
+Imports:
+    geomorph,
+    graphics,
+    grDevices,
+    stats,
+    utils
+Suggests:
+    ggplot2,
+    knitr,
+    missForest,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2

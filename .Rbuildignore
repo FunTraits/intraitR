@@ -1,0 +1,12 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^data-raw$
+^cran-comments\.md$
+^README\.Rmd$
+^\.github$
+^\.git$
+^apt.*\.log$
+^apt_status\.txt$
+^LICENSE\.md$
+^cran-comments\.md$
+^SUBMISSION_NOTES\.md$

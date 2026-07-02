@@ -132,10 +132,13 @@ size-free coordinate system in which log-transforming or rescaling
 individual columns would distort shape geometry.
 }
 \examples{
-fish <- simulate_fishmorph_points(n_per_species = 10, n_replicates = 1)
+# real T-26 Saudrune data; na_action = "omit" is required here because,
+# unlike simulate_fishmorph_points(), real specimens have some missing
+# landmarks (see ?load_t26_saudrune_landmarks)
+fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
 ratios <- fishmorph_ratios(segments)
-ts <- trait_space(ratios, groups = fish$metadata$species)
+ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 ts
 \donttest{
 plot(ts)
@@ -148,5 +151,6 @@ Villéger, S., Brosse, S., Mouchet, M., Mouillot, D., & Vanni, M. J.
 challenges. Aquatic Sciences, 79(4), 783-801.
 }
 \seealso{
-\code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=morpho_ratios]{morpho_ratios()}}, \code{\link[=morpho_space]{morpho_space()}}
+\code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=morpho_ratios]{morpho_ratios()}}, \code{\link[=morpho_space]{morpho_space()}},
+\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}
 }

@@ -29,8 +29,9 @@ using \code{\link[=gpa_fish]{gpa_fish()}}, a thin wrapper around \code{\link[geo
 \code{\link[=morpho_space]{morpho_space()}}.
 \item \strong{Assess variability and error}: quantify intraspecific
 morphological variability with \code{\link[=intraspecific_variability]{intraspecific_variability()}} and
-measurement error / repeatability from replicated digitization with
-\code{\link[=measurement_error]{measurement_error()}}.
+\code{\link[=itv_index]{itv_index()}}, measurement error / repeatability from replicated
+digitization with \code{\link[=measurement_error]{measurement_error()}}, and landmark-level
+digitization (operator) bias with \code{\link[=digitization_error]{digitization_error()}}.
 }
 }
 
@@ -67,6 +68,10 @@ geometric morphometric analyses. R package.
 Bailey RC, Byrnes J (1990). A new, old method for assessing measurement
 error in both univariate and multivariate morphometric studies.
 Systematic Zoology, 39(2), 124-130.
+
+Boutic L (2026). Quantification du biais operateur dans la mesure des
+traits morphologiques de poissons d'eau douce. Rapport de projet
+tutore, L2 BCP BIOMIP, CRBE, unpublished.
 
 Brosse S, Charpin N, Su G, Toussaint A, Herrera-R GA, Tedesco PA,
 Villéger S (2021). FISHMORPH: A global database on morphological

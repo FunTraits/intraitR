@@ -68,10 +68,10 @@
 #' tropical fish communities after habitat degradation. Ecological
 #' Applications, 20(6), 1512-1522.
 #'
-#' @seealso [fishmorph_segments()], [trait_space()]
+#' @seealso [fishmorph_segments()], [trait_space()], [load_t26_saudrune_landmarks()]
 #'
 #' @examples
-#' fish <- simulate_fishmorph_points(n_per_species = 5, n_replicates = 1)
+#' fish <- load_t26_saudrune_landmarks()
 #' segments <- fishmorph_segments(fish)
 #' fishmorph_ratios(segments)
 #'

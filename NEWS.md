@@ -1,3 +1,143 @@
+# intraitR 0.9.4
+
+* Completed the 0.9.3 fix, which was itself incomplete. 0.9.3 added the
+  correct inner assignment (`expect_message(x <- f(...), regexp)`) to the
+  three regression tests but left the pre-existing *outer* assignment in
+  place as well (`x <- expect_message(x <- f(...), regexp)`); the outer
+  assignment executes after the quosure and unconditionally overwrites `x`
+  with `expect_message()`'s own return value, silently discarding the
+  correct one just captured by the inner assignment. This reproduced
+  exactly the same failures as 0.9.2, which is why re-running
+  `devtools::test()` after 0.9.3 still failed identically. The outer
+  assignment has now been removed from `test-trait_space.R`,
+  `test-itv_index.R`, and `test-trait_disparity.R`, matching the pattern
+  already used correctly elsewhere in the same test files (e.g.
+  `test-trait_space.R`'s `na_action = "omit"` tests). `trait_space()`,
+  `itv_index()`, and `trait_disparity()` themselves are unchanged. As
+  before, this development environment has no R installation available to
+  verify with an actual `devtools::test()` run; please re-run locally to
+  confirm.
+
+# intraitR 0.9.3
+
+* Fixed three regression tests (`test-trait_space.R`, `test-itv_index.R`,
+  `test-trait_disparity.R`, all added in 0.9.0 for the NA/unresolved-`groups`
+  fix) that used the pattern `x <- expect_message(f(...), regexp)`, which
+  does not reliably capture `f()`'s return value in testthat (it can return
+  the captured message condition instead). Corrected to the idiom already
+  used elsewhere in the suite, `expect_message(x <- f(...), regexp)`
+  (assignment *inside* the call). This was a test-only defect: confirmed by
+  running `devtools::test()` under a real R installation for the first time
+  (previous validation in this development environment relied on static
+  code review and an independent Python re-implementation, R itself not
+  being available); the underlying `trait_space()`/`itv_index()`/
+  `trait_disparity()` NA-handling logic added in 0.9.0 was unaffected and
+  is unchanged here; only the three test files were edited. This
+  development environment still has no R installation available to the
+  assistant, so this fix (like all preceding R code in this package) has
+  been verified by careful manual trace of the R semantics involved, not
+  by re-running `devtools::test()` directly; please re-run the full suite
+  locally to confirm before relying on it.
+
+# intraitR 0.9.2
+
+* Added an `exclude_landmarks` argument to `digitization_error()`, allowing
+  one or more landmark indices to be dropped from the per-landmark bias
+  decomposition (`landmark_individual`, `by_landmark`, and all downstream
+  aggregates). This is intended for landmarks that are not homologous
+  biological points and so are not meaningfully comparable to the others
+  in a landmark-by-landmark decomposition — most notably the embedded
+  scale-bar calibration points (landmarks 20-21) of the FISHMORPH
+  digitization scheme, which encode a fixed 1 cm real-world distance
+  rather than a body landmark. `demo/pipeline_T26_saudrune.R` and the
+  manuscript's real-data validation (Section 4.5) now call
+  `digitization_error(..., exclude_landmarks = c(20, 21))` on the T-26
+  repeatability trial accordingly; the resulting community-level bias
+  estimate (now computed over the 19 anatomical landmarks only) and the
+  ranking of least/most precise landmarks are both revised in the
+  manuscript relative to 0.9.1, where the scale bar's placement was
+  incorrectly pooled with genuine anatomical landmark bias.
+
+# intraitR 0.9.1
+
+* Added `load_t26_saudrune_landmarks()`, which loads the real T-26 Saudrune
+  data (see 0.9.0, below) directly as an object of class
+  `"intrait_landmarks"`, in exactly the same format returned by
+  `simulate_fishmorph_points()` (`coords`, `scale = NULL`, and a `metadata`
+  data.frame with `specimen`, `individual`, `species`, `population`,
+  `replicate`). This makes the real data set a drop-in replacement for the
+  simulated one, and the runnable `@examples` of `fishmorph_segments()`,
+  `fishmorph_ratios()`, `trait_space()`, `itv_index()`, `trait_disparity()`,
+  and `plot_fishmorph_points()` now use it instead of
+  `simulate_fishmorph_points()`. `simulate_fishmorph_points()` itself is
+  unchanged and remains available for teaching, testing, and the one
+  demonstration (nested population structure in `itv_index()`) that the
+  real, single-site T-26 survey cannot illustrate honestly.
+
+# intraitR 0.9.0
+
+* Added the package's first **real** (non-simulated) data set: `T26_Saudrune`,
+  a 279-fish landmark data set from an electric-fishing survey of the
+  Saudrune (Adour-Garonne basin, France, 21 April 2026), covering 8
+  freshwater fish species (dominated by *Gobio occitaniae* and *Squalius
+  cephalus*), digitized on the 21-landmark FISHMORPH scheme by two
+  independent operators, plus a dedicated intra-operator repeatability
+  trial (25 individuals x 9-10 replicate digitizations). Accessible via
+  the new `load_t26_saudrune()` function (`?load_t26_saudrune`); raw
+  spreadsheets and photographs are not distributed with the package, only
+  the cleaned, analysis-ready tables (see `data-raw/t26_saudrune_prepare.R`
+  for the full, transparent cleaning/QC pipeline, including every excluded
+  specimen and why).
+* Added `demo/pipeline_T26_saudrune.R` (`demo("pipeline_T26_saudrune")`), a
+  complete worked pipeline running every stage of the intraitR workflow on
+  this real data set: import, Generalised Procrustes Analysis, digitization
+  quality control (including a worked illustration of why `detect_outliers()`
+  should be run within, not across, taxonomically distinct species),
+  FISHMORPH linear measurements and ratios, functional trait space,
+  `itv_index()`, `measurement_error()`, `digitization_error()`, and
+  `trait_disparity()`.
+* Species identifications in `T26_Saudrune` are exposed with an explicit
+  `id_status` field (`"curated"`, `"preliminary"`, or `"unresolved"`),
+  since a small number of AI-vision-assisted calls have not yet been
+  manually audited; per the data owner's instruction, this release does
+  not attempt to resolve or correct them.
+* **Bug fix**, found precisely because of the above: `trait_space()`,
+  `itv_index()`, and `trait_disparity()` previously mishandled a `groups`
+  vector containing `NA` (e.g. a specimen with an unresolved
+  identification but otherwise-complete trait values, as in
+  `T26_Saudrune`). In `trait_disparity()` this was a real correctness bug,
+  not just an edge case: `Xmat[g == lv, ]` with an `NA` entry in `g`
+  inserts an `NA`-valued row into the subset for *every* group level
+  (since `NA == lv` is `NA`, not `FALSE`), turning every group's
+  dispersion into `NA`. `itv_index()`/`trait_space()` instead silently
+  treated the `NA` label as its own size-1 pseudo-group. All three
+  functions now drop rows with a missing/unresolved `groups` value up
+  front, with an explicit `message()`.
+
+# intraitR 0.8.0
+
+* Added `digitization_error()`, a new function quantifying hierarchical
+  digitization (operator) error from repeated landmark placement,
+  implementing the protocol developed by L. Boutic (2026, unpublished
+  internship report, CRBE / INTRAIT project, supervised by A. Toussaint)
+  to quantify operator bias in freshwater fish landmark digitization from
+  French Guiana. For each landmark and individual, the dispersion of
+  repeated digitizations around their consensus position is normalised by
+  a reference distance (by default, the mean inter-landmark distance
+  between two anchor landmarks per species, exactly as in the original
+  protocol; `standard_length_mm` and centroid size are also available as
+  alternative, individual-level normalizations, the latter addressing a
+  methodological improvement suggested in the original report's
+  discussion) and aggregated hierarchically from landmark to individual,
+  species, and overall community bias. Includes `print()` and `plot()`
+  methods (the latter reproducing the report's by-landmark boxplot,
+  ordered by increasing median bias). This complements the existing
+  `measurement_error()` (Bailey & Byrnes, 1990 / Procrustes ANOVA
+  approach): `digitization_error()` is deliberately GPA-free and
+  landmark-by-landmark, to directly flag which specific landmarks need a
+  stricter operational definition, whereas `measurement_error()` gives an
+  overall, rotation/scale-invariant repeatability estimate.
+
 # intraitR 0.7.5
 
 * Fixed stale package-level help (`man/intraitR-package.Rd`, `?intraitR`):

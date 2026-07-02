@@ -72,6 +72,25 @@ test_that("itv_index() nested decomposition holds exactly under an unbalanced de
   )
 })
 
+test_that("itv_index() drops rows with an NA/unresolved group rather than treating NA as its own group", {
+  # Regression test found while validating against the real T-26 Saudrune
+  # data set, which contains one specimen with an unresolved species
+  # identification (id_status = "unresolved") but otherwise-complete trait
+  # values. Left unhandled, that NA would form a spurious size-1 "species"
+  # via stats::ave(x, groups), inflating the interspecific SS.
+  df <- data.frame(x = c(1, 2, 3, 10, 11, 12, 999))
+  groups <- c(rep("A", 3), rep("B", 3), NA)
+
+  expect_message(
+    itv_with_na <- itv_index(df, groups = groups, digits = 12),
+    "missing/unresolved"
+  )
+  itv_without_na <- itv_index(df[1:6, , drop = FALSE], groups = groups[1:6], digits = 12)
+
+  expect_equal(itv_with_na$per_trait$ss_total, itv_without_na$per_trait$ss_total, tolerance = 1e-8)
+  expect_equal(nlevels(itv_with_na$groups), 2)
+})
+
 test_that("itv_index() multivariate summary aggregates across (optionally scaled) traits", {
   df <- data.frame(
     x = c(1, 2, 3, 10, 11, 12),

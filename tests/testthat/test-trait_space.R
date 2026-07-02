@@ -117,6 +117,24 @@ test_that("trait_space() na_action = 'omit' also subsets groups", {
   expect_equal(as.character(ts$groups), c("A", "B", "B"))
 })
 
+test_that("trait_space() drops rows with a missing/NA `groups` value", {
+  # Regression test found while validating against the real T-26 Saudrune
+  # data set: a specimen with a complete trait row but an unresolved
+  # (NA) species identification used to remain in the ordination with an
+  # undefined group, rather than being excluded like any other
+  # unplaceable observation.
+  df <- data.frame(a = c(1, 2, 3, 4, 5, 6), b = c(6, 5, 4, 3, 2, 1))
+  groups <- c("A", "A", "B", "B", NA, NA)
+
+  expect_message(
+    ts <- trait_space(df, groups = groups, log_transform = FALSE),
+    "missing/unresolved"
+  )
+  expect_equal(nrow(ts$scores), 4)
+  expect_false(anyNA(ts$groups))
+  expect_equal(nlevels(ts$groups), 2)
+})
+
 test_that("trait_space() na_action = 'impute_mean' fills NAs with column means", {
   df <- data.frame(a = c(2, NA, 4, 6), b = c(1, 2, 3, 4))
   expect_message(

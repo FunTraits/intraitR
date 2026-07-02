@@ -81,10 +81,12 @@
 #' Biogeography, 30(11), 2330-2336.
 #'
 #' @seealso [fishmorph_ratios()], [simulate_fishmorph_points()],
-#'   [plot_fishmorph_points()]
+#'   [load_t26_saudrune_landmarks()], [plot_fishmorph_points()]
 #'
 #' @examples
-#' fish <- simulate_fishmorph_points(n_per_species = 5, n_replicates = 1)
+#' # real T-26 Saudrune data, in the same "intrait_landmarks" format as
+#' # simulate_fishmorph_points()
+#' fish <- load_t26_saudrune_landmarks()
 #' fishmorph_segments(fish)
 #'
 #' @export

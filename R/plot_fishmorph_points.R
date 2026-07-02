@@ -18,10 +18,10 @@
 #' @return Invisibly returns the `p x 2` matrix of coordinates plotted.
 #'
 #' @seealso [fishmorph_segments()], [fishmorph_ratios()],
-#'   [simulate_fishmorph_points()]
+#'   [simulate_fishmorph_points()], [load_t26_saudrune_landmarks()]
 #'
 #' @examples
-#' fish <- simulate_fishmorph_points(n_per_species = 3, n_replicates = 1)
+#' fish <- load_t26_saudrune_landmarks()
 #' plot_fishmorph_points(fish, specimen = 1)
 #'
 #' @export

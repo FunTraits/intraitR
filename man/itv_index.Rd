@@ -96,17 +96,28 @@ observation per species); in that case ITV cannot be estimated, and a
 warning is issued.
 }
 \examples{
-fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+# real T-26 Saudrune data; itv_index() requires complete cases, unlike
+# trait_space()'s na_action, so incomplete rows are filtered explicitly
+fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
 ratios <- fishmorph_ratios(segments)
-itv <- itv_index(ratios[, c("BEl", "VEp", "REs")], groups = fish$metadata$species)
+complete <- stats::complete.cases(ratios[, c("BEl", "VEp", "REs")])
+itv <- itv_index(
+  ratios[complete, c("BEl", "VEp", "REs")],
+  groups = fish$metadata$species[complete]
+)
 itv
 
-# split ITV into between-/within-population components:
+# split ITV into between-/within-population components: the real T-26
+# survey sampled a single site (no population structure to report), so
+# the nested = argument is illustrated here on simulated data instead
+fish_sim <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+segments_sim <- fishmorph_segments(fish_sim)
+ratios_sim <- fishmorph_ratios(segments_sim)
 itv_nested <- itv_index(
-  ratios[, c("BEl", "VEp", "REs")],
-  groups = fish$metadata$species,
-  nested = fish$metadata$population
+  ratios_sim[, c("BEl", "VEp", "REs")],
+  groups = fish_sim$metadata$species,
+  nested = fish_sim$metadata$population
 )
 itv_nested
 

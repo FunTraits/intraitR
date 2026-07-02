@@ -85,7 +85,9 @@ the direct distance (1-2) is used, matching the original protocol
 ("+22 if needed, otherwise 22 = 0").
 }
 \examples{
-fish <- simulate_fishmorph_points(n_per_species = 5, n_replicates = 1)
+# real T-26 Saudrune data, in the same "intrait_landmarks" format as
+# simulate_fishmorph_points()
+fish <- load_t26_saudrune_landmarks()
 fishmorph_segments(fish)
 
 }
@@ -97,5 +99,5 @@ Biogeography, 30(11), 2330-2336.
 }
 \seealso{
 \code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}},
-\code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}
+\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}, \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}
 }

@@ -65,6 +65,29 @@ test_that("trait_disparity() errors when trait_space() object lacks groups", {
   expect_error(trait_disparity(ts_nogroups), "has no `groups`")
 })
 
+test_that("trait_disparity() drops rows with an NA group instead of corrupting every group's disparity", {
+  # Regression test: a single specimen with an unresolved/NA group used to
+  # silently propagate into the logical indexing `Xmat[g == lv, ]` for
+  # EVERY level of `g` (since `NA == lv` is NA, not FALSE, and `x[NA]`
+  # inserts an NA row), turning every group's disparity into NA -- found
+  # while validating the package against the real T-26 Saudrune data set,
+  # which has exactly this kind of unresolved identification.
+  set.seed(5)
+  n <- 15
+  df <- data.frame(
+    a = c(rnorm(n, 5, 1), rnorm(n, 5, 1), rnorm(1, 5, 1)),
+    b = c(rnorm(n, 2, 1), rnorm(n, 2, 1), rnorm(1, 2, 1))
+  )
+  groups <- c(rep("G1", n), rep("G2", n), NA)
+
+  expect_message(
+    td <- trait_disparity(df, groups = groups, iter = 49, log_transform = FALSE),
+    "missing/unresolved"
+  )
+  expect_false(anyNA(td$disparity))
+  expect_setequal(names(td$disparity), c("G1", "G2"))
+})
+
 test_that("print.intrait_disparity() prints without error", {
   set.seed(4)
   fish <- simulate_fishmorph_points(n_per_species = 10, n_replicates = 1)

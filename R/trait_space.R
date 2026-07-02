@@ -110,13 +110,17 @@
 #' (2017). Functional ecology of fish: current approaches and future
 #' challenges. Aquatic Sciences, 79(4), 783-801.
 #'
-#' @seealso [fishmorph_ratios()], [morpho_ratios()], [morpho_space()]
+#' @seealso [fishmorph_ratios()], [morpho_ratios()], [morpho_space()],
+#'   [load_t26_saudrune_landmarks()]
 #'
 #' @examples
-#' fish <- simulate_fishmorph_points(n_per_species = 10, n_replicates = 1)
+#' # real T-26 Saudrune data; na_action = "omit" is required here because,
+#' # unlike simulate_fishmorph_points(), real specimens have some missing
+#' # landmarks (see ?load_t26_saudrune_landmarks)
+#' fish <- load_t26_saudrune_landmarks()
 #' segments <- fishmorph_segments(fish)
 #' ratios <- fishmorph_ratios(segments)
-#' ts <- trait_space(ratios, groups = fish$metadata$species)
+#' ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 #' ts
 #' \donttest{
 #' plot(ts)
@@ -140,6 +144,19 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
   if (!is.null(groups)) {
     if (length(groups) != nrow(traits_df)) stop("`groups` must have one entry per row of `traits`.", call. = FALSE)
     groups <- factor(groups)
+    if (anyNA(groups)) {
+      keep_g <- !is.na(groups)
+      message(sprintf(
+        paste(
+          "Removing %d row(s) with a missing/unresolved `groups` value (e.g. an",
+          "unidentified specimen): a group-wise trait space cannot place a specimen",
+          "whose group is unknown."
+        ),
+        sum(!keep_g)
+      ))
+      traits_df <- traits_df[keep_g, , drop = FALSE]
+      groups <- droplevels(groups[keep_g])
+    }
   }
 
   numeric_cols <- names(traits_df)[vapply(traits_df, is.numeric, logical(1))]

@@ -79,7 +79,7 @@ fact and must instead be applied when digitizing landmarks 3-4
 (see \code{\link[=fishmorph_segments]{fishmorph_segments()}}).
 }
 \examples{
-fish <- simulate_fishmorph_points(n_per_species = 5, n_replicates = 1)
+fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
 fishmorph_ratios(segments)
 
@@ -96,5 +96,5 @@ tropical fish communities after habitat degradation. Ecological
 Applications, 20(6), 1512-1522.
 }
 \seealso{
-\code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=trait_space]{trait_space()}}
+\code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=trait_space]{trait_space()}}, \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}
 }

@@ -68,10 +68,10 @@ coefficients of variation, but does not test for group differences in
 the dispersion of a multivariate \emph{trait} space.
 }
 \examples{
-fish <- simulate_fishmorph_points(n_per_species = 12, n_replicates = 1)
+fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
 ratios <- fishmorph_ratios(segments)
-ts <- trait_space(ratios, groups = fish$metadata$species)
+ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 \donttest{
 td <- trait_disparity(ts, iter = 199)
 td

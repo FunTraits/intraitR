@@ -150,4 +150,3 @@ if (have_missforest) {
     nrow(ts_rf$scores), ts_rf$var_explained[1]
   ))
 }
-

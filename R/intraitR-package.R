@@ -22,8 +22,9 @@
 #'     [morpho_space()].
 #'   \item **Assess variability and error**: quantify intraspecific
 #'     morphological variability with [intraspecific_variability()] and
-#'     measurement error / repeatability from replicated digitization with
-#'     [measurement_error()].
+#'     [itv_index()], measurement error / repeatability from replicated
+#'     digitization with [measurement_error()], and landmark-level
+#'     digitization (operator) bias with [digitization_error()].
 #' }
 #'
 #' @section The FISHMORPH protocol:
@@ -55,6 +56,10 @@
 #' Bailey RC, Byrnes J (1990). A new, old method for assessing measurement
 #' error in both univariate and multivariate morphometric studies.
 #' Systematic Zoology, 39(2), 124-130.
+#'
+#' Boutic L (2026). Quantification du biais operateur dans la mesure des
+#' traits morphologiques de poissons d'eau douce. Rapport de projet
+#' tutore, L2 BCP BIOMIP, CRBE, unpublished.
 #'
 #' Brosse S, Charpin N, Su G, Toussaint A, Herrera-R GA, Tedesco PA,
 #' Villéger S (2021). FISHMORPH: A global database on morphological

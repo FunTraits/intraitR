@@ -37,11 +37,11 @@ the Brosse et al. (2021) FISHMORPH scheme, together with the 11 linear
 measurements they define, for quality control of digitization.
 }
 \examples{
-fish <- simulate_fishmorph_points(n_per_species = 3, n_replicates = 1)
+fish <- load_t26_saudrune_landmarks()
 plot_fishmorph_points(fish, specimen = 1)
 
 }
 \seealso{
 \code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=fishmorph_ratios]{fishmorph_ratios()}},
-\code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}
+\code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}, \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}
 }

@@ -57,10 +57,10 @@
 #' @seealso [trait_space()], [intraspecific_variability()]
 #'
 #' @examples
-#' fish <- simulate_fishmorph_points(n_per_species = 12, n_replicates = 1)
+#' fish <- load_t26_saudrune_landmarks()
 #' segments <- fishmorph_segments(fish)
 #' ratios <- fishmorph_ratios(segments)
-#' ts <- trait_space(ratios, groups = fish$metadata$species)
+#' ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 #' \donttest{
 #' td <- trait_disparity(ts, iter = 199)
 #' td
@@ -130,6 +130,18 @@ trait_disparity <- function(x, groups = NULL, iter = 999,
   groups <- factor(groups)
   if (length(groups) != nrow(X)) {
     stop("`groups` must have one entry per row of the trait data.", call. = FALSE)
+  }
+  if (anyNA(groups)) {
+    keep_g <- !is.na(groups)
+    message(sprintf(
+      paste(
+        "Removing %d row(s) with a missing/unresolved `groups` value (e.g. an",
+        "unidentified specimen) before testing among-group trait dispersion."
+      ),
+      sum(!keep_g)
+    ))
+    X <- X[keep_g, , drop = FALSE]
+    groups <- droplevels(groups[keep_g])
   }
   if (nlevels(groups) < 2) stop("`groups` must have at least two levels.", call. = FALSE)
   if (!is.numeric(iter) || length(iter) != 1 || iter < 1) {

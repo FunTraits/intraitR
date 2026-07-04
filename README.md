@@ -86,6 +86,74 @@ stricter operational definition), complementing the overall,
 rotation/scale-invariant repeatability estimate from
 `measurement_error(..., method = "procrustes")`.
 
+### Landmark quality control: orientation and geometry correction
+
+Before Generalised Procrustes Analysis, a digitized configuration should be
+in a geometrically consistent state: every specimen in the same left-right
+and up-down orientation, and every landmark placed according to the
+conventions expected of the digitization protocol (e.g. that a given set of
+points should share a common X or Y coordinate). Procrustes superimposition
+(`gpa_fish()`) removes translation, rotation and scale, but it cannot by
+itself fix a mirrored specimen or a landmark placed off the protocol's
+conventions -- either can silently distort the resulting shape space exactly
+as an undetected outlier would. `intraitR` provides a small set of functions
+to detect and correct these issues, in a documented and reproducible way,
+before alignment:
+
+* `impute_landmarks()` estimates a small number of missing landmarks (e.g.
+  the commonly missing landmark 5 of the FISHMORPH scheme) from the rest of
+  the configuration and the sample consensus, so that a specimen is not
+  simply dropped for one incomplete point.
+* `standardize_orientation()` detects and corrects specimens digitized in an
+  inconsistent orientation, enforcing a consistent head-left, belly-down
+  frame across the whole sample.
+* `correct_landmarks(rule = "check_geometry")` audits a fixed battery of
+  geometric conventions expected of a digitization protocol (e.g. the
+  FISHMORPH scheme) and returns a diagnostic report, without modifying
+  anything; `correct_geometry()` then automatically snaps every flagged
+  landmark to the shared coordinate implied by its trusted neighbours.
+  `correct_landmarks(rule = "align")` lets a single, visually identified
+  point be corrected manually instead.
+
+Every one of these functions records what it changed and why in a shared,
+mergeable audit-trail attribute (`attr(x$coords, "corrected")` and
+`attr(x$coords, "correction_log")`), so a full correction history
+accumulates across successive calls on the same object, and `plot_landmarks()`
+/ `plot_fishmorph_points()` highlight imputed and corrected points visually
+(red and blue, respectively) for review.
+
+A complete pipeline from raw landmarks to a functional trait space,
+including this quality-control step, looks like this:
+
+```r
+fish          <- load_t26_saudrune_landmarks()
+fish_imputed  <- impute_landmarks(fish)
+fish_oriented <- standardize_orientation(fish_imputed)
+geom_check    <- correct_landmarks(fish_imputed, rule = "check_geometry")
+fish_fixed    <- correct_geometry(fish_oriented)
+
+# visually compare a specimen before/after geometry correction, with any
+# flagged convention highlighted in orange:
+plot_fishmorph_points(fish_oriented, specimen = "T-26-0024_Operator_1",
+                       geometry_check = geom_check)
+plot_fishmorph_points(fish_fixed, specimen = "T-26-0024_Operator_1",
+                       geometry_check = geom_check)
+
+segments_fixed <- fishmorph_segments(fish_fixed)
+ratios_fixed   <- fishmorph_ratios(segments_fixed)
+
+ts_fixed <- trait_space(
+  ratios_fixed, groups = fish$metadata$species,
+  na_action = "omit", remove_outliers = TRUE
+)
+# flags any within-species outliers found, see ts_fixed$outlier_screen
+plot(ts_fixed)
+```
+
+The same corrected, oriented, geometry-fixed object (`fish_fixed`) also feeds
+directly into `fishmorph_shape_landmarks()` and `gpa_fish()` for the
+shape-space side of the workflow (see `demo("pipeline_T26_saudrune")`).
+
 ## The FISHMORPH protocol (Brosse et al., 2021)
 
 `intraitR` also implements the specific digitization and trait protocol of

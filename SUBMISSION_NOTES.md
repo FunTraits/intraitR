@@ -13,6 +13,54 @@ effectuée, et une incohérence trouvée lors de cette relecture
 Mais **une vérification complète sous R reste nécessaire avant toute
 soumission**.
 
+## Mise à jour v1.1.0 : `method` multi-mesures + `compare_functional_richness()`
+
+Ajouté après le premier run réel de v1.0.0, et donc **de nouveau non
+exécuté sous R** dans cet environnement (toujours pas de R disponible
+ici) :
+[`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)
+et
+[`species_sensitivity()`](https://funtraits.github.io/intraitR/reference/species_sensitivity.md)
+acceptent désormais un argument `method` (`"convexhull"`, comportement
+par défaut inchangé ; `"dendrogram"`, `"tpd"`, `"hypervolume"`), et une
+nouvelle fonction
+[`compare_functional_richness()`](https://funtraits.github.io/intraitR/reference/compare_functional_richness.md)
+exécute plusieurs méthodes sur les mêmes données et tabule les
+résultats.
+
+Point d’attention prioritaire avant soumission : les appels à
+[`TPD::TPDsMean()`](https://rdrr.io/pkg/TPD/man/TPDsMean.html)/[`TPD::TPDc()`](https://rdrr.io/pkg/TPD/man/TPDc.html)/[`TPD::REND()`](https://rdrr.io/pkg/TPD/man/REND.html)
+et
+[`hypervolume::hypervolume_gaussian()`](https://rdrr.io/pkg/hypervolume/man/hypervolume_gaussian.html)/`estimate_bandwidth()`/`get_volume()`
+ont été écrits à partir de la documentation CRAN de référence de ces
+deux packages (manuels `.Rd` lus au moment de l’écriture, via recherche
+web puisqu’aucun R local n’était disponible pour vérifier
+interactivement
+[`?TPD::TPDsMean`](https://rdrr.io/pkg/TPD/man/TPDsMean.html) etc.), et
+non testés par exécution réelle. Avant toute soumission :
+
+- Installer `TPD` et `hypervolume` sur votre poste et lancer les tests
+  `method = "tpd"`/`method = "hypervolume"` de
+  `test-bootstrap_functional_space.R`, `test-species_sensitivity.R`, et
+  `test-compare_functional_richness.R` (protégés par
+  [`testthat::skip_if_not_installed()`](https://testthat.r-lib.org/reference/skip.html),
+  donc silencieusement ignorés sans ces packages — vérifiez qu’ils
+  s’exécutent bien et passent, pas seulement qu’ils sont “skip”).
+- Vérifier en particulier que `trait_ranges` (grille fixe passée à
+  [`TPD::TPDsMean()`](https://rdrr.io/pkg/TPD/man/TPDsMean.html)) et
+  `kde.bandwidth` (largeur de bande fixe passée à
+  [`hypervolume::hypervolume_gaussian()`](https://rdrr.io/pkg/hypervolume/man/hypervolume_gaussian.html))
+  acceptent bien le format construit par `.fspace_richness_setup()` dans
+  la version de ces packages installée sur votre poste
+  (`packageVersion("TPD")`, `packageVersion("hypervolume")`).
+- `method = "dendrogram"` ne dépend que de
+  [`stats::hclust()`](https://rdrr.io/r/stats/hclust.html) (aucune
+  nouvelle dépendance) et a été raisonné à la main (longueur totale de
+  branches UPGMA, Petchey & Gaston 2002) ; à vérifier aussi par un vrai
+  `devtools::test()`, par prudence, comme pour tout le reste du paquet.
+- `DESCRIPTION` : `TPD` et `hypervolume` ont été ajoutés à `Suggests` ;
+  `Version:` est passé à 1.1.0 et un champ `Date:` a été ajouté.
+
 ## Mise à jour v1.0.0 : premier `devtools::test()` réel
 
 Pour la version 1.0.0, `devtools::test()` a enfin été exécuté sur un
@@ -127,9 +175,9 @@ dépendance.
       venait à changer de nom ou d’organisation, pensez à mettre à jour
       ces deux champs (ainsi que `inst/CITATION` et l’exemple
       `remotes::install_github()` du `README.md`).
-    - Vérifiez le champ `Version:` (actuellement 1.0.0 ; voir `NEWS.md`
-      pour l’historique complet des versions) et ajoutez un champ
-      `Date:` si vous le souhaitez.
+    - Vérifiez le champ `Version:` (actuellement 1.1.0 ; voir `NEWS.md`
+      pour l’historique complet des versions) et le champ `Date:`
+      (actuellement 2026-07-04).
 
 6.  (Optionnel) Générer un jeu de données statique inclus dans le paquet
     : exécutez `data-raw/simulate_data.R` (voir les instructions dans ce

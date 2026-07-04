@@ -302,17 +302,30 @@ per specimen:
   visualise and simulate data following the 21/22-point scheme.
 - [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)
   quantifies how much representing species by real individuals, rather
-  than by their centroid, inflates estimated functional richness (an
-  n-dimensional convex-hull volume in PCA space), following the
-  bootstrap procedure of Bertrand (2026); requires the `geometry`
-  package (Suggested, not installed by default).
+  than by their centroid, inflates estimated functional richness in PCA
+  space, following the bootstrap procedure of Bertrand (2026). `method`
+  selects the richness measure: `"convexhull"` (default, n-dimensional
+  convex-hull volume; requires the `geometry` package, Suggested, not
+  installed by default), `"dendrogram"` (UPGMA functional dendrogram
+  branch length, no extra package needed), `"tpd"` (Trait Probability
+  Density; `TPD` package), or `"hypervolume"` (Gaussian-kernel
+  hypervolume; `hypervolume` package).
 - [`species_sensitivity()`](https://funtraits.github.io/intraitR/reference/species_sensitivity.md)
-  complements it with a per-species index (Bertrand, 2026): for each
-  species, its centroid is replaced by each of its individuals in turn
-  (every other species fixed at its centroid), and the resulting percent
-  change in functional richness is summarised as a mean effect and a
-  min-max range, identifying which species drive ITV’s expansion of the
-  functional space.
+  complements it with a per-species index (Bertrand, 2026), with the
+  same `method` choice: for each species, its centroid is replaced by
+  each of its individuals in turn (every other species fixed at its
+  centroid), and the resulting percent change in functional richness is
+  summarised as a mean effect and a min-max range, identifying which
+  species drive ITV’s expansion of the functional space.
+- [`compare_functional_richness()`](https://funtraits.github.io/intraitR/reference/compare_functional_richness.md)
+  runs
+  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)
+  across several `method`s at once and tabulates `fd_ref`,
+  `fd_boot_mean`, percent change, and the bootstrap p-value side by
+  side, for triangulating whether the ITV-driven expansion of functional
+  space is robust to the choice of richness measure. A method whose
+  package is missing, or that errors, is recorded as skipped rather than
+  failing the whole comparison.
 
 ## Performance on large data sets
 

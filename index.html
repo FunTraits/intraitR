@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -168,9 +168,11 @@
 <li>
 <code><a href="reference/plot_fishmorph_points.html">plot_fishmorph_points()</a></code> and <code><a href="reference/simulate_fishmorph_points.html">simulate_fishmorph_points()</a></code> visualise and simulate data following the 21/22-point scheme.</li>
 <li>
-<code><a href="reference/bootstrap_functional_space.html">bootstrap_functional_space()</a></code> quantifies how much representing species by real individuals, rather than by their centroid, inflates estimated functional richness (an n-dimensional convex-hull volume in PCA space), following the bootstrap procedure of Bertrand (2026); requires the <code>geometry</code> package (Suggested, not installed by default).</li>
+<code><a href="reference/bootstrap_functional_space.html">bootstrap_functional_space()</a></code> quantifies how much representing species by real individuals, rather than by their centroid, inflates estimated functional richness in PCA space, following the bootstrap procedure of Bertrand (2026). <code>method</code> selects the richness measure: <code>"convexhull"</code> (default, n-dimensional convex-hull volume; requires the <code>geometry</code> package, Suggested, not installed by default), <code>"dendrogram"</code> (UPGMA functional dendrogram branch length, no extra package needed), <code>"tpd"</code> (Trait Probability Density; <code>TPD</code> package), or <code>"hypervolume"</code> (Gaussian-kernel hypervolume; <code>hypervolume</code> package).</li>
 <li>
-<code><a href="reference/species_sensitivity.html">species_sensitivity()</a></code> complements it with a per-species index (Bertrand, 2026): for each species, its centroid is replaced by each of its individuals in turn (every other species fixed at its centroid), and the resulting percent change in functional richness is summarised as a mean effect and a min-max range, identifying which species drive ITV’s expansion of the functional space.</li>
+<code><a href="reference/species_sensitivity.html">species_sensitivity()</a></code> complements it with a per-species index (Bertrand, 2026), with the same <code>method</code> choice: for each species, its centroid is replaced by each of its individuals in turn (every other species fixed at its centroid), and the resulting percent change in functional richness is summarised as a mean effect and a min-max range, identifying which species drive ITV’s expansion of the functional space.</li>
+<li>
+<code><a href="reference/compare_functional_richness.html">compare_functional_richness()</a></code> runs <code><a href="reference/bootstrap_functional_space.html">bootstrap_functional_space()</a></code> across several <code>method</code>s at once and tabulates <code>fd_ref</code>, <code>fd_boot_mean</code>, percent change, and the bootstrap p-value side by side, for triangulating whether the ITV-driven expansion of functional space is robust to the choice of richness measure. A method whose package is missing, or that errors, is recorded as skipped rather than failing the whole comparison.</li>
 </ul>
 </div>
 <div class="section level2">

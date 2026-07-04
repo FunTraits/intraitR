@@ -133,8 +133,8 @@ td
 #> -- Pairwise absolute differences (lower triangle) / p-values (upper triangle) --
 #>                              Barbatula barbatula Barbus barbus Gobio occitaniae
 #>                           NA              0.0050        0.0050           0.0050
-#> Barbatula barbatula       NA                  NA        0.1700           0.1250
-#> Barbus barbus             NA             12.7918            NA           0.6100
+#> Barbatula barbatula       NA                  NA        0.2100           0.1550
+#> Barbus barbus             NA             12.7918            NA           0.6400
 #> Gobio occitaniae          NA              9.9268        2.8650               NA
 #> Lepomis gibbosus          NA             12.8709        0.0791           2.9441
 #> Leuciscus burdigalensis   NA             13.4857        0.6939           3.5589
@@ -144,10 +144,10 @@ td
 #> Squalius cephalus         NA              7.1827        5.6091           2.7441
 #>                           Lepomis gibbosus Leuciscus burdigalensis
 #>                                     0.0050                  0.0050
-#> Barbatula barbatula                 0.1400                  0.1850
-#> Barbus barbus                       0.9900                  0.8650
-#> Gobio occitaniae                    0.7250                  0.5050
-#> Lepomis gibbosus                        NA                  0.9200
+#> Barbatula barbatula                 0.1950                  0.1850
+#> Barbus barbus                       1.0000                  0.8450
+#> Gobio occitaniae                    0.7750                  0.5000
+#> Lepomis gibbosus                        NA                  0.9350
 #> Leuciscus burdigalensis             0.6148                      NA
 #> Perca fluviatilis                   2.0131                  2.6279
 #> Phoxinus phoxinus                   1.1828                  1.7976
@@ -155,25 +155,25 @@ td
 #> Squalius cephalus                   5.6882                  6.3030
 #>                           Perca fluviatilis Phoxinus phoxinus
 #>                                      0.0050            0.0050
-#> Barbatula barbatula                  0.2000            0.2050
-#> Barbus barbus                        0.5600            0.7450
-#> Gobio occitaniae                     0.9000            0.7200
-#> Lepomis gibbosus                     0.7100            0.8700
-#> Leuciscus burdigalensis              0.4300            0.6150
-#> Perca fluviatilis                        NA            0.7850
+#> Barbatula barbatula                  0.2650            0.2300
+#> Barbus barbus                        0.5700            0.7450
+#> Gobio occitaniae                     0.8650            0.7550
+#> Lepomis gibbosus                     0.7300            0.8550
+#> Leuciscus burdigalensis              0.4450            0.5900
+#> Perca fluviatilis                        NA            0.7150
 #> Phoxinus phoxinus                    0.8303                NA
 #> Phoxinus phoxinus/bigerri            0.9900            0.1597
 #> Squalius cephalus                    3.6751            4.5054
 #>                           Phoxinus phoxinus/bigerri Squalius cephalus
 #>                                              0.0050             0.005
-#> Barbatula barbatula                          0.1850             0.260
-#> Barbus barbus                                0.8100             0.360
-#> Gobio occitaniae                             0.7100             0.555
-#> Lepomis gibbosus                             0.8200             0.405
-#> Leuciscus burdigalensis                      0.6650             0.320
-#> Perca fluviatilis                            0.8100             0.495
-#> Phoxinus phoxinus                            0.9450             0.460
-#> Phoxinus phoxinus/bigerri                        NA             0.445
+#> Barbatula barbatula                          0.2350             0.260
+#> Barbus barbus                                0.8150             0.335
+#> Gobio occitaniae                             0.7600             0.555
+#> Lepomis gibbosus                             0.8700             0.440
+#> Leuciscus burdigalensis                      0.6400             0.260
+#> Perca fluviatilis                            0.7900             0.475
+#> Phoxinus phoxinus                            0.9700             0.400
+#> Phoxinus phoxinus/bigerri                        NA             0.425
 #> Squalius cephalus                            4.6652                NA
 # }
 ```

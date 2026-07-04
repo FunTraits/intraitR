@@ -1,6 +1,7 @@
 # Print and plot an `"intrait_species_sensitivity"` object
 
-Print and plot an `"intrait_species_sensitivity"` object
+Both mention which `method` (`"convexhull"`, `"dendrogram"`, `"tpd"`, or
+`"hypervolume"`) was used to compute the underlying functional richness.
 
 ## Usage
 

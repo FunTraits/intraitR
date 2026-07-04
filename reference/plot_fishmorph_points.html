@@ -13,7 +13,7 @@ scale bar, for quality control of digitization."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -63,6 +63,8 @@ scale bar, for quality control of digitization.</p>
 <span>  highlight_corrected <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  geometry_check <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  highlight_geometry <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  scale_label <span class="op">=</span> <span class="st">"scale (1 cm)"</span>,</span>
+<span>  axis_range <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -195,8 +197,41 @@ highlighting described above. Only relevant when <code>geometry_check</code> is
 supplied. Defaults to <code>TRUE</code>.</p></dd>
 
 
+<dt id="arg-scale-label">scale_label<a class="anchor" aria-label="anchor" href="#arg-scale-label"></a></dt>
+<dd><p>Character text drawn just above the digitization
+scale bar (landmarks 20-21), or <code>NULL</code> to omit it. Defaults to
+<code>"scale (1 cm)"</code>, the FISHMORPH protocol's standard calibration
+segment; change it (e.g. <code>"scale (2 cm)"</code>) if a data set was
+digitized against a different calibration length. Only drawn when
+both landmarks 20 and 21 are present (non-<code>NA</code>) for this specimen.
+The bar itself is drawn schematically near the plot's own origin
+(bottom-left corner) rather than at landmarks 20/21's true digitized
+coordinates – which can otherwise land anywhere in the frame, even
+on the fish – while still being drawn to the real digitized length
+between them (i.e. still true to scale); neither landmark is
+individually number-labelled.</p></dd>
+
+
+<dt id="arg-axis-range">axis_range<a class="anchor" aria-label="anchor" href="#arg-axis-range"></a></dt>
+<dd><p>Either <code>"auto"</code> (default) or a numeric vector of
+length 2, <code>c(min, max)</code>, shared by both <code>x</code> and <code>y</code>. <code>"auto"</code> uses
+<code>c(0, 1)</code>, with its clean, round tick labels, whenever every
+coordinate of this specimen is within a generous +/-15% of it (the
+normalised convention used throughout the package's own examples and
+the T-26 Saudrune data, allowing for the slight overshoot a real
+corrected/aligned specimen can have), and otherwise falls back to
+the data's own combined range – e.g. for a specimen still in raw,
+not-yet-normalised digitization coordinates (pixels in the hundreds
+or thousands), for which a hard-coded <code>c(0, 1)</code> would silently plot
+every point outside the visible area. Pass a numeric vector to force
+specific limits instead, or <code>xlim</code>/<code>ylim</code> (via <code>...</code>) to set <code>x</code>/<code>y</code>
+independently.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Further arguments passed to <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">graphics::plot()</a></code>.</p></dd>
+<dd><p>Further arguments passed to <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">graphics::plot()</a></code>; in
+particular, <code>xlim</code>/<code>ylim</code> override <code>axis_range</code> independently for
+<code>x</code>/<code>y</code> (see Details).</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -206,12 +241,63 @@ supplied. Defaults to <code>TRUE</code>.</p></dd>
 matrices, one per matching specimen.</p>
     </div>
     <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>This is deliberately scheme-specific: it requires at least 21 landmarks
+following the FISHMORPH protocol (and errors otherwise), in exchange for
+a much richer display than a generic scatterplot – colour-coded
+measurement segments and legend, anatomical body outline/eye/reference
+lines, a schematic scale bar, and highlighting of imputed, corrected, or
+geometry-check-flagged landmarks. For any other landmark scheme or
+count (e.g. the generic, <code>n_landmarks</code>-only configurations from
+<code><a href="simulate_fish_landmarks.html">simulate_fish_landmarks()</a></code>, or a non-FISHMORPH digitization protocol),
+or for a lighter-weight look at FISHMORPH data without this added
+detail, see <code><a href="plot_landmarks.html">plot_landmarks()</a></code> instead.</p>
+<p>A few display choices are fixed for readability rather than left to
+<code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">graphics::plot()</a></code>'s own defaults: axes are square (<code>par(pty = "s")</code>)
+and share the limits set by <code>axis_range</code> (see above), <code>xaxs</code>/
+<code>yaxs = "i"</code> remove R's default 4% axis-range padding (together, these
+two settings avoid the wide band of blank space R would otherwise add
+to whichever axis does not already match the plotting device's own
+width/height ratio), and the plot box itself is then drawn a further,
+fixed 20% beyond <code>axis_range</code> on every side (e.g. <code>[-0.2, 1.2]</code> for
+the default <code>[0, 1]</code> convention) so that landmarks sitting right on
+the 0/1 edge – common for the FISHMORPH scheme's snout-tip, scale-bar
+and caudal-fin landmarks – are not clipped by the border together
+with their halo number/arrow. Tick marks are drawn short at five
+evenly spaced positions within the original, unpadded <code>axis_range</code>
+(quarter increments for the default <code>[0, 1]</code> range), tick labels are
+always horizontal on both axes, and axis titles read "X
+coordinates"/"Y coordinates". Landmark
+index numbers (<code>labels = TRUE</code>) are placed above or below their
+landmark, whichever side points away from the rest of the configuration
+(landmarks 15 and 17, which sit right on the main body axis, are always
+placed below), connected back to it by a short arrow, and drawn with a
+white halo behind a bold number, so they stay legible and never have to
+sit directly on top of the fish outline or a coloured measurement
+segment. Landmarks 5, 13, 14 and 7 – the upper part of the tightly
+clustered eye-socket group (5, 13, 7, 14, 6, 8) – are additionally
+given an explicit direction clear of the body outline (5 straight up,
+13 shallow up-right, 14 steep up-right – different angles, not just
+different distances, so the two do not read as sitting on the same
+line out of the cluster – and 7 up and to the left), since the
+generic rule alone still overlaps there; 6 is nudged a little further
+right so it clears 8/15 below it; 8 itself is left entirely to the
+generic rule, like the other ventral landmarks (9, 11). Every offset
+is computed in physical inches (<code><a href="https://rdrr.io/r/graphics/units.html" class="external-link">xinch()</a></code>/<code><a href="https://rdrr.io/r/graphics/units.html" class="external-link">yinch()</a></code>) rather than data
+units, so this layout looks the same regardless of whether coordinates
+are already normalised to <code>[0, 1]</code> or are raw, not-yet-corrected
+digitization pixels in the hundreds or thousands. Landmarks 20 and 21
+(the scale bar) are excluded from this numbering, and from the plain
+scattered dots, entirely – see <code>scale_label</code> above.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="fishmorph_segments.html">fishmorph_segments()</a></code>, <code><a href="fishmorph_ratios.html">fishmorph_ratios()</a></code>,
 <code><a href="simulate_fishmorph_points.html">simulate_fishmorph_points()</a></code>, <code><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks()</a></code>,
 <code><a href="impute_landmarks.html">impute_landmarks()</a></code>, <code><a href="correct_landmarks.html">correct_landmarks()</a></code>,
 <code><a href="standardize_orientation.html">standardize_orientation()</a></code> (fix an upside-down/mirrored specimen at
-the data level, rather than a per-plot display toggle)</p></div>
+the data level, rather than a per-plot display toggle),
+<code><a href="plot_landmarks.html">plot_landmarks()</a></code> (generic viewer for any other landmark scheme)</p></div>
     </div>
 
     <div class="section level2">

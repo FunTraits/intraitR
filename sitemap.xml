@@ -9,6 +9,7 @@
 <url><loc>https://funtraits.github.io/intraitR/index.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/news/index.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/compare_functional_richness.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/correct_allometry.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/correct_geometry.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/correct_landmarks.html</loc></url>
@@ -39,6 +40,7 @@
 <url><loc>https://funtraits.github.io/intraitR/reference/print.intrait_disparity.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/print.intrait_landmarks.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/print.intrait_measurement_error.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/print.intrait_richness_comparison.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/print.intrait_species_sensitivity.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/read_landmarks_csv.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/read_landmarks_xlsx.html</loc></url>

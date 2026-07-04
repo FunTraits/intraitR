@@ -85,6 +85,8 @@ should be treated with more caution as the fraction of missing landmarks
 grows, or when very few specimens have a complete configuration to learn
 the covariation structure from. Always compare an imputed specimen
 against its non-imputed neighbours (e.g. with
+[`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md),
+which highlights imputed landmarks directly, or the more generic
 [`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md))
 before relying on it in an analysis.
 
@@ -93,6 +95,7 @@ before relying on it in an analysis.
 [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md),
 [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md),
 [`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md),
+[`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md),
 [`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md)
 
 ## Examples

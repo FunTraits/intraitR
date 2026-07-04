@@ -71,11 +71,13 @@ utilisez l’authentification SSH plutôt que HTTPS.)
   `https://funtraits.github.io/intraitR/` après le premier déploiement
   réussi.
 - **`.github/workflows/test-coverage.yaml`** : calcule la couverture de
-  tests (`covr::package_coverage()`) et l’envoie à Codecov à chaque
-  push. Nécessite un secret de dépôt `CODECOV_TOKEN` (à créer sur
-  <https://codecov.io> après avoir lié le dépôt) pour que l’envoi
-  fonctionne ; sans ce secret, le workflow s’exécute mais l’étape
-  d’envoi échoue silencieusement en pull request externe.
+  tests
+  ([`covr::package_coverage()`](http://covr.r-lib.org/reference/package_coverage.md))
+  et l’envoie à Codecov à chaque push. Nécessite un secret de dépôt
+  `CODECOV_TOKEN` (à créer sur <https://codecov.io> après avoir lié le
+  dépôt) pour que l’envoi fonctionne ; sans ce secret, le workflow
+  s’exécute mais l’étape d’envoi échoue silencieusement en pull request
+  externe.
 - **Badges** : les quatre badges de statut (R-CMD-check, couverture de
   tests, Codecov, pkgdown) sont déjà dans `README.md` ; ils s’activeront
   automatiquement une fois les workflows correspondants exécutés au
@@ -99,8 +101,11 @@ utilisez l’authentification SSH plutôt que HTTPS.)
   `gh-pages` dans Settings \> Pages si ce n’est pas fait automatiquement
   par le workflow.
 - Pour une soumission CRAN, `cran-comments.md` et `SUBMISSION_NOTES.md`
-  restent à jour comme pense-bête. `devtools::test()` a maintenant été
-  exécuté avec succès sur votre poste (465 tests passés, 0 échec après
+  restent à jour comme pense-bête. `devtools::test()` a été exécuté avec
+  succès sur votre poste pour la v1.0.0 (465 tests passés, 0 échec après
   correction d’un bug de précédence d’opérateur dans un test de
-  régression — voir `NEWS.md`, v1.0.0) ; il reste à lancer
-  `devtools::check(cran = TRUE)` avant toute soumission effective.
+  régression — voir `NEWS.md`). La v1.1.0 (ajout de `method`
+  multi-mesures et de
+  [`compare_functional_richness()`](https://funtraits.github.io/intraitR/reference/compare_functional_richness.md))
+  n’a pas encore eu son propre run réel ; relancez `devtools::test()`
+  puis `devtools::check(cran = TRUE)` avant toute soumission effective.

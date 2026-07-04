@@ -22,6 +22,8 @@ plot_fishmorph_points(
   highlight_corrected = TRUE,
   geometry_check = NULL,
   highlight_geometry = TRUE,
+  scale_label = "scale (1 cm)",
+  axis_range = "auto",
   ...
 )
 ```
@@ -158,16 +160,100 @@ plot_fishmorph_points(
   above. Only relevant when `geometry_check` is supplied. Defaults to
   `TRUE`.
 
+- scale_label:
+
+  Character text drawn just above the digitization scale bar (landmarks
+  20-21), or `NULL` to omit it. Defaults to `"scale (1 cm)"`, the
+  FISHMORPH protocol's standard calibration segment; change it (e.g.
+  `"scale (2 cm)"`) if a data set was digitized against a different
+  calibration length. Only drawn when both landmarks 20 and 21 are
+  present (non-`NA`) for this specimen. The bar itself is drawn
+  schematically near the plot's own origin (bottom-left corner) rather
+  than at landmarks 20/21's true digitized coordinates – which can
+  otherwise land anywhere in the frame, even on the fish – while still
+  being drawn to the real digitized length between them (i.e. still true
+  to scale); neither landmark is individually number-labelled.
+
+- axis_range:
+
+  Either `"auto"` (default) or a numeric vector of length 2,
+  `c(min, max)`, shared by both `x` and `y`. `"auto"` uses `c(0, 1)`,
+  with its clean, round tick labels, whenever every coordinate of this
+  specimen is within a generous +/-15% of it (the normalised convention
+  used throughout the package's own examples and the T-26 Saudrune data,
+  allowing for the slight overshoot a real corrected/aligned specimen
+  can have), and otherwise falls back to the data's own combined range –
+  e.g. for a specimen still in raw, not-yet-normalised digitization
+  coordinates (pixels in the hundreds or thousands), for which a
+  hard-coded `c(0, 1)` would silently plot every point outside the
+  visible area. Pass a numeric vector to force specific limits instead,
+  or `xlim`/`ylim` (via `...`) to set `x`/`y` independently.
+
 - ...:
 
   Further arguments passed to
-  [`graphics::plot()`](https://rdrr.io/r/graphics/plot.default.html).
+  [`graphics::plot()`](https://rdrr.io/r/graphics/plot.default.html); in
+  particular, `xlim`/`ylim` override `axis_range` independently for
+  `x`/`y` (see Details).
 
 ## Value
 
 Invisibly returns the `p x 2` matrix of coordinates plotted, or (when
 `individual` matches more than one specimen) a named list of such
 matrices, one per matching specimen.
+
+## Details
+
+This is deliberately scheme-specific: it requires at least 21 landmarks
+following the FISHMORPH protocol (and errors otherwise), in exchange for
+a much richer display than a generic scatterplot – colour-coded
+measurement segments and legend, anatomical body outline/eye/reference
+lines, a schematic scale bar, and highlighting of imputed, corrected, or
+geometry-check-flagged landmarks. For any other landmark scheme or count
+(e.g. the generic, `n_landmarks`-only configurations from
+[`simulate_fish_landmarks()`](https://funtraits.github.io/intraitR/reference/simulate_fish_landmarks.md),
+or a non-FISHMORPH digitization protocol), or for a lighter-weight look
+at FISHMORPH data without this added detail, see
+[`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md)
+instead.
+
+A few display choices are fixed for readability rather than left to
+[`graphics::plot()`](https://rdrr.io/r/graphics/plot.default.html)'s own
+defaults: axes are square (`par(pty = "s")`) and share the limits set by
+`axis_range` (see above), `xaxs`/ `yaxs = "i"` remove R's default 4%
+axis-range padding (together, these two settings avoid the wide band of
+blank space R would otherwise add to whichever axis does not already
+match the plotting device's own width/height ratio), and the plot box
+itself is then drawn a further, fixed 20% beyond `axis_range` on every
+side (e.g. `[-0.2, 1.2]` for the default `[0, 1]` convention) so that
+landmarks sitting right on the 0/1 edge – common for the FISHMORPH
+scheme's snout-tip, scale-bar and caudal-fin landmarks – are not clipped
+by the border together with their halo number/arrow. Tick marks are
+drawn short at five evenly spaced positions within the original,
+unpadded `axis_range` (quarter increments for the default `[0, 1]`
+range), tick labels are always horizontal on both axes, and axis titles
+read "X coordinates"/"Y coordinates". Landmark index numbers
+(`labels = TRUE`) are placed above or below their landmark, whichever
+side points away from the rest of the configuration (landmarks 15 and
+17, which sit right on the main body axis, are always placed below),
+connected back to it by a short arrow, and drawn with a white halo
+behind a bold number, so they stay legible and never have to sit
+directly on top of the fish outline or a coloured measurement segment.
+Landmarks 5, 13, 14 and 7 – the upper part of the tightly clustered
+eye-socket group (5, 13, 7, 14, 6, 8) – are additionally given an
+explicit direction clear of the body outline (5 straight up, 13 shallow
+up-right, 14 steep up-right – different angles, not just different
+distances, so the two do not read as sitting on the same line out of the
+cluster – and 7 up and to the left), since the generic rule alone still
+overlaps there; 6 is nudged a little further right so it clears 8/15
+below it; 8 itself is left entirely to the generic rule, like the other
+ventral landmarks (9, 11). Every offset is computed in physical inches
+([`xinch()`](https://rdrr.io/r/graphics/units.html)/[`yinch()`](https://rdrr.io/r/graphics/units.html))
+rather than data units, so this layout looks the same regardless of
+whether coordinates are already normalised to `[0, 1]` or are raw,
+not-yet-corrected digitization pixels in the hundreds or thousands.
+Landmarks 20 and 21 (the scale bar) are excluded from this numbering,
+and from the plain scattered dots, entirely – see `scale_label` above.
 
 ## See also
 
@@ -179,7 +265,9 @@ matrices, one per matching specimen.
 [`correct_landmarks()`](https://funtraits.github.io/intraitR/reference/correct_landmarks.md),
 [`standardize_orientation()`](https://funtraits.github.io/intraitR/reference/standardize_orientation.md)
 (fix an upside-down/mirrored specimen at the data level, rather than a
-per-plot display toggle)
+per-plot display toggle),
+[`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md)
+(generic viewer for any other landmark scheme)
 
 ## Examples
 

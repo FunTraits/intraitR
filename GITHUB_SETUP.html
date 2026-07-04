@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -75,7 +75,7 @@
 <li>
 <strong><code>.github/workflows/pkgdown.yaml</code></strong> : construit et déploie automatiquement un site de documentation sur <code>gh-pages</code> à chaque push sur la branche par défaut (voir <code>_pkgdown.yml</code> pour la configuration de l’index de référence) ; il sera consultable à <code>https://funtraits.github.io/intraitR/</code> après le premier déploiement réussi.</li>
 <li>
-<strong><code>.github/workflows/test-coverage.yaml</code></strong> : calcule la couverture de tests (<code>covr::package_coverage()</code>) et l’envoie à Codecov à chaque push. Nécessite un secret de dépôt <code>CODECOV_TOKEN</code> (à créer sur <a href="https://codecov.io" class="external-link uri">https://codecov.io</a> après avoir lié le dépôt) pour que l’envoi fonctionne ; sans ce secret, le workflow s’exécute mais l’étape d’envoi échoue silencieusement en pull request externe.</li>
+<strong><code>.github/workflows/test-coverage.yaml</code></strong> : calcule la couverture de tests (<code><a href="http://covr.r-lib.org/reference/package_coverage.html" class="external-link">covr::package_coverage()</a></code>) et l’envoie à Codecov à chaque push. Nécessite un secret de dépôt <code>CODECOV_TOKEN</code> (à créer sur <a href="https://codecov.io" class="external-link uri">https://codecov.io</a> après avoir lié le dépôt) pour que l’envoi fonctionne ; sans ce secret, le workflow s’exécute mais l’étape d’envoi échoue silencieusement en pull request externe.</li>
 <li>
 <strong>Badges</strong> : les quatre badges de statut (R-CMD-check, couverture de tests, Codecov, pkgdown) sont déjà dans <code>README.md</code> ; ils s’activeront automatiquement une fois les workflows correspondants exécutés au moins une fois sur GitHub.</li>
 <li>
@@ -86,7 +86,7 @@
 <ul><li>
 <code>BugReports:</code> (dans <code>DESCRIPTION</code>) pointe déjà vers <code>github.com/FunTraits/intraitR/issues</code>.</li>
 <li>Le site pkgdown (voir ci-dessus) se déploiera automatiquement au premier push sur <code>main</code> ; activez GitHub Pages sur la branche <code>gh-pages</code> dans Settings &gt; Pages si ce n’est pas fait automatiquement par le workflow.</li>
-<li>Pour une soumission CRAN, <code>cran-comments.md</code> et <code>SUBMISSION_NOTES.md</code> restent à jour comme pense-bête. <code>devtools::test()</code> a maintenant été exécuté avec succès sur votre poste (465 tests passés, 0 échec après correction d’un bug de précédence d’opérateur dans un test de régression — voir <code>NEWS.md</code>, v1.0.0) ; il reste à lancer <code>devtools::check(cran = TRUE)</code> avant toute soumission effective.</li>
+<li>Pour une soumission CRAN, <code>cran-comments.md</code> et <code>SUBMISSION_NOTES.md</code> restent à jour comme pense-bête. <code>devtools::test()</code> a été exécuté avec succès sur votre poste pour la v1.0.0 (465 tests passés, 0 échec après correction d’un bug de précédence d’opérateur dans un test de régression — voir <code>NEWS.md</code>). La v1.1.0 (ajout de <code>method</code> multi-mesures et de <code><a href="reference/compare_functional_richness.html">compare_functional_richness()</a></code>) n’a pas encore eu son propre run réel ; relancez <code>devtools::test()</code> puis <code>devtools::check(cran = TRUE)</code> avant toute soumission effective.</li>
 </ul></div>
 </div>
 

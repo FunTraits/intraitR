@@ -31,7 +31,10 @@ plot(
 
   Character, one of `"spider"` (default), `"hull"`, `"density"`, or
   `"none"`, controlling how groups are displayed (see Details). Ignored
-  if `x$groups` is `NULL`.
+  if `x$groups` is `NULL`. Also named in the plot's title (e.g.
+  `"Morphological space (spider)"`), so the display style used is always
+  legible from the figure itself, not just from the call that produced
+  it; pass `main = ` via `...` to override with a custom title instead.
 
 - ellipse_level:
 

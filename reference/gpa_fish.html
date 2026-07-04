@@ -13,7 +13,7 @@ fish-oriented wrapper around geomorph::gpagen()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,7 +49,13 @@ fish-oriented wrapper around <code><a href="https://rdrr.io/pkg/geomorph/man/gpa
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">gpa_fish</span><span class="op">(</span><span class="va">landmarks</span>, <span class="va">...</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">gpa_fish</span><span class="op">(</span></span>
+<span>  <span class="va">landmarks</span>,</span>
+<span>  flag_outliers <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  outlier_threshold <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  remove_outliers <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'intrait_gpa'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
@@ -71,6 +77,40 @@ fish-oriented wrapper around <code><a href="https://rdrr.io/pkg/geomorph/man/gpa
 landmark array.</p></dd>
 
 
+<dt id="arg-flag-outliers">flag_outliers<a class="anchor" aria-label="anchor" href="#arg-flag-outliers"></a></dt>
+<dd><p>Logical, screen the Procrustes-aligned sample for
+specimens whose distance to the consensus shape is unusually large –
+the same rule as <code><a href="detect_outliers.html">detect_outliers()</a></code> (median + <code>outlier_threshold</code> x
+MAD of Procrustes distances) – and report them (see Details and
+<code>outlier_threshold</code>). Defaults to <code>TRUE</code>. This never removes any
+observation on its own: it only flags candidates for visual/manual
+review (e.g. with <code><a href="plot_landmarks.html">plot_landmarks()</a></code> or <code><a href="plot_fishmorph_points.html">plot_fishmorph_points()</a></code>)
+before deciding whether an exclusion is warranted.</p></dd>
+
+
+<dt id="arg-outlier-threshold">outlier_threshold<a class="anchor" aria-label="anchor" href="#arg-outlier-threshold"></a></dt>
+<dd><p>Numeric, the number of median absolute
+deviations (MAD) above the median Procrustes distance beyond which a
+specimen is flagged; same convention as <code><a href="detect_outliers.html">detect_outliers()</a></code>'s
+<code>threshold</code>. Defaults to <code>3</code>.</p></dd>
+
+
+<dt id="arg-remove-outliers">remove_outliers<a class="anchor" aria-label="anchor" href="#arg-remove-outliers"></a></dt>
+<dd><p>Logical, actually exclude every specimen flagged
+by <code>flag_outliers</code> and re-run GPA on the cleaned sample (rather than
+only flagging them for review, the default). Requires
+<code>flag_outliers = TRUE</code> (an error is raised otherwise, since there
+would be nothing to remove). Defaults to <code>FALSE</code>: removing specimens
+changes the consensus shape and every downstream statistic (e.g.
+<code><a href="morpho_space.html">morpho_space()</a></code>, <code><a href="intraspecific_variability.html">intraspecific_variability()</a></code>), so this is opt-in
+rather than automatic, and every removal is still recorded in
+<code>$removed_outliers</code> (see Return) for transparency and reproducibility
+– always confirm flagged specimens genuinely reflect a digitization
+error (e.g. via <code><a href="plot_landmarks.html">plot_landmarks()</a></code>/<code><a href="plot_fishmorph_points.html">plot_fishmorph_points()</a></code>) before
+turning this on for a given data set, rather than treating it as a
+default cleaning step.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments passed on to <code><a href="https://rdrr.io/pkg/geomorph/man/gpagen.html" class="external-link">geomorph::gpagen()</a></code> (e.g.
 <code>curves</code>, <code>surfaces</code>, <code>ProcD</code>).</p></dd>
@@ -90,7 +130,8 @@ landmark array.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>"intrait_gpa"</code>, a list with elements:</p><dl><dt>coords</dt>
 <dd><p><code>p x k x n</code> array of Procrustes-aligned shape
-coordinates.</p></dd>
+coordinates – of the <em>cleaned</em> sample if <code>remove_outliers = TRUE</code>
+removed any specimen.</p></dd>
 
 <dt>Csize</dt>
 <dd><p>named numeric vector of centroid sizes, one per
@@ -106,7 +147,22 @@ converge.</p></dd>
 
 <dt>metadata</dt>
 <dd><p>specimen metadata carried over from <code>landmarks</code>, if
-present.</p></dd>
+present (subset to match, if <code>remove_outliers = TRUE</code> removed any
+specimen).</p></dd>
+
+<dt>outlier_screen</dt>
+<dd><p><code>NULL</code> unless <code>flag_outliers = TRUE</code> (the
+default); otherwise a <code>data.frame</code>, one row per specimen
+<em>actually used</em> (i.e. excluding any row removed by
+<code>remove_outliers = TRUE</code>), with columns <code>specimen</code>,
+<code>procrustes_distance</code> (to the consensus shape), <code>threshold_value</code>,
+<code>flagged</code>; see Details.</p></dd>
+
+<dt>removed_outliers</dt>
+<dd><p><code>NULL</code> unless <code>remove_outliers = TRUE</code>
+removed at least one specimen, in which case a <code>data.frame</code> with
+the same columns as <code>outlier_screen</code>, one row per <em>excluded</em>
+specimen, for the record.</p></dd>
 
 
 </dl><p>Invisibly returns <code>x</code>.</p>
@@ -119,6 +175,30 @@ present.</p></dd>
 shape coordinates, it captures the size component of morphology and is
 required for allometry correction (<code><a href="correct_allometry.html">correct_allometry()</a></code>) and to relate
 shape to body size.</p>
+<p>When <code>flag_outliers = TRUE</code> (the default), every specimen's Euclidean
+(Procrustes) distance to the sample consensus shape is computed, and
+flagged if it exceeds <code>median + outlier_threshold * MAD</code> (median
+absolute deviation) of those distances – the same rule used by
+<code><a href="detect_outliers.html">detect_outliers()</a></code> (which can be run on the result afterwards for the
+ordered dot-plot view; both share the same screening code, so results
+agree). This never removes anything automatically: it only flags
+candidates – always inspect a flagged specimen (e.g. with
+<code><a href="plot_landmarks.html">plot_landmarks()</a></code>/<code><a href="plot_fishmorph_points.html">plot_fishmorph_points()</a></code>, and its original
+photograph if available) before deciding whether to exclude it.</p>
+<p>Setting <code>remove_outliers = TRUE</code> goes one step further and actually
+excludes every flagged specimen, then re-runs <code><a href="https://rdrr.io/pkg/geomorph/man/gpagen.html" class="external-link">geomorph::gpagen()</a></code> on
+the cleaned sample – a genuinely mis-digitized specimen can distort the
+consensus shape (and hence every other specimen's alignment to it), so
+simply dropping it from a plot after the fact is not equivalent to
+re-aligning without it. <code>coords</code>, <code>Csize</code>, <code>consensus</code>, and <code>metadata</code>
+in the returned object then describe the <em>cleaned</em> sample, and
+<code>$removed_outliers</code> records exactly which specimens were dropped and
+why, so the exclusion remains fully reproducible and auditable rather
+than an undocumented, ad hoc edit made before calling <code>gpa_fish()</code>.
+This is deliberately opt-in (<code>FALSE</code> by default): removing data always
+changes the alignment and should be a conscious, visually-confirmed
+decision (see above), not something that happens silently just because
+a threshold was crossed.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -127,7 +207,7 @@ optimal superimposition of landmarks. Systematic Zoology, 39(1), 40-59.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="morpho_space.html">morpho_space()</a></code>, <code><a href="correct_allometry.html">correct_allometry()</a></code>,
+    <div class="dont-index"><p><code><a href="morpho_space.html">morpho_space()</a></code>, <code><a href="correct_allometry.html">correct_allometry()</a></code>, <code><a href="detect_outliers.html">detect_outliers()</a></code>,
 <code><a href="intraspecific_variability.html">intraspecific_variability()</a></code>, <code><a href="fishmorph_shape_landmarks.html">fishmorph_shape_landmarks()</a></code></p></div>
     </div>
 
@@ -141,11 +221,110 @@ optimal superimposition of landmarks. Systematic Zoology, 39(1), 40-59.</p>
 <span class="r-in"><span><span class="va">fish_shape</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_shape_landmarks.html">fishmorph_shape_landmarks</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> fishmorph_shape_landmarks(): dropping 230 specimen(s) with a missing landmark or unresolved species identification.</span>
 <span class="r-in"><span><span class="va">gpa</span> <span class="op">&lt;-</span> <span class="fu">gpa_fish</span><span class="op">(</span><span class="va">fish_shape</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">gpa</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 84 specimen(s) flagged as potential Procrustes-distance outlier(s) (threshold = median + 3.0 x MAD): T-26-0011_Operator_2, T-26-0052_Operator_1, T-26-0067_Operator_1, T-26-0067_Operator_2, T-26-0068_Operator_1, T-26-0068_Operator_2, T-26-0070_Operator_1, T-26-0070_Operator_2, T-26-0071_Operator_1, T-26-0071_Operator_2, T-26-0072_Operator_2, T-26-0073_Operator_2, T-26-0074_Operator_1, T-26-0074_Operator_2, T-26-0075_Operator_1, T-26-0075_Operator_2, T-26-0076_Operator_1, T-26-0076_Operator_2, T-26-0077_Operator_2, T-26-0078_Operator_2, T-26-0079_Operator_2, T-26-0080_Operator_1, T-26-0080_Operator_2, T-26-0082_Operator_1, T-26-0082_Operator_2, T-26-0085_Operator_1, T-26-0086_Operator_2, T-26-0090_Operator_2, T-26-0091_Operator_1, T-26-0091_Operator_2, T-26-0094_Operator_1, T-26-0096_Operator_1, T-26-0096_Operator_2, T-26-0097_Operator_1, T-26-0097_Operator_2, T-26-0098_Operator_2, T-26-0099_Operator_2, T-26-0103_Operator_1, T-26-0103_Operator_2, T-26-0104_Operator_2, T-26-0112-2_Operator_1, T-26-0112-2_Operator_2, T-26-0113_Operator_1, T-26-0116_Operator_1, T-26-0120_Operator_1, T-26-0120_Operator_2, T-26-0122_Operator_1, T-26-0128_Operator_1, T-26-0128_Operator_2, T-26-0130_Operator_1, T-26-0130_Operator_2, T-26-0230-1_Operator_2, T-26-0261-3_Operator_1, T-26-0261-5_Operator_1, T-26-0263_Operator_1, T-26-0263_Operator_2, T-26-0264-2_Operator_1, T-26-0264-2_Operator_2, T-26-0264-3_Operator_1, T-26-0264-4_Operator_1, T-26-0264-4_Operator_2, T-26-0265_Operator_1, T-26-0265_Operator_2, T-26-0266_Operator_1, T-26-0266_Operator_2, T-26-0268_Operator_1, T-26-0268_Operator_2, T-26-0269_Operator_1, T-26-0269_Operator_2, T-26-0270-1_Operator_1, T-26-0270-1_Operator_2, T-26-0270-2_Operator_1, T-26-0270-2_Operator_2, T-26-0271_Operator_1, T-26-0271_Operator_2, T-26-0272_Operator_1, T-26-0272_Operator_2, T-26-0273_Operator_1, T-26-0273_Operator_2, T-26-0276_Operator_1, T-26-0276_Operator_2, T-26-0277_Operator_1, T-26-0278-1_Operator_1, T-26-0278-2_Operator_2; this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them and re-align, or see $outlier_screen for details.</span>
+<span class="r-in"><span><span class="va">gpa</span>   <span class="co"># flags any Procrustes-distance outliers found, see gpa$outlier_screen</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_gpa&gt; Procrustes-aligned landmark configurations</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   328 specimens, 19 landmarks, 2 dimensions</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Converged in 3 iteration(s)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Centroid size: mean = 2755.102, range = [437.284, 7511.212]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   84 potential Procrustes-distance outlier(s) flagged (see $outlier_screen); most atypical:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0230-1_Operator_2: distance = 0.9864 (threshold 0.2325)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0052_Operator_1: distance = 0.3963 (threshold 0.2325)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0075_Operator_1: distance = 0.3631 (threshold 0.2325)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0271_Operator_2: distance = 0.3619 (threshold 0.2325)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0075_Operator_2: distance = 0.3581 (threshold 0.2325)</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Once a flagged specimen has been visually confirmed as a digitization</span></span></span>
+<span class="r-in"><span><span class="co"># error (not just a genuinely extreme morphology), exclude it and</span></span></span>
+<span class="r-in"><span><span class="co"># re-align without it:</span></span></span>
+<span class="r-in"><span><span class="va">gpa_clean</span> <span class="op">&lt;-</span> <span class="fu">gpa_fish</span><span class="op">(</span><span class="va">fish_shape</span>, remove_outliers <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> remove_outliers: removing 84 specimen(s) flagged as Procrustes-distance outlier(s) (threshold = median + 3.0 x MAD): T-26-0011_Operator_2, T-26-0052_Operator_1, T-26-0067_Operator_1, T-26-0067_Operator_2, T-26-0068_Operator_1, T-26-0068_Operator_2, T-26-0070_Operator_1, T-26-0070_Operator_2, T-26-0071_Operator_1, T-26-0071_Operator_2, T-26-0072_Operator_2, T-26-0073_Operator_2, T-26-0074_Operator_1, T-26-0074_Operator_2, T-26-0075_Operator_1, T-26-0075_Operator_2, T-26-0076_Operator_1, T-26-0076_Operator_2, T-26-0077_Operator_2, T-26-0078_Operator_2, T-26-0079_Operator_2, T-26-0080_Operator_1, T-26-0080_Operator_2, T-26-0082_Operator_1, T-26-0082_Operator_2, T-26-0085_Operator_1, T-26-0086_Operator_2, T-26-0090_Operator_2, T-26-0091_Operator_1, T-26-0091_Operator_2, T-26-0094_Operator_1, T-26-0096_Operator_1, T-26-0096_Operator_2, T-26-0097_Operator_1, T-26-0097_Operator_2, T-26-0098_Operator_2, T-26-0099_Operator_2, T-26-0103_Operator_1, T-26-0103_Operator_2, T-26-0104_Operator_2, T-26-0112-2_Operator_1, T-26-0112-2_Operator_2, T-26-0113_Operator_1, T-26-0116_Operator_1, T-26-0120_Operator_1, T-26-0120_Operator_2, T-26-0122_Operator_1, T-26-0128_Operator_1, T-26-0128_Operator_2, T-26-0130_Operator_1, T-26-0130_Operator_2, T-26-0230-1_Operator_2, T-26-0261-3_Operator_1, T-26-0261-5_Operator_1, T-26-0263_Operator_1, T-26-0263_Operator_2, T-26-0264-2_Operator_1, T-26-0264-2_Operator_2, T-26-0264-3_Operator_1, T-26-0264-4_Operator_1, T-26-0264-4_Operator_2, T-26-0265_Operator_1, T-26-0265_Operator_2, T-26-0266_Operator_1, T-26-0266_Operator_2, T-26-0268_Operator_1, T-26-0268_Operator_2, T-26-0269_Operator_1, T-26-0269_Operator_2, T-26-0270-1_Operator_1, T-26-0270-1_Operator_2, T-26-0270-2_Operator_1, T-26-0270-2_Operator_2, T-26-0271_Operator_1, T-26-0271_Operator_2, T-26-0272_Operator_1, T-26-0272_Operator_2, T-26-0273_Operator_1, T-26-0273_Operator_2, T-26-0276_Operator_1, T-26-0276_Operator_2, T-26-0277_Operator_1, T-26-0278-1_Operator_1, T-26-0278-2_Operator_2. Re-running GPA without them; see $removed_outliers for the record, and always confirm each removal corresponds to a real digitization error (e.g. via plot_landmarks()/plot_fishmorph_points()), not just genuine morphological variation, before relying on this in a publication.</span>
+<span class="r-in"><span><span class="va">gpa_clean</span><span class="op">$</span><span class="va">removed_outliers</span>   <span class="co"># exactly which specimen(s) were excluded, and why</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   specimen procrustes_distance threshold_value flagged</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9     T-26-0011_Operator_2           0.3463604       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 44    T-26-0052_Operator_1           0.3962557       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 61    T-26-0067_Operator_1           0.3213217       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 62    T-26-0067_Operator_2           0.3190436       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 63    T-26-0068_Operator_1           0.3355137       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 64    T-26-0068_Operator_2           0.3284683       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 67    T-26-0070_Operator_1           0.3257850       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 68    T-26-0070_Operator_2           0.3234939       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 69    T-26-0071_Operator_1           0.3386597       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 70    T-26-0071_Operator_2           0.3394248       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 71    T-26-0072_Operator_2           0.3277817       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 72    T-26-0073_Operator_2           0.3478779       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 73    T-26-0074_Operator_1           0.3258806       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 74    T-26-0074_Operator_2           0.3340780       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 75    T-26-0075_Operator_1           0.3631352       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 76    T-26-0075_Operator_2           0.3580501       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 77    T-26-0076_Operator_1           0.3306104       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 78    T-26-0076_Operator_2           0.3204437       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 79    T-26-0077_Operator_2           0.3094581       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 80    T-26-0078_Operator_2           0.2986210       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 81    T-26-0079_Operator_2           0.3378013       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 82    T-26-0080_Operator_1           0.3167964       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 83    T-26-0080_Operator_2           0.3140570       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 84    T-26-0082_Operator_1           0.3356298       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 85    T-26-0082_Operator_2           0.3278560       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 86    T-26-0085_Operator_1           0.3158206       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 87    T-26-0086_Operator_2           0.3269910       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 90    T-26-0090_Operator_2           0.2899287       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 91    T-26-0091_Operator_1           0.3217769       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 92    T-26-0091_Operator_2           0.3394140       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 93    T-26-0094_Operator_1           0.3183452       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 94    T-26-0096_Operator_1           0.3262419       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 95    T-26-0096_Operator_2           0.3351959       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 96    T-26-0097_Operator_1           0.3114415       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 97    T-26-0097_Operator_2           0.3145106       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 98    T-26-0098_Operator_2           0.3270798       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 99    T-26-0099_Operator_2           0.2961522       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 100   T-26-0103_Operator_1           0.3468157       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 101   T-26-0103_Operator_2           0.3502652       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 102   T-26-0104_Operator_2           0.3386872       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 103 T-26-0112-2_Operator_1           0.3359467       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 104 T-26-0112-2_Operator_2           0.3395459       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 105   T-26-0113_Operator_1           0.2948654       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 106   T-26-0116_Operator_1           0.2994178       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 107   T-26-0120_Operator_1           0.3179663       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 108   T-26-0120_Operator_2           0.3161522       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 109   T-26-0122_Operator_1           0.3337122       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 110   T-26-0128_Operator_1           0.2886520       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 111   T-26-0128_Operator_2           0.2917041       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 112   T-26-0130_Operator_1           0.2802346       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 113   T-26-0130_Operator_2           0.2748848       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 250 T-26-0230-1_Operator_2           0.9864082       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 293 T-26-0261-3_Operator_1           0.3171940       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 294 T-26-0261-5_Operator_1           0.2958014       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 296   T-26-0263_Operator_1           0.2672095       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 297   T-26-0263_Operator_2           0.2630597       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 298 T-26-0264-2_Operator_1           0.2787561       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 299 T-26-0264-2_Operator_2           0.2833448       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 300 T-26-0264-3_Operator_1           0.2977977       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 301 T-26-0264-4_Operator_1           0.2816355       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 302 T-26-0264-4_Operator_2           0.2806622       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 303   T-26-0265_Operator_1           0.3012237       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 304   T-26-0265_Operator_2           0.2999735       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 305   T-26-0266_Operator_1           0.3202343       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 306   T-26-0266_Operator_2           0.3126475       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 309   T-26-0268_Operator_1           0.2975292       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 310   T-26-0268_Operator_2           0.2907089       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 311   T-26-0269_Operator_1           0.3188060       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 312   T-26-0269_Operator_2           0.3135413       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 313 T-26-0270-1_Operator_1           0.3025837       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 314 T-26-0270-1_Operator_2           0.3002619       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 315 T-26-0270-2_Operator_1           0.2849063       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 316 T-26-0270-2_Operator_2           0.2859566       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 317   T-26-0271_Operator_1           0.3477989       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 318   T-26-0271_Operator_2           0.3619167       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 319   T-26-0272_Operator_1           0.2583793       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 320   T-26-0272_Operator_2           0.2624810       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 321   T-26-0273_Operator_1           0.3103109       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 322   T-26-0273_Operator_2           0.3041236       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 323   T-26-0276_Operator_1           0.2806949       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 324   T-26-0276_Operator_2           0.2796489       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 325   T-26-0277_Operator_1           0.2658014       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 326 T-26-0278-1_Operator_1           0.2716006       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 328 T-26-0278-2_Operator_2           0.2329394       0.2325364    TRUE</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

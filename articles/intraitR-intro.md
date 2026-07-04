@@ -112,6 +112,7 @@ gpa
 #>   135 specimens, 12 landmarks, 2 dimensions
 #>   Converged in 2 iteration(s)
 #>   Centroid size: mean = 118.551, range = [81.630, 145.831]
+#>   No Procrustes-distance outliers flagged (see $outlier_screen)
 ```
 
 `gpa$Csize` holds centroid size, the standard size measure retained
@@ -551,10 +552,10 @@ requires the `geometry` package (Suggested, not installed by default):
 
 bf <- bootstrap_functional_space(fts, n_axes = 2, n_boot = 100)
 bf
-#> <intrait_bootstrap_fspace>
+#> <intrait_bootstrap_fspace> (method = "convexhull")
 #>   2 PCA axes retained (50.4% of variance), 3 species
-#>   Centroid-based reference volume (FD_ref): 0.713
-#>   Bootstrap volume (FD_boot, 100 draws): mean = 1.951, SD = 1.534, 5-95% = [0.1196, 4.938]
+#>   Centroid-based reference richness (FD_ref): 0.713
+#>   Bootstrap richness (FD_boot, 100 draws): mean = 1.951, SD = 1.534, 5-95% = [0.1196, 4.938]
 #>   Difference (mean FD_boot - FD_ref): 1.238 (one-sided bootstrap p = 0.2079)
 plot(bf)
 ```
@@ -572,7 +573,7 @@ is summarised per species as a mean effect and a min-max range
 
 ss <- species_sensitivity(fts, n_axes = 2)
 ss
-#> <intrait_species_sensitivity>
+#> <intrait_species_sensitivity> (method = "convexhull")
 #>   2 PCA axes retained (50.4% of variance), 3 species, FD_ref = 0.713
 #>   Top 3 species by |mean %change in functional richness|:
 #>    species  n mean_dFD           range_dFD
@@ -583,6 +584,33 @@ plot(ss)
 ```
 
 ![](intraitR-intro_files/figure-html/unnamed-chunk-22-1.png)
+
+Both functions accept a `method` argument beyond the default
+`"convexhull"`: `"dendrogram"` (UPGMA functional dendrogram branch
+length, Petchey & Gaston 2002, no extra package required), `"tpd"`
+(Trait Probability Density, Carmona et al. 2019), or `"hypervolume"`
+(Gaussian-kernel hypervolume, Blonder et al. 2014, 2018). Since these
+four measures are not on the same scale,
+\[compare_functional_richness()\] runs several of them on the same data
+and tabulates the percent change and bootstrap p-value side by side, so
+agreement (or disagreement) across methods can itself be assessed:
+
+``` r
+
+cmp <- compare_functional_richness(fts, methods = c("dendrogram", "convexhull"), n_axes = 2, n_boot = 100)
+cmp
+#> <intrait_richness_comparison>
+#>   2 method(s) requested, 2 succeeded
+#>      method status fd_ref fd_boot_mean pct_diff p_value significant
+#>  dendrogram     ok  7.784        9.352   +20.1%  0.1881       FALSE
+#>  convexhull     ok  0.713         2.43  +240.9%   0.198       FALSE
+#> 
+#>   0/2 method(s) agree that individual-based richness significantly
+#>   exceeds the centroid-based reference (p < 0.05).
+plot(cmp)
+```
+
+![](intraitR-intro_files/figure-html/unnamed-chunk-23-1.png)
 
 Because
 [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)

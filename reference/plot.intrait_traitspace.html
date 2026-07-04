@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -68,7 +68,9 @@
 <dd><p>Character, one of <code>"spider"</code> (default), <code>"hull"</code>,
 <code>"density"</code>, or <code>"none"</code>, controlling how groups are displayed; see
 the Details section of <code><a href="plot.intrait_morphospace.html">plot.intrait_morphospace()</a></code>. Ignored if
-<code>x$groups</code> is <code>NULL</code>.</p></dd>
+<code>x$groups</code> is <code>NULL</code>. Also named in the plot's title (e.g. <code>"Trait space (spider)"</code>), so the display style used is always legible from
+the figure itself, not just from the call that produced it; pass
+<code>main = </code> via <code>...</code> to override with a custom title instead.</p></dd>
 
 
 <dt id="arg-ellipse-level">ellipse_level<a class="anchor" aria-label="anchor" href="#arg-ellipse-level"></a></dt>

@@ -1,6 +1,11 @@
 # Print and plot an `"intrait_bootstrap_fspace"` object
 
-Print and plot an `"intrait_bootstrap_fspace"` object
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) draws a
+histogram of the bootstrap distribution (`fd_boot`), with `fd_ref`
+(centroid-based reference) marked by a dashed red line and
+`fd_boot_mean` (the bootstrap mean) by a dashed blue line; both values
+are printed directly on the x-axis, in matching colour, rather than in a
+separate text annotation.
 
 ## Usage
 

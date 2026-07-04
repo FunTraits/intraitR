@@ -123,6 +123,15 @@ functional richness.
 
   Print and plot an `"intrait_species_sensitivity"` object
 
+- [`compare_functional_richness()`](https://funtraits.github.io/intraitR/reference/compare_functional_richness.md)
+  : Compare bootstrap-based functional richness estimates across methods
+
+- [`print(`*`<intrait_richness_comparison>`*`)`](https://funtraits.github.io/intraitR/reference/print.intrait_richness_comparison.md)
+  [`plot(`*`<intrait_richness_comparison>`*`)`](https://funtraits.github.io/intraitR/reference/print.intrait_richness_comparison.md)
+  :
+
+  Print and plot an `"intrait_richness_comparison"` object
+
 ## Intraspecific variability and measurement error
 
 Decompose trait variance into interspecific/intraspecific components,

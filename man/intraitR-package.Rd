@@ -90,6 +90,7 @@ fish communities after habitat degradation. Ecological Applications,
 Useful links:
 \itemize{
   \item \url{https://github.com/FunTraits/intraitR}
+  \item \url{https://funtraits.github.io/intraitR/}
   \item Report bugs at \url{https://github.com/FunTraits/intraitR/issues}
 }
 

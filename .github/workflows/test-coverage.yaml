@@ -37,10 +37,13 @@ jobs:
       - uses: codecov/codecov-action@v4
         with:
           # Codecov requires a token for private repos and, since 2024,
-          # recommends one even for public repos to avoid rate limiting;
-          # add CODECOV_TOKEN as a repository secret at codecov.io before
-          # this step will actually upload results.
-          fail_ci_if_error: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+          # a token even for public repos (tokenless upload is rejected
+          # outright, not just rate-limited) -- add CODECOV_TOKEN as a
+          # repository secret at codecov.io, then switch this back to
+          # failing on error, to actually enforce coverage reporting.
+          # Until then, don't fail the whole job over the Codecov upload:
+          # the R CMD check / test run above is what actually matters.
+          fail_ci_if_error: false
           file: ./cobertura.xml
           plugins: noop
           disable_search: true

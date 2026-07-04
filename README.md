@@ -16,9 +16,12 @@ fish-specific conveniences for ecomorphological analyses.
 
 ## Workflow
 
-1. **Import** landmark coordinates: `read_tps()` (tpsDig files) or
-   `read_landmarks_csv()` (generic long-format CSV/data.frame); or
-   generate a simulated example data set with `simulate_fish_landmarks()`.
+1. **Import** landmark coordinates: `read_tps()` (tpsDig files),
+   `read_landmarks_csv()` (generic long-format CSV/data.frame), or
+   `read_landmarks_xlsx()` (generic wide-format Excel sheet, one row per
+   specimen with one X/Y column pair per landmark -- the layout produced
+   directly by most manual digitization spreadsheets); or generate a
+   simulated example data set with `simulate_fish_landmarks()`.
    Alternatively, `digitize_landmarks()` digitizes landmarks interactively
    from specimen photographs (point-and-click) and returns the result
    directly, following either the FISHMORPH scheme or a generic one.
@@ -59,6 +62,51 @@ specimen), overlaying the digitized landmarks directly on the original
 photograph for visual quality control — e.g. spotting a landmark placed
 off the body outline (requires the `jpeg` or `png` package, matching the
 image format).
+
+### Importing your own data (`read_landmarks_xlsx()`)
+
+Most manual digitization workflows produce a "wide" spreadsheet: one row
+per specimen (or per replicate digitization), and one pair of columns per
+landmark (e.g. `X_1, Y_1, X_2, Y_2, ...`, or `1_X, 1_Y, 2_X, 2_Y, ...`),
+rather than the "long"/tidy layout expected by `read_landmarks_csv()`.
+`read_landmarks_xlsx()` reads this layout directly from an `.xlsx`/`.xls`
+file and reshapes it into an `"intrait_landmarks"` object, without any
+hand-written reshaping code -- whatever the exact column-naming convention
+(`x_pattern`/`y_pattern`) or number of landmarks (`n_landmarks`) involved.
+It also optionally joins a second, one-row-per-specimen spreadsheet of
+identifications or other metadata directly (`species_file`):
+
+```r
+fish <- read_landmarks_xlsx(
+  "measurements.xlsx", sheet = "Principal", n_landmarks = 21,
+  id_cols = c("Code", "Operator"),
+  species_file = "identifications.xlsx", species_by = "Code"
+)
+```
+
+A replicate-digitization sheet (several digitizations per specimen, one
+row each -- e.g. for `measurement_error()`/`digitization_error()`) works
+the same way, just with a different `x_pattern`/`y_pattern` and `id_cols`:
+
+```r
+biais <- read_landmarks_xlsx(
+  "measurements.xlsx", sheet = "Repeatability", n_landmarks = 21,
+  x_pattern = "{i}_X", y_pattern = "{i}_Y",
+  id_cols = c("Code", "Replicate")
+)
+```
+
+This is a deliberately generic import: coordinate cells that are blank or
+contain the literal text `"NA"` become `NA` silently, anything else
+non-numeric triggers a warning naming the offending column(s), and
+`species_file` performs a plain left-join on `species_by` (no attempt to
+resolve conflicting or uncertain identifications -- do that in R first if
+your identification sheet needs it). It is the generalised, reusable
+version of the private cleaning script originally written to import the
+real T-26 Saudrune field data (`data-raw/t26_saudrune_prepare.R`), usable
+directly on a new field season or survey with its own column-naming
+convention and landmark count. Requires the `readxl` package (Suggested,
+not installed by default).
 
 ### Digitization error (`digitization_error()`)
 

@@ -333,6 +333,198 @@
   vol
 }
 
+#' Total branch length of a UPGMA functional dendrogram (Petchey & Gaston 2002)
+#'
+#' Builds a dendrogram from the Euclidean distances among a set of points
+#' (species centroids or one-individual-per-species draws, in a PCA-based
+#' trait space) via [stats::hclust()], and returns the sum of all its
+#' branch lengths -- the FD index of Petchey & Gaston (2002), a
+#' distance-based, non-volumetric alternative to convex-hull functional
+#' richness that needs no additional Suggested package (unlike
+#' `method = "tpd"`/`"hypervolume"` in [bootstrap_functional_space()]) and
+#' places no restriction on the number of points relative to dimensionality.
+#'
+#' @param pts A numeric matrix, one row per point, `k` columns (dimensions).
+#' @param linkage Clustering method passed to `stats::hclust(method =)`.
+#'   Defaults to `"average"` (UPGMA), the linkage used by Petchey & Gaston
+#'   (2002) and by `FD::dbFD()`.
+#' @return A single numeric total branch length, or `NA_real_` if `pts` has
+#'   fewer than 2 rows (no dendrogram can be built).
+#' @noRd
+.dendrogram_richness <- function(pts, linkage = "average") {
+  pts <- as.matrix(pts)
+  n <- nrow(pts)
+  if (n < 2) return(NA_real_)
+  hc <- stats::hclust(stats::dist(pts), method = linkage)
+  # hc$merge[i, ]: the two children merged at step i (negative = original
+  # leaf, born at height 0; positive j = the internal node created at the
+  # earlier step j, born at hc$height[j]). Total branch length is the sum,
+  # over every merge, of (that merge's height - each child's own birth
+  # height) -- equivalent to summing edge lengths of the corresponding
+  # phylogenetic tree (as ape::as.phylo() + sum(edge.length) would give),
+  # without requiring the `ape` package.
+  total <- 0
+  for (i in seq_len(nrow(hc$merge))) {
+    parent_height <- hc$height[i]
+    for (child in hc$merge[i, ]) {
+      child_height <- if (child < 0) 0 else hc$height[child]
+      total <- total + (parent_height - child_height)
+    }
+  }
+  total
+}
+
+#' Community functional richness via Trait Probability Density (TPD)
+#'
+#' Thin wrapper around [TPD::TPDsMean()]/[TPD::TPDc()]/[TPD::REND()] (Carmona
+#' et al. 2019) used by [bootstrap_functional_space()] (`method = "tpd"`).
+#' Each species is represented by a fixed-bandwidth Gaussian kernel centred
+#' on its point (there is no within-species variance to estimate from a
+#' single bootstrap-drawn individual, see Details there); functional
+#' richness is `REND()`'s `FRichness` for the resulting one-community TPDc.
+#'
+#' @param pts A numeric matrix, one row per species, `k` columns; row names
+#'   are used as species identifiers.
+#' @param aux A list with elements `bw` (length-`k` fixed kernel SD per
+#'   axis), `trait_ranges` (fixed grid limits, a length-`k` list of `c(min,
+#'   max)`), `alpha`, `n_divisions` -- see `.fspace_richness_setup()`, which
+#'   builds these once (shared across every call) so that richness values
+#'   from different point sets remain comparable.
+#' @return A single numeric functional richness (proportion of the shared
+#'   evaluation grid occupied), or `NA_real_` if the TPD computation fails.
+#' @noRd
+.tpd_richness <- function(pts, aux) {
+  pts <- as.matrix(pts)
+  sp_names <- rownames(pts)
+  if (is.null(sp_names)) sp_names <- paste0("sp", seq_len(nrow(pts)))
+  sds <- matrix(aux$bw, nrow = nrow(pts), ncol = ncol(pts), byrow = TRUE)
+
+  tpds <- tryCatch(
+    TPD::TPDsMean(
+      species = sp_names, means = pts, sds = sds, alpha = aux$alpha,
+      trait_ranges = aux$trait_ranges, n_divisions = aux$n_divisions
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(tpds)) return(NA_real_)
+
+  samp_unit <- matrix(
+    1, nrow = 1, ncol = length(sp_names),
+    dimnames = list("community", sp_names)
+  )
+  tpdc <- tryCatch(TPD::TPDc(TPDs = tpds, sampUnit = samp_unit), error = function(e) NULL)
+  if (is.null(tpdc)) return(NA_real_)
+
+  rend <- tryCatch(TPD::REND(TPDc = tpdc), error = function(e) NULL)
+  if (is.null(rend)) return(NA_real_)
+  unname(rend$communities$FRichness[1])
+}
+
+#' Community functional richness via Gaussian-kernel hypervolume
+#'
+#' Thin wrapper around [hypervolume::hypervolume_gaussian()]/
+#' [hypervolume::get_volume()] (Blonder et al. 2014, 2018) used by
+#' [bootstrap_functional_space()] (`method = "hypervolume"`).
+#'
+#' @param pts A numeric matrix, one row per species, `k` columns.
+#' @param aux A list with elements `bw` (fixed kernel bandwidth vector,
+#'   shared across every call, see `.fspace_richness_setup()`) and
+#'   `samples_per_point`.
+#' @return A single numeric hypervolume, or `NA_real_` if the computation
+#'   fails.
+#' @noRd
+.hypervolume_richness <- function(pts, aux) {
+  pts <- as.matrix(pts)
+  hv <- tryCatch(
+    hypervolume::hypervolume_gaussian(
+      pts, kde.bandwidth = aux$bw, samples.per.point = aux$samples_per_point,
+      verbose = FALSE
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(hv)) return(NA_real_)
+  hypervolume::get_volume(hv)
+}
+
+#' Precompute method-specific, shared auxiliary parameters for functional
+#' richness estimation
+#'
+#' Some `method`s of [bootstrap_functional_space()] need an auxiliary
+#' quantity (a kernel bandwidth, an evaluation grid) that must be computed
+#' **once**, from the full individual-level PCA scores, and then reused
+#' identically for the centroid-based reference and every bootstrap draw:
+#' if it were instead re-estimated separately from each draw's own (small,
+#' single-individual-per-species) point set, differences in the resulting
+#' richness would partly reflect differences in the estimated bandwidth/
+#' grid rather than genuine differences in point configuration, making
+#' `fd_ref` and `fd_boot` incomparable. `method = "convexhull"` and
+#' `"dendrogram"` need no such shared setup (a convex hull and a UPGMA
+#' dendrogram are both computed directly and consistently from whatever
+#' points are given).
+#'
+#' @param scores The full individual-level PCA score matrix (all
+#'   individuals, before any per-draw subsampling).
+#' @param method One of `"convexhull"`, `"dendrogram"`, `"tpd"`,
+#'   `"hypervolume"`.
+#' @param dendrogram_linkage,tpd_alpha,tpd_bw_factor,tpd_n_divisions,hv_bw_method,hv_samples_per_point
+#'   Method-specific tuning parameters, passed through from
+#'   [bootstrap_functional_space()] -- see its documentation.
+#' @return A list of auxiliary values used by `.fspace_richness()`.
+#' @noRd
+.fspace_richness_setup <- function(scores, method,
+                                    dendrogram_linkage = "average",
+                                    tpd_alpha = 0.95, tpd_bw_factor = 0.5,
+                                    tpd_n_divisions = NULL,
+                                    hv_bw_method = "silverman",
+                                    hv_samples_per_point = 500) {
+  if (identical(method, "dendrogram")) {
+    return(list(linkage = dendrogram_linkage))
+  }
+  if (identical(method, "tpd")) {
+    # Fixed per-axis kernel SD, a fraction of each PCA axis's overall
+    # (between-species) standard deviation -- a deliberate plug-in choice,
+    # since a single bootstrap-drawn individual carries no within-species
+    # variance of its own to estimate a kernel from. Grid limits
+    # (`trait_ranges`) are likewise fixed once, from the full data range
+    # expanded by 5 kernel SDs in each direction (TPDsMean()'s own default
+    # margin), so every TPDsMean() call in this procedure -- fd_ref and
+    # every fd_boot draw -- is evaluated on the identical grid.
+    bw <- apply(scores, 2, stats::sd) * tpd_bw_factor
+    rng <- apply(scores, 2, range)
+    trait_ranges <- lapply(seq_len(ncol(scores)), function(j) {
+      c(rng[1, j] - 5 * bw[j], rng[2, j] + 5 * bw[j])
+    })
+    return(list(
+      bw = bw, alpha = tpd_alpha, trait_ranges = trait_ranges,
+      n_divisions = tpd_n_divisions
+    ))
+  }
+  if (identical(method, "hypervolume")) {
+    bw <- hypervolume::estimate_bandwidth(scores, method = hv_bw_method)
+    return(list(bw = bw, samples_per_point = hv_samples_per_point))
+  }
+  list()
+}
+
+#' Dispatch a single functional-richness computation to the chosen `method`
+#'
+#' @param pts A numeric matrix, one row per point (species).
+#' @param method One of `"convexhull"`, `"dendrogram"`, `"tpd"`,
+#'   `"hypervolume"`.
+#' @param aux The auxiliary list from `.fspace_richness_setup()`.
+#' @return A single numeric richness value, or `NA_real_` on a degenerate/
+#'   failed computation.
+#' @noRd
+.fspace_richness <- function(pts, method, aux) {
+  switch(method,
+    convexhull = .convex_hull_volume(pts),
+    dendrogram = .dendrogram_richness(pts, linkage = aux$linkage),
+    tpd = .tpd_richness(pts, aux),
+    hypervolume = .hypervolume_richness(pts, aux),
+    stop("Unknown `method`.", call. = FALSE)
+  )
+}
+
 #' Parallel-aware `vapply()`
 #'
 #' Uses [future.apply::future_vapply()] (with `future.seed = TRUE` for
@@ -455,6 +647,76 @@
     row.names = rownames(X)
   )
 }
+
+#' Flag Procrustes-distance outliers in a GPA-aligned coordinate sample
+#'
+#' Shared implementation of the median + threshold*MAD screening rule used
+#' by both [detect_outliers()] and [gpa_fish()]'s `flag_outliers`/
+#' `remove_outliers` arguments, so the two stay in sync rather than
+#' maintaining two copies of the same computation.
+#'
+#' @param coords A `p x k x n` array of Procrustes-aligned shape
+#'   coordinates (e.g. `gpa$coords`).
+#' @param consensus A `p x k` matrix, the consensus shape (e.g.
+#'   `gpa$consensus`).
+#' @param threshold Numeric, number of MADs above the median Procrustes
+#'   distance beyond which a specimen is flagged.
+#' @return A `data.frame`, one row per specimen (in `dimnames(coords)[[3]]`
+#'   order), with columns `specimen`, `procrustes_distance`,
+#'   `threshold_value`, `flagged`.
+#' @noRd
+.procrustes_outlier_screen <- function(coords, consensus, threshold = 3) {
+  n <- dim(coords)[3]
+  specimen_names <- dimnames(coords)[[3]]
+  if (is.null(specimen_names)) specimen_names <- paste0("specimen_", seq_len(n))
+
+  pd <- vapply(seq_len(n), function(i) {
+    sqrt(sum((coords[, , i] - consensus)^2))
+  }, numeric(1))
+
+  med <- stats::median(pd)
+  mad_val <- stats::mad(pd)
+  if (isTRUE(mad_val == 0)) {
+    threshold_value <- med
+    warning(
+      "Procrustes distances have zero median absolute deviation (little or ",
+      "no variation among specimens); no specimen can be reliably flagged.",
+      call. = FALSE
+    )
+  } else {
+    threshold_value <- med + threshold * mad_val
+  }
+
+  data.frame(
+    specimen = specimen_names,
+    procrustes_distance = as.numeric(pd),
+    threshold_value = threshold_value,
+    flagged = pd > threshold_value,
+    stringsAsFactors = FALSE,
+    row.names = NULL
+  )
+}
+
+#' Short code -> full descriptive name lookup for the nine FISHMORPH ratios
+#'
+#' Used by `plot.intrait_itv()` to expand trait codes (`"RMl"`, etc.) to a
+#' readable label (`"Relative maxillary length (RMl)"`) when the traits
+#' passed to [itv_index()] happen to be FISHMORPH ratios; wording matches
+#' [fishmorph_ratios()]'s own `@details` (Brosse et al. 2021, fig. 1b).
+#' Any trait code not in this table (i.e. any non-FISHMORPH trait table)
+#' is simply left as-is by the caller.
+#' @noRd
+.fishmorph_ratio_labels <- c(
+  BEl = "Body elongation",
+  VEp = "Vertical eye position",
+  REs = "Relative eye size",
+  OGp = "Oral gape position",
+  RMl = "Relative maxillary length",
+  BLs = "Body lateral shape",
+  PFv = "Pectoral fin vertical position",
+  PFs = "Pectoral fin size",
+  CPt = "Caudal peduncle throttling"
+)
 
 #' Handle missing values in a numeric matrix of traits/measurements
 #'
@@ -946,6 +1208,82 @@
   out
 }
 
+#' Draw text with a white halo behind it, for readability over busy plots
+#'
+#' Draws `labels` several times, offset by a small amount in every
+#' direction, in `halo_col` (default white), then once more in `text_col`
+#' on top -- the standard "shadow/halo text" trick (cf.
+#' `TeachingDemos::shadowtext()`, `plotrix::text()`) reimplemented here
+#' directly to avoid an extra dependency for a handful of lines. Used by
+#' `plot_fishmorph_points()` to keep landmark index numbers legible where
+#' they would otherwise cross a coloured measurement segment or sit close
+#' to another landmark.
+#'
+#' @param x,y Numeric coordinates, as in [graphics::text()].
+#' @param labels As in [graphics::text()].
+#' @param cex,font,pos,offset As in [graphics::text()].
+#' @param text_col Colour of the main text (drawn last, on top).
+#' @param halo_col Colour of the halo (drawn first, as a ring of offset
+#'   copies of `labels` around each label position).
+#' @param n_halo Number of offset copies making up the halo ring (more
+#'   copies give a smoother, more opaque halo at a small performance
+#'   cost; 8 is visually indistinguishable from more, for text this
+#'   small).
+#' @param r Halo radius, in inches (device-resolution-independent, via
+#'   [graphics::xinch()]/[graphics::yinch()], so it looks the same on
+#'   screen and in a saved PDF/PNG regardless of plot size).
+#' @return Invisibly, `NULL`.
+#' @noRd
+.halo_text <- function(x, y, labels, cex = 1, font = 2, pos = NULL, offset = 0.5,
+                        text_col = "black", halo_col = "white", n_halo = 8, r = 0.02) {
+  theta <- seq(0, 2 * pi, length.out = n_halo + 1)[-(n_halo + 1)]
+  dx <- graphics::xinch(r) * cos(theta)
+  dy <- graphics::yinch(r) * sin(theta)
+  for (i in seq_along(theta)) {
+    graphics::text(x + dx[i], y + dy[i], labels = labels, cex = cex, font = font,
+                   col = halo_col, pos = pos, offset = offset)
+  }
+  graphics::text(x, y, labels = labels, cex = cex, font = font, col = text_col,
+                 pos = pos, offset = offset)
+  invisible(NULL)
+}
+
+#' Draw short tick marks, at quarter increments, with horizontal labels on
+#' both axes
+#'
+#' Replaces the axis ticks/labels of a plot created with `xaxt = "n", yaxt
+#' = "n"`: short tick marks (`tick_length`) at `n` evenly spaced positions
+#' spanning `xlim`/`ylim` (by default 0, 0.25, 0.5, 0.75, 1 for the
+#' package's default `[0, 1]` axes), with standard, always-horizontal
+#' numeric labels on both axes (`las = 1`; the y-axis labels are not
+#' rotated, so they stay easy to read at a glance) -- more compact and
+#' less visually busy than R's own default axis style, used for the
+#' small, densely annotated landmark diagrams drawn by
+#' `plot_fishmorph_points()`.
+#'
+#' @param xlim,ylim The axis limits actually used by the current plot
+#'   (i.e. whatever was passed to `graphics::plot()`), so tick positions
+#'   are spaced evenly across the true plotted range rather than a
+#'   hard-coded `[0, 1]` -- correct both for the package's own `[0, 1]`
+#'   default and for a `background_image`'s pixel-dimension `xlim`/`ylim`.
+#' @param cex_axis Character expansion for the tick labels.
+#' @param tick_length Tick mark length, in `par("tcl")`-style fractions of
+#'   a line height (negative values point outward, the base R default
+#'   convention; a small magnitude, e.g. the default here, gives short
+#'   ticks).
+#' @param n Number of tick positions (evenly spaced, including both
+#'   endpoints); the default of 5 gives quarter increments across
+#'   `xlim`/`ylim`.
+#' @return Invisibly, `NULL`.
+#' @noRd
+.draw_coord_axes <- function(xlim, ylim, cex_axis = 0.75, tick_length = -0.25, n = 5) {
+  at_x <- seq(xlim[1], xlim[2], length.out = n)
+  at_y <- seq(ylim[1], ylim[2], length.out = n)
+  graphics::axis(1, at = at_x, cex.axis = cex_axis, tcl = tick_length, mgp = c(3, 0.4, 0), las = 1)
+  graphics::axis(2, at = at_y, cex.axis = cex_axis, tcl = tick_length, mgp = c(3, 0.5, 0), las = 1)
+  invisible(NULL)
+}
+
 #' Read a JPEG/PNG specimen photograph for use as a plot background
 #'
 #' Dispatches to `jpeg::readJPEG()` or `png::readPNG()` based on the file
@@ -1044,12 +1382,21 @@
 #'
 #' @param x,groups,n_axes,var_threshold,log_transform,scale As in
 #'   [bootstrap_functional_space()].
+#' @param method One of `"convexhull"`, `"dendrogram"`, `"tpd"`,
+#'   `"hypervolume"` (see [bootstrap_functional_space()]), or any other
+#'   caller-specific label. Only `"convexhull"` (the default, for backward
+#'   compatibility with callers that do not pass `method`, e.g.
+#'   [species_sensitivity()]) strictly requires `nlevels(groups) > n_axes`
+#'   (a non-degenerate n-dimensional convex hull needs at least `n_axes +
+#'   1` affinely independent points); the other methods do not need this
+#'   and only get a (non-fatal) warning instead.
 #' @return A list with `scores` (the `n_axes`-column PCA score matrix),
 #'   `groups` (factor, `NA`-free, unused levels dropped, aligned to
 #'   `scores`), `n_axes` (the actual integer used), and `var_explained`
 #'   (cumulative proportion of variance captured by those axes).
 #' @noRd
-.fspace_pca_scores <- function(x, groups, n_axes, var_threshold, log_transform, scale) {
+.fspace_pca_scores <- function(x, groups, n_axes, var_threshold, log_transform, scale,
+                                method = "convexhull") {
   if (inherits(x, "intrait_traitspace")) {
     if (is.null(x$X)) {
       stop(
@@ -1145,14 +1492,29 @@
   n_axes <- min(n_axes, ncol(pca$x))
 
   if (nlevels(groups) <= n_axes) {
-    stop(
+    if (identical(method, "convexhull")) {
+      stop(
+        sprintf(
+          paste(
+            "`n_axes` = %d requires more than %d species (points) to define a",
+            "non-degenerate convex hull, but `groups` only has %d level(s);",
+            "lower `n_axes` (or `var_threshold`)."
+          ),
+          n_axes, n_axes, nlevels(groups)
+        ),
+        call. = FALSE
+      )
+    }
+    warning(
       sprintf(
         paste(
-          "`n_axes` = %d requires more than %d species (points) to define a",
-          "non-degenerate convex hull, but `groups` only has %d level(s);",
-          "lower `n_axes` (or `var_threshold`)."
+          "`n_axes` = %d is not smaller than the number of species/groups",
+          "(%d). This is not required for method = \"%s\" (unlike",
+          "\"convexhull\"), but functional-richness estimates from very few",
+          "points relative to dimensionality should be interpreted with",
+          "caution."
         ),
-        n_axes, n_axes, nlevels(groups)
+        n_axes, nlevels(groups), method
       ),
       call. = FALSE
     )
@@ -1224,18 +1586,39 @@
                               ellipse_level = 0.95, density_level = 0.95,
                               legend = TRUE, legend_position = "outside",
                               legend_title = "Group", legend_italic = FALSE,
-                              abbreviate_species = FALSE, ...) {
+                              abbreviate_species = FALSE, space_name = "Ordination", ...) {
   x <- scores[, 1]
   y <- scores[, 2]
   dots <- list(...)
 
   # Short, inward-pointing tick marks for the duration of this plot only.
-  old_par <- graphics::par(tcl = 0.3, mgp = c(2.2, 0.5, 0))
+  # `las = 1` is set explicitly (rather than left to whatever the current
+  # device/session default happens to be) so both axes' tick labels always
+  # read horizontally, regardless of ambient `par()` state.
+  old_par <- graphics::par(tcl = 0.3, mgp = c(2.2, 0.5, 0), las = 1)
   on.exit(graphics::par(old_par), add = TRUE)
+
+  # Individual points are drawn smaller and slightly see-through (rather
+  # than R's default solid, full-size `pch = 19`) so that overlapping
+  # specimens in a dense ordination cloud remain distinguishable instead
+  # of merging into a single solid blob.
+  pt_cex <- 0.7
+  pt_alpha <- 0.75
+
+  # Title names the display style actually used (e.g. "Trait space
+  # (spider)"), so a reader (or a figure caption written after the fact)
+  # doesn't have to guess which of `style`'s four options produced a given
+  # plot; `style = "none"` has nothing to name, so the title is left plain.
+  style_label <- switch(style,
+    spider = "spider", hull = "convex hull", density = "density", NULL
+  )
+  main_title <- if (!is.null(style_label)) paste0(space_name, " (", style_label, ")") else space_name
 
   if (is.null(groups)) {
     plot_args <- utils::modifyList(
-      list(x = x, y = y, xlab = xlab, ylab = ylab, pch = 19), dots
+      list(x = x, y = y, xlab = xlab, ylab = ylab, main = main_title, pch = 19, cex = pt_cex,
+           col = grDevices::adjustcolor("black", alpha.f = pt_alpha)),
+      dots
     )
     do.call(graphics::plot, plot_args)
     graphics::abline(h = 0, v = 0, lty = 3, col = "grey60")
@@ -1247,7 +1630,11 @@
   # entry for a group with zero points.
   groups <- droplevels(as.factor(groups))
   pal <- .ordination_palette(nlevels(groups))
-  cols <- pal[as.integer(groups)]
+  # `pal` itself (fully opaque) is kept as-is for the legend swatches
+  # further down, and for the spider/hull/density group-summary elements
+  # (ellipses, hulls, centroids), which should stay crisp; only the raw
+  # per-specimen points below are made translucent.
+  cols <- grDevices::adjustcolor(pal[as.integer(groups)], alpha.f = pt_alpha)
 
   # Pre-compute every group's extra geometry (ellipse / hull / density
   # contour) *before* plotting, purely to size the axes correctly; the
@@ -1313,8 +1700,8 @@
   }
 
   plot_args <- utils::modifyList(
-    list(x = x, y = y, xlab = xlab, ylab = ylab, pch = 19, col = cols,
-         xlim = auto_xlim, ylim = auto_ylim),
+    list(x = x, y = y, xlab = xlab, ylab = ylab, main = main_title, pch = 19, cex = pt_cex,
+         col = cols, xlim = auto_xlim, ylim = auto_ylim),
     dots
   )
   do.call(graphics::plot, plot_args)

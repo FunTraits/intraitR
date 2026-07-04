@@ -338,6 +338,22 @@ ss
 plot(ss)
 ```
 
+Both functions accept a `method` argument beyond the default
+`"convexhull"`: `"dendrogram"` (UPGMA functional dendrogram branch
+length, Petchey & Gaston 2002, no extra package required), `"tpd"`
+(Trait Probability Density, Carmona et al. 2019), or `"hypervolume"`
+(Gaussian-kernel hypervolume, Blonder et al. 2014, 2018). Since these
+four measures are not on the same scale, [compare_functional_richness()]
+runs several of them on the same data and tabulates the percent change
+and bootstrap p-value side by side, so agreement (or disagreement) across
+methods can itself be assessed:
+
+```{r}
+cmp <- compare_functional_richness(fts, methods = c("dendrogram", "convexhull"), n_axes = 2, n_boot = 100)
+cmp
+plot(cmp)
+```
+
 Because `fishmorph_segments()` and `fishmorph_ratios()` return plain
 data frames, they compose directly with [summary_traits()] and
 [intraspecific_variability()] (traits-only mode) exactly as the ratios

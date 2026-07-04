@@ -149,3 +149,87 @@ test_that("print.intrait_species_sensitivity() and plot.intrait_species_sensitiv
   grDevices::dev.off()
   unlink(tmp)
 })
+
+test_that("species_sensitivity() runs with method = \"dendrogram\" (no extra package required)", {
+  set.seed(11)
+  fish <- simulate_fishmorph_points(n_per_species = 12, n_replicates = 1)
+  seg <- fishmorph_segments(fish)
+  ratios <- fishmorph_ratios(seg)
+  ts <- suppressWarnings(trait_space(ratios, groups = fish$metadata$species))
+
+  ss <- species_sensitivity(ts, method = "dendrogram", n_axes = 2)
+
+  expect_s3_class(ss, "intrait_species_sensitivity")
+  expect_equal(ss$method, "dendrogram")
+  expect_true(is.finite(ss$fd_ref) && ss$fd_ref >= 0)
+  expect_equal(nrow(ss$summary), nlevels(ts$groups))
+  expect_true(all(ss$summary$min_dFD <= ss$summary$mean_dFD))
+  expect_true(all(ss$summary$mean_dFD <= ss$summary$max_dFD))
+
+  expect_output(print(ss), "dendrogram")
+  tmp <- tempfile(fileext = ".png")
+  grDevices::png(tmp)
+  expect_error(plot(ss), NA)
+  grDevices::dev.off()
+  unlink(tmp)
+})
+
+test_that("species_sensitivity(method = \"dendrogram\") does not require nlevels(groups) > n_axes", {
+  set.seed(12)
+  fish <- simulate_fishmorph_points(n_per_species = 10, n_replicates = 1)
+  seg <- fishmorph_segments(fish)
+  ratios <- fishmorph_ratios(seg)
+  ts <- suppressWarnings(trait_space(ratios, groups = fish$metadata$species))
+
+  # simulate_fishmorph_points() has 3 species; n_axes = 3 leaves no slack
+  expect_warning(
+    ss <- species_sensitivity(ts, method = "dendrogram", n_axes = 3),
+    "not smaller than"
+  )
+  expect_s3_class(ss, "intrait_species_sensitivity")
+})
+
+test_that("species_sensitivity() errors informatively for method = \"tpd\"/\"hypervolume\" without the package", {
+  testthat::skip_if(
+    requireNamespace("TPD", quietly = TRUE),
+    "TPD is installed; cannot test the missing-package error message"
+  )
+  df <- data.frame(a = 1:9, b = 1:9)
+  expect_error(
+    species_sensitivity(df, groups = rep(c("G1", "G2", "G3"), 3), method = "tpd"),
+    "TPD"
+  )
+})
+
+test_that("species_sensitivity() runs with method = \"tpd\" when the TPD package is available", {
+  testthat::skip_if_not_installed("TPD")
+
+  set.seed(13)
+  fish <- simulate_fishmorph_points(n_per_species = 12, n_replicates = 1)
+  seg <- fishmorph_segments(fish)
+  ratios <- fishmorph_ratios(seg)
+  ts <- suppressWarnings(trait_space(ratios, groups = fish$metadata$species))
+
+  ss <- species_sensitivity(ts, method = "tpd", n_axes = 2)
+  expect_s3_class(ss, "intrait_species_sensitivity")
+  expect_equal(ss$method, "tpd")
+  expect_true(is.finite(ss$fd_ref))
+})
+
+test_that("species_sensitivity() runs with method = \"hypervolume\" when the hypervolume package is available", {
+  testthat::skip_if_not_installed("hypervolume")
+  testthat::skip_on_cran() # comparatively slow, one hypervolume per individual
+
+  set.seed(14)
+  fish <- simulate_fishmorph_points(n_per_species = 8, n_replicates = 1)
+  seg <- fishmorph_segments(fish)
+  ratios <- fishmorph_ratios(seg)
+  ts <- suppressWarnings(trait_space(ratios, groups = fish$metadata$species))
+
+  ss <- species_sensitivity(
+    ts, method = "hypervolume", n_axes = 2, hv_samples_per_point = 100
+  )
+  expect_s3_class(ss, "intrait_species_sensitivity")
+  expect_equal(ss$method, "hypervolume")
+  expect_true(is.finite(ss$fd_ref))
+})

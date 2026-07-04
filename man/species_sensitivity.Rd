@@ -7,10 +7,17 @@
 species_sensitivity(
   x,
   groups = NULL,
+  method = c("convexhull", "dendrogram", "tpd", "hypervolume"),
   n_axes = NULL,
   var_threshold = 0.98,
   log_transform = TRUE,
-  scale = TRUE
+  scale = TRUE,
+  dendrogram_linkage = "average",
+  tpd_alpha = 0.95,
+  tpd_bw_factor = 0.5,
+  tpd_n_divisions = NULL,
+  hv_bw_method = "silverman",
+  hv_samples_per_point = 500
 )
 }
 \arguments{
@@ -25,10 +32,21 @@ before the PCA described below.}
 individual, typically species identity); ignored (taken from
 \code{x$groups}) when \code{x} is an \code{"intrait_traitspace"} object.}
 
-\item{n_axes, var_threshold, log_transform, scale}{As in
-\code{\link[=bootstrap_functional_space]{bootstrap_functional_space()}}: \code{n_axes} PCA axes are used for the
-convex hull (auto-selected via \code{var_threshold} if \code{NULL}), computed
-from a fresh PCA on \code{x$X} (or on freshly standardised \code{x}).}
+\item{method, n_axes, var_threshold, log_transform, scale, dendrogram_linkage, tpd_alpha, tpd_bw_factor, tpd_n_divisions, hv_bw_method, hv_samples_per_point}{As in \code{\link[=bootstrap_functional_space]{bootstrap_functional_space()}}: \code{method} selects the
+functional-richness measure recomputed for the reference configuration
+and every single-individual replacement (\code{"convexhull"}, the default,
+an n-dimensional convex-hull volume; \code{"dendrogram"}, total branch
+length of a UPGMA functional dendrogram; \code{"tpd"}, Trait Probability
+Density functional richness; \code{"hypervolume"}, a Gaussian-kernel
+hypervolume), and \code{n_axes} PCA axes are used (auto-selected via
+\code{var_threshold} if \code{NULL}), computed from a fresh PCA on \code{x$X} (or on
+freshly standardised \code{x}). As there, only \code{method = "convexhull"}
+strictly requires \code{nlevels(groups) > n_axes}; the other methods only
+warn instead. For \code{"tpd"}/\code{"hypervolume"}, the kernel bandwidth (and,
+for \code{"tpd"}, the evaluation grid) is likewise computed once from the
+full individual-level PCA scores and reused, unchanged, for \code{fd_ref}
+and every one of the \code{nrow(x)} single-individual replacements, for the
+same comparability reason explained there.}
 }
 \value{
 An object of class \code{"intrait_species_sensitivity"}, a list with
@@ -38,16 +56,16 @@ columns \code{species}, \code{n_individuals}, \code{mean_dFD}, \code{min_dFD}, \
 in the original \code{levels(groups)} order), \code{individual} (a long-format
 \code{data.frame} with one row per individual, columns \code{species} and
 \code{dFD}, for full transparency beyond the per-species summary), \code{fd_ref}
-(the community-wide centroid-based reference volume), \code{n_axes}, and
-\code{var_explained}. Has dedicated \code{\link[=print]{print()}} and \code{\link[=plot]{plot()}} methods.
+(the community-wide centroid-based reference richness), \code{method},
+\code{n_axes}, and \code{var_explained}. Has dedicated \code{\link[=print]{print()}} and \code{\link[=plot]{plot()}}
+methods.
 }
 \description{
 For each species, quantifies how much replacing that species' centroid
 with one of its real individuals changes the estimated functional
-richness (an n-dimensional convex-hull volume in PCA space), while every
-other species stays fixed at its own centroid, following the
-species-level sensitivity index of Bertrand (2026, Section
-"Species-level sensitivity index"). This complements
+richness in PCA space, while every other species stays fixed at its own
+centroid, following the species-level sensitivity index of Bertrand
+(2026, Section "Species-level sensitivity index"). This complements
 \code{\link[=bootstrap_functional_space]{bootstrap_functional_space()}}'s community-wide comparison by asking a
 finer-grained question: \emph{which} species drive the difference between
 individual-based and centroid-based functional richness, and are their
@@ -57,10 +75,10 @@ individual effects consistent or highly variable?
 For a focal species k with individuals \verb{i = 1, ..., n_k}, its centroid
 in the \code{n_axes}-dimensional PCA space is replaced, one individual at a
 time, by that individual's own PCA scores, while every other species
-remains at its centroid; the convex-hull volume of this modified
+remains at its centroid; the functional richness of this modified
 \code{n_species}-point configuration is \verb{FD_\{k,i\}}. Each replacement is
 expressed as a percentage change relative to the (unmodified)
-centroid-based reference volume \code{fd_ref}:
+centroid-based reference richness \code{fd_ref}:
 \deqn{\Delta FD_{k,i} (\%) = 100 \times (FD_{k,i} - FD_{ref}) / FD_{ref}}
 A positive \code{dFD} means that individual, if it alone stood in for its
 species' centroid, would expand the estimated functional space; a
@@ -73,18 +91,21 @@ for worked examples of both patterns in real data).
 
 Unlike \code{\link[=bootstrap_functional_space]{bootstrap_functional_space()}}, this index requires no
 resampling or significance test: every replacement is deterministic
-(one individual, one recomputed volume), so \code{species_sensitivity()} is
-exact given \code{x}/\code{groups}/\code{n_axes}, not simulation-based. Species with
-only one individual still receive a (single-valued) \code{mean_dFD}, with
-\code{min_dFD == max_dFD} and no useful "range" to speak of, which is
-expected, not an error.
+(one individual, one recomputed richness value), so
+\code{species_sensitivity()} is exact given \code{x}/\code{groups}/\code{n_axes}/\code{method},
+not simulation-based. Species with only one individual still receive a
+(single-valued) \code{mean_dFD}, with \code{min_dFD == max_dFD} and no useful
+"range" to speak of, which is expected, not an error.
 
-Every individual, across every species, requires its own convex-hull
-recomputation (one call per individual in \code{x}/\code{groups}, not per
-species), so this is the most computationally demanding of the two
-functional-space functions on a large data set -- Bertrand (2026)'s
-regional panel, for instance, had 1,302 individuals. Each individual's
-replacement is independent of every other's, so, exactly as in
+Every individual, across every species, requires its own
+functional-richness recomputation (one call per individual in
+\code{x}/\code{groups}, not per species), so this is the most computationally
+demanding of the two functional-space functions on a large data set --
+Bertrand (2026)'s regional panel, for instance, had 1,302 individuals --
+and especially so for \code{method = "hypervolume"} (by far the most
+expensive of the four measures per call, see
+\code{\link[=bootstrap_functional_space]{bootstrap_functional_space()}}). Each individual's replacement is
+independent of every other's, so, exactly as in
 \code{\link[=bootstrap_functional_space]{bootstrap_functional_space()}}, this is distributed automatically
 across \code{future.apply}'s workers when that package is installed and a
 parallel \code{future::plan()} has been set beforehand; with no plan set, or
@@ -92,14 +113,19 @@ without \code{future.apply}, it runs sequentially with identical results.
 }
 \examples{
 \donttest{
+fish <- load_t26_saudrune_landmarks()
+segments <- fishmorph_segments(fish)
+ratios <- fishmorph_ratios(segments)
+ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
+
+# method = "dendrogram" needs no extra Suggested package
+ss_dendro <- species_sensitivity(ts, method = "dendrogram", n_axes = 2)
+ss_dendro
+plot(ss_dendro)
+
 if (requireNamespace("geometry", quietly = TRUE)) {
-  fish <- load_t26_saudrune_landmarks()
-  segments <- fishmorph_segments(fish)
-  ratios <- fishmorph_ratios(segments)
-  ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
   ss <- species_sensitivity(ts, n_axes = 2)
   ss
-  plot(ss)
 }
 }
 }
@@ -114,6 +140,21 @@ Brosse.
 Villeger S, Mason NWH, Mouillot D (2008). New multidimensional
 functional diversity indices for a multifaceted framework in functional
 ecology. Ecology, 89(8), 2290-2301.
+
+Petchey OL, Gaston KJ (2002). Functional diversity (FD), species
+richness and community composition. Ecology Letters, 5(3), 402-411.
+
+Carmona CP, de Bello F, Mason NWH, Leps J (2019). Trait probability
+density (TPD): measuring functional diversity across scales based on
+TPD with R. Ecology, 100(12), e02876.
+
+Blonder B, Lamanna C, Violle C, Enquist BJ (2014). The n-dimensional
+hypervolume. Global Ecology and Biogeography, 23(5), 595-609.
+
+Blonder B, Morrow CB, Maitner B, Harris DJ, Lamanna C, Violle C,
+Enquist BJ, Kerkhoff AJ (2018). New approaches for delineating
+n-dimensional hypervolumes. Methods in Ecology and Evolution, 9(2),
+305-319.
 }
 \seealso{
 \code{\link[=bootstrap_functional_space]{bootstrap_functional_space()}}, \code{\link[=trait_space]{trait_space()}}

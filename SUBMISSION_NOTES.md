@@ -2,6 +2,17 @@
 
 Ce package a été écrit intégralement à la main (code R + DESCRIPTION + NAMESPACE + Rd via roxygen2 non exécuté), car l'environnement dans lequel il a été généré ne dispose ni de R, ni d'un accès root, ni d'un accès réseau vers CRAN — il n'a donc pas été possible d'exécuter `devtools::document()`, `devtools::check()` ou `R CMD build/check` pour valider automatiquement le paquet. Une relecture statique (équilibrage des parenthèses/accolades sur l'ensemble des fichiers R, cohérence entre les tags `@export`/`@importFrom` et le fichier `NAMESPACE`) a été effectuée, et une incohérence trouvée lors de cette relecture (`print.intrait_morphospace` manquant du `NAMESPACE`) a été corrigée. Mais **une vérification complète sous R reste nécessaire avant toute soumission**.
 
+## Mise à jour v1.1.0 : `method` multi-mesures + `compare_functional_richness()`
+
+Ajouté après le premier run réel de v1.0.0, et donc **de nouveau non exécuté sous R** dans cet environnement (toujours pas de R disponible ici) : `bootstrap_functional_space()` et `species_sensitivity()` acceptent désormais un argument `method` (`"convexhull"`, comportement par défaut inchangé ; `"dendrogram"`, `"tpd"`, `"hypervolume"`), et une nouvelle fonction `compare_functional_richness()` exécute plusieurs méthodes sur les mêmes données et tabule les résultats.
+
+Point d'attention prioritaire avant soumission : les appels à `TPD::TPDsMean()`/`TPD::TPDc()`/`TPD::REND()` et `hypervolume::hypervolume_gaussian()`/`estimate_bandwidth()`/`get_volume()` ont été écrits à partir de la documentation CRAN de référence de ces deux packages (manuels `.Rd` lus au moment de l'écriture, via recherche web puisqu'aucun R local n'était disponible pour vérifier interactivement `?TPD::TPDsMean` etc.), et non testés par exécution réelle. Avant toute soumission :
+
+-   Installer `TPD` et `hypervolume` sur votre poste et lancer les tests `method = "tpd"`/`method = "hypervolume"` de `test-bootstrap_functional_space.R`, `test-species_sensitivity.R`, et `test-compare_functional_richness.R` (protégés par `testthat::skip_if_not_installed()`, donc silencieusement ignorés sans ces packages — vérifiez qu'ils s'exécutent bien et passent, pas seulement qu'ils sont "skip").
+-   Vérifier en particulier que `trait_ranges` (grille fixe passée à `TPD::TPDsMean()`) et `kde.bandwidth` (largeur de bande fixe passée à `hypervolume::hypervolume_gaussian()`) acceptent bien le format construit par `.fspace_richness_setup()` dans la version de ces packages installée sur votre poste (`packageVersion("TPD")`, `packageVersion("hypervolume")`).
+-   `method = "dendrogram"` ne dépend que de `stats::hclust()` (aucune nouvelle dépendance) et a été raisonné à la main (longueur totale de branches UPGMA, Petchey & Gaston 2002) ; à vérifier aussi par un vrai `devtools::test()`, par prudence, comme pour tout le reste du paquet.
+-   `DESCRIPTION` : `TPD` et `hypervolume` ont été ajoutés à `Suggests` ; `Version:` est passé à 1.1.0 et un champ `Date:` a été ajouté.
+
 ## Mise à jour v1.0.0 : premier `devtools::test()` réel
 
 Pour la version 1.0.0, `devtools::test()` a enfin été exécuté sur un poste avec R (celui du mainteneur), et non plus seulement relu statiquement comme pour toutes les versions précédentes. Résultat : 465 tests passés, 0 échec, 5 avertissements attendus (documentés ci-dessous) et 6 tests ignorés (`skip`) pour des raisons attendues (chemins nécessitant un package absent volontairement du test, ou une session R interactive). Un seul problème a été détecté :
@@ -49,7 +60,7 @@ Ceci confirme, a posteriori, la fiabilité de la méthode suivie jusqu'ici en l'
 5.  `DESCRIPTION` :
 
     -   `URL:`/`BugReports:` pointent vers `https://github.com/FunTraits/intraitR` (dépôt créé le 2026-07-01 ; voir `GITHUB_SETUP.md` pour la mise en ligne). Si le dépôt venait à changer de nom ou d'organisation, pensez à mettre à jour ces deux champs (ainsi que `inst/CITATION` et l'exemple `remotes::install_github()` du `README.md`).
-    -   Vérifiez le champ `Version:` (actuellement 1.0.0 ; voir `NEWS.md` pour l'historique complet des versions) et ajoutez un champ `Date:` si vous le souhaitez.
+    -   Vérifiez le champ `Version:` (actuellement 1.1.0 ; voir `NEWS.md` pour l'historique complet des versions) et le champ `Date:` (actuellement 2026-07-04).
 
 6.  (Optionnel) Générer un jeu de données statique inclus dans le paquet : exécutez `data-raw/simulate_data.R` (voir les instructions dans ce fichier et dans `R/data.R`) si vous préférez livrer `fish_landmarks` comme objet de données plutôt que de le générer à la volée avec `simulate_fish_landmarks()`.
 

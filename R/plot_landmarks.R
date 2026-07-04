@@ -5,6 +5,22 @@
 #' optionally numbered, for quality control of digitization and
 #' configuration checking.
 #'
+#' This is a deliberately generic viewer: it makes no assumption about
+#' landmark count or anatomical scheme, and works equally well on raw,
+#' Procrustes-aligned (`"intrait_gpa"`), or simulated configurations (e.g.
+#' the `n_landmarks`-only shapes from [simulate_fish_landmarks()]) -- the
+#' natural companion to the package's scheme-agnostic functions
+#' ([gpa_fish()], [detect_outliers()], [correct_allometry()],
+#' [intraspecific_variability()], [morpho_space()]). For data digitized
+#' following the FISHMORPH scheme specifically (Brosse et al. 2021, at
+#' least 21 points), [plot_fishmorph_points()] is usually more
+#' informative -- it colours the 11 measurement segments, draws the body
+#' outline/eye/scale bar, and highlights imputed/corrected/geometry-
+#' flagged landmarks -- but it requires that scheme and errors on anything
+#' with fewer than 21 landmarks; use this function instead for any other
+#' landmark configuration, or for a lighter-weight look at FISHMORPH data
+#' without that added detail.
+#'
 #' @param landmarks An object of class `"intrait_landmarks"` or
 #'   `"intrait_gpa"`, or a raw `p x k x n` array. Must be two-dimensional.
 #' @param specimen Integer index or character specimen identifier of the
@@ -31,7 +47,8 @@
 #'
 #' @return Invisibly returns the `p x 2` matrix of coordinates plotted.
 #'
-#' @seealso [gpa_fish()], [morpho_space()]
+#' @seealso [gpa_fish()], [morpho_space()], [plot_fishmorph_points()] (richer
+#'   viewer for FISHMORPH-scheme data specifically)
 #'
 #' @examples
 #' fish <- load_t26_saudrune_landmarks()

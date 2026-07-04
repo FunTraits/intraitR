@@ -58,11 +58,12 @@
 #' should be treated with more caution as the fraction of missing landmarks
 #' grows, or when very few specimens have a complete configuration to learn
 #' the covariation structure from. Always compare an imputed specimen
-#' against its non-imputed neighbours (e.g. with [plot_landmarks()]) before
-#' relying on it in an analysis.
+#' against its non-imputed neighbours (e.g. with [plot_fishmorph_points()],
+#' which highlights imputed landmarks directly, or the more generic
+#' [plot_landmarks()]) before relying on it in an analysis.
 #'
 #' @seealso [fishmorph_segments()], [fishmorph_ratios()], [gpa_fish()],
-#'   [plot_landmarks()]
+#'   [plot_fishmorph_points()], [plot_landmarks()]
 #'
 #' @examples
 #' \donttest{

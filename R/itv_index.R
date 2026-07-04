@@ -283,55 +283,131 @@ print.intrait_itv <- function(x, ...) {
 
 #' Plot the interspecific/intraspecific variance breakdown
 #'
+#' Horizontal stacked bar chart, one bar per trait, ranked by intraspecific
+#' variability (ITV): the trait with the highest %ITV at the top, the most
+#' strongly species-differentiated trait at the bottom. The left margin is
+#' sized automatically to fit whatever trait labels end up being used
+#' (short codes or full descriptive names), so long labels are not cut off.
+#'
 #' @param x An object of class `"intrait_itv"`, from [itv_index()].
-#' @param legend_position One of `"outside"` (default: drawn in the
-#'   margin, just outside the top-right corner of the plot box, so it
-#'   never overlaps the tallest bars) or a standard [graphics::legend()]
+#' @param trait_labels How to label each trait's bar. `"auto"` (default)
+#'   expands any trait code recognised as one of the nine FISHMORPH ratios
+#'   (see [fishmorph_ratios()]) to its full descriptive name, e.g. `"RMl"`
+#'   becomes `"Relative maxillary length (RMl)"`; codes not recognised
+#'   (i.e. any other kind of trait table) are left as-is. `NULL` always
+#'   uses the raw trait/column names unchanged. Alternatively, a named
+#'   character vector (`names` matching `x$per_trait$trait`, values the
+#'   display label to use) for full control over arbitrary trait sets.
+#' @param sort Logical, sort bars by overall %ITV (ascending internally, so
+#'   the highest ends up at the top of the figure) rather than plotting
+#'   traits in their original column order. Defaults to `TRUE`.
+#' @param legend_position One of `"bottom"` (default: a horizontal legend
+#'   drawn just below the x-axis title) or a standard [graphics::legend()]
 #'   position keyword (e.g. `"topright"`) to draw it inside the plot box
-#'   instead, as in previous versions.
+#'   instead.
 #' @param ... Further arguments passed to [graphics::barplot()].
 #'
 #' @return Invisibly returns `x`.
 #' @export
-plot.intrait_itv <- function(x, legend_position = "outside", ...) {
+plot.intrait_itv <- function(x, trait_labels = "auto", sort = TRUE, legend_position = "bottom", ...) {
   pt <- x$per_trait
+
+  if (identical(trait_labels, "auto")) {
+    matched <- .fishmorph_ratio_labels[pt$trait]
+    trait_display <- ifelse(is.na(matched), pt$trait, sprintf("%s (%s)", matched, pt$trait))
+  } else if (is.null(trait_labels)) {
+    trait_display <- pt$trait
+  } else {
+    if (is.null(names(trait_labels))) {
+      stop("`trait_labels` must be a named character vector (or \"auto\"/NULL).", call. = FALSE)
+    }
+    matched <- unname(trait_labels[pt$trait])
+    trait_display <- ifelse(is.na(matched), pt$trait, matched)
+  }
+
   if (!is.null(x$nested)) {
     mat <- rbind(
       interspecific = pt$pct_interspecific,
       itv_between_pop = pt$pct_itv_between_pop,
       itv_within_pop = pt$pct_itv_within_pop
     )
-    cols <- c("#1b9e77", "#7570b3", "#d95f02")
+    cols <- c("#276a76", "#7fb5a3", "#c1502e")
     legend_labels <- c("Interspecific", "ITV (between population)", "ITV (within population)")
+    itv_total <- pt$pct_itv_between_pop + pt$pct_itv_within_pop
   } else {
     mat <- rbind(
       interspecific = pt$pct_interspecific,
       itv = pt$pct_itv
     )
-    cols <- c("#1b9e77", "#d95f02")
-    legend_labels <- c("Interspecific", "Intraspecific (ITV)")
+    cols <- c("#276a76", "#c1502e")
+    legend_labels <- c("Interspecific (among-species)", "Intraspecific (ITV, within-species)")
+    itv_total <- pt$pct_itv
   }
-  colnames(mat) <- pt$trait
+  colnames(mat) <- trait_display
 
-  if (identical(legend_position, "outside")) {
-    # Reserve extra room in the right margin so the legend sits just
-    # outside the bars instead of on top of whichever trait happens to
-    # reach 100% near the top-right corner; barplot()'s args.legend draws
-    # the legend internally (after the bars, so par("usr") is by then
-    # already correct), so a keyword position + negative inset is the
-    # standard way to push it fully outside the plot box.
-    old_par <- graphics::par(mar = graphics::par("mar") + c(0, 0, 0, 9))
-    on.exit(graphics::par(old_par), add = TRUE)
-    args_legend <- list(x = "topright", inset = c(-0.32, 0), xpd = TRUE, bty = "n", cex = 0.8)
+  # graphics::barplot(horiz = TRUE) draws its first column at the *bottom*
+  # of the figure, so ascending order here puts the highest-%ITV trait at
+  # the top -- the conventional top-to-bottom ranking for this chart type.
+  if (isTRUE(sort)) {
+    ord <- order(itv_total)
+    mat <- mat[, ord, drop = FALSE]
+    itv_total <- itv_total[ord]
+  }
+
+  n_obs <- length(x$groups)
+  n_grp <- nlevels(x$groups)
+  main_title <- paste0(
+    "Interspecific vs. intraspecific trait variability\n",
+    sprintf(
+      "itv_index(): n = %d observation(s), %d group(s)%s",
+      n_obs, n_grp,
+      if (!is.null(x$nested)) sprintf(", %d nested level(s)", nlevels(x$nested)) else ""
+    )
+  )
+
+  old_par <- graphics::par(las = 1)
+  on.exit(graphics::par(old_par), add = TRUE)
+
+  # Reserve enough left margin for the (potentially long) full trait names
+  # -- a fixed margin cuts off labels like "Relative maxillary length
+  # (RMl)"; strwidth() measures the actual widest label at the cex the
+  # bars will use, so the margin scales with whatever `trait_labels`
+  # ends up producing (short codes or full names alike).
+  label_cex <- 0.85
+  label_width_in <- max(graphics::strwidth(trait_display, units = "inches", cex = label_cex))
+  left_mar <- label_width_in / graphics::par("cin")[1] + 1
+
+  base_mar <- graphics::par("mar")
+  bottom_extra <- if (identical(legend_position, "bottom")) 3.2 else 0
+  right_extra <- if (identical(legend_position, "bottom")) 1 else 0
+  old_mar <- graphics::par(mar = c(
+    base_mar[1] + bottom_extra, left_mar, base_mar[3], base_mar[4] + right_extra
+  ))
+  on.exit(graphics::par(old_mar), add = TRUE)
+
+  if (identical(legend_position, "bottom")) {
+    args_legend <- list(
+      x = "bottom", inset = c(0, -0.42), xpd = TRUE, bty = "n", cex = 0.8,
+      horiz = TRUE
+    )
   } else {
     args_legend <- list(x = legend_position, bty = "n", cex = 0.8)
   }
 
-  graphics::barplot(
-    mat, col = cols, ylab = "% of trait variance", ylim = c(0, 100),
+  bp <- graphics::barplot(
+    mat, horiz = TRUE, col = cols, border = NA, xlim = c(0, 115),
+    xlab = "Percent of total trait variance", main = main_title,
+    cex.names = label_cex,
     legend.text = legend_labels,
     args.legend = args_legend,
     ...
   )
+
+  graphics::abline(v = x$multivariate$pct_itv, lty = 3, col = "grey40")
+  graphics::text(
+    102, bp, labels = sprintf("%.0f%% ITV", itv_total),
+    adj = 0, cex = 0.75, xpd = TRUE
+  )
+
   invisible(x)
 }

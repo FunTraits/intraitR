@@ -22,5 +22,9 @@ Invisibly returns \code{x}.
 Invisibly returns \code{x}.
 }
 \description{
-Print and plot an \code{"intrait_bootstrap_fspace"} object
+\code{plot()} draws a histogram of the bootstrap distribution (\code{fd_boot}),
+with \code{fd_ref} (centroid-based reference) marked by a dashed red line and
+\code{fd_boot_mean} (the bootstrap mean) by a dashed blue line; both values
+are printed directly on the x-axis, in matching colour, rather than in
+a separate text annotation.
 }

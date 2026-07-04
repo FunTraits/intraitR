@@ -24,7 +24,9 @@
 \item{style}{Character, one of \code{"spider"} (default), \code{"hull"},
 \code{"density"}, or \code{"none"}, controlling how groups are displayed; see
 the Details section of \code{\link[=plot.intrait_morphospace]{plot.intrait_morphospace()}}. Ignored if
-\code{x$groups} is \code{NULL}.}
+\code{x$groups} is \code{NULL}. Also named in the plot's title (e.g. \code{"Trait space (spider)"}), so the display style used is always legible from
+the figure itself, not just from the call that produced it; pass
+\verb{main = } via \code{...} to override with a custom title instead.}
 
 \item{ellipse_level}{Coverage probability of the per-group dispersion
 ellipse drawn when \code{style = "spider"}, under a bivariate-normal

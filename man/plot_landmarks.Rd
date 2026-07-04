@@ -52,6 +52,23 @@ landmark configuration (raw or Procrustes-aligned), with landmarks
 optionally numbered, for quality control of digitization and
 configuration checking.
 }
+\details{
+This is a deliberately generic viewer: it makes no assumption about
+landmark count or anatomical scheme, and works equally well on raw,
+Procrustes-aligned (\code{"intrait_gpa"}), or simulated configurations (e.g.
+the \code{n_landmarks}-only shapes from \code{\link[=simulate_fish_landmarks]{simulate_fish_landmarks()}}) -- the
+natural companion to the package's scheme-agnostic functions
+(\code{\link[=gpa_fish]{gpa_fish()}}, \code{\link[=detect_outliers]{detect_outliers()}}, \code{\link[=correct_allometry]{correct_allometry()}},
+\code{\link[=intraspecific_variability]{intraspecific_variability()}}, \code{\link[=morpho_space]{morpho_space()}}). For data digitized
+following the FISHMORPH scheme specifically (Brosse et al. 2021, at
+least 21 points), \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}} is usually more
+informative -- it colours the 11 measurement segments, draws the body
+outline/eye/scale bar, and highlights imputed/corrected/geometry-
+flagged landmarks -- but it requires that scheme and errors on anything
+with fewer than 21 landmarks; use this function instead for any other
+landmark configuration, or for a lighter-weight look at FISHMORPH data
+without that added detail.
+}
 \examples{
 fish <- load_t26_saudrune_landmarks()
 plot_landmarks(fish, specimen = 1)
@@ -64,5 +81,6 @@ plot_landmarks(fish, specimen = 1, background_image = "specimen1.jpg")
 
 }
 \seealso{
-\code{\link[=gpa_fish]{gpa_fish()}}, \code{\link[=morpho_space]{morpho_space()}}
+\code{\link[=gpa_fish]{gpa_fish()}}, \code{\link[=morpho_space]{morpho_space()}}, \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}} (richer
+viewer for FISHMORPH-scheme data specifically)
 }

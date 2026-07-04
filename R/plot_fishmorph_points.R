@@ -5,6 +5,17 @@
 #' measurements they define, a body outline, the eye, and the digitization
 #' scale bar, for quality control of digitization.
 #'
+#' This is deliberately scheme-specific: it requires at least 21 landmarks
+#' following the FISHMORPH protocol (and errors otherwise), in exchange for
+#' a much richer display than a generic scatterplot -- colour-coded
+#' measurement segments and legend, anatomical body outline/eye/reference
+#' lines, a schematic scale bar, and highlighting of imputed, corrected, or
+#' geometry-check-flagged landmarks. For any other landmark scheme or
+#' count (e.g. the generic, `n_landmarks`-only configurations from
+#' [simulate_fish_landmarks()], or a non-FISHMORPH digitization protocol),
+#' or for a lighter-weight look at FISHMORPH data without this added
+#' detail, see [plot_landmarks()] instead.
+#'
 #' @param landmarks An object of class `"intrait_landmarks"` with at least
 #'   21 two-dimensional landmarks digitized following the scheme described
 #'   in [fishmorph_segments()] (e.g. from [simulate_fishmorph_points()]).
@@ -90,7 +101,73 @@
 #'   paths rather than leaving a gap -- e.g. real T-26 specimens are
 #'   commonly missing landmark 5, in which case the body outline falls
 #'   back to a direct 1-3 segment. Defaults to `TRUE`.
-#' @param ... Further arguments passed to [graphics::plot()].
+#' @param scale_label Character text drawn just above the digitization
+#'   scale bar (landmarks 20-21), or `NULL` to omit it. Defaults to
+#'   `"scale (1 cm)"`, the FISHMORPH protocol's standard calibration
+#'   segment; change it (e.g. `"scale (2 cm)"`) if a data set was
+#'   digitized against a different calibration length. Only drawn when
+#'   both landmarks 20 and 21 are present (non-`NA`) for this specimen.
+#'   The bar itself is drawn schematically near the plot's own origin
+#'   (bottom-left corner) rather than at landmarks 20/21's true digitized
+#'   coordinates -- which can otherwise land anywhere in the frame, even
+#'   on the fish -- while still being drawn to the real digitized length
+#'   between them (i.e. still true to scale); neither landmark is
+#'   individually number-labelled.
+#' @param axis_range Either `"auto"` (default) or a numeric vector of
+#'   length 2, `c(min, max)`, shared by both `x` and `y`. `"auto"` uses
+#'   `c(0, 1)`, with its clean, round tick labels, whenever every
+#'   coordinate of this specimen is within a generous +/-15% of it (the
+#'   normalised convention used throughout the package's own examples and
+#'   the T-26 Saudrune data, allowing for the slight overshoot a real
+#'   corrected/aligned specimen can have), and otherwise falls back to
+#'   the data's own combined range -- e.g. for a specimen still in raw,
+#'   not-yet-normalised digitization coordinates (pixels in the hundreds
+#'   or thousands), for which a hard-coded `c(0, 1)` would silently plot
+#'   every point outside the visible area. Pass a numeric vector to force
+#'   specific limits instead, or `xlim`/`ylim` (via `...`) to set `x`/`y`
+#'   independently.
+#' @param ... Further arguments passed to [graphics::plot()]; in
+#'   particular, `xlim`/`ylim` override `axis_range` independently for
+#'   `x`/`y` (see Details).
+#'
+#' @details
+#' A few display choices are fixed for readability rather than left to
+#' `graphics::plot()`'s own defaults: axes are square (`par(pty = "s")`)
+#' and share the limits set by `axis_range` (see above), `xaxs`/
+#' `yaxs = "i"` remove R's default 4% axis-range padding (together, these
+#' two settings avoid the wide band of blank space R would otherwise add
+#' to whichever axis does not already match the plotting device's own
+#' width/height ratio), and the plot box itself is then drawn a further,
+#' fixed 20% beyond `axis_range` on every side (e.g. `[-0.2, 1.2]` for
+#' the default `[0, 1]` convention) so that landmarks sitting right on
+#' the 0/1 edge -- common for the FISHMORPH scheme's snout-tip, scale-bar
+#' and caudal-fin landmarks -- are not clipped by the border together
+#' with their halo number/arrow. Tick marks are drawn short at five
+#' evenly spaced positions within the original, unpadded `axis_range`
+#' (quarter increments for the default `[0, 1]` range), tick labels are
+#' always horizontal on both axes, and axis titles read "X
+#' coordinates"/"Y coordinates". Landmark
+#' index numbers (`labels = TRUE`) are placed above or below their
+#' landmark, whichever side points away from the rest of the configuration
+#' (landmarks 15 and 17, which sit right on the main body axis, are always
+#' placed below), connected back to it by a short arrow, and drawn with a
+#' white halo behind a bold number, so they stay legible and never have to
+#' sit directly on top of the fish outline or a coloured measurement
+#' segment. Landmarks 5, 13, 14 and 7 -- the upper part of the tightly
+#' clustered eye-socket group (5, 13, 7, 14, 6, 8) -- are additionally
+#' given an explicit direction clear of the body outline (5 straight up,
+#' 13 shallow up-right, 14 steep up-right -- different angles, not just
+#' different distances, so the two do not read as sitting on the same
+#' line out of the cluster -- and 7 up and to the left), since the
+#' generic rule alone still overlaps there; 6 is nudged a little further
+#' right so it clears 8/15 below it; 8 itself is left entirely to the
+#' generic rule, like the other ventral landmarks (9, 11). Every offset
+#' is computed in physical inches (`xinch()`/`yinch()`) rather than data
+#' units, so this layout looks the same regardless of whether coordinates
+#' are already normalised to `[0, 1]` or are raw, not-yet-corrected
+#' digitization pixels in the hundreds or thousands. Landmarks 20 and 21
+#' (the scale bar) are excluded from this numbering, and from the plain
+#' scattered dots, entirely -- see `scale_label` above.
 #'
 #' @return Invisibly returns the `p x 2` matrix of coordinates plotted, or
 #'   (when `individual` matches more than one specimen) a named list of such
@@ -100,7 +177,8 @@
 #'   [simulate_fishmorph_points()], [load_t26_saudrune_landmarks()],
 #'   [impute_landmarks()], [correct_landmarks()],
 #'   [standardize_orientation()] (fix an upside-down/mirrored specimen at
-#'   the data level, rather than a per-plot display toggle)
+#'   the data level, rather than a per-plot display toggle),
+#'   [plot_landmarks()] (generic viewer for any other landmark scheme)
 #'
 #' @examples
 #' fish <- load_t26_saudrune_landmarks()
@@ -153,7 +231,8 @@ plot_fishmorph_points <- function(landmarks, specimen = 1, individual = NULL, la
                                    background_image = NULL, flip_y = TRUE,
                                    outline = TRUE,
                                    highlight_imputed = TRUE, highlight_corrected = TRUE,
-                                   geometry_check = NULL, highlight_geometry = TRUE, ...) {
+                                   geometry_check = NULL, highlight_geometry = TRUE,
+                                   scale_label = "scale (1 cm)", axis_range = "auto", ...) {
   A <- .get_coords(landmarks)
   p <- dim(A)[1]
   if (dim(A)[2] != 2) {
@@ -311,28 +390,107 @@ plot_fishmorph_points <- function(landmarks, specimen = 1, individual = NULL, la
   )
 
   if (isTRUE(legend) && identical(legend_position, "outside")) {
-    old_par <- graphics::par(mar = graphics::par("mar") + c(0, 0, 0, 8))
+    # Kept as narrow as the legend text allows: on a wide (landscape)
+    # device, `par(pty = "s")` below can only make the square plot box as
+    # large as the *smaller* of the available width/height, so every line
+    # reclaimed here from the right margin can translate directly into a
+    # bigger plot box rather than being purely cosmetic.
+    old_par <- graphics::par(mar = graphics::par("mar") + c(0, 0, 0, 6))
     on.exit(graphics::par(old_par), add = TRUE)
   }
 
+  # Axis titles spelled out in full ("X/Y coordinates"), short tick marks at
+  # quarter increments, and horizontal tick labels on both axes: the default
+  # numeric axes are suppressed here (xaxt/yaxt = "n") and drawn explicitly
+  # afterwards by .draw_coord_axes(). `xaxs`/`yaxs = "i"` turn off R's
+  # default 4% axis-range expansion, and `par(pty = "s")` forces a square
+  # plotting region regardless of the device's own width/height -- together
+  # with `asp = 1` (needed so shape is not visually distorted), these stop
+  # R from silently padding whichever axis does not already match the
+  # device's aspect ratio, which is what previously left a wide band of
+  # blank space to the left/right of the data.
+  #
+  # `axis_range` sets shared x/y limits: `"auto"` (default) uses the
+  # already-normalised `[0, 1]` convention of the package's own examples and
+  # the T-26 Saudrune data whenever every coordinate already fits inside
+  # it, and otherwise falls back to the data's own combined range (no
+  # padding either) -- e.g. for a specimen with raw, not-yet-normalised
+  # digitization coordinates (pixels in the hundreds/thousands), for which
+  # a hard-coded `[0, 1]` would silently plot every point outside the
+  # visible area. Pass a numeric `c(min, max)` to force specific limits, or
+  # `xlim`/`ylim` (via `...`) to set x/y independently.
+  old_pty <- graphics::par(pty = "s")
+  on.exit(graphics::par(old_pty), add = TRUE)
+
+  if (identical(axis_range, "auto")) {
+    rng <- range(xy, na.rm = TRUE)
+    # A generous +/-15% tolerance, not a strict match to `c(0, 1)`: real
+    # corrected/aligned specimens can legitimately overshoot 0 or 1 a
+    # little (e.g. after `standardize_orientation()`/`correct_landmarks()`),
+    # and should still get the clean, round 0/0.25/0.5/0.75/1 tick labels
+    # of the package's own convention -- not odd-looking tick values read
+    # off that specimen's own slightly-off extremes. The 20% box padding
+    # applied below comfortably covers this tolerance band, so nothing
+    # is clipped. Only truly raw, not-yet-normalised coordinates (e.g.
+    # digitization pixels in the hundreds or thousands) fall outside it
+    # and fall back to the data's own combined range instead.
+    if (!is.finite(rng[1]) || (rng[1] >= -0.15 && rng[2] <= 1.15)) rng <- c(0, 1)
+  } else {
+    if (!is.numeric(axis_range) || length(axis_range) != 2) {
+      stop("`axis_range` must be \"auto\" or a numeric vector of length 2.", call. = FALSE)
+    }
+    rng <- axis_range
+  }
+
+  # The plot box itself is drawn 20% wider than `rng` on every side (e.g.
+  # `[-0.2, 1.2]` for the default `[0, 1]` convention) purely so that
+  # landmarks sitting right on the 0/1 edge -- common for the FISHMORPH
+  # scheme's snout-tip, scale-bar and caudal-fin landmarks -- are not
+  # clipped by the plot border together with their halo number/arrow.
+  # The tick marks themselves stay at the exact, requested positions
+  # (0, 0.25, ..., 1); only the border moves outward, so nothing about
+  # the labelled range changes.
+  .pad_range <- function(r) {
+    pad <- 0.20 * diff(r)
+    if (!is.finite(pad) || pad <= 0) pad <- 0.20
+    c(r[1] - pad, r[2] + pad)
+  }
+
+  dots <- list(...)
+  # Landmarks 20/21 (the scale bar) are excluded from the plain scattered
+  # dots here -- they get their own schematic triangle markers instead
+  # (see the scale-bar block below), so they are not drawn twice.
+  show_pt <- rep(TRUE, nrow(xy))
+  show_pt[intersect(c(20, 21), seq_len(nrow(xy)))] <- FALSE
+
   if (!is.null(bg_img)) {
     wh <- .background_image_dims(bg_img)
-    xlim <- range(c(0, wh[1], xy[, 1]))
-    ylim <- range(c(0, wh[2], xy[, 2]))
-    dots <- list(...)
+    tick_xlim <- range(c(0, wh[1], xy[, 1]))
+    tick_ylim <- range(c(0, wh[2], xy[, 2]))
     defaults <- list(
-      x = xy, asp = 1, type = "n", xlab = "X", ylab = "Y", main = main_title,
-      xlim = xlim, ylim = ylim
+      x = xy, asp = 1, type = "n", xlab = "X coordinates", ylab = "Y coordinates",
+      main = main_title, xlim = .pad_range(tick_xlim), ylim = .pad_range(tick_ylim),
+      xaxt = "n", yaxt = "n", xaxs = "i", yaxs = "i"
     )
-    do.call(graphics::plot, utils::modifyList(defaults, dots))
+    plot_args <- utils::modifyList(defaults, dots)
+    do.call(graphics::plot, plot_args)
     .draw_background_image(bg_img, flip_y = flip_y)
-    graphics::points(xy, pch = 19, col = point_col)
+    graphics::points(xy[show_pt, , drop = FALSE], pch = 19, col = point_col[show_pt])
   } else {
-    graphics::plot(
-      xy, asp = 1, pch = 19, col = point_col, xlab = "X", ylab = "Y",
-      main = main_title, ...
+    tick_xlim <- rng
+    tick_ylim <- rng
+    defaults <- list(
+      x = xy[show_pt, , drop = FALSE], asp = 1, pch = 19, col = point_col[show_pt],
+      xlab = "X coordinates", ylab = "Y coordinates", main = main_title,
+      xlim = .pad_range(rng), ylim = .pad_range(rng),
+      xaxt = "n", yaxt = "n", xaxs = "i", yaxs = "i"
     )
+    plot_args <- utils::modifyList(defaults, dots)
+    do.call(graphics::plot, plot_args)
   }
+  if (!is.null(dots$xlim)) tick_xlim <- dots$xlim
+  if (!is.null(dots$ylim)) tick_ylim <- dots$ylim
+  .draw_coord_axes(xlim = tick_xlim, ylim = tick_ylim)
 
   for (nm in names(segments_display)) {
     pr <- segments_display[[nm]]$pts
@@ -374,14 +532,102 @@ plot_fishmorph_points <- function(landmarks, specimen = 1, individual = NULL, la
     }
   }
 
-  if (p >= 21) {
-    graphics::points(xy[20, 1], xy[20, 2], pch = 17, col = "black")
-    graphics::points(xy[21, 1], xy[21, 2], pch = 17, col = "black")
-    graphics::segments(xy[20, 1], xy[20, 2], xy[21, 1], xy[21, 2], col = "black", lty = 2)
+  if (p >= 21 && all(stats::complete.cases(xy[c(20, 21), , drop = FALSE]))) {
+    # The scale bar (landmarks 20/21) is a calibration segment, not a real
+    # anatomical position, so it is redrawn as a small schematic bar
+    # anchored near the plot's own origin (bottom-left corner) rather
+    # than at its true digitized coordinates -- which can otherwise land
+    # anywhere in the frame (even on top of the fish) depending on where
+    # the calibration ruler happened to be photographed. Its length still
+    # reflects the real digitized distance between 20 and 21 (i.e. still
+    # true to scale), only its position is schematic; landmarks 20 and 21
+    # are not number-labelled (see the `labels` block below), since they
+    # no longer sit at a position their index would usefully point to.
+    scale_len <- sqrt(sum((xy[20, ] - xy[21, ])^2))
+    x0 <- rng[1] + graphics::xinch(0.15)
+    y0 <- rng[1] + graphics::yinch(0.15)
+    x1 <- x0 + scale_len
+    graphics::points(x0, y0, pch = 17, col = "black")
+    graphics::points(x1, y0, pch = 17, col = "black")
+    graphics::segments(x0, y0, x1, y0, col = "black", lty = 2)
+    if (!is.null(scale_label)) {
+      graphics::text(
+        (x0 + x1) / 2, y0 + graphics::yinch(0.14),
+        labels = scale_label, cex = 0.75, font = 3
+      )
+    }
   }
 
   if (isTRUE(labels)) {
-    graphics::text(xy, labels = seq_len(nrow(xy)), pos = 3, cex = 0.7)
+    # Each landmark number is placed away from the fish outline -- above
+    # for landmarks sitting above the configuration's own vertical
+    # centre, below for those sitting below it (e.g. the ventral
+    # landmarks 9, 8, 11, 4, 15, all naturally fall below and get their
+    # numbers placed underneath, with generous spacing so the whole
+    # figure reads as open rather than cramped) -- and connected back to
+    # its point by a short arrow, so a bold, white-haloed number never
+    # has to sit on top of a coloured segment or another landmark to
+    # stay legible. Landmarks 15 and 17 sit right on the main body axis
+    # (the Jl and CPd segments' base), where the automatic above/below
+    # split is ambiguous and visually reads better placed below
+    # regardless, so they are always forced there. Landmarks 20 and 21
+    # (the scale bar) are excluded from this numbering entirely -- see
+    # the schematic scale-bar block above, which no longer draws them at
+    # a position their index would usefully point to. All offsets are
+    # computed in physical inches (`xinch()`/`yinch()`), which scale with
+    # whatever data range this specimen's own `axis_range` ends up using,
+    # so this layout looks the same whether coordinates are already
+    # normalised to `[0, 1]` or are raw, not-yet-corrected digitization
+    # pixels in the hundreds or thousands.
+    complete_pt <- stats::complete.cases(xy)
+    cy <- mean(xy[, 2], na.rm = TRUE)
+    above <- xy[, 2] >= cy
+    always_below <- intersect(c(15, 17), seq_len(nrow(xy)))
+    above[always_below] <- FALSE
+    label_offset <- graphics::yinch(0.40)
+    label_x <- xy[, 1]
+    label_y <- xy[, 2] + ifelse(above, label_offset, -label_offset)
+
+    # Landmarks 5, 13, 14 and 7 -- the upper part of the eye-socket
+    # cluster (5, 13, 7, 14, 6, 8; see the `outline` eye-level reference
+    # line) -- sit close enough together that the generic above/below
+    # rule still overlaps, so each gets an explicit direction clear of
+    # the body outline instead: 5 straight up, 13 shallow up-right and
+    # 14 steep up-right (different *angles*, not just different
+    # distances, so the two do not read as sitting on the same line out
+    # of the cluster), 7 up and to the left. Landmark 6, the lower part
+    # of that same eye-level line, is nudged a little further right so
+    # it clears 8/15 below it, while keeping the generic rule's vertical
+    # placement; 8 itself is left entirely to the generic rule, like the
+    # other ventral landmarks (9, 11).
+    eye_dir <- list(
+      `5`  = c(0.00, 0.70),
+      `13` = c(0.60, 0.30),
+      `14` = c(0.30, 0.85),
+      `7`  = c(-0.55, 0.55)
+    )
+    for (nm in names(eye_dir)) {
+      i <- as.integer(nm)
+      if (i <= nrow(xy) && complete_pt[i]) {
+        label_x[i] <- xy[i, 1] + graphics::xinch(eye_dir[[nm]][1])
+        label_y[i] <- xy[i, 2] + graphics::yinch(eye_dir[[nm]][2])
+      }
+    }
+    if (6 <= nrow(xy) && complete_pt[6]) {
+      label_x[6] <- xy[6, 1] + graphics::xinch(0.25)
+    }
+
+    label_idx <- setdiff(which(complete_pt), intersect(c(20, 21), seq_len(nrow(xy))))
+    for (i in label_idx) {
+      graphics::arrows(
+        label_x[i], label_y[i], xy[i, 1], xy[i, 2],
+        length = 0.05, angle = 20, col = "grey45", lwd = 0.7, code = 2
+      )
+    }
+    .halo_text(
+      label_x[label_idx], label_y[label_idx], labels = label_idx,
+      cex = 0.72, font = 2, text_col = "black", halo_col = "white"
+    )
   }
   if (isTRUE(legend)) {
     legend_labels <- names(segments_display)

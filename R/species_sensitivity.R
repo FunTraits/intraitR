@@ -2,10 +2,9 @@
 #'
 #' For each species, quantifies how much replacing that species' centroid
 #' with one of its real individuals changes the estimated functional
-#' richness (an n-dimensional convex-hull volume in PCA space), while every
-#' other species stays fixed at its own centroid, following the
-#' species-level sensitivity index of Bertrand (2026, Section
-#' "Species-level sensitivity index"). This complements
+#' richness in PCA space, while every other species stays fixed at its own
+#' centroid, following the species-level sensitivity index of Bertrand
+#' (2026, Section "Species-level sensitivity index"). This complements
 #' [bootstrap_functional_space()]'s community-wide comparison by asking a
 #' finer-grained question: *which* species drive the difference between
 #' individual-based and centroid-based functional richness, and are their
@@ -20,10 +19,22 @@
 #' @param groups Required when `x` is a raw trait table (one value per
 #'   individual, typically species identity); ignored (taken from
 #'   `x$groups`) when `x` is an `"intrait_traitspace"` object.
-#' @param n_axes,var_threshold,log_transform,scale As in
-#'   [bootstrap_functional_space()]: `n_axes` PCA axes are used for the
-#'   convex hull (auto-selected via `var_threshold` if `NULL`), computed
-#'   from a fresh PCA on `x$X` (or on freshly standardised `x`).
+#' @param method,n_axes,var_threshold,log_transform,scale,dendrogram_linkage,tpd_alpha,tpd_bw_factor,tpd_n_divisions,hv_bw_method,hv_samples_per_point
+#'   As in [bootstrap_functional_space()]: `method` selects the
+#'   functional-richness measure recomputed for the reference configuration
+#'   and every single-individual replacement (`"convexhull"`, the default,
+#'   an n-dimensional convex-hull volume; `"dendrogram"`, total branch
+#'   length of a UPGMA functional dendrogram; `"tpd"`, Trait Probability
+#'   Density functional richness; `"hypervolume"`, a Gaussian-kernel
+#'   hypervolume), and `n_axes` PCA axes are used (auto-selected via
+#'   `var_threshold` if `NULL`), computed from a fresh PCA on `x$X` (or on
+#'   freshly standardised `x`). As there, only `method = "convexhull"`
+#'   strictly requires `nlevels(groups) > n_axes`; the other methods only
+#'   warn instead. For `"tpd"`/`"hypervolume"`, the kernel bandwidth (and,
+#'   for `"tpd"`, the evaluation grid) is likewise computed once from the
+#'   full individual-level PCA scores and reused, unchanged, for `fd_ref`
+#'   and every one of the `nrow(x)` single-individual replacements, for the
+#'   same comparability reason explained there.
 #'
 #' @return An object of class `"intrait_species_sensitivity"`, a list with
 #'   elements: `summary` (a `data.frame`, one row per species, with
@@ -32,17 +43,18 @@
 #'   in the original `levels(groups)` order), `individual` (a long-format
 #'   `data.frame` with one row per individual, columns `species` and
 #'   `dFD`, for full transparency beyond the per-species summary), `fd_ref`
-#'   (the community-wide centroid-based reference volume), `n_axes`, and
-#'   `var_explained`. Has dedicated [print()] and [plot()] methods.
+#'   (the community-wide centroid-based reference richness), `method`,
+#'   `n_axes`, and `var_explained`. Has dedicated [print()] and [plot()]
+#'   methods.
 #'
 #' @details
 #' For a focal species k with individuals `i = 1, ..., n_k`, its centroid
 #' in the `n_axes`-dimensional PCA space is replaced, one individual at a
 #' time, by that individual's own PCA scores, while every other species
-#' remains at its centroid; the convex-hull volume of this modified
+#' remains at its centroid; the functional richness of this modified
 #' `n_species`-point configuration is `FD_{k,i}`. Each replacement is
 #' expressed as a percentage change relative to the (unmodified)
-#' centroid-based reference volume `fd_ref`:
+#' centroid-based reference richness `fd_ref`:
 #' \deqn{\Delta FD_{k,i} (\%) = 100 \times (FD_{k,i} - FD_{ref}) / FD_{ref}}
 #' A positive `dFD` means that individual, if it alone stood in for its
 #' species' centroid, would expand the estimated functional space; a
@@ -55,18 +67,21 @@
 #'
 #' Unlike [bootstrap_functional_space()], this index requires no
 #' resampling or significance test: every replacement is deterministic
-#' (one individual, one recomputed volume), so `species_sensitivity()` is
-#' exact given `x`/`groups`/`n_axes`, not simulation-based. Species with
-#' only one individual still receive a (single-valued) `mean_dFD`, with
-#' `min_dFD == max_dFD` and no useful "range" to speak of, which is
-#' expected, not an error.
+#' (one individual, one recomputed richness value), so
+#' `species_sensitivity()` is exact given `x`/`groups`/`n_axes`/`method`,
+#' not simulation-based. Species with only one individual still receive a
+#' (single-valued) `mean_dFD`, with `min_dFD == max_dFD` and no useful
+#' "range" to speak of, which is expected, not an error.
 #'
-#' Every individual, across every species, requires its own convex-hull
-#' recomputation (one call per individual in `x`/`groups`, not per
-#' species), so this is the most computationally demanding of the two
-#' functional-space functions on a large data set -- Bertrand (2026)'s
-#' regional panel, for instance, had 1,302 individuals. Each individual's
-#' replacement is independent of every other's, so, exactly as in
+#' Every individual, across every species, requires its own
+#' functional-richness recomputation (one call per individual in
+#' `x`/`groups`, not per species), so this is the most computationally
+#' demanding of the two functional-space functions on a large data set --
+#' Bertrand (2026)'s regional panel, for instance, had 1,302 individuals --
+#' and especially so for `method = "hypervolume"` (by far the most
+#' expensive of the four measures per call, see
+#' [bootstrap_functional_space()]). Each individual's replacement is
+#' independent of every other's, so, exactly as in
 #' [bootstrap_functional_space()], this is distributed automatically
 #' across `future.apply`'s workers when that package is installed and a
 #' parallel `future::plan()` has been set beforehand; with no plan set, or
@@ -84,44 +99,104 @@
 #' functional diversity indices for a multifaceted framework in functional
 #' ecology. Ecology, 89(8), 2290-2301.
 #'
+#' Petchey OL, Gaston KJ (2002). Functional diversity (FD), species
+#' richness and community composition. Ecology Letters, 5(3), 402-411.
+#'
+#' Carmona CP, de Bello F, Mason NWH, Leps J (2019). Trait probability
+#' density (TPD): measuring functional diversity across scales based on
+#' TPD with R. Ecology, 100(12), e02876.
+#'
+#' Blonder B, Lamanna C, Violle C, Enquist BJ (2014). The n-dimensional
+#' hypervolume. Global Ecology and Biogeography, 23(5), 595-609.
+#'
+#' Blonder B, Morrow CB, Maitner B, Harris DJ, Lamanna C, Violle C,
+#' Enquist BJ, Kerkhoff AJ (2018). New approaches for delineating
+#' n-dimensional hypervolumes. Methods in Ecology and Evolution, 9(2),
+#' 305-319.
+#'
 #' @seealso [bootstrap_functional_space()], [trait_space()]
 #'
 #' @examples
 #' \donttest{
+#' fish <- load_t26_saudrune_landmarks()
+#' segments <- fishmorph_segments(fish)
+#' ratios <- fishmorph_ratios(segments)
+#' ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
+#'
+#' # method = "dendrogram" needs no extra Suggested package
+#' ss_dendro <- species_sensitivity(ts, method = "dendrogram", n_axes = 2)
+#' ss_dendro
+#' plot(ss_dendro)
+#'
 #' if (requireNamespace("geometry", quietly = TRUE)) {
-#'   fish <- load_t26_saudrune_landmarks()
-#'   segments <- fishmorph_segments(fish)
-#'   ratios <- fishmorph_ratios(segments)
-#'   ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 #'   ss <- species_sensitivity(ts, n_axes = 2)
 #'   ss
-#'   plot(ss)
 #' }
 #' }
 #' @export
-species_sensitivity <- function(x, groups = NULL, n_axes = NULL, var_threshold = 0.98,
-                                 log_transform = TRUE, scale = TRUE) {
-  if (!requireNamespace("geometry", quietly = TRUE)) {
+species_sensitivity <- function(x, groups = NULL,
+                                 method = c("convexhull", "dendrogram", "tpd", "hypervolume"),
+                                 n_axes = NULL, var_threshold = 0.98,
+                                 log_transform = TRUE, scale = TRUE,
+                                 dendrogram_linkage = "average",
+                                 tpd_alpha = 0.95, tpd_bw_factor = 0.5,
+                                 tpd_n_divisions = NULL,
+                                 hv_bw_method = "silverman",
+                                 hv_samples_per_point = 500) {
+  method <- match.arg(method)
+  if (identical(method, "convexhull") && !requireNamespace("geometry", quietly = TRUE)) {
     stop(
-      "species_sensitivity() requires the \"geometry\" package (for ",
-      "n-dimensional convex-hull volumes). Install it with ",
-      "install.packages(\"geometry\").",
+      "species_sensitivity(method = \"convexhull\") requires the ",
+      "\"geometry\" package (for n-dimensional convex-hull volumes). ",
+      "Install it with install.packages(\"geometry\").",
+      call. = FALSE
+    )
+  }
+  if (identical(method, "tpd") && !requireNamespace("TPD", quietly = TRUE)) {
+    stop(
+      "species_sensitivity(method = \"tpd\") requires the \"TPD\" package. ",
+      "Install it with install.packages(\"TPD\").",
+      call. = FALSE
+    )
+  }
+  if (identical(method, "hypervolume") && !requireNamespace("hypervolume", quietly = TRUE)) {
+    stop(
+      "species_sensitivity(method = \"hypervolume\") requires the ",
+      "\"hypervolume\" package. Install it with install.packages(\"hypervolume\").",
       call. = FALSE
     )
   }
 
-  fs <- .fspace_pca_scores(x, groups, n_axes, var_threshold, log_transform, scale)
+  fs <- .fspace_pca_scores(x, groups, n_axes, var_threshold, log_transform, scale, method = method)
   scores <- fs$scores
   groups <- fs$groups
   n_axes <- fs$n_axes
 
+  # Shared, method-specific auxiliary quantities (kernel bandwidth,
+  # evaluation grid), computed once and reused for fd_ref and every
+  # single-individual replacement -- see Details and
+  # bootstrap_functional_space()'s own Details for why.
+  aux <- .fspace_richness_setup(
+    scores, method,
+    dendrogram_linkage = dendrogram_linkage,
+    tpd_alpha = tpd_alpha, tpd_bw_factor = tpd_bw_factor, tpd_n_divisions = tpd_n_divisions,
+    hv_bw_method = hv_bw_method, hv_samples_per_point = hv_samples_per_point
+  )
+
   centroids <- .group_centroids(scores, groups)
-  fd_ref <- .convex_hull_volume(centroids)
+  rownames(centroids) <- levels(groups)
+  fd_ref <- .fspace_richness(centroids, method, aux)
   if (is.na(fd_ref)) {
     stop(
-      "The centroid-based convex hull is degenerate (species centroids are ",
-      "not affinely independent in ", n_axes, " dimensions); try a smaller ",
-      "`n_axes`.",
+      sprintf(
+        paste(
+          "The centroid-based functional-richness estimate (method = \"%s\")",
+          "could not be computed (e.g. a degenerate configuration in %d",
+          "dimensions, or a required package call failed); try a smaller",
+          "`n_axes`."
+        ),
+        method, n_axes
+      ),
       call. = FALSE
     )
   }
@@ -138,7 +213,7 @@ species_sensitivity <- function(x, groups = NULL, n_axes = NULL, var_threshold =
   dFD_all <- .papply(seq_len(nrow(scores)), function(i) {
     config <- centroids
     config[species_idx[i], ] <- scores[i, ]
-    fd_ki <- .convex_hull_volume(config)
+    fd_ki <- .fspace_richness(config, method, aux)
     100 * (fd_ki - fd_ref) / fd_ref
   }, numeric(1))
 
@@ -162,6 +237,7 @@ species_sensitivity <- function(x, groups = NULL, n_axes = NULL, var_threshold =
       summary = summary_df,
       individual = individual,
       fd_ref = fd_ref,
+      method = method,
       n_axes = n_axes,
       var_explained = fs$var_explained
     ),
@@ -170,6 +246,9 @@ species_sensitivity <- function(x, groups = NULL, n_axes = NULL, var_threshold =
 }
 
 #' Print and plot an `"intrait_species_sensitivity"` object
+#'
+#' Both mention which `method` (`"convexhull"`, `"dendrogram"`, `"tpd"`, or
+#' `"hypervolume"`) was used to compute the underlying functional richness.
 #'
 #' @param x An object of class `"intrait_species_sensitivity"`, as returned
 #'   by [species_sensitivity()].
@@ -182,7 +261,8 @@ species_sensitivity <- function(x, groups = NULL, n_axes = NULL, var_threshold =
 #' @return Invisibly returns `x`.
 #' @export
 print.intrait_species_sensitivity <- function(x, n = 12, ...) {
-  cat("<intrait_species_sensitivity>\n")
+  method_label <- if (!is.null(x$method)) x$method else "convexhull"
+  cat(sprintf("<intrait_species_sensitivity> (method = \"%s\")\n", method_label))
   cat(sprintf(
     "  %d PCA axes retained (%.1f%% of variance), %d species, FD_ref = %.4g\n",
     x$n_axes, x$var_explained * 100, nrow(x$summary), x$fd_ref
@@ -225,11 +305,13 @@ plot.intrait_species_sensitivity <- function(x, n = 12, abbreviate_species = TRU
   xpad <- diff(xr) * 0.08
   if (!is.finite(xpad) || xpad == 0) xpad <- 1
 
+  method_label <- if (!is.null(x$method)) x$method else "convexhull"
+
   graphics::plot(
     top$mean_dFD, y, pch = 19, yaxt = "n", ylab = "",
     xlim = xr + c(-xpad, xpad), ylim = c(0.5, nrow(top) + 0.5),
     xlab = expression(paste(Delta, "FD (%)")),
-    main = "Species-level sensitivity index", ...
+    main = sprintf("Species-level sensitivity index (method = \"%s\")", method_label), ...
   )
   graphics::axis(2, at = y, labels = labels, las = 1, font = 3, cex.axis = 0.8)
   graphics::segments(top$min_dFD, y, top$max_dFD, y)

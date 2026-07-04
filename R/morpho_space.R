@@ -95,7 +95,11 @@ print.intrait_morphospace <- function(x, ...) {
 #'   [morpho_space()].
 #' @param style Character, one of `"spider"` (default), `"hull"`,
 #'   `"density"`, or `"none"`, controlling how groups are displayed (see
-#'   Details). Ignored if `x$groups` is `NULL`.
+#'   Details). Ignored if `x$groups` is `NULL`. Also named in the plot's
+#'   title (e.g. `"Morphological space (spider)"`), so the display style
+#'   used is always legible from the figure itself, not just from the
+#'   call that produced it; pass `main = ` via `...` to override with a
+#'   custom title instead.
 #' @param ellipse_level Coverage probability of the per-group dispersion
 #'   ellipse drawn when `style = "spider"`, under a bivariate-normal
 #'   approximation. Defaults to `0.95`.
@@ -162,6 +166,6 @@ plot.intrait_morphospace <- function(x, style = c("spider", "hull", "density", "
                     ellipse_level = ellipse_level, density_level = density_level,
                     legend = legend, legend_position = legend_position,
                     legend_title = legend_title, legend_italic = legend_italic,
-                    abbreviate_species = abbreviate_species, ...)
+                    abbreviate_species = abbreviate_species, space_name = "Morphological space", ...)
   invisible(x)
 }

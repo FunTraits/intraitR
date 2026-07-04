@@ -28,5 +28,6 @@ Invisibly returns \code{x}.
 Invisibly returns \code{x}.
 }
 \description{
-Print and plot an \code{"intrait_species_sensitivity"} object
+Both mention which \code{method} (\code{"convexhull"}, \code{"dendrogram"}, \code{"tpd"}, or
+\code{"hypervolume"}) was used to compute the underlying functional richness.
 }

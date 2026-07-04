@@ -7,11 +7,18 @@
 bootstrap_functional_space(
   x,
   groups = NULL,
+  method = c("convexhull", "dendrogram", "tpd", "hypervolume"),
   n_axes = NULL,
   var_threshold = 0.98,
   n_boot = 100,
   log_transform = TRUE,
-  scale = TRUE
+  scale = TRUE,
+  dendrogram_linkage = "average",
+  tpd_alpha = 0.95,
+  tpd_bw_factor = 0.5,
+  tpd_n_divisions = NULL,
+  hv_bw_method = "silverman",
+  hv_samples_per_point = 500
 )
 }
 \arguments{
@@ -26,15 +33,54 @@ before the PCA described below.}
 individual, typically species identity); ignored (taken from
 \code{x$groups}) when \code{x} is an \code{"intrait_traitspace"} object.}
 
-\item{n_axes}{Integer, the number of PCA axes to retain for the
-convex-hull volume. If \code{NULL} (default), the smallest number of axes
-whose cumulative proportion of variance reaches \code{var_threshold} is
-used automatically -- Bertrand (2026) used 8 axes, capturing 98\% of
-total variance, for a similar ten-trait morphological data set. Must
-leave strictly more species than axes (\code{nlevels(groups) > n_axes}),
-since a non-degenerate n-dimensional convex hull requires at least
-\code{n_axes + 1} affinely independent points; lower \code{n_axes} (or
-\code{var_threshold}) if this is not satisfied.}
+\item{method}{Character, the functional richness measure to compute in
+the PCA-based trait space for \code{fd_ref} and every \code{fd_boot} draw. One
+of:
+\describe{
+\item{\code{"convexhull"}}{(default) n-dimensional convex-hull volume
+(Villeger, Mason & Mouillot, 2008), via \code{\link[geometry:convhulln]{geometry::convhulln()}}
+(Qhull; Barber, Dobkin & Huhdanpaa, 1996) -- the measure used by
+Bertrand (2026) and the only one that strictly requires
+\code{nlevels(groups) > n_axes} (see \code{n_axes}). Requires the
+(Suggested) \code{geometry} package.}
+\item{\code{"dendrogram"}}{Total branch length of a UPGMA functional
+dendrogram (Petchey & Gaston, 2002), via \code{\link[stats:hclust]{stats::hclust()}}. A
+distance-based (non-volumetric) alternative that needs no
+additional Suggested package and places no restriction on the
+number of species relative to \code{n_axes}.}
+\item{\code{"tpd"}}{Functional richness from Trait Probability Density
+(Carmona, de Bello, Mason & Leps, 2019), via
+\code{\link[TPD:TPDsMean]{TPD::TPDsMean()}}/\code{\link[TPD:TPDc]{TPD::TPDc()}}/\code{\link[TPD:REND]{TPD::REND()}}: each species is
+represented by a fixed-bandwidth Gaussian kernel rather than a
+single point, so \code{FRichness} is the proportion of a shared
+evaluation grid occupied by the union of these kernels. Requires
+the (Suggested) \code{TPD} package.}
+\item{\code{"hypervolume"}}{Gaussian-kernel hypervolume (Blonder et al.,
+2014, 2018), via \code{\link[hypervolume:hypervolume_gaussian]{hypervolume::hypervolume_gaussian()}}/
+\code{\link[hypervolume:get_volume]{hypervolume::get_volume()}}: conceptually similar to \code{"tpd"} (a
+smoothed, kernel-based volume rather than a hard-edged hull), but
+estimated by Monte Carlo sampling rather than on a fixed grid, and
+by far the most computationally expensive of the four -- consider
+a smaller \code{n_boot} (e.g. 20-50) and/or a smaller
+\code{hv_samples_per_point} than for the other methods. Requires the
+(Suggested) \code{hypervolume} package.}
+}
+\code{"tpd"} and \code{"hypervolume"} both represent each species (or each
+bootstrap-drawn individual) as a \emph{kernel} rather than a bare point,
+using a bandwidth computed once from the full individual-level PCA
+scores and reused, unchanged, for \code{fd_ref} and every \code{fd_boot} draw
+(see Details for why this fixed-bandwidth/fixed-grid design is
+required for the draws to be comparable at all).}
+
+\item{n_axes}{Integer, the number of PCA axes to retain. If \code{NULL}
+(default), the smallest number of axes whose cumulative proportion of
+variance reaches \code{var_threshold} is used automatically -- Bertrand
+(2026) used 8 axes, capturing 98\% of total variance, for a similar
+ten-trait morphological data set. For \code{method = "convexhull"} only,
+must leave strictly more species than axes (\code{nlevels(groups) > n_axes}), since a non-degenerate n-dimensional convex hull requires
+at least \code{n_axes + 1} affinely independent points; lower \code{n_axes} (or
+\code{var_threshold}) if this is not satisfied. The other methods do not
+need this and only get a warning instead.}
 
 \item{var_threshold}{Cumulative proportion of variance used to
 automatically choose \code{n_axes} when \code{n_axes = NULL}. Defaults to
@@ -42,7 +88,7 @@ automatically choose \code{n_axes} when \code{n_axes = NULL}. Defaults to
 
 \item{n_boot}{Integer, number of bootstrap "communities". For each, one
 individual is drawn at random (independently across species) for
-every species, and the convex-hull volume of the resulting
+every species, and the functional richness of the resulting
 one-individual-per-species point set is computed. This is also the
 number of draws the significance test is based on (see Details), so
 larger values give a finer-grained p-value floor of \code{1 / (n_boot + 1)}. Defaults to \code{100}, as in Bertrand (2026).}
@@ -50,34 +96,65 @@ larger values give a finer-grained p-value floor of \code{1 / (n_boot + 1)}. Def
 \item{log_transform, scale}{As in \code{\link[=trait_space]{trait_space()}}; only used when \code{x} is
 a raw trait table (ignored, and taken from \code{x}, when \code{x} is an
 \code{"intrait_traitspace"} object).}
+
+\item{dendrogram_linkage}{Character, clustering method passed to
+\code{stats::hclust(method =)} when \code{method = "dendrogram"}. Defaults to
+\code{"average"} (UPGMA), as in Petchey & Gaston (2002).}
+
+\item{tpd_alpha}{Numeric, greater than 0 and at most 1, passed to \code{\link[TPD:TPDsMean]{TPD::TPDsMean()}}'s
+\code{alpha} when \code{method = "tpd"}: the proportion of each species'
+kernel probability mass included. Defaults to \code{0.95} (the \code{TPD}
+package's own default).}
+
+\item{tpd_bw_factor}{Numeric, when \code{method = "tpd"}, the fixed per-axis
+kernel standard deviation is \code{tpd_bw_factor} times that axis's
+overall (between-species) standard deviation across the full
+individual-level PCA scores -- a plug-in bandwidth, since a single
+bootstrap-drawn individual carries no within-species variance of its
+own to estimate a kernel from (see Details). Defaults to \code{0.5}.}
+
+\item{tpd_n_divisions}{Passed to \code{\link[TPD:TPDsMean]{TPD::TPDsMean()}}'s \code{n_divisions} when
+\code{method = "tpd"} (grid resolution); \code{NULL} (default) uses that
+function's own default.}
+
+\item{hv_bw_method}{Character, \code{method} passed to
+\code{\link[hypervolume:estimate_bandwidth]{hypervolume::estimate_bandwidth()}} when \code{method = "hypervolume"}.
+Defaults to \code{"silverman"}.}
+
+\item{hv_samples_per_point}{Integer, passed to
+\code{\link[hypervolume:hypervolume_gaussian]{hypervolume::hypervolume_gaussian()}}'s \code{samples.per.point} when
+\code{method = "hypervolume"}. Defaults to a more conservative \code{500}
+(rather than that function's own dimensionality-scaled default),
+since this value is paid \code{n_boot} times over; increase it for a more
+precise (but slower) estimate.}
 }
 \value{
 An object of class \code{"intrait_bootstrap_fspace"}, a list with
-elements \code{fd_ref} (centroid-based reference volume), \code{fd_boot}
-(numeric vector of length \code{n_boot}, the bootstrap volumes),
+elements \code{fd_ref} (centroid-based reference richness), \code{fd_boot}
+(numeric vector of length \code{n_boot}, the bootstrap richness values),
 \code{fd_boot_mean}, \code{fd_boot_sd}, \code{fd_boot_q05}, \code{fd_boot_q95} (summary of
 \code{fd_boot}), \code{diff} (\code{fd_boot_mean - fd_ref}), \code{p_value} (one-sided
-bootstrap p-value, see Details), \code{n_axes} (actual number of PCA axes
-used), \code{var_explained} (cumulative proportion of variance captured by
-those \code{n_axes} axes), \code{n_boot}, and \code{groups}. Has dedicated
-\code{\link[=print]{print()}} and \code{\link[=plot]{plot()}} methods.
+bootstrap p-value, see Details), \code{method}, \code{n_axes} (actual number of
+PCA axes used), \code{var_explained} (cumulative proportion of variance
+captured by those \code{n_axes} axes), \code{n_boot}, and \code{groups}. Has
+dedicated \code{\link[=print]{print()}} and \code{\link[=plot]{plot()}} methods.
 }
 \description{
-Compares the functional richness (an n-dimensional convex-hull volume in
-a PCA-based trait space) obtained when species are represented by real
-individuals to the functional richness obtained when species are
-collapsed to their centroid (mean trait position), following the
-bootstrap procedure of Bertrand (2026, Section "Bootstrap-based
-functional space estimates"). For each of \code{n_boot} bootstrap
-"communities", one individual is drawn at random per species and the
-convex-hull volume of these individual-level points is computed
-(\code{fd_boot}); this distribution is compared to a single centroid-based
-reference volume (\code{fd_ref}), obtained by replacing each species with the
-mean position of its individuals before computing the hull. Because a
-single randomly chosen individual necessarily sits somewhere within (or
-at the edge of) its species' own dispersion, \code{fd_boot} is expected to
-equal or exceed \code{fd_ref} whenever species show non-trivial intraspecific
-trait variability (ITV); this function also tests whether \code{fd_ref} sits
+Compares the functional richness obtained when species are represented
+by real individuals to the functional richness obtained when species
+are collapsed to their centroid (mean trait position), in a PCA-based
+trait space, following the bootstrap procedure of Bertrand (2026,
+Section "Bootstrap-based functional space estimates"). For each of
+\code{n_boot} bootstrap "communities", one individual is drawn at random per
+species and the functional richness of these individual-level points is
+computed (\code{fd_boot}); this distribution is compared to a single
+centroid-based reference richness (\code{fd_ref}), obtained by replacing
+each species with the mean position of its individuals before
+recomputing the same richness measure. Because a single randomly chosen
+individual necessarily sits somewhere within (or at the edge of) its
+species' own dispersion, \code{fd_boot} is expected to equal or exceed
+\code{fd_ref} whenever species show non-trivial intraspecific trait
+variability (ITV); this function also tests whether \code{fd_ref} sits
 unusually low relative to the bootstrap distribution (see Details).
 }
 \details{
@@ -86,11 +163,22 @@ function (on \code{x$X}, the standardised trait matrix, when \code{x} is an
 \code{"intrait_traitspace"} object, or on freshly standardised \code{x}
 otherwise), so that \code{n_axes} PCA dimensions -- rather than only the two
 axes \code{\link[=trait_space]{trait_space()}} retains for plotting -- are available for the
-convex hull, exactly as in Bertrand (2026). Convex-hull volumes are
-computed with \code{\link[geometry:convhulln]{geometry::convhulln()}} (Qhull; Barber, Dobkin &
-Huhdanpaa, 1996), which requires the \code{geometry} package: it is Suggested
-but not automatically installed with intraitR, since it is only needed
-for this function.
+functional-richness computation, exactly as in Bertrand (2026) (who
+used convex-hull volume specifically; the \code{"dendrogram"}/\code{"tpd"}/
+\code{"hypervolume"} alternatives are provided here as different, commonly
+used ways of quantifying functional richness from the same PCA scores,
+not as a reproduction of Bertrand (2026)'s own results).
+
+For \code{method = "tpd"} and \code{"hypervolume"}, each call needs a kernel
+bandwidth (and, for \code{"tpd"}, an evaluation grid). If this were
+re-estimated separately from each bootstrap draw's own small,
+single-individual-per-species point set, differences between draws
+would partly reflect differences in the \emph{estimated bandwidth/grid}
+rather than genuine differences in point configuration -- making
+\code{fd_ref} and \code{fd_boot} not actually comparable. Both are therefore
+computed \strong{once}, from the full individual-level PCA scores, before
+any bootstrap draw, and reused unchanged for \code{fd_ref} and every
+\code{fd_boot} draw.
 
 Bertrand (2026) compares the bootstrap distribution to \code{fd_ref} with a
 one-sided permutation test (H0: mean(FD_boot) <= FD_ref, using 9,999
@@ -131,27 +219,42 @@ same point to every bootstrap draw (there is nothing to resample for
 that species); this is expected behaviour, not an error.
 
 The \code{n_boot} bootstrap draws are independent of one another (each is
-just one random individual per species plus a convex-hull recomputation),
-so they parallelise trivially. If the \code{future.apply} package is
-installed and a parallel \code{future::plan()} (e.g. \code{future::plan( "multisession")}) has been set before calling this function, the draws
-are distributed across that plan's workers automatically; otherwise
-(no plan set, or \code{future.apply} not installed) they simply run
-sequentially, with identical results either way. This matters mainly
-for large \code{n_axes}/many-species data sets, where each convex-hull
-computation itself becomes more expensive (see \code{\link[=species_sensitivity]{species_sensitivity()}}
-for a discussion of that per-call cost).
+just one random individual per species plus a functional-richness
+recomputation), so they parallelise trivially. If the \code{future.apply}
+package is installed and a parallel \code{future::plan()} (e.g.
+\code{future::plan("multisession")}) has been set before calling this
+function, the draws are distributed across that plan's workers
+automatically; otherwise (no plan set, or \code{future.apply} not installed)
+they simply run sequentially, with identical results either way. This
+matters mainly for large \code{n_axes}/many-species data sets (\code{method = "convexhull"}, see \code{\link[=species_sensitivity]{species_sensitivity()}} for a discussion of that
+per-call cost) or for \code{method = "hypervolume"}, whose per-draw cost is
+high regardless of data set size.
 }
 \examples{
 \donttest{
+fish <- load_t26_saudrune_landmarks()
+segments <- fishmorph_segments(fish)
+ratios <- fishmorph_ratios(segments)
+ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
+
+# method = "dendrogram" needs no extra Suggested package
+bf_dendro <- bootstrap_functional_space(ts, method = "dendrogram", n_axes = 2, n_boot = 200)
+bf_dendro
+plot(bf_dendro)
+
 if (requireNamespace("geometry", quietly = TRUE)) {
-  fish <- load_t26_saudrune_landmarks()
-  segments <- fishmorph_segments(fish)
-  ratios <- fishmorph_ratios(segments)
-  ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
   # n_axes = 2 here only to keep the example fast; Bertrand (2026) used 8
   bf <- bootstrap_functional_space(ts, n_axes = 2, n_boot = 200)
   bf
-  plot(bf)
+}
+if (requireNamespace("TPD", quietly = TRUE)) {
+  bf_tpd <- bootstrap_functional_space(ts, method = "tpd", n_axes = 2, n_boot = 50)
+  bf_tpd
+}
+if (requireNamespace("hypervolume", quietly = TRUE)) {
+  # small n_boot: method = "hypervolume" is comparatively slow
+  bf_hv <- bootstrap_functional_space(ts, method = "hypervolume", n_axes = 2, n_boot = 20)
+  bf_hv
 }
 }
 }
@@ -169,6 +272,21 @@ ecology. Ecology, 89(8), 2290-2301.
 
 Barber CB, Dobkin DP, Huhdanpaa H (1996). The Quickhull algorithm for
 convex hulls. ACM Transactions on Mathematical Software, 22(4), 469-483.
+
+Petchey OL, Gaston KJ (2002). Functional diversity (FD), species
+richness and community composition. Ecology Letters, 5(3), 402-411.
+
+Carmona CP, de Bello F, Mason NWH, Leps J (2019). Trait probability
+density (TPD): measuring functional diversity across scales based on
+TPD with R. Ecology, 100(12), e02876.
+
+Blonder B, Lamanna C, Violle C, Enquist BJ (2014). The n-dimensional
+hypervolume. Global Ecology and Biogeography, 23(5), 595-609.
+
+Blonder B, Morrow CB, Maitner B, Harris DJ, Lamanna C, Violle C,
+Enquist BJ, Kerkhoff AJ (2018). New approaches for delineating
+n-dimensional hypervolumes. Methods in Ecology and Evolution, 9(2),
+305-319.
 
 Davison AC, Hinkley DV (1997). Bootstrap Methods and their Application.
 Cambridge University Press.

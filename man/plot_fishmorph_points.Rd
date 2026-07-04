@@ -18,6 +18,8 @@ plot_fishmorph_points(
   highlight_corrected = TRUE,
   geometry_check = NULL,
   highlight_geometry = TRUE,
+  scale_label = "scale (1 cm)",
+  axis_range = "auto",
   ...
 )
 }
@@ -120,7 +122,36 @@ specimen.}
 highlighting described above. Only relevant when \code{geometry_check} is
 supplied. Defaults to \code{TRUE}.}
 
-\item{...}{Further arguments passed to \code{\link[graphics:plot]{graphics::plot()}}.}
+\item{scale_label}{Character text drawn just above the digitization
+scale bar (landmarks 20-21), or \code{NULL} to omit it. Defaults to
+\code{"scale (1 cm)"}, the FISHMORPH protocol's standard calibration
+segment; change it (e.g. \code{"scale (2 cm)"}) if a data set was
+digitized against a different calibration length. Only drawn when
+both landmarks 20 and 21 are present (non-\code{NA}) for this specimen.
+The bar itself is drawn schematically near the plot's own origin
+(bottom-left corner) rather than at landmarks 20/21's true digitized
+coordinates -- which can otherwise land anywhere in the frame, even
+on the fish -- while still being drawn to the real digitized length
+between them (i.e. still true to scale); neither landmark is
+individually number-labelled.}
+
+\item{axis_range}{Either \code{"auto"} (default) or a numeric vector of
+length 2, \code{c(min, max)}, shared by both \code{x} and \code{y}. \code{"auto"} uses
+\code{c(0, 1)}, with its clean, round tick labels, whenever every
+coordinate of this specimen is within a generous +/-15\% of it (the
+normalised convention used throughout the package's own examples and
+the T-26 Saudrune data, allowing for the slight overshoot a real
+corrected/aligned specimen can have), and otherwise falls back to
+the data's own combined range -- e.g. for a specimen still in raw,
+not-yet-normalised digitization coordinates (pixels in the hundreds
+or thousands), for which a hard-coded \code{c(0, 1)} would silently plot
+every point outside the visible area. Pass a numeric vector to force
+specific limits instead, or \code{xlim}/\code{ylim} (via \code{...}) to set \code{x}/\code{y}
+independently.}
+
+\item{...}{Further arguments passed to \code{\link[graphics:plot]{graphics::plot()}}; in
+particular, \code{xlim}/\code{ylim} override \code{axis_range} independently for
+\code{x}/\code{y} (see Details).}
 }
 \value{
 Invisibly returns the \verb{p x 2} matrix of coordinates plotted, or
@@ -132,6 +163,56 @@ Visualises the 21 (or 22) landmarks of one specimen, digitized following
 the Brosse et al. (2021) FISHMORPH scheme, together with the 11 linear
 measurements they define, a body outline, the eye, and the digitization
 scale bar, for quality control of digitization.
+}
+\details{
+This is deliberately scheme-specific: it requires at least 21 landmarks
+following the FISHMORPH protocol (and errors otherwise), in exchange for
+a much richer display than a generic scatterplot -- colour-coded
+measurement segments and legend, anatomical body outline/eye/reference
+lines, a schematic scale bar, and highlighting of imputed, corrected, or
+geometry-check-flagged landmarks. For any other landmark scheme or
+count (e.g. the generic, \code{n_landmarks}-only configurations from
+\code{\link[=simulate_fish_landmarks]{simulate_fish_landmarks()}}, or a non-FISHMORPH digitization protocol),
+or for a lighter-weight look at FISHMORPH data without this added
+detail, see \code{\link[=plot_landmarks]{plot_landmarks()}} instead.
+
+A few display choices are fixed for readability rather than left to
+\code{graphics::plot()}'s own defaults: axes are square (\code{par(pty = "s")})
+and share the limits set by \code{axis_range} (see above), \code{xaxs}/
+\code{yaxs = "i"} remove R's default 4\% axis-range padding (together, these
+two settings avoid the wide band of blank space R would otherwise add
+to whichever axis does not already match the plotting device's own
+width/height ratio), and the plot box itself is then drawn a further,
+fixed 20\% beyond \code{axis_range} on every side (e.g. \verb{[-0.2, 1.2]} for
+the default \verb{[0, 1]} convention) so that landmarks sitting right on
+the 0/1 edge -- common for the FISHMORPH scheme's snout-tip, scale-bar
+and caudal-fin landmarks -- are not clipped by the border together
+with their halo number/arrow. Tick marks are drawn short at five
+evenly spaced positions within the original, unpadded \code{axis_range}
+(quarter increments for the default \verb{[0, 1]} range), tick labels are
+always horizontal on both axes, and axis titles read "X
+coordinates"/"Y coordinates". Landmark
+index numbers (\code{labels = TRUE}) are placed above or below their
+landmark, whichever side points away from the rest of the configuration
+(landmarks 15 and 17, which sit right on the main body axis, are always
+placed below), connected back to it by a short arrow, and drawn with a
+white halo behind a bold number, so they stay legible and never have to
+sit directly on top of the fish outline or a coloured measurement
+segment. Landmarks 5, 13, 14 and 7 -- the upper part of the tightly
+clustered eye-socket group (5, 13, 7, 14, 6, 8) -- are additionally
+given an explicit direction clear of the body outline (5 straight up,
+13 shallow up-right, 14 steep up-right -- different angles, not just
+different distances, so the two do not read as sitting on the same
+line out of the cluster -- and 7 up and to the left), since the
+generic rule alone still overlaps there; 6 is nudged a little further
+right so it clears 8/15 below it; 8 itself is left entirely to the
+generic rule, like the other ventral landmarks (9, 11). Every offset
+is computed in physical inches (\code{xinch()}/\code{yinch()}) rather than data
+units, so this layout looks the same regardless of whether coordinates
+are already normalised to \verb{[0, 1]} or are raw, not-yet-corrected
+digitization pixels in the hundreds or thousands. Landmarks 20 and 21
+(the scale bar) are excluded from this numbering, and from the plain
+scattered dots, entirely -- see \code{scale_label} above.
 }
 \examples{
 fish <- load_t26_saudrune_landmarks()
@@ -184,5 +265,6 @@ plot_fishmorph_points(fish, specimen = 1, background_image = "specimen1.jpg")
 \code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}, \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}},
 \code{\link[=impute_landmarks]{impute_landmarks()}}, \code{\link[=correct_landmarks]{correct_landmarks()}},
 \code{\link[=standardize_orientation]{standardize_orientation()}} (fix an upside-down/mirrored specimen at
-the data level, rather than a per-plot display toggle)
+the data level, rather than a per-plot display toggle),
+\code{\link[=plot_landmarks]{plot_landmarks()}} (generic viewer for any other landmark scheme)
 }

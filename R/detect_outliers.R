@@ -56,34 +56,16 @@ detect_outliers <- function(gpa, threshold = 3, plot = TRUE) {
     stop("`threshold` must be a single positive number.", call. = FALSE)
   }
 
-  coords <- gpa$coords
-  consensus <- gpa$consensus
-  n <- dim(coords)[3]
-  specimen_names <- dimnames(coords)[[3]]
-  if (is.null(specimen_names)) specimen_names <- paste0("specimen_", seq_len(n))
+  # Shared with gpa_fish()'s own flag_outliers/remove_outliers arguments,
+  # so both use exactly the same screening rule.
+  screen <- .procrustes_outlier_screen(gpa$coords, gpa$consensus, threshold = threshold)
+  pd <- stats::setNames(screen$procrustes_distance, screen$specimen)
+  is_outlier <- screen$flagged
+  threshold_value <- screen$threshold_value[1]
 
-  pd <- vapply(seq_len(n), function(i) {
-    sqrt(sum((coords[, , i] - consensus)^2))
-  }, numeric(1))
-  names(pd) <- specimen_names
-
-  med <- stats::median(pd)
-  mad_val <- stats::mad(pd)
-  if (isTRUE(mad_val == 0)) {
-    threshold_value <- med
-    warning(
-      "Procrustes distances have zero median absolute deviation (little or ",
-      "no variation among specimens); no specimen can be reliably flagged.",
-      call. = FALSE
-    )
-  } else {
-    threshold_value <- med + threshold * mad_val
-  }
-
-  is_outlier <- pd > threshold_value
   rank_df <- data.frame(
-    specimen = specimen_names,
-    procrustes_distance = as.numeric(pd),
+    specimen = screen$specimen,
+    procrustes_distance = screen$procrustes_distance,
     outlier = is_outlier,
     stringsAsFactors = FALSE
   )
@@ -94,7 +76,7 @@ detect_outliers <- function(gpa, threshold = 3, plot = TRUE) {
     list(
       procrustes_distance = pd,
       threshold_value = threshold_value,
-      outliers = specimen_names[is_outlier],
+      outliers = screen$specimen[is_outlier],
       rank = rank_df
     ),
     class = "intrait_outliers"
@@ -103,7 +85,7 @@ detect_outliers <- function(gpa, threshold = 3, plot = TRUE) {
   if (isTRUE(plot)) {
     ord <- order(pd)
     graphics::plot(
-      pd[ord], seq_len(n),
+      pd[ord], seq_len(length(pd)),
       pch = ifelse(is_outlier[ord], 19, 1),
       col = ifelse(is_outlier[ord], "firebrick", "black"),
       xlab = "Procrustes distance to consensus", ylab = "Specimen rank",

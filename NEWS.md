@@ -1,3 +1,47 @@
+# intraitR 1.1.0
+
+* `bootstrap_functional_space()` gains a `method` argument for the
+  functional-richness measure computed in the PCA-based trait space:
+  `"convexhull"` (default, unchanged behaviour: n-dimensional convex-hull
+  volume via `geometry::convhulln()`), `"dendrogram"` (total branch
+  length of a UPGMA functional dendrogram, Petchey & Gaston 2002 -- needs
+  no extra Suggested package), `"tpd"` (Trait Probability Density
+  richness via the `TPD` package, Carmona et al. 2019), and
+  `"hypervolume"` (Gaussian-kernel hypervolume via the `hypervolume`
+  package, Blonder et al. 2014, 2018). For `"tpd"`/`"hypervolume"`, the
+  kernel bandwidth (and, for `"tpd"`, the evaluation grid) is computed
+  once from the full individual-level data and reused, unchanged, for the
+  centroid-based reference and every bootstrap draw, so richness values
+  stay comparable across draws; new `dendrogram_linkage`, `tpd_alpha`,
+  `tpd_bw_factor`, `tpd_n_divisions`, `hv_bw_method`,
+  `hv_samples_per_point` arguments tune these. `TPD` and `hypervolume`
+  are new Suggested dependencies, only required when their respective
+  `method` is used. `print()`/`plot()` methods for
+  `"intrait_bootstrap_fspace"` now report which `method` was used.
+  `plot.intrait_bootstrap_fspace()` also drops the previous FD_ref
+  text annotation above the histogram in favour of marking `fd_ref` (red)
+  and the bootstrap mean `fd_boot_mean` (blue) directly on the x-axis,
+  each with a matching dashed vertical line.
+
+* `species_sensitivity()` gains the same `method` argument (and matching
+  `dendrogram_linkage`/`tpd_*`/`hv_*` tuning arguments) as
+  `bootstrap_functional_space()`, for computing the species-level
+  sensitivity index with `"convexhull"` (default), `"dendrogram"`,
+  `"tpd"`, or `"hypervolume"` functional richness instead of only
+  convex-hull volume. `print()`/`plot()` methods report which `method`
+  was used.
+
+* New `compare_functional_richness()`: runs `bootstrap_functional_space()`
+  once per requested `method` (`"convexhull"`, `"dendrogram"`, `"tpd"`,
+  `"hypervolume"`; all four by default) on the same data and tabulates the
+  results side by side (`fd_ref`, `fd_boot_mean`, `pct_diff`, `p_value`,
+  `significant`), for methodological triangulation across richness
+  measures. A method whose package is missing, or that otherwise errors,
+  is recorded as a skipped row rather than failing the whole comparison.
+  Optional `seed` argument pairs the bootstrap draws across methods. Has
+  dedicated `print()` (summary table + agreement count) and `plot()`
+  (dot-and-whisker comparison, one row per method) methods.
+
 # intraitR 1.0.0
 
 First stable release. Functionally identical to 0.13.0, promoted to

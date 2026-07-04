@@ -218,3 +218,102 @@ test_that(".convex_hull_volume() computes the known volume of a unit hypercube's
   cube <- as.matrix(expand.grid(x = c(0, 1), y = c(0, 1), z = c(0, 1)))
   expect_equal(intraitR:::.convex_hull_volume(cube), 1, tolerance = 1e-6)
 })
+
+test_that("bootstrap_functional_space() runs with method = \"dendrogram\" (no extra package required)", {
+  set.seed(7)
+  fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+  seg <- fishmorph_segments(fish)
+  ratios <- fishmorph_ratios(seg)
+  ts <- suppressWarnings(trait_space(ratios, groups = fish$metadata$species))
+
+  bf <- bootstrap_functional_space(ts, method = "dendrogram", n_axes = 2, n_boot = 50)
+
+  expect_s3_class(bf, "intrait_bootstrap_fspace")
+  expect_equal(bf$method, "dendrogram")
+  expect_length(bf$fd_boot, 50)
+  expect_true(is.finite(bf$fd_ref) && bf$fd_ref >= 0)
+  expect_true(all(bf$fd_boot[!is.na(bf$fd_boot)] >= 0))
+  expect_true(bf$p_value >= 0 && bf$p_value <= 1)
+
+  expect_output(print(bf), "dendrogram")
+  tmp <- tempfile(fileext = ".png")
+  grDevices::png(tmp)
+  expect_error(plot(bf), NA)
+  grDevices::dev.off()
+  unlink(tmp)
+})
+
+test_that("bootstrap_functional_space(method = \"dendrogram\") does not require nlevels(groups) > n_axes", {
+  # Unlike \"convexhull\", the dendrogram method should only warn (not
+  # error) when n_axes is not smaller than the number of species -- it has
+  # no affine-independence requirement.
+  set.seed(8)
+  fish <- simulate_fishmorph_points(n_per_species = 10, n_replicates = 1)
+  seg <- fishmorph_segments(fish)
+  ratios <- fishmorph_ratios(seg)
+  ts <- suppressWarnings(trait_space(ratios, groups = fish$metadata$species))
+
+  # simulate_fishmorph_points() has 3 species; n_axes = 3 leaves no slack
+  expect_warning(
+    bf <- bootstrap_functional_space(ts, method = "dendrogram", n_axes = 3, n_boot = 20),
+    "not smaller than"
+  )
+  expect_s3_class(bf, "intrait_bootstrap_fspace")
+})
+
+test_that(".dendrogram_richness() returns 0 for a small deterministic point set and NA for < 2 points", {
+  expect_true(is.na(intraitR:::.dendrogram_richness(matrix(1, nrow = 1, ncol = 2))))
+
+  # two points at unit distance, one merge at height 1: the tree has two
+  # edges (one per leaf, each running from height 0 up to the single
+  # internal node at height 1), so total branch length = 2 * 1 = 2,
+  # exactly twice the pairwise distance.
+  two_pts <- rbind(c(0, 0), c(1, 0))
+  expect_equal(intraitR:::.dendrogram_richness(two_pts), 2, tolerance = 1e-8)
+})
+
+test_that("bootstrap_functional_space() errors informatively for method = \"tpd\"/\"hypervolume\" without the package", {
+  testthat::skip_if(
+    requireNamespace("TPD", quietly = TRUE),
+    "TPD is installed; cannot test the missing-package error message"
+  )
+  df <- data.frame(a = 1:9, b = 1:9)
+  expect_error(
+    bootstrap_functional_space(df, groups = rep(c("G1", "G2", "G3"), 3), method = "tpd"),
+    "TPD"
+  )
+})
+
+test_that("bootstrap_functional_space() runs with method = \"tpd\" when the TPD package is available", {
+  testthat::skip_if_not_installed("TPD")
+
+  set.seed(9)
+  fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+  seg <- fishmorph_segments(fish)
+  ratios <- fishmorph_ratios(seg)
+  ts <- suppressWarnings(trait_space(ratios, groups = fish$metadata$species))
+
+  bf <- bootstrap_functional_space(ts, method = "tpd", n_axes = 2, n_boot = 10)
+  expect_s3_class(bf, "intrait_bootstrap_fspace")
+  expect_equal(bf$method, "tpd")
+  expect_true(is.finite(bf$fd_ref))
+})
+
+test_that("bootstrap_functional_space() runs with method = \"hypervolume\" when the hypervolume package is available", {
+  testthat::skip_if_not_installed("hypervolume")
+  testthat::skip_on_cran() # comparatively slow even at small n_boot
+
+  set.seed(10)
+  fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+  seg <- fishmorph_segments(fish)
+  ratios <- fishmorph_ratios(seg)
+  ts <- suppressWarnings(trait_space(ratios, groups = fish$metadata$species))
+
+  bf <- bootstrap_functional_space(
+    ts, method = "hypervolume", n_axes = 2, n_boot = 5,
+    hv_samples_per_point = 100
+  )
+  expect_s3_class(bf, "intrait_bootstrap_fspace")
+  expect_equal(bf$method, "hypervolume")
+  expect_true(is.finite(bf$fd_ref))
+})

@@ -7,7 +7,13 @@
 \alias{print.summary.intrait_gpa}
 \title{Generalised Procrustes Analysis for fish landmark configurations}
 \usage{
-gpa_fish(landmarks, ...)
+gpa_fish(
+  landmarks,
+  flag_outliers = TRUE,
+  outlier_threshold = 3,
+  remove_outliers = FALSE,
+  ...
+)
 
 \method{print}{intrait_gpa}(x, ...)
 
@@ -19,6 +25,34 @@ gpa_fish(landmarks, ...)
 \item{landmarks}{An object of class \code{"intrait_landmarks"} (from
 \code{\link[=read_tps]{read_tps()}} or \code{\link[=read_landmarks_csv]{read_landmarks_csv()}}), or a raw \verb{p x k x n}
 landmark array.}
+
+\item{flag_outliers}{Logical, screen the Procrustes-aligned sample for
+specimens whose distance to the consensus shape is unusually large --
+the same rule as \code{\link[=detect_outliers]{detect_outliers()}} (median + \code{outlier_threshold} x
+MAD of Procrustes distances) -- and report them (see Details and
+\code{outlier_threshold}). Defaults to \code{TRUE}. This never removes any
+observation on its own: it only flags candidates for visual/manual
+review (e.g. with \code{\link[=plot_landmarks]{plot_landmarks()}} or \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}})
+before deciding whether an exclusion is warranted.}
+
+\item{outlier_threshold}{Numeric, the number of median absolute
+deviations (MAD) above the median Procrustes distance beyond which a
+specimen is flagged; same convention as \code{\link[=detect_outliers]{detect_outliers()}}'s
+\code{threshold}. Defaults to \code{3}.}
+
+\item{remove_outliers}{Logical, actually exclude every specimen flagged
+by \code{flag_outliers} and re-run GPA on the cleaned sample (rather than
+only flagging them for review, the default). Requires
+\code{flag_outliers = TRUE} (an error is raised otherwise, since there
+would be nothing to remove). Defaults to \code{FALSE}: removing specimens
+changes the consensus shape and every downstream statistic (e.g.
+\code{\link[=morpho_space]{morpho_space()}}, \code{\link[=intraspecific_variability]{intraspecific_variability()}}), so this is opt-in
+rather than automatic, and every removal is still recorded in
+\verb{$removed_outliers} (see Return) for transparency and reproducibility
+-- always confirm flagged specimens genuinely reflect a digitization
+error (e.g. via \code{\link[=plot_landmarks]{plot_landmarks()}}/\code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}) before
+turning this on for a given data set, rather than treating it as a
+default cleaning step.}
 
 \item{...}{Additional arguments passed on to \code{\link[geomorph:gpagen]{geomorph::gpagen()}} (e.g.
 \code{curves}, \code{surfaces}, \code{ProcD}).}
@@ -33,7 +67,8 @@ landmark array.}
 An object of class \code{"intrait_gpa"}, a list with elements:
 \describe{
 \item{coords}{\verb{p x k x n} array of Procrustes-aligned shape
-coordinates.}
+coordinates -- of the \emph{cleaned} sample if \code{remove_outliers = TRUE}
+removed any specimen.}
 \item{Csize}{named numeric vector of centroid sizes, one per
 specimen; the standard measure of overall specimen size in
 geometric morphometrics.}
@@ -41,7 +76,18 @@ geometric morphometrics.}
 \item{iter}{number of iterations used by \code{\link[geomorph:gpagen]{geomorph::gpagen()}} to
 converge.}
 \item{metadata}{specimen metadata carried over from \code{landmarks}, if
-present.}
+present (subset to match, if \code{remove_outliers = TRUE} removed any
+specimen).}
+\item{outlier_screen}{\code{NULL} unless \code{flag_outliers = TRUE} (the
+default); otherwise a \code{data.frame}, one row per specimen
+\emph{actually used} (i.e. excluding any row removed by
+\code{remove_outliers = TRUE}), with columns \code{specimen},
+\code{procrustes_distance} (to the consensus shape), \code{threshold_value},
+\code{flagged}; see Details.}
+\item{removed_outliers}{\code{NULL} unless \code{remove_outliers = TRUE}
+removed at least one specimen, in which case a \code{data.frame} with
+the same columns as \code{outlier_screen}, one row per \emph{excluded}
+specimen, for the record.}
 }
 
 Invisibly returns \code{x}.
@@ -61,6 +107,32 @@ Centroid size (\code{Csize}) is retained explicitly because, unlike Procrustes
 shape coordinates, it captures the size component of morphology and is
 required for allometry correction (\code{\link[=correct_allometry]{correct_allometry()}}) and to relate
 shape to body size.
+
+When \code{flag_outliers = TRUE} (the default), every specimen's Euclidean
+(Procrustes) distance to the sample consensus shape is computed, and
+flagged if it exceeds \code{median + outlier_threshold * MAD} (median
+absolute deviation) of those distances -- the same rule used by
+\code{\link[=detect_outliers]{detect_outliers()}} (which can be run on the result afterwards for the
+ordered dot-plot view; both share the same screening code, so results
+agree). This never removes anything automatically: it only flags
+candidates -- always inspect a flagged specimen (e.g. with
+\code{\link[=plot_landmarks]{plot_landmarks()}}/\code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}, and its original
+photograph if available) before deciding whether to exclude it.
+
+Setting \code{remove_outliers = TRUE} goes one step further and actually
+excludes every flagged specimen, then re-runs \code{\link[geomorph:gpagen]{geomorph::gpagen()}} on
+the cleaned sample -- a genuinely mis-digitized specimen can distort the
+consensus shape (and hence every other specimen's alignment to it), so
+simply dropping it from a plot after the fact is not equivalent to
+re-aligning without it. \code{coords}, \code{Csize}, \code{consensus}, and \code{metadata}
+in the returned object then describe the \emph{cleaned} sample, and
+\verb{$removed_outliers} records exactly which specimens were dropped and
+why, so the exclusion remains fully reproducible and auditable rather
+than an undocumented, ad hoc edit made before calling \code{gpa_fish()}.
+This is deliberately opt-in (\code{FALSE} by default): removing data always
+changes the alignment and should be a conscious, visually-confirmed
+decision (see above), not something that happens silently just because
+a threshold was crossed.
 }
 \examples{
 # real T-26 Saudrune data; GPA aligns *shape* only, so the FISHMORPH
@@ -70,7 +142,13 @@ shape to body size.
 fish <- load_t26_saudrune_landmarks()
 fish_shape <- fishmorph_shape_landmarks(fish)
 gpa <- gpa_fish(fish_shape)
-gpa
+gpa   # flags any Procrustes-distance outliers found, see gpa$outlier_screen
+
+# Once a flagged specimen has been visually confirmed as a digitization
+# error (not just a genuinely extreme morphology), exclude it and
+# re-align without it:
+gpa_clean <- gpa_fish(fish_shape, remove_outliers = TRUE)
+gpa_clean$removed_outliers   # exactly which specimen(s) were excluded, and why
 
 }
 \references{
@@ -78,6 +156,6 @@ Rohlf FJ, Slice D (1990). Extensions of the Procrustes method for the
 optimal superimposition of landmarks. Systematic Zoology, 39(1), 40-59.
 }
 \seealso{
-\code{\link[=morpho_space]{morpho_space()}}, \code{\link[=correct_allometry]{correct_allometry()}},
+\code{\link[=morpho_space]{morpho_space()}}, \code{\link[=correct_allometry]{correct_allometry()}}, \code{\link[=detect_outliers]{detect_outliers()}},
 \code{\link[=intraspecific_variability]{intraspecific_variability()}}, \code{\link[=fishmorph_shape_landmarks]{fishmorph_shape_landmarks()}}
 }

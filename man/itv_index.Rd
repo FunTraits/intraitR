@@ -41,6 +41,8 @@ invariant to linear rescaling of each trait on its own. Defaults to
 and sums of squares to in the returned tables. Defaults to \code{4}.}
 
 \item{x}{An object of class \code{"intrait_itv"}, as returned by \code{\link[=itv_index]{itv_index()}}.}
+
+\item{...}{Currently unused.}
 }
 \value{
 An object of class \code{"intrait_itv"}, a list with elements:

@@ -76,6 +76,7 @@ morpho_space <- function(gpa, groups = NULL, axes = c(1, 2)) {
 #' @rdname morpho_space
 #' @param x An object of class `"intrait_morphospace"`, as returned by
 #'   [morpho_space()].
+#' @param ... Currently unused.
 print.intrait_morphospace <- function(x, ...) {
   cat("<intrait_morphospace>\n")
   cat(sprintf(

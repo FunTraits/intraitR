@@ -126,6 +126,8 @@ step.}
 
 \item{x}{An object of class \code{"intrait_traitspace"}, as returned by
 \code{\link[=trait_space]{trait_space()}}.}
+
+\item{...}{Currently unused.}
 }
 \value{
 An object of class \code{"intrait_traitspace"}, a list with elements

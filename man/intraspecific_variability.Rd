@@ -26,6 +26,8 @@ Defaults to \code{999}.}
 
 \item{x}{An object of class \code{"intrait_variability"}, as returned by
 \code{\link[=intraspecific_variability]{intraspecific_variability()}}.}
+
+\item{...}{Currently unused.}
 }
 \value{
 An object of class \code{"intrait_variability"}, a list optionally

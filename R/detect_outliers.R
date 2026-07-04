@@ -120,6 +120,7 @@ detect_outliers <- function(gpa, threshold = 3, plot = TRUE) {
 #' @rdname detect_outliers
 #' @param x An object of class `"intrait_outliers"`, as returned by
 #'   [detect_outliers()].
+#' @param ... Currently unused.
 print.intrait_outliers <- function(x, ...) {
   cat("<intrait_outliers>\n")
   cat(sprintf(

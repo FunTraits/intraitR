@@ -507,6 +507,7 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
 #' @rdname trait_space
 #' @param x An object of class `"intrait_traitspace"`, as returned by
 #'   [trait_space()].
+#' @param ... Currently unused.
 print.intrait_traitspace <- function(x, ...) {
   cat("<intrait_traitspace> (", x$method, ")\n", sep = "")
   cat(sprintf(

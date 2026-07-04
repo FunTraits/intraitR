@@ -24,6 +24,8 @@ dashed line. Defaults to \code{TRUE}.}
 
 \item{x}{An object of class \code{"intrait_outliers"}, as returned by
 \code{\link[=detect_outliers]{detect_outliers()}}.}
+
+\item{...}{Currently unused.}
 }
 \value{
 An object of class \code{"intrait_outliers"}, a list with elements

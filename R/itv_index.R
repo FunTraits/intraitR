@@ -266,6 +266,7 @@ itv_index <- function(traits, groups, nested = NULL, scale = TRUE, digits = 4) {
 #' @export
 #' @rdname itv_index
 #' @param x An object of class `"intrait_itv"`, as returned by [itv_index()].
+#' @param ... Currently unused.
 print.intrait_itv <- function(x, ...) {
   cat("<intrait_itv>", if (!is.null(x$nested)) "(nested: species / population)" else "(species-level)", "\n")
   cat(sprintf(

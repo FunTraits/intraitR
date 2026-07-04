@@ -23,6 +23,8 @@ retain for plotting (defaults to \code{c(1, 2)}).}
 
 \item{x}{An object of class \code{"intrait_morphospace"}, as returned by
 \code{\link[=morpho_space]{morpho_space()}}.}
+
+\item{...}{Currently unused.}
 }
 \value{
 An object of class \code{"intrait_morphospace"}, a list with

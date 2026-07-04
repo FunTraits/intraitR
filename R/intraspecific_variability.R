@@ -110,6 +110,7 @@ intraspecific_variability <- function(gpa = NULL, groups, traits = NULL, iter = 
 #' @rdname intraspecific_variability
 #' @param x An object of class `"intrait_variability"`, as returned by
 #'   [intraspecific_variability()].
+#' @param ... Currently unused.
 print.intrait_variability <- function(x, ...) {
   cat("<intrait_variability>\n")
   if (!is.null(x$shape_disparity)) {

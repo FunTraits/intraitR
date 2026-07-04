@@ -30,9 +30,15 @@ reference:
 
   - title: Superimposition and shape
     desc: >
-      Generalised Procrustes Analysis, allometric correction, and
-      digitization/outlier quality control.
+      Landmark quality control (missing-landmark imputation, orientation
+      and geometry correction), Generalised Procrustes Analysis, allometric
+      correction, and digitization/outlier quality control.
     contents:
+      - impute_landmarks
+      - standardize_orientation
+      - correct_landmarks
+      - correct_geometry
+      - fishmorph_shape_landmarks
       - gpa_fish
       - correct_allometry
       - detect_outliers

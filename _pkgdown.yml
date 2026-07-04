@@ -27,6 +27,7 @@ reference:
       - read_landmarks_xlsx
       - digitize_landmarks
       - plot_landmarks
+      - print.intrait_landmarks
 
   - title: Superimposition and shape
     desc: >
@@ -61,10 +62,15 @@ reference:
       functional richness.
     contents:
       - trait_space
+      - plot.intrait_traitspace
       - morpho_space
+      - plot.intrait_morphospace
       - trait_disparity
+      - print.intrait_disparity
       - bootstrap_functional_space
+      - print.intrait_bootstrap_fspace
       - species_sensitivity
+      - print.intrait_species_sensitivity
 
   - title: Intraspecific variability and measurement error
     desc: >
@@ -73,8 +79,10 @@ reference:
       replicated data.
     contents:
       - itv_index
+      - plot.intrait_itv
       - intraspecific_variability
       - measurement_error
+      - print.intrait_measurement_error
       - digitization_error
       - summary_traits
 

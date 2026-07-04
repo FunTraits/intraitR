@@ -23,7 +23,7 @@ Description: A toolkit for the analysis of morphological traits in freshwater
     included, with a complete worked pipeline demonstrating the full
     workflow on field data.
 License: GPL-3
-URL: https://github.com/FunTraits/intraitR
+URL: https://github.com/FunTraits/intraitR, https://funtraits.github.io/intraitR/
 BugReports: https://github.com/FunTraits/intraitR/issues
 Depends:
     R (>= 4.1.0)

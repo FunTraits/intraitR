@@ -1,0 +1,652 @@
+# intraitR
+
+`intraitR` is an R package for the analysis of morphological traits in
+freshwater fish: from raw landmark digitization to morphological ratios,
+morphological space, intraspecific variability, and measurement error.
+It builds on the geometric morphometric framework implemented in
+[`geomorph`](https://cran.r-project.org/package=geomorph) and adds
+fish-specific conveniences for ecomorphological analyses.
+
+## Workflow
+
+1.  **Import** landmark coordinates:
+    [`read_tps()`](https://funtraits.github.io/intraitR/reference/read_tps.md)
+    (tpsDig files),
+    [`read_landmarks_csv()`](https://funtraits.github.io/intraitR/reference/read_landmarks_csv.md)
+    (generic long-format CSV/data.frame), or
+    [`read_landmarks_xlsx()`](https://funtraits.github.io/intraitR/reference/read_landmarks_xlsx.md)
+    (generic wide-format Excel sheet, one row per specimen with one X/Y
+    column pair per landmark – the layout produced directly by most
+    manual digitization spreadsheets); or generate a simulated example
+    data set with
+    [`simulate_fish_landmarks()`](https://funtraits.github.io/intraitR/reference/simulate_fish_landmarks.md).
+    Alternatively,
+    [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+    digitizes landmarks interactively from specimen photographs
+    (point-and-click) and returns the result directly, following either
+    the FISHMORPH scheme or a generic one.
+2.  **Align** configurations with Generalised Procrustes Analysis:
+    [`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md).
+3.  **Derive traits**: inter-landmark linear distances
+    ([`linear_distances()`](https://funtraits.github.io/intraitR/reference/linear_distances.md))
+    and normalised ecomorphological ratios
+    ([`morpho_ratios()`](https://funtraits.github.io/intraitR/reference/morpho_ratios.md));
+    correct for allometry with
+    [`correct_allometry()`](https://funtraits.github.io/intraitR/reference/correct_allometry.md).
+4.  **Explore shape**: build and plot a morphological space with
+    [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md).
+    By default, [`plot()`](https://rdrr.io/r/graphics/plot.default.html)
+    shows each group as its individual points, dashed segments linking
+    them to the group mean, the group mean itself, and a 95% dispersion
+    ellipse (`style = "spider"`); `style = "hull"` recovers the
+    classical convex-hull display, and `style = "density"` draws a
+    non-parametric kernel-density contour instead of the ellipse, for
+    groups whose points are visibly skewed or multimodal. The group
+    legend is drawn just outside the plot box by default
+    (`legend_position = "outside"`) so it never overlaps the data; pass
+    a standard [`legend()`](https://rdrr.io/r/graphics/legend.html)
+    keyword (e.g. `"topright"`) for the previous, inside-the-box
+    placement. The same `style`/`legend_position` options are available
+    on
+    [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
+    (from
+    [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)).
+5.  **Assess variability and error**: intraspecific morphological
+    variability
+    ([`intraspecific_variability()`](https://funtraits.github.io/intraitR/reference/intraspecific_variability.md),
+    combining shape disparity and coefficients of variation),
+    measurement error / repeatability from replicated digitization
+    ([`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)),
+    landmark-level digitization (operator) bias
+    ([`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md),
+    following the protocol of Boutic, 2026), and the
+    interspecific/intraspecific (ITV) partitioning of trait variance
+    ([`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md),
+    optionally split into between- and within-population components).
+
+Additional utilities:
+[`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md)
+and
+[`detect_outliers()`](https://funtraits.github.io/intraitR/reference/detect_outliers.md)
+for quality control of digitization (visual inspection and automatic
+Procrustes-distance-based outlier screening, respectively),
+[`summary_traits()`](https://funtraits.github.io/intraitR/reference/summary_traits.md)
+for tidy group-level summaries, and
+[`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
+for permutation tests of group differences in functional trait
+dispersion. Both
+[`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md)
+and
+[`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
+accept a `background_image` (a `.jpg`/`.jpeg` or `.png` photograph of
+the specimen), overlaying the digitized landmarks directly on the
+original photograph for visual quality control — e.g. spotting a
+landmark placed off the body outline (requires the `jpeg` or `png`
+package, matching the image format).
+
+### Importing your own data (`read_landmarks_xlsx()`)
+
+Most manual digitization workflows produce a “wide” spreadsheet: one row
+per specimen (or per replicate digitization), and one pair of columns
+per landmark (e.g. `X_1, Y_1, X_2, Y_2, ...`, or
+`1_X, 1_Y, 2_X, 2_Y, ...`), rather than the “long”/tidy layout expected
+by
+[`read_landmarks_csv()`](https://funtraits.github.io/intraitR/reference/read_landmarks_csv.md).
+[`read_landmarks_xlsx()`](https://funtraits.github.io/intraitR/reference/read_landmarks_xlsx.md)
+reads this layout directly from an `.xlsx`/`.xls` file and reshapes it
+into an `"intrait_landmarks"` object, without any hand-written reshaping
+code – whatever the exact column-naming convention
+(`x_pattern`/`y_pattern`) or number of landmarks (`n_landmarks`)
+involved. It also optionally joins a second, one-row-per-specimen
+spreadsheet of identifications or other metadata directly
+(`species_file`):
+
+``` r
+
+fish <- read_landmarks_xlsx(
+  "measurements.xlsx", sheet = "Principal", n_landmarks = 21,
+  id_cols = c("Code", "Operator"),
+  species_file = "identifications.xlsx", species_by = "Code"
+)
+```
+
+A replicate-digitization sheet (several digitizations per specimen, one
+row each – e.g. for
+[`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)/[`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md))
+works the same way, just with a different `x_pattern`/`y_pattern` and
+`id_cols`:
+
+``` r
+
+biais <- read_landmarks_xlsx(
+  "measurements.xlsx", sheet = "Repeatability", n_landmarks = 21,
+  x_pattern = "{i}_X", y_pattern = "{i}_Y",
+  id_cols = c("Code", "Replicate")
+)
+```
+
+This is a deliberately generic import: coordinate cells that are blank
+or contain the literal text `"NA"` become `NA` silently, anything else
+non-numeric triggers a warning naming the offending column(s), and
+`species_file` performs a plain left-join on `species_by` (no attempt to
+resolve conflicting or uncertain identifications – do that in R first if
+your identification sheet needs it). It is the generalised, reusable
+version of the private cleaning script originally written to import the
+real T-26 Saudrune field data (`data-raw/t26_saudrune_prepare.R`),
+usable directly on a new field season or survey with its own
+column-naming convention and landmark count. Requires the `readxl`
+package (Suggested, not installed by default).
+
+### Digitization error (`digitization_error()`)
+
+For a set of specimens digitized several times each (replicated
+landmarking of the same photographs),
+[`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md)
+quantifies how dispersed repeated landmark placements are around their
+consensus position, normalised so that bias is comparable across
+specimens of different sizes, and aggregated hierarchically from
+landmark to individual, species, and overall community bias:
+
+``` r
+
+fish <- simulate_fish_landmarks(n_per_species = 8, n_replicates = 10)
+individual_id <- sub("_rep[0-9]+$", "", rownames(fish$metadata))
+derr <- digitization_error(fish, individual = individual_id)
+derr
+plot(derr)  # bias by landmark, ordered by increasing median bias
+```
+
+This reproduces the protocol used by L. Boutic (internship report, 2026,
+CRBE/INTRAIT) to quantify operator bias in French Guiana freshwater fish
+landmark digitization: it deliberately operates on raw digitized
+coordinates (no Procrustes superimposition) so that bias can be
+attributed to individual landmarks (e.g. to flag which ones need a
+stricter operational definition), complementing the overall,
+rotation/scale-invariant repeatability estimate from
+`measurement_error(..., method = "procrustes")`.
+
+### Landmark quality control: orientation and geometry correction
+
+Before Generalised Procrustes Analysis, a digitized configuration should
+be in a geometrically consistent state: every specimen in the same
+left-right and up-down orientation, and every landmark placed according
+to the conventions expected of the digitization protocol (e.g. that a
+given set of points should share a common X or Y coordinate). Procrustes
+superimposition
+([`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md))
+removes translation, rotation and scale, but it cannot by itself fix a
+mirrored specimen or a landmark placed off the protocol’s conventions –
+either can silently distort the resulting shape space exactly as an
+undetected outlier would. `intraitR` provides a small set of functions
+to detect and correct these issues, in a documented and reproducible
+way, before alignment:
+
+- [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
+  estimates a small number of missing landmarks (e.g. the commonly
+  missing landmark 5 of the FISHMORPH scheme) from the rest of the
+  configuration and the sample consensus, so that a specimen is not
+  simply dropped for one incomplete point.
+- [`standardize_orientation()`](https://funtraits.github.io/intraitR/reference/standardize_orientation.md)
+  detects and corrects specimens digitized in an inconsistent
+  orientation, enforcing a consistent head-left, belly-down frame across
+  the whole sample.
+- `correct_landmarks(rule = "check_geometry")` audits a fixed battery of
+  geometric conventions expected of a digitization protocol (e.g. the
+  FISHMORPH scheme) and returns a diagnostic report, without modifying
+  anything;
+  [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md)
+  then automatically snaps every flagged landmark to the shared
+  coordinate implied by its trusted neighbours.
+  `correct_landmarks(rule = "align")` lets a single, visually identified
+  point be corrected manually instead.
+
+Every one of these functions records what it changed and why in a
+shared, mergeable audit-trail attribute (`attr(x$coords, "corrected")`
+and `attr(x$coords, "correction_log")`), so a full correction history
+accumulates across successive calls on the same object, and
+[`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md)
+/
+[`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
+highlight imputed and corrected points visually (red and blue,
+respectively) for review.
+
+A complete pipeline from raw landmarks to a functional trait space,
+including this quality-control step, looks like this:
+
+``` r
+
+fish          <- load_t26_saudrune_landmarks()
+fish_imputed  <- impute_landmarks(fish)
+fish_oriented <- standardize_orientation(fish_imputed)
+geom_check    <- correct_landmarks(fish_imputed, rule = "check_geometry")
+fish_fixed    <- correct_geometry(fish_oriented)
+
+# visually compare a specimen before/after geometry correction, with any
+# flagged convention highlighted in orange:
+plot_fishmorph_points(fish_oriented, specimen = "T-26-0024_Operator_1",
+                       geometry_check = geom_check)
+plot_fishmorph_points(fish_fixed, specimen = "T-26-0024_Operator_1",
+                       geometry_check = geom_check)
+
+segments_fixed <- fishmorph_segments(fish_fixed)
+ratios_fixed   <- fishmorph_ratios(segments_fixed)
+
+ts_fixed <- trait_space(
+  ratios_fixed, groups = fish$metadata$species,
+  na_action = "omit", remove_outliers = TRUE
+)
+# flags any within-species outliers found, see ts_fixed$outlier_screen
+plot(ts_fixed)
+```
+
+The same corrected, oriented, geometry-fixed object (`fish_fixed`) also
+feeds directly into
+[`fishmorph_shape_landmarks()`](https://funtraits.github.io/intraitR/reference/fishmorph_shape_landmarks.md)
+and
+[`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md)
+for the shape-space side of the workflow (see
+`demo("pipeline_T26_saudrune")`).
+
+## The FISHMORPH protocol (Brosse et al., 2021)
+
+`intraitR` also implements the specific digitization and trait protocol
+of the FISHMORPH database (Brosse et al., 2021, *Global Ecology and
+Biogeography*), based on a fixed scheme of 21 (optionally 22) landmarks
+per specimen:
+
+- [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
+  computes the 11 linear measurements of the protocol (`Bl`, `Bd`, `Hd`,
+  `Eh`, `Mo`, `PFi`, `PFl`, `Ed`, `Jl`, `CPd`, `CFd`) directly from
+  digitized points, converting pixels to centimetres using an embedded
+  scale bar.
+- [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
+  computes the 9 unitless FISHMORPH ratios (`BEl`, `VEp`, `REs`, `OGp`,
+  `RMl`, `BLs`, `PFv`, `PFs`, `CPt`), including the special-case rules
+  of Villéger et al. (2010).
+- [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
+  builds a PCA/PCoA functional trait space from any numeric trait table
+  (FISHMORPH ratios or otherwise), by default applying a `log10(x + 1)`
+  transformation followed by centring/scaling to unit variance before
+  the ordination (`log_transform = TRUE`, `scale = TRUE`);
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) uses the same
+  spider/ellipse display as
+  [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md).
+- [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
+  tests whether groups differ in the multivariate dispersion of their
+  functional traits (trait variance, i.e. the trace of each group’s
+  trait covariance matrix), by permutation of group labels, computed on
+  the full standardised trait matrix rather than on the two axes
+  retained for plotting.
+- `trait_space(na_action = ...)` handles missing trait values: `"omit"`,
+  `"impute_mean"`, `"impute_group_mean"`, or `"missforest"`
+  (nonparametric random-forest imputation via the `missForest` package,
+  using `groups` as an auxiliary predictor).
+- [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
+  and
+  [`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md)
+  visualise and simulate data following the 21/22-point scheme.
+- [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)
+  quantifies how much representing species by real individuals, rather
+  than by their centroid, inflates estimated functional richness (an
+  n-dimensional convex-hull volume in PCA space), following the
+  bootstrap procedure of Bertrand (2026); requires the `geometry`
+  package (Suggested, not installed by default).
+- [`species_sensitivity()`](https://funtraits.github.io/intraitR/reference/species_sensitivity.md)
+  complements it with a per-species index (Bertrand, 2026): for each
+  species, its centroid is replaced by each of its individuals in turn
+  (every other species fixed at its centroid), and the resulting percent
+  change in functional richness is summarised as a mean effect and a
+  min-max range, identifying which species drive ITV’s expansion of the
+  functional space.
+
+## Performance on large data sets
+
+[`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md),
+[`species_sensitivity()`](https://funtraits.github.io/intraitR/reference/species_sensitivity.md),
+and
+[`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
+all repeat an independent, expensive computation many times: `n_boot`
+bootstrap draws, one convex-hull recomputation per individual, and
+`iter` label permutations, respectively. Two things are worth knowing
+when applying them to a large panel (Bertrand, 2026’s regional data set,
+for instance, had 1,302 individuals across 55 species):
+
+- **Convex-hull cost grows quickly with dimension.** The three functions
+  above rely on
+  [`geometry::convhulln()`](https://rdrr.io/pkg/geometry/man/convhulln.html)
+  (Qhull), whose worst-case complexity for `n` points in `d` dimensions
+  is (the McMullen, 1970, upper bound theorem on the maximum number of
+  facets of a `d`-dimensional polytope). In practice this means the
+  default 2-3 retained PCA axes (`n_axes`, or the `var_threshold`-based
+  automatic choice) stay fast even for hundreds of species, but
+  requesting a much higher `n_axes` on a species-rich data set can make
+  each individual hull computation noticeably slower — worth keeping in
+  mind before increasing `n_axes` much beyond what `var_threshold`
+  already selects.
+
+- **Each repeated computation is independent of the others**, so all
+  three functions distribute their loop across worker processes via the
+  (Suggested) [`future.apply`](https://future.apply.futureverse.org/)
+  package when it is installed, with zero configuration required from
+  the package itself: set up a plan once per session with
+  [`future`](https://future.futureverse.org/), e.g.
+
+  ``` r
+
+  future::plan(future::multisession, workers = 4)
+  bfs <- bootstrap_functional_space(ts, n_boot = 2000)  # now parallelised
+  future::plan(future::sequential)  # back to single-core when done
+  ```
+
+  With no `plan()` set, or without `future.apply` installed, all three
+  functions run exactly as before (a plain sequential loop), so this is
+  purely an opt-in speed-up — results are identical either way, since
+  parallel draws use `future.seed = TRUE` (L’Ecuyer-CMRG streams) for
+  reproducible random number generation across workers.
+
+## Installation
+
+``` r
+
+# install.packages("remotes")
+remotes::install_github("FunTraits/intraitR")
+```
+
+`intraitR` requires the `geomorph` package (available on CRAN):
+
+``` r
+
+install.packages("geomorph")
+```
+
+## Quick example
+
+``` r
+
+library(intraitR)
+
+fish <- simulate_fish_landmarks(n_per_species = 15, n_replicates = 3)
+gpa  <- gpa_fish(fish)
+
+distances <- list(SL = c(1, 7), BD = c(3, 10))
+ratios    <- morpho_ratios(fish, distances, norm_by = "SL")
+
+ms <- morpho_space(gpa, groups = fish$metadata$species)
+plot(ms)
+
+intraspecific_variability(
+  gpa = gpa, groups = fish$metadata$species,
+  traits = ratios[, "BD_ratio", drop = FALSE]
+)
+```
+
+See
+[`vignette("intraitR-intro")`](https://funtraits.github.io/intraitR/articles/intraitR-intro.md)
+for a full walkthrough.
+
+## Real data: the T-26 La Saudrune data set
+
+Beyond simulated examples, `intraitR` ships a real landmark data set
+from an electric-fishing survey of the Saudrune (Adour-Garonne basin,
+France): 279 fish from 8 species, digitized by two independent operators
+on the FISHMORPH scheme, plus a 25-fish x 9-10-replicate intra-operator
+repeatability trial. See
+[`?load_t26_saudrune`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune.md)
+for the data and `demo("pipeline_T26_saudrune")` for a complete worked
+pipeline (import, GPA, quality control, FISHMORPH traits, trait space,
+[`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md),
+[`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md),
+[`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md),
+[`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md))
+applied to it end to end.
+
+``` r
+
+ops <- load_t26_saudrune("operators")
+lm  <- read_landmarks_csv(ops)
+```
+
+For the FISHMORPH-specific workflow,
+[`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
+returns this same data directly as an `"intrait_landmarks"` object, in
+exactly the format produced by
+[`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md)
+— a drop-in real-data replacement used throughout the package’s own
+examples:
+
+``` r
+
+fish <- load_t26_saudrune_landmarks()
+fishmorph_ratios(fishmorph_segments(fish))
+```
+
+Operator identity is anonymised in the shipped data (`"Operator_1"`,
+`"Operator_2"` rather than the real names recorded in the field
+spreadsheets). Both loaders take an `operator` argument to restrict to a
+single operator’s digitizations — the natural way to build **two
+separate functional trait spaces**, one per operator, and check whether
+results are sensitive to who did the digitizing:
+
+``` r
+
+fish_op1 <- load_t26_saudrune_landmarks(operator = "Operator_1")
+fish_op2 <- load_t26_saudrune_landmarks(operator = "Operator_2")
+```
+
+`operator` is modular: passed to a table with no `operator` column, it
+is ignored with a warning (all rows are returned) rather than raising an
+error.
+
+`load_t26_saudrune("operators")` and `"repeatability"` are landmark
+tables keyed by `code`, not by species — species identity lives in the
+separate `"identifications"` table by design (a landmark measurement
+never needs to know a species, and identifications can be revised
+independently of the coordinates). Pass `species = TRUE` to join
+`species`/`id_status` back onto either table by `code`:
+
+``` r
+
+ops <- load_t26_saudrune("operators", species = TRUE)
+table(ops$species)
+```
+
+## Citation
+
+``` r
+
+citation("intraitR")
+```
+
+## License
+
+GPL-3. See `LICENSE.md`.
+
+# Package index
+
+## Landmark import and digitization
+
+Read landmark data from tpsDig files, generic spreadsheets, or an
+interactive digitizer; visualise a single configuration.
+
+- [`read_tps()`](https://funtraits.github.io/intraitR/reference/read_tps.md)
+  :
+
+  Import landmark coordinates from a tpsDig (`.tps`) file
+
+- [`read_landmarks_csv()`](https://funtraits.github.io/intraitR/reference/read_landmarks_csv.md)
+  : Import landmark coordinates from a generic long-format CSV file
+
+- [`read_landmarks_xlsx()`](https://funtraits.github.io/intraitR/reference/read_landmarks_xlsx.md)
+  : Import landmark coordinates from a generic "wide"-format Excel sheet
+
+- [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  : Interactively digitize landmarks from specimen photographs
+
+- [`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md)
+  : Plot a single landmark configuration
+
+- [`print(`*`<intrait_landmarks>`*`)`](https://funtraits.github.io/intraitR/reference/print.intrait_landmarks.md)
+  :
+
+  Print an `"intrait_landmarks"` object
+
+## Superimposition and shape
+
+Landmark quality control (missing-landmark imputation, orientation and
+geometry correction), Generalised Procrustes Analysis, allometric
+correction, and digitization/outlier quality control.
+
+- [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
+  : Impute missing (NA) landmark coordinates using geometric
+  morphometric methods
+- [`standardize_orientation()`](https://funtraits.github.io/intraitR/reference/standardize_orientation.md)
+  : Standardize every specimen to the same head-left, belly-down
+  orientation
+- [`correct_landmarks()`](https://funtraits.github.io/intraitR/reference/correct_landmarks.md)
+  [`print(`*`<intrait_geometry_check>`*`)`](https://funtraits.github.io/intraitR/reference/correct_landmarks.md)
+  : Manually correct a misplaced landmark using an alignment rule
+- [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md)
+  : Standardize landmark configurations to a common scale, orientation,
+  and geometric convention
+- [`fishmorph_shape_landmarks()`](https://funtraits.github.io/intraitR/reference/fishmorph_shape_landmarks.md)
+  : Extract complete-case body-shape landmarks from a FISHMORPH
+  configuration
+- [`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md)
+  [`print(`*`<intrait_gpa>`*`)`](https://funtraits.github.io/intraitR/reference/gpa_fish.md)
+  [`summary(`*`<intrait_gpa>`*`)`](https://funtraits.github.io/intraitR/reference/gpa_fish.md)
+  [`print(`*`<summary.intrait_gpa>`*`)`](https://funtraits.github.io/intraitR/reference/gpa_fish.md)
+  : Generalised Procrustes Analysis for fish landmark configurations
+- [`correct_allometry()`](https://funtraits.github.io/intraitR/reference/correct_allometry.md)
+  : Correct Procrustes shape coordinates for allometry
+- [`detect_outliers()`](https://funtraits.github.io/intraitR/reference/detect_outliers.md)
+  [`print(`*`<intrait_outliers>`*`)`](https://funtraits.github.io/intraitR/reference/detect_outliers.md)
+  : Detect potential digitization outliers from a GPA-aligned sample
+
+## Morphometric traits and ratios
+
+Classical linear distances and ratios, including the FISHMORPH (Brosse
+et al., 2021) 11-measurement/9-ratio protocol.
+
+- [`linear_distances()`](https://funtraits.github.io/intraitR/reference/linear_distances.md)
+  : Compute inter-landmark linear distances
+- [`morpho_ratios()`](https://funtraits.github.io/intraitR/reference/morpho_ratios.md)
+  : Compute classical fish morphometric ratios
+- [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
+  : Compute linear morphological measurements following the FISHMORPH
+  protocol
+- [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
+  : Compute the nine FISHMORPH unitless ecomorphological ratios
+- [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
+  : Plot a specimen following the FISHMORPH point digitization scheme
+
+## Functional and morphological space
+
+Build, visualise, and test ordinations of shape or trait data, and
+quantify how intraspecific variability (ITV) affects estimated
+functional richness.
+
+- [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
+  [`print(`*`<intrait_traitspace>`*`)`](https://funtraits.github.io/intraitR/reference/trait_space.md)
+  : Build a functional trait space from a numeric trait table
+
+- [`plot(`*`<intrait_traitspace>`*`)`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
+  : Plot a functional trait space
+
+- [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md)
+  [`print(`*`<intrait_morphospace>`*`)`](https://funtraits.github.io/intraitR/reference/morpho_space.md)
+  : Build a morphological space from Procrustes shape coordinates
+
+- [`plot(`*`<intrait_morphospace>`*`)`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md)
+  : Plot a morphological space
+
+- [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
+  : Test differences in functional trait dispersion between groups
+
+- [`print(`*`<intrait_disparity>`*`)`](https://funtraits.github.io/intraitR/reference/print.intrait_disparity.md)
+  :
+
+  Print an `"intrait_disparity"` object
+
+- [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)
+  : Bootstrap-based estimate of functional space volume from individual
+  data
+
+- [`print(`*`<intrait_bootstrap_fspace>`*`)`](https://funtraits.github.io/intraitR/reference/print.intrait_bootstrap_fspace.md)
+  [`plot(`*`<intrait_bootstrap_fspace>`*`)`](https://funtraits.github.io/intraitR/reference/print.intrait_bootstrap_fspace.md)
+  :
+
+  Print and plot an `"intrait_bootstrap_fspace"` object
+
+- [`species_sensitivity()`](https://funtraits.github.io/intraitR/reference/species_sensitivity.md)
+  : Species-level sensitivity index for functional space estimates
+
+- [`print(`*`<intrait_species_sensitivity>`*`)`](https://funtraits.github.io/intraitR/reference/print.intrait_species_sensitivity.md)
+  [`plot(`*`<intrait_species_sensitivity>`*`)`](https://funtraits.github.io/intraitR/reference/print.intrait_species_sensitivity.md)
+  :
+
+  Print and plot an `"intrait_species_sensitivity"` object
+
+## Intraspecific variability and measurement error
+
+Decompose trait variance into interspecific/intraspecific components,
+and quantify measurement and digitization error from replicated data.
+
+- [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md)
+  [`print(`*`<intrait_itv>`*`)`](https://funtraits.github.io/intraitR/reference/itv_index.md)
+  : Partition trait variance into interspecific and intraspecific (ITV)
+  components
+
+- [`plot(`*`<intrait_itv>`*`)`](https://funtraits.github.io/intraitR/reference/plot.intrait_itv.md)
+  : Plot the interspecific/intraspecific variance breakdown
+
+- [`intraspecific_variability()`](https://funtraits.github.io/intraitR/reference/intraspecific_variability.md)
+  [`print(`*`<intrait_variability>`*`)`](https://funtraits.github.io/intraitR/reference/intraspecific_variability.md)
+  : Quantify intraspecific morphological variability
+
+- [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
+  : Estimate measurement error from replicated digitization
+
+- [`print(`*`<intrait_measurement_error>`*`)`](https://funtraits.github.io/intraitR/reference/print.intrait_measurement_error.md)
+  :
+
+  Print an `"intrait_measurement_error"` object
+
+- [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md)
+  [`print(`*`<intrait_digitization_error>`*`)`](https://funtraits.github.io/intraitR/reference/digitization_error.md)
+  [`plot(`*`<intrait_digitization_error>`*`)`](https://funtraits.github.io/intraitR/reference/digitization_error.md)
+  : Quantify hierarchical digitization (operator) error from repeated
+  landmark placement, linear measurements, or ratios
+
+- [`summary_traits()`](https://funtraits.github.io/intraitR/reference/summary_traits.md)
+  : Summarise morphological traits by group
+
+## Simulated example data
+
+- [`simulate_fish_landmarks()`](https://funtraits.github.io/intraitR/reference/simulate_fish_landmarks.md)
+  : Simulate a fish landmark data set
+- [`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md)
+  : Simulate landmark data following the FISHMORPH point digitization
+  scheme
+
+## Real data: T-26 La Saudrune
+
+A real electrofishing landmark data set (Adour-Garonne basin, France),
+used throughout the package’s examples and
+`demo(pipeline_T26_saudrune)`.
+
+- [`load_t26_saudrune()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune.md)
+  : Real freshwater fish landmark data set from an electrofishing
+  campaign (T-26, La Saudrune)
+
+- [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
+  :
+
+  Real T-26 Saudrune landmark data, ready to use as an
+  `"intrait_landmarks"` object
+
+# Articles
+
+### Get started
+
+- [Introduction to
+  intraitR](https://funtraits.github.io/intraitR/articles/intraitR-intro.md):

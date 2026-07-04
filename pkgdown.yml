@@ -1,0 +1,9 @@
+pandoc: 3.8.3
+pkgdown: 2.2.0
+pkgdown_sha: ~
+articles:
+  intraitR-intro: intraitR-intro.html
+last_built: 2026-07-04T11:58Z
+urls:
+  reference: https://funtraits.github.io/intraitR/reference
+  article: https://funtraits.github.io/intraitR/articles

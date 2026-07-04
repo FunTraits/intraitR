@@ -1,0 +1,241 @@
+# Plot a specimen following the FISHMORPH point digitization scheme
+
+Visualises the 21 (or 22) landmarks of one specimen, digitized following
+the Brosse et al. (2021) FISHMORPH scheme, together with the 11 linear
+measurements they define, a body outline, the eye, and the digitization
+scale bar, for quality control of digitization.
+
+## Usage
+
+``` r
+plot_fishmorph_points(
+  landmarks,
+  specimen = 1,
+  individual = NULL,
+  labels = TRUE,
+  legend = TRUE,
+  legend_position = "outside",
+  background_image = NULL,
+  flip_y = TRUE,
+  outline = TRUE,
+  highlight_imputed = TRUE,
+  highlight_corrected = TRUE,
+  geometry_check = NULL,
+  highlight_geometry = TRUE,
+  ...
+)
+```
+
+## Arguments
+
+- landmarks:
+
+  An object of class `"intrait_landmarks"` with at least 21
+  two-dimensional landmarks digitized following the scheme described in
+  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
+  (e.g. from
+  [`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md)).
+
+- specimen:
+
+  Integer index or character specimen identifier of the configuration to
+  plot. Defaults to `1`. Ignored if `individual` is supplied.
+
+- individual:
+
+  Optional character. Instead of `specimen`, select every digitization
+  belonging to a given fish, matched against
+  `landmarks$metadata$individual` – the identifier used throughout the
+  package to link digitizations of the same fish (see
+  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md),
+  [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md);
+  for
+  [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
+  this is identical to the `code` column). This is useful when
+  `landmarks` holds one row per specimen/operator or specimen/replicate
+  combination (e.g. `load_t26_saudrune_landmarks("operators")`, with two
+  rows per fish, one per operator) and it is more natural to look a fish
+  up by its code than by the exact specimen identifier. If `individual`
+  matches more than one specimen (e.g. two operators, or several
+  replicate digitizations), all matches are plotted side by side in a
+  single figure (one panel per specimen, titled with its own specimen
+  identifier) so they can be compared visually; `background_image` is
+  then ignored (with a warning), since a single photograph cannot be
+  assumed to apply to every match. Requires `landmarks$metadata` to have
+  an `individual` column. Defaults to `NULL` (use `specimen` instead).
+
+- labels:
+
+  Logical, label landmarks with their index. Defaults to `TRUE`.
+
+- legend:
+
+  Logical, draw a legend of measurement names/colours. Defaults to
+  `TRUE`.
+
+- legend_position:
+
+  One of `"outside"` (default: drawn in the margin, just to the right of
+  the plot box, so it never overlaps the fish outline) or a standard
+  [`graphics::legend()`](https://rdrr.io/r/graphics/legend.html)
+  position keyword (e.g. `"topright"`) to draw it inside the plot box
+  instead, as in previous versions.
+
+- background_image:
+
+  Optional path to a `.jpg`/`.jpeg` or `.png` photograph of the
+  specimen, drawn as a background layer beneath the landmarks and
+  measurement segments (e.g. to visually check whether a landmark was
+  placed off the body outline). Only meaningful for the original,
+  un-aligned digitized coordinates. Requires the (Suggested) `jpeg`
+  package for `.jpg`/`.jpeg` files, or `png` for `.png` files. Defaults
+  to `NULL` (no background).
+
+- flip_y:
+
+  Logical, flip `background_image` vertically before plotting, to match
+  the bottom-left-origin convention of digitized landmark coordinates
+  against the top-row-first convention of image files (see `flip_y` in
+  [`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md)).
+  Ignored when `background_image` is `NULL`. Defaults to `TRUE`.
+
+- outline:
+
+  Logical, add a set of purely visual reference lines, drawn in addition
+  to (and visually subordinate to) the 11 coloured measurement segments,
+  reproducing the digitization protocol sheet: a body outline (solid,
+  points 1-5-3-16-18-19-17-4-6, closed back to 1), a horizontal
+  reference line along the belly (points 9-8-11-4), a vertical reference
+  line at eye level (points 5-13-7-14-6-8), and the eye itself (a circle
+  centred on point 7 with diameter equal to the Ed measurement, i.e. the
+  distance between points 13 and 14). The body outline is drawn as a
+  plain solid line; the two reference lines and the eye circle are drawn
+  very light and dotted, so they read as background guides rather than
+  measurements. Any landmark missing (`NA`) for this specimen is
+  silently dropped from these reference paths rather than leaving a gap
+  – e.g. real T-26 specimens are commonly missing landmark 5, in which
+  case the body outline falls back to a direct 1-3 segment. Defaults to
+  `TRUE`.
+
+- highlight_imputed:
+
+  Logical, colour landmark points red if they carry an `"imputed"`
+  marker for this specimen – i.e. were estimated by
+  [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
+  rather than digitized – instead of the usual grey, with a matching
+  "Imputed landmark" legend entry. Has no visible effect on `landmarks`
+  without such a marker (e.g. never run through
+  [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)).
+  Defaults to `TRUE`.
+
+- highlight_corrected:
+
+  Logical, colour landmark points blue if they carry a `"corrected"`
+  marker for this specimen – i.e. were manually adjusted by
+  [`correct_landmarks()`](https://funtraits.github.io/intraitR/reference/correct_landmarks.md)
+  – with a matching "Corrected landmark" legend entry. If a point is
+  both imputed and corrected, blue (corrected) takes precedence. Has no
+  visible effect on `landmarks` without such a marker. Defaults to
+  `TRUE`.
+
+- geometry_check:
+
+  Optional object of class `"intrait_geometry_check"`, as returned by
+  `correct_landmarks(landmarks, rule = "check_geometry")` – typically
+  computed once for the whole data set and reused across plot calls,
+  rather than recomputed here. When supplied, any landmark implicated by
+  a check that failed (`ok = FALSE`) for this specimen is coloured
+  orange, with a matching "Geometry check flagged" legend entry, so
+  specimens worth a closer look (or a
+  [`correct_landmarks()`](https://funtraits.github.io/intraitR/reference/correct_landmarks.md)
+  fix) stand out visually. `NULL` (default) draws no such highlighting.
+  Ignored (with no effect) if `geometry_check` has no row for this
+  specimen.
+
+- highlight_geometry:
+
+  Logical, whether to apply the `geometry_check` highlighting described
+  above. Only relevant when `geometry_check` is supplied. Defaults to
+  `TRUE`.
+
+- ...:
+
+  Further arguments passed to
+  [`graphics::plot()`](https://rdrr.io/r/graphics/plot.default.html).
+
+## Value
+
+Invisibly returns the `p x 2` matrix of coordinates plotted, or (when
+`individual` matches more than one specimen) a named list of such
+matrices, one per matching specimen.
+
+## See also
+
+[`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md),
+[`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md),
+[`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md),
+[`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md),
+[`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md),
+[`correct_landmarks()`](https://funtraits.github.io/intraitR/reference/correct_landmarks.md),
+[`standardize_orientation()`](https://funtraits.github.io/intraitR/reference/standardize_orientation.md)
+(fix an upside-down/mirrored specimen at the data level, rather than a
+per-plot display toggle)
+
+## Examples
+
+``` r
+fish <- load_t26_saudrune_landmarks()
+plot_fishmorph_points(fish, specimen = 1)
+
+
+# look a fish up by its code rather than by specimen/operator: the raw
+# operator-level data has two rows (one per operator) per fish, so both
+# digitizations are plotted side by side for comparison
+fish_ops <- load_t26_saudrune_landmarks("operators")
+one_code <- fish_ops$metadata$individual[1]
+plot_fishmorph_points(fish_ops, individual = one_code)
+
+
+# if some specimens appear upside down or mirrored left-right, fix the
+# underlying coordinates (not just the display) for every specimen at
+# once, using landmarks that are always present and in the same role:
+fish_oriented <- standardize_orientation(fish)
+#> standardize_orientation(): 557 of 558 specimen(s) mirrored (165 horizontally, 555 vertically) to a consistent head-left, belly-down orientation.
+plot_fishmorph_points(fish_oriented, specimen = 1)
+
+
+# disable the body outline / eye / reference lines, keeping only the
+# 11 coloured measurement segments (as in earlier package versions):
+plot_fishmorph_points(fish, specimen = 1, outline = FALSE)
+
+
+# points estimated by impute_landmarks() are highlighted in red:
+# \donttest{
+fish_imputed <- impute_landmarks(fish)
+#> Warning: 3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
+#> impute_landmarks(): estimated 260 missing anatomical landmark coordinate(s) using method = "tps".
+plot_fishmorph_points(fish_imputed, specimen = 1)
+
+# }
+
+# points fixed by correct_landmarks() are highlighted in blue:
+fish_fixed <- correct_landmarks(
+  fish, specimen = "T-26-0010_Operator_1",
+  points = c(9, 8, 11, 4), correct = 11, axis = "y"
+)
+#> correct_landmarks(): specimen 'T-26-0010_Operator_1', landmark(s) 11: y set to 1664.167 (median of point(s) 4, 8, 9).
+plot_fishmorph_points(fish_fixed, specimen = "T-26-0010_Operator_1")
+
+
+# landmarks implicated in a failed check_geometry() convention are
+# highlighted in orange:
+geom_check <- correct_landmarks(fish, rule = "check_geometry")
+plot_fishmorph_points(fish, specimen = 1, geometry_check = geom_check)
+
+
+if (FALSE) { # \dontrun{
+# Overlay the original photograph (requires the "jpeg" package and a
+# photograph in the same pixel coordinate system as the landmarks):
+plot_fishmorph_points(fish, specimen = 1, background_image = "specimen1.jpg")
+} # }
+```

@@ -49,6 +49,12 @@
 #' coefficients of variation, but does not test for group differences in
 #' the dispersion of a multivariate *trait* space.
 #'
+#' As in [bootstrap_functional_space()] and [species_sensitivity()], the
+#' `iter` permutations are independent of one another and are distributed
+#' automatically across `future.apply`'s workers when that (Suggested)
+#' package is installed and a parallel `future::plan()` has been set
+#' beforehand; otherwise this runs sequentially, with identical results.
+#'
 #' @references
 #' Anderson MJ (2001). A new method for non-parametric multivariate
 #' analysis of variance. Austral Ecology, 26(1), 32-46.
@@ -164,12 +170,22 @@ trait_disparity <- function(x, groups = NULL, iter = 999,
 
   n <- nrow(X)
   iter <- as.integer(iter)
-  perm_diff <- matrix(NA_real_, nrow = iter, ncol = ncol(pair_idx))
-  for (i in seq_len(iter)) {
-    g_perm <- sample(groups, n)
-    d_perm <- group_disparity(X, g_perm)
-    perm_diff[i, ] <- apply(pair_idx, 2, function(ij) abs(d_perm[ij[1]] - d_perm[ij[2]]))
-  }
+  # Each permutation is independent of every other, so this is distributed
+  # across future.apply's workers when available and a future::plan() has
+  # been set (see Details); .papply() falls back to a plain vapply() (i.e.
+  # this loop, unchanged) otherwise. Reshaped with byrow = TRUE (rather
+  # than t()) so a single-pairwise-comparison case (exactly 2 groups,
+  # ncol(pair_idx) == 1, where vapply()/future_vapply() return a plain
+  # vector instead of a matrix) is handled the same way as the general
+  # case, instead of silently transposing to the wrong shape.
+  perm_diff <- matrix(
+    .papply(seq_len(iter), function(i) {
+      g_perm <- sample(groups, n)
+      d_perm <- group_disparity(X, g_perm)
+      apply(pair_idx, 2, function(ij) abs(d_perm[ij[1]] - d_perm[ij[2]]))
+    }, numeric(ncol(pair_idx))),
+    nrow = iter, ncol = ncol(pair_idx), byrow = TRUE
+  )
 
   p_vals <- vapply(seq_len(ncol(pair_idx)), function(j) {
     (sum(perm_diff[, j] >= obs_diff[j], na.rm = TRUE) + 1) / (iter + 1)
@@ -194,6 +210,12 @@ trait_disparity <- function(x, groups = NULL, iter = 999,
   )
 }
 
+#' Print an `"intrait_disparity"` object
+#'
+#' @param x An object of class `"intrait_disparity"`, as returned by
+#'   [trait_disparity()].
+#' @param ... Currently unused.
+#' @return Invisibly returns `x`.
 #' @export
 print.intrait_disparity <- function(x, ...) {
   cat("<intrait_disparity> (", x$iter, " permutations)\n", sep = "")

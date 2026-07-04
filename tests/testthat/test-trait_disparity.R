@@ -50,6 +50,32 @@ test_that("trait_disparity() recovers a low p-value for a strong, real dispersio
   expect_true(td$pairwise_p["Low", "High"] < 0.05)
 })
 
+test_that("trait_disparity()'s permutation null distribution scales with `iter` for exactly 2 groups", {
+  # Regression test for a reshape bug: with exactly 2 groups there is a
+  # single pairwise comparison, so apply()/vapply() return a plain vector
+  # rather than a matrix; naively t()-ing that vector produces a
+  # 1 x iter matrix instead of iter x 1, silently collapsing the null
+  # distribution to a single arbitrary permutation. That bug would make
+  # the possible p-value denominator constant (always "out of 2")
+  # regardless of `iter`, instead of scaling as iter + 1 as it should;
+  # checked here directly (not via statistical power, which a degenerate
+  # null could pass by chance) by confirming the p-value's possible
+  # denominator actually reflects the requested `iter`.
+  set.seed(11)
+  df <- data.frame(a = c(rnorm(10, 0, 1), rnorm(10, 0, 4)),
+                    b = c(rnorm(10, 0, 1), rnorm(10, 0, 4)))
+  groups <- rep(c("G1", "G2"), each = 10)
+
+  td_small <- trait_disparity(df, groups = groups, iter = 5, log_transform = FALSE)
+  td_large <- trait_disparity(df, groups = groups, iter = 999, log_transform = FALSE)
+
+  # NB: `%in%` binds *tighter* than `/` in R (see ?Syntax), so the
+  # denominator must be fully parenthesised -- `x %in% (0:5 + 1) / 6`
+  # would silently parse as `(x %in% (0:5 + 1)) / 6` instead.
+  expect_true(td_small$pairwise_p["G1", "G2"] %in% (((0:5) + 1) / 6))
+  expect_true(td_large$pairwise_p["G1", "G2"] %in% (((0:999) + 1) / 1000))
+})
+
 test_that("trait_disparity() errors on invalid input", {
   expect_error(trait_disparity(list()), "intrait_traitspace")
   expect_error(trait_disparity(data.frame(a = 1:6, b = 1:6)), "`groups` is required")

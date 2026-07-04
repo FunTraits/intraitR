@@ -63,3 +63,88 @@ test_that("fishmorph_ratios() end-to-end from simulated points", {
   expect_true(all(c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt") %in% names(r)))
   expect_true("species" %in% names(r))
 })
+
+# --- na_action --------------------------------------------------------
+
+make_segments_with_na <- function() {
+  data.frame(
+    species = rep(c("A", "B"), each = 3),
+    Bl = c(40, 20, 30, 25, 35, 45), Bd = rep(10, 6), Hd = c(6, 6, NA, 6, 6, 6),
+    Eh = rep(4, 6), Mo = rep(3, 6), PFi = rep(2, 6), PFl = rep(5, 6),
+    Ed = rep(1, 6), Jl = rep(5, 6), CPd = rep(8, 6), CFd = c(20, 4, 12, 16, 8, 10),
+    row.names = paste0("s", 1:6)
+  )
+}
+
+test_that("fishmorph_ratios() na_action = 'keep' (default) leaves NA in place", {
+  seg <- make_segments_with_na()
+  r <- fishmorph_ratios(seg)
+  expect_true(is.na(r$REs[3]))
+  expect_true(is.na(r$RMl[3]))
+  expect_true(is.na(r$BLs[3]))
+  expect_false(anyNA(r$BEl)) # BEl (Bl/Bd) does not use Hd
+})
+
+test_that("fishmorph_ratios() na_action = 'omit' drops affected rows and messages", {
+  seg <- make_segments_with_na()
+  expect_message(
+    r <- fishmorph_ratios(seg, na_action = "omit"),
+    "removing 1 row"
+  )
+  expect_equal(nrow(r), nrow(seg) - 1)
+  expect_false(anyNA(r$REs))
+})
+
+test_that("fishmorph_ratios() na_action = 'omit' subsets MBl consistently", {
+  seg <- make_segments_with_na()
+  expect_message(
+    r <- fishmorph_ratios(seg, MBl = seq_len(nrow(seg)), na_action = "omit"),
+    "removing 1 row"
+  )
+  expect_equal(nrow(r), nrow(seg) - 1)
+  expect_equal(r$MBl, seq_len(nrow(seg))[-3])
+})
+
+test_that("fishmorph_ratios() na_action = 'impute_mean' fills NA with the column mean", {
+  seg <- make_segments_with_na()
+  r_keep <- fishmorph_ratios(seg)
+  expect_message(
+    r <- fishmorph_ratios(seg, na_action = "impute_mean"),
+    "imputed"
+  )
+  expect_false(anyNA(r$REs))
+  expect_equal(r$REs[3], round(mean(r_keep$REs, na.rm = TRUE), 4))
+})
+
+test_that("fishmorph_ratios() na_action = 'impute_group_mean' auto-detects species and uses within-group means", {
+  seg <- make_segments_with_na()
+  r_keep <- fishmorph_ratios(seg)
+  expect_message(
+    r <- fishmorph_ratios(seg, na_action = "impute_group_mean"),
+    "imputed"
+  )
+  expect_false(anyNA(r$REs))
+  expect_equal(r$REs[3], round(mean(r_keep$REs[seg$species == "A"], na.rm = TRUE), 4))
+})
+
+test_that("fishmorph_ratios() na_action = 'impute_group_mean' requires groups when none can be detected", {
+  seg <- make_segments_with_na()
+  seg$species <- NULL
+  expect_error(
+    fishmorph_ratios(seg, na_action = "impute_group_mean"),
+    "requires `groups`"
+  )
+})
+
+test_that("fishmorph_ratios() na_action = 'missforest' imputes missing values", {
+  testthat::skip_if_not_installed("missForest")
+  set.seed(654)
+  seg <- make_segments_with_na()
+  expect_message(
+    r <- suppressWarnings(fishmorph_ratios(
+      seg, na_action = "missforest", missforest_ntree = 20, missforest_maxiter = 2
+    )),
+    "missforest"
+  )
+  expect_false(anyNA(r$REs))
+})

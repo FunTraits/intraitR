@@ -4,10 +4,16 @@
 \alias{plot.intrait_itv}
 \title{Plot the interspecific/intraspecific variance breakdown}
 \usage{
-\method{plot}{intrait_itv}(x, ...)
+\method{plot}{intrait_itv}(x, legend_position = "outside", ...)
 }
 \arguments{
 \item{x}{An object of class \code{"intrait_itv"}, from \code{\link[=itv_index]{itv_index()}}.}
+
+\item{legend_position}{One of \code{"outside"} (default: drawn in the
+margin, just outside the top-right corner of the plot box, so it
+never overlaps the tallest bars) or a standard \code{\link[graphics:legend]{graphics::legend()}}
+position keyword (e.g. \code{"topright"}) to draw it inside the plot box
+instead, as in previous versions.}
 
 \item{...}{Further arguments passed to \code{\link[graphics:barplot]{graphics::barplot()}}.}
 }

@@ -262,7 +262,10 @@ itv_index <- function(traits, groups, nested = NULL, scale = TRUE, digits = 4) {
   )
 }
 
+#' @return Invisibly returns `x`.
 #' @export
+#' @rdname itv_index
+#' @param x An object of class `"intrait_itv"`, as returned by [itv_index()].
 print.intrait_itv <- function(x, ...) {
   cat("<intrait_itv>", if (!is.null(x$nested)) "(nested: species / population)" else "(species-level)", "\n")
   cat(sprintf(
@@ -280,11 +283,16 @@ print.intrait_itv <- function(x, ...) {
 #' Plot the interspecific/intraspecific variance breakdown
 #'
 #' @param x An object of class `"intrait_itv"`, from [itv_index()].
+#' @param legend_position One of `"outside"` (default: drawn in the
+#'   margin, just outside the top-right corner of the plot box, so it
+#'   never overlaps the tallest bars) or a standard [graphics::legend()]
+#'   position keyword (e.g. `"topright"`) to draw it inside the plot box
+#'   instead, as in previous versions.
 #' @param ... Further arguments passed to [graphics::barplot()].
 #'
 #' @return Invisibly returns `x`.
 #' @export
-plot.intrait_itv <- function(x, ...) {
+plot.intrait_itv <- function(x, legend_position = "outside", ...) {
   pt <- x$per_trait
   if (!is.null(x$nested)) {
     mat <- rbind(
@@ -303,10 +311,25 @@ plot.intrait_itv <- function(x, ...) {
     legend_labels <- c("Interspecific", "Intraspecific (ITV)")
   }
   colnames(mat) <- pt$trait
+
+  if (identical(legend_position, "outside")) {
+    # Reserve extra room in the right margin so the legend sits just
+    # outside the bars instead of on top of whichever trait happens to
+    # reach 100% near the top-right corner; barplot()'s args.legend draws
+    # the legend internally (after the bars, so par("usr") is by then
+    # already correct), so a keyword position + negative inset is the
+    # standard way to push it fully outside the plot box.
+    old_par <- graphics::par(mar = graphics::par("mar") + c(0, 0, 0, 9))
+    on.exit(graphics::par(old_par), add = TRUE)
+    args_legend <- list(x = "topright", inset = c(-0.32, 0), xpd = TRUE, bty = "n", cex = 0.8)
+  } else {
+    args_legend <- list(x = legend_position, bty = "n", cex = 0.8)
+  }
+
   graphics::barplot(
     mat, col = cols, ylab = "% of trait variance", ylim = c(0, 100),
     legend.text = legend_labels,
-    args.legend = list(x = "topright", bty = "n", cex = 0.8),
+    args.legend = args_legend,
     ...
   )
   invisible(x)

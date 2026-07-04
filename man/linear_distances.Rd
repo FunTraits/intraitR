@@ -36,9 +36,14 @@ landmark coordinates, optionally converted to real-world units using a
 digitization scale.
 }
 \examples{
-fish <- simulate_fish_landmarks(n_per_species = 5, n_replicates = 1)
-pairs <- list(SL = c(1, 7), BD = c(3, 10))
-linear_distances(fish, pairs)
+# real T-26 Saudrune data; landmark indices follow the FISHMORPH scheme
+# (see ?fishmorph_segments), so these pairs are anatomically meaningful.
+# `fish$scale` is not set, so distances stay in raw digitization units
+# here; use fishmorph_segments() instead for measurements already
+# converted to centimetres via the embedded scale bar (points 20-21):
+fish <- load_t26_saudrune_landmarks()
+pairs <- list(SL = c(1, 2), BD = c(3, 4), HD = c(5, 6))
+head(linear_distances(fish, pairs))
 
 }
 \seealso{

@@ -28,7 +28,7 @@ Dans un terminal, à la racine du dossier `intraitR` :
 cd /chemin/vers/Intrait_Package/intraitR
 git init
 git add -A
-git commit -m "Initial commit: intraitR v0.7.3"
+git commit -m "intraitR v1.0.0"
 ```
 
 ## 2. Créer le dépôt vide sur GitHub
@@ -63,11 +63,23 @@ utilisez l'authentification SSH plutôt que HTTPS.)
 - **`.github/workflows/R-CMD-check.yaml`** : intégration continue
   standard (`usethis::use_github_action("check-standard")`), qui
   exécutera `R CMD check` sur Linux (R release, devel, oldrel), macOS et
-  Windows à chaque push/pull request. Un badge peut être ajouté au
-  `README.md` une fois le premier workflow exécuté avec succès :
-  ```markdown
-  [![R-CMD-check](https://github.com/FunTraits/intraitR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/FunTraits/intraitR/actions/workflows/R-CMD-check.yaml)
-  ```
+  Windows à chaque push/pull request.
+- **`.github/workflows/pkgdown.yaml`** : construit et déploie
+  automatiquement un site de documentation sur `gh-pages` à chaque push
+  sur la branche par défaut (voir `_pkgdown.yml` pour la configuration de
+  l'index de référence) ; il sera consultable à
+  `https://funtraits.github.io/intraitR/` après le premier déploiement
+  réussi.
+- **`.github/workflows/test-coverage.yaml`** : calcule la couverture de
+  tests (`covr::package_coverage()`) et l'envoie à Codecov à chaque push.
+  Nécessite un secret de dépôt `CODECOV_TOKEN` (à créer sur
+  https://codecov.io après avoir lié le dépôt) pour que l'envoi
+  fonctionne ; sans ce secret, le workflow s'exécute mais l'étape d'envoi
+  échoue silencieusement en pull request externe.
+- **Badges** : les quatre badges de statut (R-CMD-check, couverture de
+  tests, Codecov, pkgdown) sont déjà dans `README.md` ; ils s'activeront
+  automatiquement une fois les workflows correspondants exécutés au moins
+  une fois sur GitHub.
 - **`.gitignore`** : complété pour exclure `.DS_Store`, ainsi que deux
   fichiers de test locaux qui traînaient dans le dossier
   (`specimens.tps` et `P5180033.jpg`, produits par votre essai de
@@ -81,12 +93,13 @@ utilisez l'authentification SSH plutôt que HTTPS.)
 
 - `BugReports:` (dans `DESCRIPTION`) pointe déjà vers
   `github.com/FunTraits/intraitR/issues`.
-- Pour publier la documentation du package en ligne (vignette, pages
-  d'aide), `usethis::use_pkgdown()` puis un second workflow GitHub
-  Actions (`usethis::use_pkgdown_github_pages()`) génèrent un site
-  consultable à `https://funtraits.github.io/intraitR/` — dites-moi si
-  vous voulez que je prépare ce workflow également.
+- Le site pkgdown (voir ci-dessus) se déploiera automatiquement au
+  premier push sur `main` ; activez GitHub Pages sur la branche
+  `gh-pages` dans Settings > Pages si ce n'est pas fait automatiquement
+  par le workflow.
 - Pour une soumission CRAN, `cran-comments.md` et `SUBMISSION_NOTES.md`
-  restent à jour comme pense-bête (`devtools::check(cran = TRUE)` doit
-  être lancé sur votre machine avant toute soumission, cette vérification
-  n'étant pas possible dans mon environnement).
+  restent à jour comme pense-bête. `devtools::test()` a maintenant été
+  exécuté avec succès sur votre poste (465 tests passés, 0 échec après
+  correction d'un bug de précédence d'opérateur dans un test de
+  régression — voir `NEWS.md`, v1.0.0) ; il reste à lancer
+  `devtools::check(cran = TRUE)` avant toute soumission effective.

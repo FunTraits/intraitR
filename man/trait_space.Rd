@@ -2,6 +2,7 @@
 % Please edit documentation in R/trait_space.R
 \name{trait_space}
 \alias{trait_space}
+\alias{print.intrait_traitspace}
 \title{Build a functional trait space from a numeric trait table}
 \usage{
 trait_space(
@@ -13,8 +14,14 @@ trait_space(
   axes = c(1, 2),
   na_action = c("fail", "omit", "impute_mean", "impute_group_mean", "missforest"),
   missforest_ntree = 100,
-  missforest_maxiter = 10
+  missforest_maxiter = 10,
+  flag_outliers = TRUE,
+  outlier_threshold = 3,
+  outlier_min_n = 5,
+  remove_outliers = FALSE
 )
+
+\method{print}{intrait_traitspace}(x, ...)
 }
 \arguments{
 \item{traits}{A \code{data.frame} or matrix of numeric traits, one row per
@@ -79,18 +86,69 @@ imputation), so this is never a silent operation.}
 and maximum number of iterations passed to
 \code{missForest::missForest()} when \code{na_action = "missforest"}; ignored
 otherwise. Default to \code{missForest}'s own defaults (\code{100} and \code{10}).}
+
+\item{flag_outliers}{Logical, screen for potential within-group (e.g.
+within-species) outliers -- specimens unusually far from other members
+of their own group in the standardised trait space -- and report them
+(see Details and \code{outlier_threshold}/\code{outlier_min_n}). Requires
+\code{groups} (or an auto-detected \code{species} column); has no effect (no
+\verb{$outlier_screen} element, no message) if no grouping is available,
+since "distance from other individuals of the same species" is
+undefined without species labels. Defaults to \code{TRUE}. This never
+removes any observation: it only flags candidates for visual/manual
+review (e.g. with \code{\link[=plot_landmarks]{plot_landmarks()}} or \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}})
+before deciding whether an exclusion is warranted.}
+
+\item{outlier_threshold}{Numeric, the number of median absolute
+deviations (MAD) above a group's median within-group distance beyond
+which a specimen is flagged; same convention as
+\code{\link[=detect_outliers]{detect_outliers()}}'s \code{threshold}. Defaults to \code{3}.}
+
+\item{outlier_min_n}{Integer, the minimum number of specimens a group
+must have for outlier flagging to be attempted in it; groups smaller
+than this still get a computed distance (in \verb{$outlier_screen}) but are
+never flagged (\code{NA}), since a median/MAD computed from very few points
+is not a reliable reference. Defaults to \code{5}.}
+
+\item{remove_outliers}{Logical, actually exclude every specimen flagged
+by \code{flag_outliers} from the trait matrix \emph{before} building the
+ordination (rather than only flagging them for review, the default).
+Requires \code{flag_outliers = TRUE} (an error is raised otherwise, since
+there would be nothing to remove). Defaults to \code{FALSE}: removing
+specimens changes the ordination and any statistic derived from it
+(e.g. \code{\link[=trait_disparity]{trait_disparity()}}, \code{\link[=bootstrap_functional_space]{bootstrap_functional_space()}}), so this is
+opt-in rather than automatic, and every removal is still recorded in
+\verb{$removed_outliers} (see Return) for transparency and reproducibility
+-- always confirm flagged specimens genuinely reflect an error (e.g.
+via \code{\link[=plot_landmarks]{plot_landmarks()}}/\code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}) before turning this
+on for a given data set, rather than treating it as a default cleaning
+step.}
+
+\item{x}{An object of class \code{"intrait_traitspace"}, as returned by
+\code{\link[=trait_space]{trait_space()}}.}
 }
 \value{
 An object of class \code{"intrait_traitspace"}, a list with elements
 \code{scores} (data.frame of ordination scores), \code{var_explained} (percent
 variance explained by the two selected axes), \code{loadings} (PCA
 variable loadings, \code{NULL} for \code{method = "pcoa"}), \code{groups}, \code{axes},
-\code{method}, \code{traits_used} (names of the numeric columns used), and \code{X}
+\code{method}, \code{traits_used} (names of the numeric columns used), \code{X}
 (the full standardised trait matrix actually analysed, i.e. after
-log-transformation and removal of constant columns, centred/scaled as
-requested; used internally by \code{\link[=trait_disparity]{trait_disparity()}} so that dispersion
-statistics are not truncated to the two plotting axes). Has a
-dedicated \code{\link[=plot]{plot()}} method.
+log-transformation, removal of constant columns, and any outlier
+removal, centred/scaled as requested; used internally by
+\code{\link[=trait_disparity]{trait_disparity()}} so that dispersion statistics are not truncated to
+the two plotting axes), and, when \code{flag_outliers = TRUE} and \code{groups}
+is available, \code{outlier_screen} (a \code{data.frame}, one row per specimen
+\emph{actually used in the ordination} -- i.e. excluding any row removed by
+\code{remove_outliers = TRUE} -- with columns \code{group}, \code{n_group}, \code{distance}
+(to the specimen's own group centroid, in the full standardised trait
+space \code{X}), \code{median_distance}, \code{mad_distance}, \code{threshold_value}, and
+\code{flagged}; see Details), and \code{removed_outliers} (\code{NULL} unless
+\code{remove_outliers = TRUE} removed at least one specimen, in which case
+a \code{data.frame} with the same columns as \code{outlier_screen}, one row per
+\emph{excluded} specimen, for the record). Has a dedicated \code{\link[=plot]{plot()}} method.
+
+Invisibly returns \code{x}.
 }
 \description{
 Constructs a low-dimensional functional trait space from any table of
@@ -130,6 +188,50 @@ by, and should not be applied to, \code{\link[=morpho_space]{morpho_space()}}, w
 Procrustes shape coordinates: those are already a homogeneous,
 size-free coordinate system in which log-transforming or rescaling
 individual columns would distort shape geometry.
+
+When \code{flag_outliers = TRUE} (the default), every specimen's Euclidean
+distance to its own group's centroid is computed on the full
+standardised trait matrix \code{X} (all traits, not just the two plotting
+axes), and, within each group with at least \code{outlier_min_n} specimens,
+flagged if that distance exceeds \code{median + outlier_threshold * MAD}
+(median absolute deviation) of that group's own within-group distances
+-- the same robust rule used by \code{\link[=detect_outliers]{detect_outliers()}}, but computed
+\emph{within} each group rather than pooled across the whole sample.
+Pooling across species, as a naive global outlier screen would, mostly
+flags genuine interspecific morphological diversity rather than
+digitization or identification errors (see the worked pooled-vs-within-
+species comparison in \code{demo(pipeline_T26_saudrune)}); computing this
+automatically, per group, inside \code{trait_space()} removes the need to
+subset by hand. A single extreme specimen in an otherwise tight species
+can also visibly distort the ordination for every \emph{other} group, by
+inflating the axis ranges/variance explained: a species-level outlier
+is therefore often the right first thing to check when a functional
+space "does not look right" (widely spread groups collapsed into one
+corner of the plot), before considering, e.g., a different \code{na_action}
+or transformation. As with \code{\link[=detect_outliers]{detect_outliers()}}, this only \emph{flags}
+candidates -- it never removes anything automatically, since ad hoc,
+undocumented removal of "bad-looking" specimens is itself a threat to
+reproducibility; always inspect a flagged specimen (e.g. with
+\code{\link[=plot_landmarks]{plot_landmarks()}}/\code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}, and its original
+photograph if available) before deciding whether to exclude it, and
+record that decision (e.g. in a QC log, as
+\code{data-raw/t26_saudrune_prepare.R} does for the bundled real data set)
+rather than silently dropping rows. This is a Euclidean, not
+Mahalanobis, distance (like \code{\link[=detect_outliers]{detect_outliers()}}), so it does not
+account for correlations among traits; it is intended as a fast,
+transparent first pass, not a definitive statistical test.
+
+Setting \code{remove_outliers = TRUE} goes one step further and actually
+excludes every flagged specimen before the ordination is built (rather
+than only flagging it): \code{X}, \code{groups}, and \code{scores} in the returned
+object then describe the \emph{cleaned} data set, and \verb{$removed_outliers}
+records exactly which specimens were dropped and why, so the exclusion
+remains fully reproducible and auditable (e.g. reportable in a
+manuscript's methods) rather than an undocumented, ad hoc edit made
+before calling \code{trait_space()}. This is deliberately opt-in
+(\code{FALSE} by default): removing data always changes downstream results
+and should be a conscious, visually-confirmed decision (see above), not
+something that happens silently just because a threshold was crossed.
 }
 \examples{
 # real T-26 Saudrune data; na_action = "omit" is required here because,
@@ -139,10 +241,18 @@ fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
 ratios <- fishmorph_ratios(segments)
 ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
-ts
+ts   # flags any within-species outliers found, see ts$outlier_screen
 \donttest{
 plot(ts)
 }
+
+# Once a flagged specimen has been visually confirmed as an error (not
+# just genuine morphological variation), exclude it from the ordination:
+ts_clean <- trait_space(
+  ratios, groups = fish$metadata$species, na_action = "omit",
+  remove_outliers = TRUE
+)
+ts_clean$removed_outliers   # exactly which specimen(s) were excluded, and why
 
 }
 \references{
@@ -152,5 +262,5 @@ challenges. Aquatic Sciences, 79(4), 783-801.
 }
 \seealso{
 \code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=morpho_ratios]{morpho_ratios()}}, \code{\link[=morpho_space]{morpho_space()}},
-\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}
+\code{\link[=detect_outliers]{detect_outliers()}}, \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}
 }

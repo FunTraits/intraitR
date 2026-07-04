@@ -4,7 +4,15 @@
 \alias{fishmorph_segments}
 \title{Compute linear morphological measurements following the FISHMORPH protocol}
 \usage{
-fishmorph_segments(landmarks, scale_cm = 1)
+fishmorph_segments(
+  landmarks,
+  scale_cm = 1,
+  groups = NULL,
+  na_action = c("keep", "omit", "impute_mean", "impute_group_mean", "missforest"),
+  missforest_ntree = 100,
+  missforest_maxiter = 10,
+  geometry_check = NULL
+)
 }
 \arguments{
 \item{landmarks}{An object of class \code{"intrait_landmarks"} (from
@@ -17,12 +25,58 @@ scheme described in Details. Must contain at least 21 landmarks, in
 represented by the scale bar digitized at points 20-21 (typically the
 width of a 1 cm section of a ruler placed in the picture). Defaults to
 \code{1}.}
+
+\item{groups}{Optional factor (or character vector), one value per
+specimen, used only by \code{na_action = "impute_group_mean"} (and
+optionally by \code{"missforest"}, as an auxiliary predictor). If \code{NULL}
+and \code{landmarks$metadata} has a \code{species} column, it is used
+automatically (as in \code{\link[=trait_space]{trait_space()}}).}
+
+\item{na_action}{Character, how to handle missing values in the 11
+computed segment columns (e.g. because a landmark used by that
+measurement -- commonly landmark 5 -- was not digitized for a given
+specimen): \code{"keep"} (default) leaves \code{NA} in place, exactly as in
+previous package versions; \code{"omit"} removes affected specimens and
+reports how many; \code{"impute_mean"} replaces missing segment values with
+the column mean; \code{"impute_group_mean"} uses the within-group (e.g.
+within-species) mean instead, falling back to the column mean, with a
+warning, for a group entirely missing a segment; \code{"missforest"} uses
+random-forest-based iterative imputation
+(\code{missForest::missForest()}). Same convention, options, and messages
+as \code{\link[=trait_space]{trait_space()}}'s \code{na_action} -- see there for details -- except
+that here imputation operates on the derived linear \emph{measurements},
+not on landmark coordinates: this is not a substitute for a proper
+geometric-morphometric estimate of a missing landmark's position (see
+\code{\link[=impute_landmarks]{impute_landmarks()}}, run on \code{landmarks} \emph{before} calling this
+function), and is best reserved for a small number of missing values.}
+
+\item{missforest_ntree, missforest_maxiter}{Number of trees per forest
+and maximum number of iterations passed to \code{missForest::missForest()}
+when \code{na_action = "missforest"}; ignored otherwise. Default to
+\code{missForest}'s own defaults (\code{100} and \code{10}).}
+
+\item{geometry_check}{Optional object of class \code{"intrait_geometry_check"},
+as returned by \code{correct_landmarks(landmarks, rule = "check_geometry")}
+-- typically computed once beforehand and passed in here, rather than
+recomputed. Any measurement whose underlying landmark line failed a
+check for a given specimen (e.g. \code{Bd}, if segment (3, 4) was flagged
+as non-perpendicular to the main body axis) is set to \code{NA} for that
+specimen \emph{before} \code{na_action} runs, so the usual \code{na_action} machinery
+(\code{"omit"}, \code{"impute_mean"}, ...) then handles it exactly like any
+other missing value; only checks that are invariant to the picture's
+own rotation are used for this (see
+\code{correct_landmarks(rule = "check_geometry")}'s Details), and only
+\code{Bl}, \code{Bd}, \code{Mo}, \code{PFi}, \code{Hd}, \code{Eh}, \code{Ed} can be affected (\code{PFl},
+\code{Jl}, \code{CPd}, \code{CFd} involve landmarks outside the checked battery).
+\code{NULL} (default) leaves every measurement as computed, regardless of
+\code{geometry_check}.}
 }
 \value{
 A \code{data.frame} (class \code{"intrait_segments"}) with one row per
-specimen and columns \code{Bl}, \code{Bd}, \code{Hd}, \code{Eh}, \code{Mo}, \code{PFi}, \code{PFl}, \code{Ed},
-\code{Jl}, \code{CPd}, \code{CFd} (all in centimetres), preceded by any metadata
-columns carried over from \code{landmarks}.
+specimen (fewer, if \code{na_action = "omit"} dropped any) and columns
+\code{Bl}, \code{Bd}, \code{Hd}, \code{Eh}, \code{Mo}, \code{PFi}, \code{PFl}, \code{Ed}, \code{Jl}, \code{CPd}, \code{CFd}
+(all in centimetres), preceded by any metadata columns carried over
+from \code{landmarks}.
 }
 \description{
 Computes the 11 linear morphological measurements used by Brosse et al.
@@ -90,6 +144,17 @@ the direct distance (1-2) is used, matching the original protocol
 fish <- load_t26_saudrune_landmarks()
 fishmorph_segments(fish)
 
+# some real specimens are missing landmark 5, leaving Hd/RMl-related
+# segments as NA; impute them using the within-species mean instead of
+# carrying the NA forward (na_action defaults to "keep"):
+fishmorph_segments(fish, groups = fish$metadata$species, na_action = "impute_group_mean")
+
+# measurements resting on a geometrically non-conforming landmark line
+# (e.g. Bd if segment (3,4) isn't perpendicular to the body axis) are
+# set to NA before na_action runs:
+geom_check <- correct_landmarks(fish, rule = "check_geometry")
+fishmorph_segments(fish, geometry_check = geom_check, na_action = "impute_group_mean")
+
 }
 \references{
 Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
@@ -99,5 +164,6 @@ Biogeography, 30(11), 2330-2336.
 }
 \seealso{
 \code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}},
-\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}, \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}
+\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}, \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}},
+\code{\link[=trait_space]{trait_space()}}, \code{\link[=impute_landmarks]{impute_landmarks()}}, \code{\link[=correct_landmarks]{correct_landmarks()}}
 }

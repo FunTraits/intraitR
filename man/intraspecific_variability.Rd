@@ -2,9 +2,12 @@
 % Please edit documentation in R/intraspecific_variability.R
 \name{intraspecific_variability}
 \alias{intraspecific_variability}
+\alias{print.intrait_variability}
 \title{Quantify intraspecific morphological variability}
 \usage{
 intraspecific_variability(gpa = NULL, groups, traits = NULL, iter = 999)
+
+\method{print}{intrait_variability}(x, ...)
 }
 \arguments{
 \item{gpa}{Optional object of class \code{"intrait_gpa"} (from
@@ -20,6 +23,9 @@ in the same order as \code{groups}. Non-numeric columns are ignored.}
 
 \item{iter}{Integer, number of permutations for the disparity test.
 Defaults to \code{999}.}
+
+\item{x}{An object of class \code{"intrait_variability"}, as returned by
+\code{\link[=intraspecific_variability]{intraspecific_variability()}}.}
 }
 \value{
 An object of class \code{"intrait_variability"}, a list optionally
@@ -31,6 +37,8 @@ p-values), when \code{gpa} is supplied.}
 \item{trait_cv}{a tidy \code{data.frame} with columns \code{group}, \code{trait},
 \code{n}, \code{mean}, \code{sd}, \code{cv_percent}, when \code{traits} is supplied.}
 }
+
+Invisibly returns \code{x}.
 }
 \description{
 Combines two complementary approaches to intraspecific variability
@@ -49,13 +57,16 @@ interpretable traits (e.g. body depth ratio) and are provided alongside
 shape disparity for that reason.
 }
 \examples{
-fish <- simulate_fish_landmarks(n_per_species = 10, n_replicates = 1)
-gpa <- gpa_fish(fish)
-distances <- list(SL = c(1, 7), BD = c(3, 10))
-ratios <- morpho_ratios(fish, distances, norm_by = "SL")
+# real T-26 Saudrune data (see ?fishmorph_shape_landmarks for why the
+# scale bar and incomplete/unidentified specimens are dropped first):
+fish <- load_t26_saudrune_landmarks()
+fish_shape <- fishmorph_shape_landmarks(fish)
+gpa <- gpa_fish(fish_shape)
+distances <- list(SL = c(1, 2), BD = c(3, 4))
+ratios <- morpho_ratios(fish_shape, distances, norm_by = "SL")
 \donttest{
 iv <- intraspecific_variability(
-  gpa = gpa, groups = fish$metadata$species,
+  gpa = gpa, groups = fish_shape$metadata$species,
   traits = ratios[, "BD_ratio", drop = FALSE], iter = 99
 )
 iv

@@ -71,7 +71,7 @@ cat("Consensus (per-fish) landmarks:", paste(dim(lm_consensus$coords), collapse 
 # Because lm_consensus carries fish_meta as its `metadata`, both
 # fishmorph_segments() and fishmorph_ratios() automatically prepend
 # `species`/`id_status`/etc. to their output.
-segments <- fishmorph_segments(lm_consensus)
+segments <- fishmorph_segments(lm_operators)
 ratios <- fishmorph_ratios(segments)
 
 cat("\nFISHMORPH linear measurements (cm), summary:\n")
@@ -126,9 +126,32 @@ print(out_gobio)
 ## =========================================================================
 ## 4. Functional trait space on the FISHMORPH ratios
 ## =========================================================================
-ts <- trait_space(ratios[ratio_cols], groups = ratios$species, na_action = "omit")
-print(ts)
-plot(ts, style = "spider")
+# Built here on the FULL cleaned data set (all 279 fish, no manual removal
+# of individuals): trait_space()'s default flag_outliers = TRUE screens for
+# potential within-species errors automatically (see ?trait_space) instead,
+# so that any specimen distorting the ordination is flagged, inspected, and
+# excluded (or not) transparently -- rather than removed ad hoc beforehand.
+ts <- trait_space(ratios[ratio_cols], groups = ratios$species, na_action = "omit",remove_outliers = F)
+print(ts)   # lists any flagged within-species outlier(s), if present
+
+# Inspect the full outlier screen (one row per specimen): every species with
+# >= outlier_min_n (default 5) specimens gets a group-specific median/MAD
+# threshold; specimens in smaller species get a distance but are not
+# flagged (too few points for a reliable threshold).
+print(utils::head(ts$outlier_screen[order(-ts$outlier_screen$distance), ], 10))
+
+plot(ts, style = "hull", legend_title = "Species", legend_italic = TRUE,
+     abbreviate_species = TRUE)
+
+# If any specimen was flagged above, visually inspect it before deciding
+# whether to exclude it (never drop a flagged specimen purely because
+# trait_space() flagged it -- confirm the issue first, e.g. a genuinely
+# misplaced landmark or a likely misidentification):
+flagged_codes <- rownames(ts$outlier_screen)[which(ts$outlier_screen$flagged)]
+if (length(flagged_codes) > 0) {
+  cat("\nFlagged specimen(s) to inspect visually:", paste(flagged_codes, collapse = ", "), "\n")
+  # e.g. plot_fishmorph_points(lm_consensus, specimen = flagged_codes[1])
+}
 
 # na_action = "missforest" imputes the ~25-38% of REs/RMl/BLs values that
 # are missing (rather than dropping ~26% of specimens outright) using
@@ -190,4 +213,28 @@ print(td)
 ## 9. Morphological (shape) space
 ## =========================================================================
 ms <- morpho_space(gpa, groups = lm_shape$metadata$species)
-plot(ms, style = "spider")
+plot(ms, style = "spider", legend_title = "Species", legend_italic = TRUE,
+     abbreviate_species = TRUE)
+
+## =========================================================================
+## 10. Bootstrap-based functional space estimate (Bertrand, 2026): does
+##     representing species by individuals (rather than by their centroid)
+##     inflate the estimated functional space?
+## =========================================================================
+if (requireNamespace("geometry", quietly = TRUE)) {
+  # n_axes = 2 keeps this demo fast and matches the PC1-PC2 plots above;
+  # Bertrand (2026) used 8 axes (98% of variance) for the full comparison.
+  bf <- bootstrap_functional_space(ts, n_axes = 2, n_boot = 100)
+  print(bf)
+  plot(bf)
+}
+
+## =========================================================================
+## 11. Species-level sensitivity index (Bertrand, 2026): which species
+##     drive the individual-vs-centroid difference in functional richness?
+## =========================================================================
+if (requireNamespace("geometry", quietly = TRUE)) {
+  ss <- species_sensitivity(ts, n_axes = 2)
+  print(ss)   # top species by |mean % change in functional richness|
+  plot(ss)
+}

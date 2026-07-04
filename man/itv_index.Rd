@@ -2,9 +2,12 @@
 % Please edit documentation in R/itv_index.R
 \name{itv_index}
 \alias{itv_index}
+\alias{print.intrait_itv}
 \title{Partition trait variance into interspecific and intraspecific (ITV) components}
 \usage{
 itv_index(traits, groups, nested = NULL, scale = TRUE, digits = 4)
+
+\method{print}{intrait_itv}(x, ...)
 }
 \arguments{
 \item{traits}{A \code{data.frame} or matrix of numeric traits, one row per
@@ -36,6 +39,8 @@ invariant to linear rescaling of each trait on its own. Defaults to
 
 \item{digits}{Integer, number of decimal places to round percentages
 and sums of squares to in the returned tables. Defaults to \code{4}.}
+
+\item{x}{An object of class \code{"intrait_itv"}, as returned by \code{\link[=itv_index]{itv_index()}}.}
 }
 \value{
 An object of class \code{"intrait_itv"}, a list with elements:
@@ -56,6 +61,8 @@ the \code{scale} setting, and the numeric trait columns used.}
 }
 Has a dedicated print method and a \code{\link[=plot]{plot()}} method (stacked bar chart
 of percent interspecific vs. intraspecific variance per trait).
+
+Invisibly returns \code{x}.
 }
 \description{
 Decomposes the total variance of one or more numeric traits into an

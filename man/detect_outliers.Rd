@@ -2,9 +2,12 @@
 % Please edit documentation in R/detect_outliers.R
 \name{detect_outliers}
 \alias{detect_outliers}
+\alias{print.intrait_outliers}
 \title{Detect potential digitization outliers from a GPA-aligned sample}
 \usage{
 detect_outliers(gpa, threshold = 3, plot = TRUE)
+
+\method{print}{intrait_outliers}(x, ...)
 }
 \arguments{
 \item{gpa}{An object of class \code{"intrait_gpa"} (from \code{\link[=gpa_fish]{gpa_fish()}}).}
@@ -18,6 +21,9 @@ to the outliers being screened for.}
 \item{plot}{Logical, draw an ordered dot plot of Procrustes distances
 with flagged specimens highlighted and the threshold marked as a
 dashed line. Defaults to \code{TRUE}.}
+
+\item{x}{An object of class \code{"intrait_outliers"}, as returned by
+\code{\link[=detect_outliers]{detect_outliers()}}.}
 }
 \value{
 An object of class \code{"intrait_outliers"}, a list with elements
@@ -28,6 +34,8 @@ names), and \code{rank} (a \code{data.frame} with columns \code{specimen},
 \code{procrustes_distance}, \code{outlier}, ordered from most to least
 atypical). Has a dedicated print method; if \code{plot = TRUE}, a base R
 plot is also drawn as a side effect.
+
+Invisibly returns \code{x}.
 }
 \description{
 Flags specimens whose Procrustes distance to the sample consensus shape
@@ -49,8 +57,10 @@ distance could be missed. Always visually inspect flagged specimens
 excluding them from downstream analyses.
 }
 \examples{
-fish <- simulate_fish_landmarks(n_per_species = 10, n_replicates = 1)
-gpa <- gpa_fish(fish)
+# real T-26 Saudrune data (see ?fishmorph_shape_landmarks for why the
+# scale bar and incomplete specimens are dropped before GPA):
+fish <- load_t26_saudrune_landmarks()
+gpa <- gpa_fish(fishmorph_shape_landmarks(fish))
 out <- detect_outliers(gpa, plot = FALSE)
 out
 

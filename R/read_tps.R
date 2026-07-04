@@ -152,6 +152,13 @@ read_tps <- function(file, specID = c("imageID", "ID", "None"),
   )
 }
 
+#' Print an `"intrait_landmarks"` object
+#'
+#' @param x An object of class `"intrait_landmarks"`, as returned by
+#'   [read_tps()], [read_landmarks_csv()], [simulate_fish_landmarks()],
+#'   [simulate_fishmorph_points()], or [load_t26_saudrune_landmarks()].
+#' @param ... Currently unused.
+#' @return Invisibly returns `x`.
 #' @export
 print.intrait_landmarks <- function(x, ...) {
   d <- dim(x$coords)

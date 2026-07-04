@@ -2,9 +2,18 @@
 % Please edit documentation in R/gpa_fish.R
 \name{gpa_fish}
 \alias{gpa_fish}
+\alias{print.intrait_gpa}
+\alias{summary.intrait_gpa}
+\alias{print.summary.intrait_gpa}
 \title{Generalised Procrustes Analysis for fish landmark configurations}
 \usage{
 gpa_fish(landmarks, ...)
+
+\method{print}{intrait_gpa}(x, ...)
+
+\method{summary}{intrait_gpa}(object, ...)
+
+\method{print}{summary.intrait_gpa}(x, ...)
 }
 \arguments{
 \item{landmarks}{An object of class \code{"intrait_landmarks"} (from
@@ -13,6 +22,12 @@ landmark array.}
 
 \item{...}{Additional arguments passed on to \code{\link[geomorph:gpagen]{geomorph::gpagen()}} (e.g.
 \code{curves}, \code{surfaces}, \code{ProcD}).}
+
+\item{x}{An object to print: an \code{"intrait_gpa"} (from \code{gpa_fish()}) or
+\code{"summary.intrait_gpa"} (from \code{summary()} on one) object.}
+
+\item{object}{An object of class \code{"intrait_gpa"}, as returned by
+\code{gpa_fish()}.}
 }
 \value{
 An object of class \code{"intrait_gpa"}, a list with elements:
@@ -28,6 +43,12 @@ converge.}
 \item{metadata}{specimen metadata carried over from \code{landmarks}, if
 present.}
 }
+
+Invisibly returns \code{x}.
+
+A list of class \code{"summary.intrait_gpa"} (see \code{print.summary.intrait_gpa()}), returned visibly.
+
+Invisibly returns \code{x}.
 }
 \description{
 Superimposes a sample of landmark configurations using Generalised
@@ -42,8 +63,13 @@ required for allometry correction (\code{\link[=correct_allometry]{correct_allom
 shape to body size.
 }
 \examples{
-fish <- simulate_fish_landmarks(n_per_species = 5, n_replicates = 1)
-gpa <- gpa_fish(fish)
+# real T-26 Saudrune data; GPA aligns *shape* only, so the FISHMORPH
+# scale bar (points 20-21, a calibration segment, not a body landmark)
+# must first be dropped, along with any specimen missing a landmark --
+# fishmorph_shape_landmarks() does both:
+fish <- load_t26_saudrune_landmarks()
+fish_shape <- fishmorph_shape_landmarks(fish)
+gpa <- gpa_fish(fish_shape)
 gpa
 
 }
@@ -53,5 +79,5 @@ optimal superimposition of landmarks. Systematic Zoology, 39(1), 40-59.
 }
 \seealso{
 \code{\link[=morpho_space]{morpho_space()}}, \code{\link[=correct_allometry]{correct_allometry()}},
-\code{\link[=intraspecific_variability]{intraspecific_variability()}}
+\code{\link[=intraspecific_variability]{intraspecific_variability()}}, \code{\link[=fishmorph_shape_landmarks]{fishmorph_shape_landmarks()}}
 }

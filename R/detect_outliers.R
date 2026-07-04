@@ -40,8 +40,10 @@
 #' @seealso [gpa_fish()], [plot_landmarks()], [plot_fishmorph_points()]
 #'
 #' @examples
-#' fish <- simulate_fish_landmarks(n_per_species = 10, n_replicates = 1)
-#' gpa <- gpa_fish(fish)
+#' # real T-26 Saudrune data (see ?fishmorph_shape_landmarks for why the
+#' # scale bar and incomplete specimens are dropped before GPA):
+#' fish <- load_t26_saudrune_landmarks()
+#' gpa <- gpa_fish(fishmorph_shape_landmarks(fish))
 #' out <- detect_outliers(gpa, plot = FALSE)
 #' out
 #'
@@ -113,7 +115,11 @@ detect_outliers <- function(gpa, threshold = 3, plot = TRUE) {
   result
 }
 
+#' @return Invisibly returns `x`.
 #' @export
+#' @rdname detect_outliers
+#' @param x An object of class `"intrait_outliers"`, as returned by
+#'   [detect_outliers()].
 print.intrait_outliers <- function(x, ...) {
   cat("<intrait_outliers>\n")
   cat(sprintf(

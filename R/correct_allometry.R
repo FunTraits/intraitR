@@ -43,8 +43,10 @@
 #' @seealso [gpa_fish()], [morpho_space()]
 #'
 #' @examples
-#' fish <- simulate_fish_landmarks(n_per_species = 10, n_replicates = 1)
-#' gpa <- gpa_fish(fish)
+#' # real T-26 Saudrune data (see ?fishmorph_shape_landmarks for why the
+#' # scale bar and incomplete specimens are dropped before GPA):
+#' fish <- load_t26_saudrune_landmarks()
+#' gpa <- gpa_fish(fishmorph_shape_landmarks(fish))
 #' corrected <- correct_allometry(gpa)
 #' dim(corrected)
 #'

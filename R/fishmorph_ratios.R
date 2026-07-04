@@ -29,11 +29,38 @@
 #'   set to 0, following Villéger et al. (2010). Defaults to `FALSE`.
 #' @param digits Integer, number of decimal places to round ratios to.
 #'   Defaults to `4`.
+#' @param groups Optional factor (or character vector), one value per row
+#'   of `segments`, used only by `na_action = "impute_group_mean"` (and
+#'   optionally by `"missforest"`, as an auxiliary predictor). If `NULL`
+#'   and `segments` has a `species` column, it is used automatically (as
+#'   in [trait_space()]).
+#' @param na_action Character, how to handle missing values in the 9
+#'   computed ratio columns (e.g. because one of the two segments a ratio
+#'   divides was itself `NA`, whether from a missing landmark or from
+#'   [fishmorph_segments()] having already left it `NA`): `"keep"`
+#'   (default) leaves `NA` in place, exactly as in previous package
+#'   versions; `"omit"` removes affected specimens and reports how many;
+#'   `"impute_mean"` replaces missing ratio values with the column mean;
+#'   `"impute_group_mean"` uses the within-group (e.g. within-species)
+#'   mean instead, falling back to the column mean, with a warning, for a
+#'   group entirely missing a ratio; `"missforest"` uses random-forest-
+#'   based iterative imputation (`missForest::missForest()`). Same
+#'   convention, options, and messages as [trait_space()]'s `na_action`
+#'   -- see there for details -- except that here imputation operates on
+#'   the derived *ratios* directly; imputing at the landmark level with
+#'   [impute_landmarks()], or at the [fishmorph_segments()] stage instead
+#'   (before computing ratios), is usually preferable when both are
+#'   missing for the same specimen.
+#' @param missforest_ntree,missforest_maxiter Number of trees per forest
+#'   and maximum number of iterations passed to `missForest::missForest()`
+#'   when `na_action = "missforest"`; ignored otherwise. Default to
+#'   `missForest`'s own defaults (`100` and `10`).
 #'
 #' @return A `data.frame` (class `"intrait_fishmorph"`) with one row per
-#'   specimen, an `MBl` column if supplied, and columns `BEl`, `VEp`,
-#'   `REs`, `OGp`, `RMl`, `BLs`, `PFv`, `PFs`, `CPt`, preceded by any
-#'   metadata columns carried over from `segments`.
+#'   specimen (fewer, if `na_action = "omit"` dropped any), an `MBl`
+#'   column if supplied, and columns `BEl`, `VEp`, `REs`, `OGp`, `RMl`,
+#'   `BLs`, `PFv`, `PFs`, `CPt`, preceded by any metadata columns carried
+#'   over from `segments`.
 #'
 #' @details
 #' The nine ratios and their ecological interpretation, following Brosse
@@ -68,17 +95,26 @@
 #' tropical fish communities after habitat degradation. Ecological
 #' Applications, 20(6), 1512-1522.
 #'
-#' @seealso [fishmorph_segments()], [trait_space()], [load_t26_saudrune_landmarks()]
+#' @seealso [fishmorph_segments()], [trait_space()],
+#'   [load_t26_saudrune_landmarks()], [impute_landmarks()]
 #'
 #' @examples
 #' fish <- load_t26_saudrune_landmarks()
 #' segments <- fishmorph_segments(fish)
 #' fishmorph_ratios(segments)
 #'
+#' # impute missing ratios (na_action defaults to "keep") using the
+#' # within-species mean instead of carrying NA forward:
+#' fishmorph_ratios(segments, groups = segments$species, na_action = "impute_group_mean")
+#'
 #' @export
 fishmorph_ratios <- function(segments, MBl = NULL, no_caudal_fin = FALSE,
                               ventral_mouth = FALSE, no_pectoral_fin = FALSE,
-                              digits = 4) {
+                              digits = 4, groups = NULL,
+                              na_action = c("keep", "omit", "impute_mean",
+                                            "impute_group_mean", "missforest"),
+                              missforest_ntree = 100, missforest_maxiter = 10) {
+  na_action <- match.arg(na_action)
   required <- c("Bl", "Bd", "Hd", "Eh", "Mo", "PFi", "PFl", "Ed", "Jl", "CPd", "CFd")
   missing_cols <- setdiff(required, names(segments))
   if (length(missing_cols) > 0) {
@@ -102,6 +138,9 @@ fishmorph_ratios <- function(segments, MBl = NULL, no_caudal_fin = FALSE,
   no_caudal_fin <- recycle(no_caudal_fin, "no_caudal_fin")
   ventral_mouth <- recycle(ventral_mouth, "ventral_mouth")
   no_pectoral_fin <- recycle(no_pectoral_fin, "no_pectoral_fin")
+  if (!is.null(MBl) && length(MBl) != n) {
+    stop("`MBl` must have length nrow(segments) (", n, ").", call. = FALSE)
+  }
 
   Bl <- segments$Bl; Bd <- segments$Bd; Hd <- segments$Hd; Eh <- segments$Eh
   Mo <- segments$Mo; PFi <- segments$PFi; PFl <- segments$PFl; Ed <- segments$Ed
@@ -122,15 +161,37 @@ fishmorph_ratios <- function(segments, MBl = NULL, no_caudal_fin = FALSE,
   RMl[ventral_mouth] <- 0
   PFv[no_pectoral_fin] <- 0
 
-  ratio_df <- data.frame(
-    BEl = round(BEl, digits), VEp = round(VEp, digits), REs = round(REs, digits),
-    OGp = round(OGp, digits), RMl = round(RMl, digits), BLs = round(BLs, digits),
-    PFv = round(PFv, digits), PFs = round(PFs, digits), CPt = round(CPt, digits)
+  ratio_mat <- cbind(
+    BEl = BEl, VEp = VEp, REs = REs, OGp = OGp, RMl = RMl,
+    BLs = BLs, PFv = PFv, PFs = PFs, CPt = CPt
   )
+  rownames(ratio_mat) <- rownames(segments)
+
+  if (is.null(groups) && "species" %in% names(segments)) {
+    groups <- segments$species
+  }
+  if (!is.null(groups)) {
+    if (length(groups) != n) stop("`groups` must have one entry per row of `segments`.", call. = FALSE)
+    groups <- factor(groups)
+  }
+
+  res <- .apply_na_action(
+    ratio_mat, groups, na_action, missforest_ntree, missforest_maxiter,
+    context = "ratios"
+  )
+  ratio_mat <- res$X
+  if (!all(res$keep)) {
+    segments <- segments[res$keep, , drop = FALSE]
+    if (!is.null(MBl)) MBl <- MBl[res$keep]
+  }
+
+  ratio_df <- as.data.frame(round(ratio_mat, digits))
   rownames(ratio_df) <- rownames(segments)
 
   if (!is.null(MBl)) {
-    if (length(MBl) != n) stop("`MBl` must have length nrow(segments) (", n, ").", call. = FALSE)
+    if (length(MBl) != nrow(ratio_df)) {
+      stop("`MBl` must have length nrow(segments) (", nrow(ratio_df), ").", call. = FALSE)
+    }
     ratio_df <- cbind(MBl = MBl, ratio_df)
   }
 

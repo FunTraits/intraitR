@@ -1,6 +1,6 @@
 Package: intraitR
 Title: Morphological Trait Analysis Toolkit for Freshwater Fish
-Version: 0.9.4
+Version: 1.0.0
 Authors@R:
     person("Aurele", "Toussaint", , "aurele.toussaint@cnrs.fr", role = c("aut", "cre"))
 Description: A toolkit for the analysis of morphological traits in freshwater
@@ -32,12 +32,17 @@ Imports:
     graphics,
     grDevices,
     stats,
+    tools,
     utils
 Suggests:
     dplyr,
+    future.apply,
+    geometry,
     ggplot2,
+    jpeg,
     knitr,
     missForest,
+    png,
     readxl,
     rmarkdown,
     testthat (>= 3.0.0)

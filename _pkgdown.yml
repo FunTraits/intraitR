@@ -1,0 +1,91 @@
+url: https://funtraits.github.io/intraitR/
+
+template:
+  bootstrap: 5
+  bslib:
+    primary: "#4E79A7"
+
+home:
+  title: "intraitR: Morphological Trait Analysis Toolkit for Freshwater Fish"
+
+development:
+  mode: auto
+
+navbar:
+  structure:
+    left: [intro, reference, articles, tutorials, news]
+    right: [search, github]
+
+reference:
+  - title: Landmark import and digitization
+    desc: >
+      Read landmark data from tpsDig files, generic spreadsheets, or an
+      interactive digitizer; visualise a single configuration.
+    contents:
+      - read_tps
+      - read_landmarks_csv
+      - digitize_landmarks
+      - plot_landmarks
+
+  - title: Superimposition and shape
+    desc: >
+      Generalised Procrustes Analysis, allometric correction, and
+      digitization/outlier quality control.
+    contents:
+      - gpa_fish
+      - correct_allometry
+      - detect_outliers
+
+  - title: Morphometric traits and ratios
+    desc: >
+      Classical linear distances and ratios, including the FISHMORPH
+      (Brosse et al., 2021) 11-measurement/9-ratio protocol.
+    contents:
+      - linear_distances
+      - morpho_ratios
+      - fishmorph_segments
+      - fishmorph_ratios
+      - plot_fishmorph_points
+
+  - title: Functional and morphological space
+    desc: >
+      Build, visualise, and test ordinations of shape or trait data, and
+      quantify how intraspecific variability (ITV) affects estimated
+      functional richness.
+    contents:
+      - trait_space
+      - morpho_space
+      - trait_disparity
+      - bootstrap_functional_space
+      - species_sensitivity
+
+  - title: Intraspecific variability and measurement error
+    desc: >
+      Decompose trait variance into interspecific/intraspecific
+      components, and quantify measurement and digitization error from
+      replicated data.
+    contents:
+      - itv_index
+      - intraspecific_variability
+      - measurement_error
+      - digitization_error
+      - summary_traits
+
+  - title: Simulated example data
+    contents:
+      - simulate_fish_landmarks
+      - simulate_fishmorph_points
+
+  - title: "Real data: T-26 La Saudrune"
+    desc: >
+      A real electrofishing landmark data set (Adour-Garonne basin,
+      France), used throughout the package's examples and
+      `demo(pipeline_T26_saudrune)`.
+    contents:
+      - load_t26_saudrune
+      - load_t26_saudrune_landmarks
+
+articles:
+  - title: Get started
+    contents:
+      - intraitR-intro

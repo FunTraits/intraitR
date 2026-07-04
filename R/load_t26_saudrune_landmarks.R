@@ -23,6 +23,20 @@
 #'   species are kept. Defaults to `NULL` (every fish is kept, including
 #'   the single specimen with an unresolved identification, for which
 #'   `metadata$species` is `NA`; see [load_t26_saudrune()]).
+#' @param operator `NULL` (default, every operator's digitizations are
+#'   returned), or a character vector of one or more anonymous operator
+#'   labels (e.g. `"Operator_1"`; see `unique(load_t26_saudrune(source)$operator)`
+#'   for the labels available for a given `source`) to restrict to. This
+#'   is the natural way to build **two separate functional trait spaces**,
+#'   one per operator, from `source = "operators"` (each fish was
+#'   digitized once by each of two operators) — e.g. to check whether
+#'   [trait_space()] or [fishmorph_ratios()] results are sensitive to who
+#'   did the digitizing, complementing the landmark-level view of
+#'   [digitization_error()]. Modular by design: if the requested `source`
+#'   has no `operator` column, `operator` is ignored with a warning and
+#'   every row is returned (in practice every `source` currently offered
+#'   here does have one, but this keeps the function robust to future
+#'   `source` options that might not).
 #'
 #' @return An object of class `"intrait_landmarks"`, a list with elements
 #'   `coords` (a `21 x 2 x n` array), `scale` (`NULL`; the scale bar is
@@ -64,10 +78,20 @@
 #' )
 #' dim(gobio_squalius$coords)
 #'
+#' # build two separate functional trait spaces, one per operator, to check
+#' # whether the two digitizers' morphospaces agree:
+#' fish_op1 <- load_t26_saudrune_landmarks(operator = "Operator_1")
+#' fish_op2 <- load_t26_saudrune_landmarks(operator = "Operator_2")
+#' ratios_op1 <- fishmorph_ratios(fishmorph_segments(fish_op1))
+#' ratios_op2 <- fishmorph_ratios(fishmorph_segments(fish_op2))
+#' ts_op1 <- trait_space(ratios_op1, groups = fish_op1$metadata$species, na_action = "omit")
+#' ts_op2 <- trait_space(ratios_op2, groups = fish_op2$metadata$species, na_action = "omit")
+#'
 #' @export
-load_t26_saudrune_landmarks <- function(source = c("operators", "repeatability"), species = NULL) {
+load_t26_saudrune_landmarks <- function(source = c("operators", "repeatability"),
+                                         species = NULL, operator = NULL) {
   source <- match.arg(source)
-  long <- load_t26_saudrune(source)
+  long <- load_t26_saudrune(source, operator = operator)
   ident <- load_t26_saudrune("identifications")
 
   if (source == "operators") {

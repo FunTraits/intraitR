@@ -196,7 +196,8 @@ test_that("print and plot methods for intrait_itv do not error", {
 
   tmp <- tempfile(fileext = ".png")
   grDevices::png(tmp)
-  expect_error(plot(itv), NA)
+  expect_error(plot(itv), NA)                            # default: legend_position = "outside"
+  expect_error(plot(itv, legend_position = "topright"), NA)
   grDevices::dev.off()
   unlink(tmp)
 

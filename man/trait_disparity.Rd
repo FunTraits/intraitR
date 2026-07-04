@@ -66,6 +66,12 @@ This function complements \code{\link[=intraspecific_variability]{intraspecific_
 shape disparity (from Procrustes coordinates) and univariate
 coefficients of variation, but does not test for group differences in
 the dispersion of a multivariate \emph{trait} space.
+
+As in \code{\link[=bootstrap_functional_space]{bootstrap_functional_space()}} and \code{\link[=species_sensitivity]{species_sensitivity()}}, the
+\code{iter} permutations are independent of one another and are distributed
+automatically across \code{future.apply}'s workers when that (Suggested)
+package is installed and a parallel \code{future::plan()} has been set
+beforehand; otherwise this runs sequentially, with identical results.
 }
 \examples{
 fish <- load_t26_saudrune_landmarks()

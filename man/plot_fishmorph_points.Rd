@@ -7,8 +7,17 @@
 plot_fishmorph_points(
   landmarks,
   specimen = 1,
+  individual = NULL,
   labels = TRUE,
   legend = TRUE,
+  legend_position = "outside",
+  background_image = NULL,
+  flip_y = TRUE,
+  outline = TRUE,
+  highlight_imputed = TRUE,
+  highlight_corrected = TRUE,
+  geometry_check = NULL,
+  highlight_geometry = TRUE,
   ...
 )
 }
@@ -18,7 +27,27 @@ plot_fishmorph_points(
 in \code{\link[=fishmorph_segments]{fishmorph_segments()}} (e.g. from \code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}).}
 
 \item{specimen}{Integer index or character specimen identifier of the
-configuration to plot. Defaults to \code{1}.}
+configuration to plot. Defaults to \code{1}. Ignored if \code{individual} is
+supplied.}
+
+\item{individual}{Optional character. Instead of \code{specimen}, select
+every digitization belonging to a given fish, matched against
+\code{landmarks$metadata$individual} -- the identifier used throughout the
+package to link digitizations of the same fish (see
+\code{\link[=digitization_error]{digitization_error()}}, \code{\link[=measurement_error]{measurement_error()}}; for
+\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}} this is identical to the \code{code}
+column). This is useful when \code{landmarks} holds one row per
+specimen/operator or specimen/replicate combination (e.g.
+\code{load_t26_saudrune_landmarks("operators")}, with two rows per fish, one
+per operator) and it is more natural to look a fish up by its code than
+by the exact specimen identifier. If \code{individual} matches more than one
+specimen (e.g. two operators, or several replicate digitizations), all
+matches are plotted side by side in a single figure (one panel per
+specimen, titled with its own specimen identifier) so they can be
+compared visually; \code{background_image} is then ignored (with a
+warning), since a single photograph cannot be assumed to apply to every
+match. Requires \code{landmarks$metadata} to have an \code{individual} column.
+Defaults to \code{NULL} (use \code{specimen} instead).}
 
 \item{labels}{Logical, label landmarks with their index. Defaults to
 \code{TRUE}.}
@@ -26,22 +55,134 @@ configuration to plot. Defaults to \code{1}.}
 \item{legend}{Logical, draw a legend of measurement names/colours.
 Defaults to \code{TRUE}.}
 
+\item{legend_position}{One of \code{"outside"} (default: drawn in the
+margin, just to the right of the plot box, so it never overlaps the
+fish outline) or a standard \code{\link[graphics:legend]{graphics::legend()}} position keyword
+(e.g. \code{"topright"}) to draw it inside the plot box instead, as in
+previous versions.}
+
+\item{background_image}{Optional path to a \code{.jpg}/\code{.jpeg} or \code{.png}
+photograph of the specimen, drawn as a background layer beneath the
+landmarks and measurement segments (e.g. to visually check whether a
+landmark was placed off the body outline). Only meaningful for the
+original, un-aligned digitized coordinates. Requires the (Suggested)
+\code{jpeg} package for \code{.jpg}/\code{.jpeg} files, or \code{png} for \code{.png} files.
+Defaults to \code{NULL} (no background).}
+
+\item{flip_y}{Logical, flip \code{background_image} vertically before
+plotting, to match the bottom-left-origin convention of digitized
+landmark coordinates against the top-row-first convention of image
+files (see \code{flip_y} in \code{\link[=plot_landmarks]{plot_landmarks()}}). Ignored when
+\code{background_image} is \code{NULL}. Defaults to \code{TRUE}.}
+
+\item{outline}{Logical, add a set of purely visual reference lines,
+drawn in addition to (and visually subordinate to) the 11 coloured
+measurement segments, reproducing the digitization protocol sheet:
+a body outline (solid, points 1-5-3-16-18-19-17-4-6, closed back to
+1), a horizontal reference line along the belly (points 9-8-11-4),
+a vertical reference line at eye level (points 5-13-7-14-6-8), and
+the eye itself (a circle centred on point 7 with diameter equal to
+the Ed measurement, i.e. the distance between points 13 and 14). The
+body outline is drawn as a plain solid line; the two reference lines
+and the eye circle are drawn very light and dotted, so they read as
+background guides rather than measurements. Any landmark missing
+(\code{NA}) for this specimen is silently dropped from these reference
+paths rather than leaving a gap -- e.g. real T-26 specimens are
+commonly missing landmark 5, in which case the body outline falls
+back to a direct 1-3 segment. Defaults to \code{TRUE}.}
+
+\item{highlight_imputed}{Logical, colour landmark points red if they
+carry an \code{"imputed"} marker for this specimen -- i.e. were estimated
+by \code{\link[=impute_landmarks]{impute_landmarks()}} rather than digitized -- instead of the usual
+grey, with a matching "Imputed landmark" legend entry. Has no visible
+effect on \code{landmarks} without such a marker (e.g. never run through
+\code{\link[=impute_landmarks]{impute_landmarks()}}). Defaults to \code{TRUE}.}
+
+\item{highlight_corrected}{Logical, colour landmark points blue if they
+carry a \code{"corrected"} marker for this specimen -- i.e. were manually
+adjusted by \code{\link[=correct_landmarks]{correct_landmarks()}} -- with a matching "Corrected
+landmark" legend entry. If a point is both imputed and corrected,
+blue (corrected) takes precedence. Has no visible effect on
+\code{landmarks} without such a marker. Defaults to \code{TRUE}.}
+
+\item{geometry_check}{Optional object of class \code{"intrait_geometry_check"},
+as returned by \code{correct_landmarks(landmarks, rule = "check_geometry")}
+-- typically computed once for the whole data set and reused across
+plot calls, rather than recomputed here. When supplied, any landmark
+implicated by a check that failed (\code{ok = FALSE}) for this specimen is
+coloured orange, with a matching "Geometry check flagged" legend
+entry, so specimens worth a closer look (or a \code{\link[=correct_landmarks]{correct_landmarks()}}
+fix) stand out visually. \code{NULL} (default) draws no such highlighting.
+Ignored (with no effect) if \code{geometry_check} has no row for this
+specimen.}
+
+\item{highlight_geometry}{Logical, whether to apply the \code{geometry_check}
+highlighting described above. Only relevant when \code{geometry_check} is
+supplied. Defaults to \code{TRUE}.}
+
 \item{...}{Further arguments passed to \code{\link[graphics:plot]{graphics::plot()}}.}
 }
 \value{
-Invisibly returns the \verb{p x 2} matrix of coordinates plotted.
+Invisibly returns the \verb{p x 2} matrix of coordinates plotted, or
+(when \code{individual} matches more than one specimen) a named list of such
+matrices, one per matching specimen.
 }
 \description{
 Visualises the 21 (or 22) landmarks of one specimen, digitized following
 the Brosse et al. (2021) FISHMORPH scheme, together with the 11 linear
-measurements they define, for quality control of digitization.
+measurements they define, a body outline, the eye, and the digitization
+scale bar, for quality control of digitization.
 }
 \examples{
 fish <- load_t26_saudrune_landmarks()
 plot_fishmorph_points(fish, specimen = 1)
 
+# look a fish up by its code rather than by specimen/operator: the raw
+# operator-level data has two rows (one per operator) per fish, so both
+# digitizations are plotted side by side for comparison
+fish_ops <- load_t26_saudrune_landmarks("operators")
+one_code <- fish_ops$metadata$individual[1]
+plot_fishmorph_points(fish_ops, individual = one_code)
+
+# if some specimens appear upside down or mirrored left-right, fix the
+# underlying coordinates (not just the display) for every specimen at
+# once, using landmarks that are always present and in the same role:
+fish_oriented <- standardize_orientation(fish)
+plot_fishmorph_points(fish_oriented, specimen = 1)
+
+# disable the body outline / eye / reference lines, keeping only the
+# 11 coloured measurement segments (as in earlier package versions):
+plot_fishmorph_points(fish, specimen = 1, outline = FALSE)
+
+# points estimated by impute_landmarks() are highlighted in red:
+\donttest{
+fish_imputed <- impute_landmarks(fish)
+plot_fishmorph_points(fish_imputed, specimen = 1)
+}
+
+# points fixed by correct_landmarks() are highlighted in blue:
+fish_fixed <- correct_landmarks(
+  fish, specimen = "T-26-0010_Operator_1",
+  points = c(9, 8, 11, 4), correct = 11, axis = "y"
+)
+plot_fishmorph_points(fish_fixed, specimen = "T-26-0010_Operator_1")
+
+# landmarks implicated in a failed check_geometry() convention are
+# highlighted in orange:
+geom_check <- correct_landmarks(fish, rule = "check_geometry")
+plot_fishmorph_points(fish, specimen = 1, geometry_check = geom_check)
+
+\dontrun{
+# Overlay the original photograph (requires the "jpeg" package and a
+# photograph in the same pixel coordinate system as the landmarks):
+plot_fishmorph_points(fish, specimen = 1, background_image = "specimen1.jpg")
+}
+
 }
 \seealso{
 \code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=fishmorph_ratios]{fishmorph_ratios()}},
-\code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}, \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}
+\code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}, \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}},
+\code{\link[=impute_landmarks]{impute_landmarks()}}, \code{\link[=correct_landmarks]{correct_landmarks()}},
+\code{\link[=standardize_orientation]{standardize_orientation()}} (fix an upside-down/mirrored specimen at
+the data level, rather than a per-plot display toggle)
 }

@@ -10,6 +10,31 @@
 #'
 #' @param dataset Character, one of `"operators"` (default),
 #'   `"repeatability"`, `"identifications"`, or `"qc_log"`. See Details.
+#' @param operator `NULL` (default, all data returned), or a character
+#'   vector of one or more operator labels (e.g. `"Operator_1"`) to
+#'   restrict the returned rows to. Modular by design: if `dataset` has no
+#'   `operator` column (as for `"identifications"` and `"qc_log"`, or any
+#'   future dataset added without one), `operator` is ignored with a
+#'   warning and every row is returned, rather than erroring. Useful to
+#'   build two separate functional trait spaces, one per operator, from
+#'   the `"operators"` table (see [load_t26_saudrune_landmarks()] for the
+#'   more convenient `"intrait_landmarks"`-object version of this).
+#' @param species Logical, defaults to `FALSE`. If `TRUE`, left-joins the
+#'   `species` and `id_status` columns from the `"identifications"` table
+#'   onto `dataset`, matched by `code` (a plain [match()] lookup, not
+#'   [merge()], so that the many rows sharing the same `code` in the
+#'   long-format `"operators"`/`"repeatability"` tables -- one per
+#'   landmark, and per operator/replicate -- keep their original row
+#'   order exactly). `species` is deliberately `FALSE` by default: the
+#'   landmark tables and the identification table are two separate,
+#'   independently versioned data products (a landmark measurement never
+#'   needs to know a species; an identification can be revised without
+#'   touching a single coordinate), and joining them ties every landmark
+#'   row to a species call that -- per `id_status` -- is not always fully
+#'   curated. Modular by design: if `dataset` has no `code` column,
+#'   `species` is ignored with a warning rather than erroring; if
+#'   `dataset = "identifications"` (which already has `species`), it is a
+#'   harmless no-op.
 #'
 #' @return A `data.frame`:
 #'   \describe{
@@ -64,6 +89,12 @@
 #'   Toussaint (CNRS). Raw spreadsheets are not distributed with the
 #'   package (only the cleaned, analysis-ready tables are); see
 #'   `data-raw/t26_saudrune_prepare.R` for the full cleaning/QC pipeline.
+#'   Operator identity is not itself of biological interest and is not
+#'   personally identifiable in the shipped data: the `operator` column
+#'   records anonymous labels (`"Operator_1"`, `"Operator_2"`) rather than
+#'   the real names recorded in the original field spreadsheets, assigned
+#'   consistently across the `"operators"` and `"repeatability"` tables
+#'   (see `data-raw/t26_saudrune_prepare.R`).
 #'
 #' @references
 #' Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
@@ -82,8 +113,24 @@
 #' ident <- load_t26_saudrune("identifications")
 #' table(ident$species, ident$id_status)
 #'
+#' # restrict to a single operator's digitizations (see `operator`); ignored
+#' # with a warning, rather than an error, for tables with no operator
+#' # column, e.g. "identifications":
+#' unique(ops$operator)
+#' op1 <- load_t26_saudrune("operators", operator = "Operator_1")
+#' nrow(op1) < nrow(ops)
+#'
+#' # the raw "operators"/"repeatability" tables carry `code`, not `species`
+#' # (species lives in "identifications" by design, see @param species);
+#' # species = TRUE restores it, one join, in original row order:
+#' "species" %in% names(ops)
+#' ops_sp <- load_t26_saudrune("operators", species = TRUE)
+#' c("species", "id_status") %in% names(ops_sp)
+#' identical(ops_sp$code, ops$code)
+#'
 #' @export
-load_t26_saudrune <- function(dataset = c("operators", "repeatability", "identifications", "qc_log")) {
+load_t26_saudrune <- function(dataset = c("operators", "repeatability", "identifications", "qc_log"),
+                               operator = NULL, species = FALSE) {
   dataset <- match.arg(dataset)
   file <- switch(dataset,
     operators       = "t26_landmarks_operators.csv",
@@ -96,5 +143,10 @@ load_t26_saudrune <- function(dataset = c("operators", "repeatability", "identif
     stop("Could not find '", file, "' under inst/extdata/T26_Saudrune/; ",
          "is intraitR installed correctly?", call. = FALSE)
   }
-  utils::read.csv(path, stringsAsFactors = FALSE)
+  df <- utils::read.csv(path, stringsAsFactors = FALSE)
+  df <- .filter_by_operator(df, operator, dataset_label = sprintf("the \"%s\" table", dataset))
+  if (isTRUE(species)) {
+    df <- .join_species(df, dataset_label = sprintf("the \"%s\" table", dataset))
+  }
+  df
 }

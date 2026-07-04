@@ -2,6 +2,14 @@
 
 Ce package a été écrit intégralement à la main (code R + DESCRIPTION + NAMESPACE + Rd via roxygen2 non exécuté), car l'environnement dans lequel il a été généré ne dispose ni de R, ni d'un accès root, ni d'un accès réseau vers CRAN — il n'a donc pas été possible d'exécuter `devtools::document()`, `devtools::check()` ou `R CMD build/check` pour valider automatiquement le paquet. Une relecture statique (équilibrage des parenthèses/accolades sur l'ensemble des fichiers R, cohérence entre les tags `@export`/`@importFrom` et le fichier `NAMESPACE`) a été effectuée, et une incohérence trouvée lors de cette relecture (`print.intrait_morphospace` manquant du `NAMESPACE`) a été corrigée. Mais **une vérification complète sous R reste nécessaire avant toute soumission**.
 
+## Mise à jour v1.0.0 : premier `devtools::test()` réel
+
+Pour la version 1.0.0, `devtools::test()` a enfin été exécuté sur un poste avec R (celui du mainteneur), et non plus seulement relu statiquement comme pour toutes les versions précédentes. Résultat : 465 tests passés, 0 échec, 5 avertissements attendus (documentés ci-dessous) et 6 tests ignorés (`skip`) pour des raisons attendues (chemins nécessitant un package absent volontairement du test, ou une session R interactive). Un seul problème a été détecté :
+
+-   **`test-trait_disparity.R`, test de régression sur `iter` à 2 groupes** : `%in%` a en réalité une précédence plus forte que `/` en R (voir `?Syntax`), si bien que `x %in% ((0:5) + 1) / 6` s'analysait en `(x %in% ((0:5) + 1)) / 6` au lieu de `x %in% (((0:5) + 1) / 6)` — c'est-à-dire une erreur dans le **test lui-même**, pas dans `trait_disparity()` (dont les *autres* tests, y compris un test de puissance statistique réelle, passaient déjà). Corrigé en parenthésant explicitement le dénominateur ; voir `NEWS.md`.
+
+Ceci confirme, a posteriori, la fiabilité de la méthode suivie jusqu'ici en l'absence de R (relecture manuelle systématique + réimplémentation Python indépendante de la logique statistique) : aucun bug de *logique métier* n'a été détecté dans le code du paquet lui-même par ce premier run réel, seulement un bug de syntaxe R localisé dans un test. Il reste néanmoins recommandé de lancer `devtools::check(cran = TRUE)` (pas seulement `devtools::test()`) avant toute soumission, celui-ci vérifiant des aspects que `test()` ne couvre pas (documentation, exemples, `NAMESPACE`, taille du paquet, etc.).
+
 ### Ajout v0.2.0 : protocole FISHMORPH (Brosse et al., 2021)
 
 `fishmorph_segments()`, `fishmorph_ratios()`, `trait_space()`, `plot_fishmorph_points()` et `simulate_fishmorph_points()` implémentent le schéma de digitalisation à 21/22 points et les 9 ratios de Brosse et al. (2021), tel que défini dans votre figure "Points Orga". Points à vérifier en priorité sur votre poste : - Les indices de landmarks (1-22) et leurs correspondances aux mesures (Bl, Bd, Hd, Eh, Mo, PFi, PFl, Ed, Jl, CPd, CFd) ont été retranscrits à la main depuis votre figure ; reproduisez le calcul sur un spécimen réel digitalisé pour confirmer l'alignement exact des points, en particulier pour Eh (7-8) et le point de courbure optionnel (22), moins explicites sur la figure que les autres mesures. - Les tests unitaires de `fishmorph_segments()` utilisent une configuration de points construite à la main (distances connues) et vérifient les 11 segments et la mise à l'échelle ; ceci couvre la logique de calcul mais ne remplace pas une validation sur vos propres photos digitalisées. - `trait_space()` n'utilise que des fonctions de base R (`stats::prcomp`, `stats::cmdscale`, `stats::dist`), sans nouvelle dépendance.
@@ -41,7 +49,7 @@ Ce package a été écrit intégralement à la main (code R + DESCRIPTION + NAME
 5.  `DESCRIPTION` :
 
     -   `URL:`/`BugReports:` pointent vers `https://github.com/FunTraits/intraitR` (dépôt créé le 2026-07-01 ; voir `GITHUB_SETUP.md` pour la mise en ligne). Si le dépôt venait à changer de nom ou d'organisation, pensez à mettre à jour ces deux champs (ainsi que `inst/CITATION` et l'exemple `remotes::install_github()` du `README.md`).
-    -   Vérifiez le champ `Version:` (actuellement 0.7.2 ; voir `NEWS.md` pour l'historique complet des versions) et ajoutez un champ `Date:` si vous le souhaitez.
+    -   Vérifiez le champ `Version:` (actuellement 1.0.0 ; voir `NEWS.md` pour l'historique complet des versions) et ajoutez un champ `Date:` si vous le souhaitez.
 
 6.  (Optionnel) Générer un jeu de données statique inclus dans le paquet : exécutez `data-raw/simulate_data.R` (voir les instructions dans ce fichier et dans `R/data.R`) si vous préférez livrer `fish_landmarks` comme objet de données plutôt que de le générer à la volée avec `simulate_fish_landmarks()`.
 

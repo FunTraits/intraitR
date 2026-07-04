@@ -13,8 +13,9 @@
 #'   [linear_distances()]).
 #' @param distances A named list of length-2 landmark index vectors,
 #'   passed to [linear_distances()] (e.g.
-#'   `list(SL = c(1, 7), BD = c(3, 10), HL = c(1, 4))`). Must include the
-#'   normalising distance named in `norm_by`.
+#'   `list(SL = c(1, 2), BD = c(3, 4), ED = c(13, 14))` for FISHMORPH-scheme
+#'   landmarks; see [fishmorph_segments()]). Must include the normalising
+#'   distance named in `norm_by`.
 #' @param norm_by Character. Name of the entry in `distances` used as the
 #'   denominator for all other distances (typically standard length,
 #'   `"SL"`).
@@ -49,9 +50,11 @@
 #' @seealso [linear_distances()], [summary_traits()]
 #'
 #' @examples
-#' fish <- simulate_fish_landmarks(n_per_species = 5, n_replicates = 1)
-#' distances <- list(SL = c(1, 7), BD = c(3, 10), HL = c(1, 4))
-#' morpho_ratios(fish, distances, norm_by = "SL")
+#' # real T-26 Saudrune data; landmark indices follow the FISHMORPH scheme
+#' # (see ?fishmorph_segments)
+#' fish <- load_t26_saudrune_landmarks()
+#' distances <- list(SL = c(1, 2), BD = c(3, 4), ED = c(13, 14))
+#' head(morpho_ratios(fish, distances, norm_by = "SL"))
 #'
 #' @export
 morpho_ratios <- function(landmarks, distances, norm_by, scale = NULL, digits = 4) {

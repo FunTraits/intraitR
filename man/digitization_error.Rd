@@ -2,20 +2,29 @@
 % Please edit documentation in R/digitization_error.R
 \name{digitization_error}
 \alias{digitization_error}
+\alias{print.intrait_digitization_error}
 \alias{plot.intrait_digitization_error}
 \title{Quantify hierarchical digitization (operator) error from repeated
-landmark placement}
+landmark placement, linear measurements, or ratios}
 \usage{
 digitization_error(
   landmarks,
   individual,
   species = NULL,
   site = NULL,
+  level = c("landmarks", "segments", "ratios"),
   ref_landmarks = c(1, 2),
   exclude_landmarks = NULL,
+  exclude_traits = NULL,
   normalization = c("landmarks", "standard_length", "centroid_size"),
+  scale_cm = 1,
+  no_caudal_fin = FALSE,
+  ventral_mouth = FALSE,
+  no_pectoral_fin = FALSE,
   digits = 4
 )
+
+\method{print}{intrait_digitization_error}(x, ...)
 
 \method{plot}{intrait_digitization_error}(x, ...)
 }
@@ -41,11 +50,31 @@ to annotate the per-individual output (it does not otherwise affect
 the calculation). Defaults to \code{landmarks$metadata$population} if
 present, otherwise \code{NULL}.}
 
+\item{level}{Character, one of \code{"landmarks"} (default), \code{"segments"}, or
+\code{"ratios"}, the level at which digitization error is quantified:
+\code{"landmarks"} reproduces the original Boutic (2026) protocol exactly,
+on raw digitized (X, Y) coordinates; \code{"segments"} instead quantifies
+the dispersion of the 11 linear FISHMORPH measurements computed by
+\code{\link[=fishmorph_segments]{fishmorph_segments()}} from each replicate (\code{Bl}, \code{Bd}, \code{Hd}, \code{Eh},
+\code{Mo}, \code{PFi}, \code{PFl}, \code{Ed}, \code{Jl}, \code{CPd}, \code{CFd}); \code{"ratios"} quantifies the
+dispersion of the 9 dimensionless FISHMORPH ratios computed by
+\code{\link[=fishmorph_ratios]{fishmorph_ratios()}} from each replicate's segments (\code{BEl}, \code{VEp},
+\code{REs}, \code{OGp}, \code{RMl}, \code{BLs}, \code{PFv}, \code{PFs}, \code{CPt}). At \code{"segments"}/
+\code{"ratios"}, bias for a given trait and individual is expressed as a
+percentage of that trait's own consensus (across-replicate mean) value
+for the individual -- a coefficient-of-variation-like quantity -- since
+a single shared reference distance (as used at \code{"landmarks"}) would not
+be meaningful across traits of very different scale and units (compare
+\code{Bl}, in centimetres, to \code{CPt}, dimensionless); see Details for why
+this also lets \code{"ratios"} isolate scale-bar-independent shape error.
+\code{ref_landmarks}, \code{exclude_landmarks}, and \code{normalization} only apply at
+\code{level = "landmarks"}; \code{exclude_traits} only applies at \code{level = "segments"}/\code{"ratios"}.}
+
 \item{ref_landmarks}{For \code{normalization = "landmarks"}, an integer
 vector of length 2 giving the indices of two landmarks whose
 inter-landmark distance is used as a size reference (as in the
 original protocol, where landmarks spanning most of the body were
-used). Defaults to \code{c(1, 2)}.}
+used). Defaults to \code{c(1, 2)}. Only used at \code{level = "landmarks"}.}
 
 \item{exclude_landmarks}{Optional integer vector of landmark indices to
 exclude from the analysis entirely (not included in
@@ -60,7 +89,14 @@ whose apparent "bias" mixes true digitization imprecision with
 pixel-to-cm rounding of the scale bar itself. Defaults to \code{NULL}
 (all landmarks included). Excluded landmarks may still be used in
 \code{ref_landmarks} for the reference distance, since that calculation is
-independent of the per-landmark decomposition.}
+independent of the per-landmark decomposition. Only used at \code{level = "landmarks"}; ignored (with a warning) otherwise -- use
+\code{exclude_traits} instead.}
+
+\item{exclude_traits}{Optional character vector of segment or ratio
+names (e.g. \code{c("Bd", "CFd")} or \code{c("BEl", "CPt")}) to exclude from the
+analysis at \code{level = "segments"}/\code{"ratios"} -- the analogue of
+\code{exclude_landmarks} at those levels. Defaults to \code{NULL} (all traits for
+the chosen \code{level} included). Ignored at \code{level = "landmarks"}.}
 
 \item{normalization}{Character, one of \code{"landmarks"} (default,
 reproducing the original protocol exactly: a single reference distance
@@ -71,7 +107,16 @@ over all digitized replicates of that species), \code{"standard_length"}
 \code{"centroid_size"} (each individual's own mean landmark configuration
 centroid size, averaged over its replicates, as recommended by
 Bookstein, 1991, and discussed as a methodological improvement in
-Boutic, 2026).}
+Boutic, 2026). Only used at \code{level = "landmarks"}; at \code{level = "segments"}/\code{"ratios"} bias is always expressed relative to each
+trait's own consensus value instead (see \code{level}).}
+
+\item{scale_cm}{Numeric, passed to \code{\link[=fishmorph_segments]{fishmorph_segments()}} when \code{level = "segments"}/\code{"ratios"} (the real-world distance, in centimetres,
+represented by the scale bar at landmarks 20-21; see
+\code{\link[=fishmorph_segments]{fishmorph_segments()}}). Defaults to \code{1}. Ignored at \code{level = "landmarks"}.}
+
+\item{no_caudal_fin, ventral_mouth, no_pectoral_fin}{Passed to
+\code{\link[=fishmorph_ratios]{fishmorph_ratios()}} when \code{level = "ratios"} (ignored otherwise); see
+there for details. Default to \code{FALSE}.}
 
 \item{digits}{Integer, number of decimal places to round percentages to.
 Defaults to \code{4}.}
@@ -83,47 +128,82 @@ Defaults to \code{4}.}
 \value{
 An object of class \code{"intrait_digitization_error"}, a list with:
 \describe{
-\item{\code{landmark_individual}}{\code{data.frame}, one row per
-individual x landmark combination, with \code{n_rep}, \code{mean_dist_pct}
-(mean distance of replicates to their consensus position),
-\code{sd_dist_pct} (standard deviation of that distance across
-replicates) and \code{rms_dist_pct} (root-mean-square distance), all
-expressed as a percentage of the relevant reference distance.}
-\item{\code{by_landmark}}{\code{data.frame}, one row per landmark, aggregating
-\code{landmark_individual} across all individuals (mean, median, sd of
-\code{sd_dist_pct}), ordered by increasing median bias, in the spirit
-of the by-landmark boxplot of Boutic (2026, Figure 3).}
+\item{\code{landmark_individual}}{(\code{level = "landmarks"} only) \code{data.frame},
+one row per individual x landmark combination, with \code{n_rep},
+\code{mean_dist_pct} (mean distance of replicates to their consensus
+position), \code{sd_dist_pct} (standard deviation of that distance
+across replicates) and \code{rms_dist_pct} (root-mean-square distance),
+all expressed as a percentage of the relevant reference distance.}
+\item{\code{segment_individual}}{(\code{level = "segments"} only) \code{data.frame},
+the analogue of \code{landmark_individual} with a \code{segment} column (one
+of the 11 \code{\link[=fishmorph_segments]{fishmorph_segments()}} measurement names) in place of
+\code{landmark}, and \code{mean_dist_pct}/\code{sd_dist_pct}/\code{rms_dist_pct}
+expressed as a percentage of that segment's own consensus value for
+the individual (see \code{level}), rather than of a shared reference
+distance.}
+\item{\code{ratio_individual}}{(\code{level = "ratios"} only) \code{data.frame}, the
+analogue of \code{landmark_individual} with a \code{ratio} column (one of the
+9 \code{\link[=fishmorph_ratios]{fishmorph_ratios()}} names) in place of \code{landmark}, likewise
+expressed as a percentage of that ratio's own consensus value.}
+\item{\code{by_landmark}}{(\code{level = "landmarks"} only) \code{data.frame}, one
+row per landmark, aggregating \code{landmark_individual} across all
+individuals (mean, median, sd of \code{sd_dist_pct}), ordered by
+increasing median bias, in the spirit of the by-landmark boxplot of
+Boutic (2026, Figure 3).}
+\item{\code{by_segment}}{(\code{level = "segments"} only) the analogue of
+\code{by_landmark}, one row per segment.}
+\item{\code{by_ratio}}{(\code{level = "ratios"} only) the analogue of
+\code{by_landmark}, one row per ratio.}
 \item{\code{by_individual}}{\code{data.frame}, one row per individual,
-aggregating \code{landmark_individual} across landmarks.}
+aggregating \code{landmark_individual}/\code{segment_individual}/
+\code{ratio_individual} across landmarks/segments/ratios; the trait-count
+column is named \code{n_landmarks}, \code{n_segments}, or \code{n_ratios}
+depending on \code{level}.}
 \item{\code{by_species}}{\code{data.frame}, one row per species, aggregating
 \code{by_individual} across individuals (mean and sd of individual
 bias).}
 \item{\code{global}}{One-row \code{data.frame}, the overall (community-level)
 digitization bias, aggregating \code{by_individual} across all
 individuals and species.}
-\item{\code{normalization}}{The normalization method used.}
-\item{\code{reference_distance}}{Named numeric vector (species-level
-reference distances) if \code{normalization = "landmarks"}, or a
-per-individual named numeric vector otherwise.}
-\item{\code{excluded_landmarks}}{Integer vector of landmark indices
-excluded from the analysis via \code{exclude_landmarks}, or \code{NULL}.}
+\item{\code{level}}{The \code{level} used.}
+\item{\code{normalization}}{(\code{level = "landmarks"} only) the normalization
+method used; \code{NA} otherwise.}
+\item{\code{reference_distance}}{(\code{level = "landmarks"} only) named
+numeric vector (species-level reference distances) if
+\code{normalization = "landmarks"}, or a per-individual named numeric
+vector otherwise; \code{NULL} otherwise.}
+\item{\code{excluded_landmarks}}{(\code{level = "landmarks"} only) integer
+vector of landmark indices excluded via \code{exclude_landmarks}, or
+\code{NULL}.}
+\item{\code{excluded_traits}}{(\code{level = "segments"}/\code{"ratios"} only)
+character vector of segment/ratio names excluded via
+\code{exclude_traits}, or \code{NULL}.}
 }
 Has a dedicated print method; \code{\link[=plot.intrait_digitization_error]{plot.intrait_digitization_error()}}
-reproduces the ordered by-landmark boxplot of the original report.
+reproduces the ordered by-landmark (or by-segment/by-ratio) boxplot of
+the original report.
+
+Invisibly returns \code{x}.
+
+Invisibly returns \code{x}.
 }
 \description{
 Estimates the digitization error introduced by manual landmark placement
 from repeated digitizations of the same specimens, and decomposes it
-hierarchically across landmarks, individuals, species and (optionally)
-sampling sites. For each landmark and each individual, error is
-quantified as the dispersion of the repeated landmark positions around
-their mean (consensus) position, normalised by a reference distance so
-that it is comparable across specimens and species of different sizes.
-This implements the protocol developed by Boutic (2026, unpublished
-internship report, CRBE / INTRAIT project) to quantify operator bias in
-the digitization of freshwater fish morphological landmarks from French
-Guiana, prior to estimating intraspecific trait variability with
-\code{\link[=itv_index]{itv_index()}}.
+hierarchically across landmarks (or derived traits), individuals, species
+and (optionally) sampling sites. For each landmark and each individual,
+error is quantified as the dispersion of the repeated landmark positions
+around their mean (consensus) position, normalised by a reference
+distance so that it is comparable across specimens and species of
+different sizes. This implements the protocol developed by Boutic (2026,
+unpublished internship report, CRBE / INTRAIT project) to quantify
+operator bias in the digitization of freshwater fish morphological
+landmarks from French Guiana, prior to estimating intraspecific trait
+variability with \code{\link[=itv_index]{itv_index()}}. The same repeated-digitization design can
+also be propagated through \code{\link[=fishmorph_segments]{fishmorph_segments()}} and \code{\link[=fishmorph_ratios]{fishmorph_ratios()}}
+via \code{level}, to ask how much of that raw-landmark noise actually survives
+into the derived linear measurements and ecomorphological ratios used
+downstream (see Details).
 }
 \details{
 For a given landmark and individual, with replicate coordinates
@@ -147,6 +227,44 @@ species to overall community, mirroring the original protocol exactly
 (rather than, e.g., pooling all replicates directly, which would
 implicitly weight species/individuals with more replicates or more
 landmarks more heavily).
+
+\strong{\code{level = "segments"}/\code{"ratios"}.} Each replicate's landmarks are
+first collapsed to a single scalar per trait -- 11 linear measurements
+via \code{\link[=fishmorph_segments]{fishmorph_segments()}} (\code{na_action = "keep"}, so a specimen missing a
+landmark a given segment needs simply propagates \code{NA} for that
+segment/replicate, exactly as a missing landmark already propagates \code{NA}
+at \code{level = "landmarks"}), or, for \code{level = "ratios"}, 9 further ratios of
+those segments via \code{\link[=fishmorph_ratios]{fishmorph_ratios()}}. For a given trait and
+individual, with replicate values \eqn{v_i} and consensus (mean)
+\eqn{\bar{v}}, the (one-dimensional) deviation \eqn{d_i = |v_i -
+\bar{v}|} is expressed as a percentage of \eqn{\bar{v}} itself, i.e. a
+coefficient-of-variation-like quantity local to that individual and
+trait -- unlike \code{level = "landmarks"}, no external reference distance is
+involved, since one would not be meaningful across traits of very
+different units and scale (\code{ref_landmarks}, \code{exclude_landmarks}, and
+\code{normalization} are consequently ignored at these levels; use
+\code{exclude_traits} to drop a segment/ratio from the analysis instead).
+\eqn{d_i / \bar{v}} is undefined (\code{NA}) if \eqn{\bar{v} = 0}, which can
+occur for a ratio forced to exactly \code{0} by \code{ventral_mouth} or
+\code{no_pectoral_fin} for every replicate of a given individual.
+
+This decomposition exposes a methodologically useful asymmetry between
+the two derived levels. Every segment is converted from digitized pixels
+to centimetres using that specimen's \emph{own} scale bar (landmarks 20-21,
+\code{\link[=fishmorph_segments]{fishmorph_segments()}}), digitized independently on every replicate; so
+\code{level = "segments"} bias mixes true body-landmark placement error with
+this additional, per-replicate scale-bar digitization noise. A ratio,
+however, divides two segments computed from the \emph{same} replicate, so
+the (possibly noisy) per-replicate scale factor is a common multiplicative
+term in numerator and denominator and cancels out exactly, regardless of
+how much that replicate's scale bar itself varied from the specimen's
+true 1 cm reference. \code{level = "ratios"} therefore isolates digitization
+error attributable specifically to body-shape (landmark placement),
+filtering out scale-bar calibration noise entirely -- comparing
+\code{by_segment} against \code{by_ratio} for the same data set separates these two
+error sources (a segment with high bias but whose associated ratios show
+little to no bias points to scale-bar digitization, rather than
+body-landmark placement, as the dominant source of that segment's error).
 
 As discussed at length in Boutic (2026), this normalized-Euclidean-
 distance approach is a simplification relative to the geometric
@@ -198,6 +316,22 @@ derr_fm <- digitization_error(
 )
 derr_fm$by_landmark
 
+# level = "segments": does raw-landmark digitization noise survive into
+# the 11 linear FISHMORPH measurements? (mixes body-landmark placement
+# error with per-replicate scale-bar digitization noise, see Details)
+derr_seg <- digitization_error(
+  fish_fm, individual = fish_fm$metadata$individual, level = "segments"
+)
+derr_seg$by_segment
+
+# level = "ratios": the 9 dimensionless ratios cancel out any per-
+# replicate scale-bar noise, isolating body-shape digitization error --
+# comparing this against derr_seg$by_segment separates the two sources:
+derr_rat <- digitization_error(
+  fish_fm, individual = fish_fm$metadata$individual, level = "ratios"
+)
+derr_rat$by_ratio
+
 }
 \references{
 Boutic L (2026). Quantification du biais opérateur dans la mesure des
@@ -222,5 +356,5 @@ Systematic Biology, 41(4), 471-482.
 \seealso{
 \code{\link[=measurement_error]{measurement_error()}}, \code{\link[=detect_outliers]{detect_outliers()}}, \code{\link[=itv_index]{itv_index()}},
 \code{\link[=simulate_fish_landmarks]{simulate_fish_landmarks()}}, \code{\link[=fishmorph_segments]{fishmorph_segments()}},
-\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}
+\code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}
 }

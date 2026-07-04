@@ -7,7 +7,8 @@
 \usage{
 load_t26_saudrune_landmarks(
   source = c("operators", "repeatability"),
-  species = NULL
+  species = NULL,
+  operator = NULL
 )
 }
 \arguments{
@@ -22,6 +23,21 @@ only specimens identified (curated or preliminary) as one of these
 species are kept. Defaults to \code{NULL} (every fish is kept, including
 the single specimen with an unresolved identification, for which
 \code{metadata$species} is \code{NA}; see \code{\link[=load_t26_saudrune]{load_t26_saudrune()}}).}
+
+\item{operator}{\code{NULL} (default, every operator's digitizations are
+returned), or a character vector of one or more anonymous operator
+labels (e.g. \code{"Operator_1"}; see \code{unique(load_t26_saudrune(source)$operator)}
+for the labels available for a given \code{source}) to restrict to. This
+is the natural way to build \strong{two separate functional trait spaces},
+one per operator, from \code{source = "operators"} (each fish was
+digitized once by each of two operators) — e.g. to check whether
+\code{\link[=trait_space]{trait_space()}} or \code{\link[=fishmorph_ratios]{fishmorph_ratios()}} results are sensitive to who
+did the digitizing, complementing the landmark-level view of
+\code{\link[=digitization_error]{digitization_error()}}. Modular by design: if the requested \code{source}
+has no \code{operator} column, \code{operator} is ignored with a warning and
+every row is returned (in practice every \code{source} currently offered
+here does have one, but this keeps the function robust to future
+\code{source} options that might not).}
 }
 \value{
 An object of class \code{"intrait_landmarks"}, a list with elements
@@ -67,6 +83,15 @@ gobio_squalius <- load_t26_saudrune_landmarks(
   species = c("Gobio occitaniae", "Squalius cephalus")
 )
 dim(gobio_squalius$coords)
+
+# build two separate functional trait spaces, one per operator, to check
+# whether the two digitizers' morphospaces agree:
+fish_op1 <- load_t26_saudrune_landmarks(operator = "Operator_1")
+fish_op2 <- load_t26_saudrune_landmarks(operator = "Operator_2")
+ratios_op1 <- fishmorph_ratios(fishmorph_segments(fish_op1))
+ratios_op2 <- fishmorph_ratios(fishmorph_segments(fish_op2))
+ts_op1 <- trait_space(ratios_op1, groups = fish_op1$metadata$species, na_action = "omit")
+ts_op2 <- trait_space(ratios_op2, groups = fish_op2$metadata$species, na_action = "omit")
 
 }
 \references{

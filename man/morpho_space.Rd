@@ -2,9 +2,12 @@
 % Please edit documentation in R/morpho_space.R
 \name{morpho_space}
 \alias{morpho_space}
+\alias{print.intrait_morphospace}
 \title{Build a morphological space from Procrustes shape coordinates}
 \usage{
 morpho_space(gpa, groups = NULL, axes = c(1, 2))
+
+\method{print}{intrait_morphospace}(x, ...)
 }
 \arguments{
 \item{gpa}{An object of class \code{"intrait_gpa"}, as returned by
@@ -17,6 +20,9 @@ contains a \code{species} column, it is used automatically.}
 
 \item{axes}{Integer vector of length 2, the principal components to
 retain for plotting (defaults to \code{c(1, 2)}).}
+
+\item{x}{An object of class \code{"intrait_morphospace"}, as returned by
+\code{\link[=morpho_space]{morpho_space()}}.}
 }
 \value{
 An object of class \code{"intrait_morphospace"}, a list with
@@ -24,6 +30,8 @@ elements \code{scores} (data.frame of PC scores), \code{sdev} (standard
 deviations of all PCs), \code{var_explained} (percent variance explained by
 the two selected axes), \code{rotation} (PCA loadings), \code{groups}, and
 \code{axes}. Has a dedicated \code{\link[=plot]{plot()}} method.
+
+Invisibly returns \code{x}.
 }
 \description{
 Performs a Principal Component Analysis of Procrustes-aligned shape
@@ -32,9 +40,12 @@ standard ordination used to visualise and compare shape variation among
 specimens, populations or species in geometric morphometrics.
 }
 \examples{
-fish <- simulate_fish_landmarks(n_per_species = 8, n_replicates = 1)
-gpa <- gpa_fish(fish)
-ms <- morpho_space(gpa, groups = fish$metadata$species)
+# real T-26 Saudrune data (see ?fishmorph_shape_landmarks for why the
+# scale bar and incomplete/unidentified specimens are dropped first):
+fish <- load_t26_saudrune_landmarks()
+fish_shape <- fishmorph_shape_landmarks(fish)
+gpa <- gpa_fish(fish_shape)
+ms <- morpho_space(gpa, groups = fish_shape$metadata$species)
 ms
 \donttest{
 plot(ms)

@@ -132,6 +132,12 @@ measurement_error <- function(x, individual = NULL, method = c("anova", "procrus
   structure(result, class = "intrait_measurement_error")
 }
 
+#' Print an `"intrait_measurement_error"` object
+#'
+#' @param x An object of class `"intrait_measurement_error"`, as returned by
+#'   [measurement_error()].
+#' @param ... Currently unused.
+#' @return Invisibly returns `x`.
 #' @export
 print.intrait_measurement_error <- function(x, ...) {
   cat("<intrait_measurement_error>\n")

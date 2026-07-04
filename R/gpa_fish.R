@@ -36,11 +36,16 @@
 #' optimal superimposition of landmarks. Systematic Zoology, 39(1), 40-59.
 #'
 #' @seealso [morpho_space()], [correct_allometry()],
-#'   [intraspecific_variability()]
+#'   [intraspecific_variability()], [fishmorph_shape_landmarks()]
 #'
 #' @examples
-#' fish <- simulate_fish_landmarks(n_per_species = 5, n_replicates = 1)
-#' gpa <- gpa_fish(fish)
+#' # real T-26 Saudrune data; GPA aligns *shape* only, so the FISHMORPH
+#' # scale bar (points 20-21, a calibration segment, not a body landmark)
+#' # must first be dropped, along with any specimen missing a landmark --
+#' # fishmorph_shape_landmarks() does both:
+#' fish <- load_t26_saudrune_landmarks()
+#' fish_shape <- fishmorph_shape_landmarks(fish)
+#' gpa <- gpa_fish(fish_shape)
 #' gpa
 #'
 #' @export
@@ -62,7 +67,11 @@ gpa_fish <- function(landmarks, ...) {
   )
 }
 
+#' @return Invisibly returns `x`.
 #' @export
+#' @rdname gpa_fish
+#' @param x An object to print: an `"intrait_gpa"` (from `gpa_fish()`) or
+#'   `"summary.intrait_gpa"` (from `summary()` on one) object.
 print.intrait_gpa <- function(x, ...) {
   d <- dim(x$coords)
   cat("<intrait_gpa> Procrustes-aligned landmark configurations\n")
@@ -75,7 +84,11 @@ print.intrait_gpa <- function(x, ...) {
   invisible(x)
 }
 
+#' @return A list of class `"summary.intrait_gpa"` (see `print.summary.intrait_gpa()`), returned visibly.
 #' @export
+#' @rdname gpa_fish
+#' @param object An object of class `"intrait_gpa"`, as returned by
+#'   `gpa_fish()`.
 summary.intrait_gpa <- function(object, ...) {
   d <- dim(object$coords)
   out <- list(
@@ -88,7 +101,9 @@ summary.intrait_gpa <- function(object, ...) {
   out
 }
 
+#' @return Invisibly returns `x`.
 #' @export
+#' @rdname gpa_fish
 print.summary.intrait_gpa <- function(x, ...) {
   cat("Procrustes-aligned landmark configurations (intrait_gpa)\n")
   cat(sprintf("  Specimens : %d\n", x$n_specimens))

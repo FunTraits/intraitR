@@ -37,3 +37,36 @@ test_that("load_t26_saudrune_landmarks() can restrict to a subset of species", {
   expect_true(all(sub$metadata$species %in% c("Gobio occitaniae", "Squalius cephalus")))
   expect_lt(dim(sub$coords)[3], dim(load_t26_saudrune_landmarks()$coords)[3])
 })
+
+test_that("load_t26_saudrune_landmarks()'s `operator` argument builds separate, non-overlapping functional spaces", {
+  fish_all <- load_t26_saudrune_landmarks()
+  fish_op1 <- load_t26_saudrune_landmarks(operator = "Operator_1")
+  fish_op2 <- load_t26_saudrune_landmarks(operator = "Operator_2")
+
+  expect_true(all(fish_op1$metadata$operator == "Operator_1"))
+  expect_true(all(fish_op2$metadata$operator == "Operator_2"))
+  # each fish was digitized once by each operator: filtering to one operator
+  # halves the number of specimens, and every fish appears exactly once
+  expect_equal(dim(fish_op1$coords)[3], dim(fish_all$coords)[3] / 2)
+  expect_equal(dim(fish_op2$coords)[3], dim(fish_all$coords)[3] / 2)
+  expect_equal(length(unique(fish_op1$metadata$individual)), dim(fish_op1$coords)[3])
+  expect_setequal(fish_op1$metadata$individual, fish_op2$metadata$individual)
+
+  # downstream functions run unaffected on either single-operator subset
+  ratios_op1 <- fishmorph_ratios(fishmorph_segments(fish_op1))
+  ratios_op2 <- fishmorph_ratios(fishmorph_segments(fish_op2))
+  expect_equal(nrow(ratios_op1), dim(fish_op1$coords)[3])
+  expect_equal(nrow(ratios_op2), dim(fish_op2$coords)[3])
+
+  # modular: `source = "repeatability"` has a single (anonymised) operator,
+  # so requesting it explicitly is a no-op, not an error
+  rep_all <- load_t26_saudrune_landmarks(source = "repeatability")
+  rep_op2 <- load_t26_saudrune_landmarks(source = "repeatability", operator = "Operator_2")
+  expect_equal(dim(rep_op2$coords)[3], dim(rep_all$coords)[3])
+
+  # an operator with no digitizations in this source is an informative error
+  expect_error(
+    load_t26_saudrune_landmarks(source = "repeatability", operator = "Operator_1"),
+    "does not match"
+  )
+})

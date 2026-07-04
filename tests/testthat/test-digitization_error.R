@@ -178,3 +178,180 @@ test_that("print.intrait_digitization_error() and plot method run without error"
   grDevices::dev.off()
   unlink(tmp)
 })
+
+# --- level = "segments" / "ratios" -----------------------------------------
+
+make_fishmorph_replicate_array <- function(n_replicates = 3, delta4 = c(0, 30, -30)) {
+  # A 21-landmark FISHMORPH configuration for two individuals ("indA",
+  # "indB"), `n_replicates` digitization replicates each. indB's replicates
+  # are byte-identical (a zero-digitization-noise baseline); indA's
+  # replicates perturb *only* landmark 4's Y coordinate (by `delta4`, which
+  # must sum to zero so the perturbed segment's own consensus/mean is
+  # unaffected by the perturbation). Landmark 4 feeds only one of the 11
+  # segments (Bd = dist(3, 4)), so this induces a known, hand-computable
+  # dispersion in Bd -- and in every ratio with Bd in its denominator (BEl,
+  # VEp, OGp, BLs, PFv) -- while every other segment/ratio remains exactly
+  # constant across replicates. The scale bar (20, 21) is identical and
+  # un-perturbed across every replicate (length 400 px), so px_to_cm is a
+  # constant 1/400 throughout and introduces no noise of its own.
+  stopifnot(length(delta4) == n_replicates, abs(sum(delta4)) < 1e-8)
+  base_pts <- list(
+    `1` = c(1000, 5000), `2` = c(9000, 5000),
+    `3` = c(3000, 7000), `4` = c(3000, 4000),
+    `5` = c(4500, 6500), `6` = c(4500, 4500), `7` = c(4500, 4900), `8` = c(4500, 4000),
+    `9` = c(1000, 4000), `10` = c(6000, 6500), `11` = c(6000, 4000),
+    `12` = c(7000, 6500), `13` = c(4500, 5100), `14` = c(4500, 4700), `15` = c(1500, 4500),
+    `16` = c(8000, 7000), `17` = c(8000, 3000), `18` = c(9000, 7500), `19` = c(9000, 2500),
+    `20` = c(500, -3000), `21` = c(900, -3000)
+  )
+  obs_names <- c(paste0("indA_rep", seq_len(n_replicates)), paste0("indB_rep", seq_len(n_replicates)))
+  n_obs <- length(obs_names)
+  A <- array(0, dim = c(21, 2, n_obs), dimnames = list(NULL, c("X", "Y"), obs_names))
+  for (i in as.integer(names(base_pts))) {
+    for (o in seq_len(n_obs)) A[i, , o] <- base_pts[[as.character(i)]]
+  }
+  for (r in seq_len(n_replicates)) A[4, "Y", r] <- A[4, "Y", r] + delta4[r]
+  A
+}
+
+make_fishmorph_replicate_landmarks <- function(n_replicates = 3, delta4 = c(0, 30, -30)) {
+  A <- make_fishmorph_replicate_array(n_replicates, delta4)
+  structure(
+    list(
+      coords = A,
+      metadata = data.frame(
+        specimen = dimnames(A)[[3]], species = rep("Species_A", dim(A)[3]),
+        row.names = dimnames(A)[[3]]
+      )
+    ),
+    class = "intrait_landmarks"
+  )
+}
+
+test_that("digitization_error() computes segment-level bias correctly (level = 'segments')", {
+  landmarks <- make_fishmorph_replicate_landmarks()
+  individual <- rep(c("indA", "indB"), each = 3)
+
+  derr <- digitization_error(landmarks, individual = individual, level = "segments")
+  expect_s3_class(derr, "intrait_digitization_error")
+  expect_equal(derr$level, "segments")
+  expect_true(all(c("segment_individual", "by_segment", "by_individual", "by_species", "global") %in% names(derr)))
+  expect_null(derr$landmark_individual)
+  expect_null(derr$by_landmark)
+
+  expect_equal(nrow(derr$segment_individual), 11 * 2)
+  expect_equal(nrow(derr$by_segment), 11)
+
+  si <- derr$segment_individual
+
+  # indB's replicates are byte-identical: every segment has exactly zero
+  # dispersion.
+  b <- si[si$individual == "indB", ]
+  expect_true(all(b$sd_dist_pct == 0))
+  expect_true(all(b$mean_dist_pct == 0))
+
+  # indA: only landmark 4 was perturbed, so only Bd (= dist(3, 4)) shows any
+  # dispersion; every other segment remains exactly as constant as for indB.
+  a <- si[si$individual == "indA", ]
+  a_bd <- a[a$segment == "Bd", ]
+  a_other <- a[a$segment != "Bd", ]
+  expect_true(a_bd$sd_dist_pct > 0)
+  expect_true(all(a_other$sd_dist_pct == 0))
+
+  # Bd_px: base 3000, perturbed to 2970 and 3030 (symmetric, mean unchanged
+  # at 3000); the scale bar is identical across replicates so px_to_cm is
+  # constant and cancels in the percentage, leaving exactly the raw-pixel
+  # percentages: |3000-3000|, |2970-3000|, |3030-3000| relative to a mean of
+  # 3000 -> 0, 1, 1 (%).
+  expect_equal(a_bd$mean_dist_pct, round(mean(c(0, 1, 1)), 4))
+  expect_equal(a_bd$sd_dist_pct, round(stats::sd(c(0, 1, 1)), 4))
+  expect_equal(a_bd$rms_dist_pct, round(sqrt(mean(c(0, 1, 1)^2)), 4))
+})
+
+test_that("digitization_error() computes ratio-level bias and isolates scale-bar-independent shape error (level = 'ratios')", {
+  landmarks <- make_fishmorph_replicate_landmarks()
+  individual <- rep(c("indA", "indB"), each = 3)
+
+  derr <- digitization_error(landmarks, individual = individual, level = "ratios")
+  expect_s3_class(derr, "intrait_digitization_error")
+  expect_equal(derr$level, "ratios")
+  expect_true(all(c("ratio_individual", "by_ratio") %in% names(derr)))
+
+  expect_equal(nrow(derr$ratio_individual), 9 * 2)
+  expect_equal(nrow(derr$by_ratio), 9)
+
+  ri <- derr$ratio_individual
+
+  # indB: fully identical replicates -> zero dispersion for every ratio.
+  b <- ri[ri$individual == "indB", ]
+  expect_true(all(b$sd_dist_pct == 0))
+
+  # indA: only Bd varies across replicates, so only the five ratios with Bd
+  # in the denominator (BEl, VEp, OGp, BLs, PFv) show dispersion; the four
+  # ratios that never involve Bd (REs, RMl, PFs, CPt) stay exactly zero,
+  # even though Bd itself is not constant for indA -- this is the key
+  # property that makes ratio-level bias immune to per-replicate scale-bar
+  # noise too (a common multiplicative factor cancels in a ratio of two
+  # segments from the same replicate).
+  a <- ri[ri$individual == "indA", ]
+  bd_ratios <- c("BEl", "VEp", "OGp", "BLs", "PFv")
+  other_ratios <- c("REs", "RMl", "PFs", "CPt")
+  expect_true(all(a$sd_dist_pct[a$ratio %in% bd_ratios] > 0))
+  expect_true(all(a$sd_dist_pct[a$ratio %in% other_ratios] == 0))
+})
+
+test_that("digitization_error() excludes traits via exclude_traits at the segments/ratios levels", {
+  landmarks <- make_fishmorph_replicate_landmarks()
+  individual <- rep(c("indA", "indB"), each = 3)
+
+  derr <- digitization_error(
+    landmarks, individual = individual, level = "segments",
+    exclude_traits = c("Bd", "Bl")
+  )
+  expect_false(any(c("Bd", "Bl") %in% derr$segment_individual$segment))
+  expect_equal(nrow(derr$by_segment), 9)
+  expect_equal(derr$excluded_traits, c("Bd", "Bl"))
+
+  expect_error(
+    digitization_error(landmarks, individual = individual, level = "segments", exclude_traits = "NotAThing"),
+    "unknown segment"
+  )
+  expect_error(
+    digitization_error(
+      landmarks, individual = individual, level = "segments",
+      exclude_traits = c("Bl", "Bd", "Hd", "Eh", "Mo", "PFi", "PFl", "Ed", "Jl", "CPd", "CFd")
+    ),
+    "nothing left to analyse"
+  )
+})
+
+test_that("digitization_error() warns if exclude_landmarks is passed at level != 'landmarks'", {
+  landmarks <- make_fishmorph_replicate_landmarks()
+  individual <- rep(c("indA", "indB"), each = 3)
+
+  expect_warning(
+    digitization_error(landmarks, individual = individual, level = "segments", exclude_landmarks = c(20, 21)),
+    "exclude_landmarks.*ignored"
+  )
+})
+
+test_that("print/plot work at the segments and ratios levels", {
+  landmarks <- make_fishmorph_replicate_landmarks()
+  individual <- rep(c("indA", "indB"), each = 3)
+
+  derr_seg <- digitization_error(landmarks, individual = individual, level = "segments")
+  expect_output(print(derr_seg), "segment")
+  tmp <- tempfile(fileext = ".png")
+  grDevices::png(tmp)
+  expect_error(plot(derr_seg), NA)
+  grDevices::dev.off()
+  unlink(tmp)
+
+  derr_rat <- digitization_error(landmarks, individual = individual, level = "ratios")
+  expect_output(print(derr_rat), "ratio")
+  tmp2 <- tempfile(fileext = ".png")
+  grDevices::png(tmp2)
+  expect_error(plot(derr_rat), NA)
+  grDevices::dev.off()
+  unlink(tmp2)
+})

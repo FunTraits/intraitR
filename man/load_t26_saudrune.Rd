@@ -11,15 +11,50 @@ operators; identifications curated with AI-vision assistance by A.
 Toussaint (CNRS). Raw spreadsheets are not distributed with the
 package (only the cleaned, analysis-ready tables are); see
 \code{data-raw/t26_saudrune_prepare.R} for the full cleaning/QC pipeline.
+Operator identity is not itself of biological interest and is not
+personally identifiable in the shipped data: the \code{operator} column
+records anonymous labels (\code{"Operator_1"}, \code{"Operator_2"}) rather than
+the real names recorded in the original field spreadsheets, assigned
+consistently across the \code{"operators"} and \code{"repeatability"} tables
+(see \code{data-raw/t26_saudrune_prepare.R}).
 }
 \usage{
 load_t26_saudrune(
-  dataset = c("operators", "repeatability", "identifications", "qc_log")
+  dataset = c("operators", "repeatability", "identifications", "qc_log"),
+  operator = NULL,
+  species = FALSE
 )
 }
 \arguments{
 \item{dataset}{Character, one of \code{"operators"} (default),
 \code{"repeatability"}, \code{"identifications"}, or \code{"qc_log"}. See Details.}
+
+\item{operator}{\code{NULL} (default, all data returned), or a character
+vector of one or more operator labels (e.g. \code{"Operator_1"}) to
+restrict the returned rows to. Modular by design: if \code{dataset} has no
+\code{operator} column (as for \code{"identifications"} and \code{"qc_log"}, or any
+future dataset added without one), \code{operator} is ignored with a
+warning and every row is returned, rather than erroring. Useful to
+build two separate functional trait spaces, one per operator, from
+the \code{"operators"} table (see \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}} for the
+more convenient \code{"intrait_landmarks"}-object version of this).}
+
+\item{species}{Logical, defaults to \code{FALSE}. If \code{TRUE}, left-joins the
+\code{species} and \code{id_status} columns from the \code{"identifications"} table
+onto \code{dataset}, matched by \code{code} (a plain \code{\link[=match]{match()}} lookup, not
+\code{\link[=merge]{merge()}}, so that the many rows sharing the same \code{code} in the
+long-format \code{"operators"}/\code{"repeatability"} tables -- one per
+landmark, and per operator/replicate -- keep their original row
+order exactly). \code{species} is deliberately \code{FALSE} by default: the
+landmark tables and the identification table are two separate,
+independently versioned data products (a landmark measurement never
+needs to know a species; an identification can be revised without
+touching a single coordinate), and joining them ties every landmark
+row to a species call that -- per \code{id_status} -- is not always fully
+curated. Modular by design: if \code{dataset} has no \code{code} column,
+\code{species} is ignored with a warning rather than erroring; if
+\code{dataset = "identifications"} (which already has \code{species}), it is a
+harmless no-op.}
 }
 \value{
 A \code{data.frame}:
@@ -82,6 +117,21 @@ ops <- load_t26_saudrune("operators")
 str(ops)
 ident <- load_t26_saudrune("identifications")
 table(ident$species, ident$id_status)
+
+# restrict to a single operator's digitizations (see `operator`); ignored
+# with a warning, rather than an error, for tables with no operator
+# column, e.g. "identifications":
+unique(ops$operator)
+op1 <- load_t26_saudrune("operators", operator = "Operator_1")
+nrow(op1) < nrow(ops)
+
+# the raw "operators"/"repeatability" tables carry `code`, not `species`
+# (species lives in "identifications" by design, see @param species);
+# species = TRUE restores it, one join, in original row order:
+"species" \%in\% names(ops)
+ops_sp <- load_t26_saudrune("operators", species = TRUE)
+c("species", "id_status") \%in\% names(ops_sp)
+identical(ops_sp$code, ops$code)
 
 }
 \references{

@@ -1,5 +1,12 @@
 # intraitR
 
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/FunTraits/intraitR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/FunTraits/intraitR/actions/workflows/R-CMD-check.yaml)
+[![test-coverage](https://github.com/FunTraits/intraitR/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/FunTraits/intraitR/actions/workflows/test-coverage.yaml)
+[![Codecov test coverage](https://codecov.io/gh/FunTraits/intraitR/branch/main/graph/badge.svg)](https://codecov.io/gh/FunTraits/intraitR)
+[![pkgdown](https://github.com/FunTraits/intraitR/actions/workflows/pkgdown.yaml/badge.svg)](https://funtraits.github.io/intraitR/)
+<!-- badges: end -->
+
 `intraitR` is an R package for the analysis of morphological traits in
 freshwater fish: from raw landmark digitization to morphological ratios,
 morphological space, intraspecific variability, and measurement error. It
@@ -24,7 +31,14 @@ fish-specific conveniences for ecomorphological analyses.
    `morpho_space()`. By default, `plot()` shows each group as its
    individual points, dashed segments linking them to the group mean, the
    group mean itself, and a 95% dispersion ellipse (`style = "spider"`);
-   `style = "hull"` recovers the classical convex-hull display.
+   `style = "hull"` recovers the classical convex-hull display, and
+   `style = "density"` draws a non-parametric kernel-density contour
+   instead of the ellipse, for groups whose points are visibly skewed or
+   multimodal. The group legend is drawn just outside the plot box by
+   default (`legend_position = "outside"`) so it never overlaps the data;
+   pass a standard `legend()` keyword (e.g. `"topright"`) for the previous,
+   inside-the-box placement. The same `style`/`legend_position` options
+   are available on `plot.intrait_traitspace()` (from `trait_space()`).
 5. **Assess variability and error**: intraspecific morphological
    variability (`intraspecific_variability()`, combining shape disparity
    and coefficients of variation), measurement error / repeatability from
@@ -39,7 +53,12 @@ quality control of digitization (visual inspection and automatic
 Procrustes-distance-based outlier screening, respectively),
 `summary_traits()` for tidy group-level summaries, and `trait_disparity()`
 for permutation tests of group differences in functional trait
-dispersion.
+dispersion. Both `plot_landmarks()` and `plot_fishmorph_points()` accept a
+`background_image` (a `.jpg`/`.jpeg` or `.png` photograph of the
+specimen), overlaying the digitized landmarks directly on the original
+photograph for visual quality control — e.g. spotting a landmark placed
+off the body outline (requires the `jpeg` or `png` package, matching the
+image format).
 
 ### Digitization error (`digitization_error()`)
 
@@ -98,6 +117,57 @@ specimen:
   as an auxiliary predictor).
 * `plot_fishmorph_points()` and `simulate_fishmorph_points()` visualise
   and simulate data following the 21/22-point scheme.
+* `bootstrap_functional_space()` quantifies how much representing species
+  by real individuals, rather than by their centroid, inflates estimated
+  functional richness (an n-dimensional convex-hull volume in PCA space),
+  following the bootstrap procedure of Bertrand (2026); requires the
+  `geometry` package (Suggested, not installed by default).
+* `species_sensitivity()` complements it with a per-species index
+  (Bertrand, 2026): for each species, its centroid is replaced by each of
+  its individuals in turn (every other species fixed at its centroid),
+  and the resulting percent change in functional richness is summarised
+  as a mean effect and a min-max range, identifying which species drive
+  ITV's expansion of the functional space.
+
+## Performance on large data sets
+
+`bootstrap_functional_space()`, `species_sensitivity()`, and
+`trait_disparity()` all repeat an independent, expensive computation many
+times: `n_boot` bootstrap draws, one convex-hull recomputation per
+individual, and `iter` label permutations, respectively. Two things are
+worth knowing when applying them to a large panel (Bertrand, 2026's
+regional data set, for instance, had 1,302 individuals across 55
+species):
+
+* **Convex-hull cost grows quickly with dimension.** The three functions
+  above rely on `geometry::convhulln()` (Qhull), whose worst-case
+  complexity for `n` points in `d` dimensions is
+  \eqn{O(n^{\lfloor d/2 \rfloor})} (the McMullen, 1970, upper bound
+  theorem on the maximum number of facets of a `d`-dimensional
+  polytope). In practice this means the default 2-3 retained PCA axes
+  (`n_axes`, or the `var_threshold`-based automatic choice) stay fast even
+  for hundreds of species, but requesting a much higher `n_axes` on a
+  species-rich data set can make each individual hull computation
+  noticeably slower — worth keeping in mind before increasing `n_axes`
+  much beyond what `var_threshold` already selects.
+* **Each repeated computation is independent of the others**, so all
+  three functions distribute their loop across worker processes via the
+  (Suggested) [`future.apply`](https://future.apply.futureverse.org/)
+  package when it is installed, with zero configuration required from the
+  package itself: set up a plan once per session with
+  [`future`](https://future.futureverse.org/), e.g.
+
+  ```r
+  future::plan(future::multisession, workers = 4)
+  bfs <- bootstrap_functional_space(ts, n_boot = 2000)  # now parallelised
+  future::plan(future::sequential)  # back to single-core when done
+  ```
+
+  With no `plan()` set, or without `future.apply` installed, all three
+  functions run exactly as before (a plain sequential loop), so this is
+  purely an opt-in speed-up — results are identical either way, since
+  parallel draws use `future.seed = TRUE` (L'Ecuyer-CMRG streams) for
+  reproducible random number generation across workers.
 
 ## Installation
 
@@ -159,6 +229,34 @@ replacement used throughout the package's own examples:
 ```r
 fish <- load_t26_saudrune_landmarks()
 fishmorph_ratios(fishmorph_segments(fish))
+```
+
+Operator identity is anonymised in the shipped data (`"Operator_1"`,
+`"Operator_2"` rather than the real names recorded in the field
+spreadsheets). Both loaders take an `operator` argument to restrict to a
+single operator's digitizations — the natural way to build **two separate
+functional trait spaces**, one per operator, and check whether results are
+sensitive to who did the digitizing:
+
+```r
+fish_op1 <- load_t26_saudrune_landmarks(operator = "Operator_1")
+fish_op2 <- load_t26_saudrune_landmarks(operator = "Operator_2")
+```
+
+`operator` is modular: passed to a table with no `operator` column, it is
+ignored with a warning (all rows are returned) rather than raising an
+error.
+
+`load_t26_saudrune("operators")` and `"repeatability"` are landmark tables
+keyed by `code`, not by species — species identity lives in the separate
+`"identifications"` table by design (a landmark measurement never needs to
+know a species, and identifications can be revised independently of the
+coordinates). Pass `species = TRUE` to join `species`/`id_status` back
+onto either table by `code`:
+
+```r
+ops <- load_t26_saudrune("operators", species = TRUE)
+table(ops$species)
 ```
 
 ## Citation

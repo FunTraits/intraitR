@@ -4,7 +4,14 @@
 \alias{plot_landmarks}
 \title{Plot a single landmark configuration}
 \usage{
-plot_landmarks(landmarks, specimen = 1, labels = TRUE, ...)
+plot_landmarks(
+  landmarks,
+  specimen = 1,
+  labels = TRUE,
+  background_image = NULL,
+  flip_y = TRUE,
+  ...
+)
 }
 \arguments{
 \item{landmarks}{An object of class \code{"intrait_landmarks"} or
@@ -15,6 +22,24 @@ configuration to plot. Defaults to \code{1}.}
 
 \item{labels}{Logical, label landmarks with their index. Defaults to
 \code{TRUE}.}
+
+\item{background_image}{Optional path to a \code{.jpg}/\code{.jpeg} or \code{.png}
+photograph of the specimen, drawn as a background layer beneath the
+landmarks (e.g. to visually check whether a landmark was placed off
+the body outline). Only meaningful for raw, un-aligned digitized
+coordinates (a warning is issued if \code{landmarks} is an
+\code{"intrait_gpa"} object, since Procrustes-aligned coordinates will not
+line up with the original photograph). Requires the (Suggested)
+\code{jpeg} package for \code{.jpg}/\code{.jpeg} files, or \code{png} for \code{.png} files.
+Defaults to \code{NULL} (no background).}
+
+\item{flip_y}{Logical, flip \code{background_image} vertically before
+plotting. Image files are conventionally stored with row 1 at the
+top, while digitized landmark coordinates (as read by
+\code{\link[=read_tps]{read_tps()}}/\code{\link[geomorph:digitize2d]{geomorph::digitize2d()}}) place the origin at the
+bottom-left; the default \code{TRUE} flips the image so it lines up with
+the landmarks without needing to pre-flip the file itself. Ignored
+when \code{background_image} is \code{NULL}.}
 
 \item{...}{Further arguments passed to \code{\link[graphics:plot]{graphics::plot()}}.}
 }
@@ -28,8 +53,14 @@ optionally numbered, for quality control of digitization and
 configuration checking.
 }
 \examples{
-fish <- simulate_fish_landmarks(n_per_species = 3, n_replicates = 1)
+fish <- load_t26_saudrune_landmarks()
 plot_landmarks(fish, specimen = 1)
+
+\dontrun{
+# Overlay the original photograph (requires the "jpeg" package and a
+# photograph in the same pixel coordinate system as `fish`'s landmarks):
+plot_landmarks(fish, specimen = 1, background_image = "specimen1.jpg")
+}
 
 }
 \seealso{

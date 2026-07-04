@@ -39,6 +39,33 @@ IPATH <- "T_26_LaSaudrune/T-26_identifications_pilote.xlsx"
 OUTDIR <- "inst/extdata/T26_Saudrune"
 dir.create(OUTDIR, showWarnings = FALSE, recursive = TRUE)
 
+## Operator anonymisation --------------------------------------------------
+## The raw spreadsheets identify each digitizing operator by their real
+## surname (in the "Utilisateur" column of the "Principal"/"Biais_ut"
+## sheets, read below). Since operator identity is not itself a biological
+## variable of interest and does not need to be personally identifiable to
+## be useful (only the fact that two *different* operators, or repeated
+## digitizations by the *same* operator, were involved matters for
+## measurement_error()/digitization_error()), every operator name is
+## replaced with an anonymous "Operator_<n>" label before writing the
+## analysis-ready tables. `specimen` identifiers built from the operator
+## name (Principal sheet) are anonymised the same way, since otherwise the
+## real name would leak back in via that column. The mapping is built once
+## below, from the union of operator names across *both* sheets (matched
+## case-insensitively, since the same person appears as "Rougean" in one
+## sheet and "ROUGEAN" in the other), and applied consistently everywhere
+## so that the same real person always maps to the same anonymous label
+## regardless of which sheet or capitalisation is encountered.
+.build_operator_map <- function(...) {
+  raw <- trimws(as.character(unlist(list(...))))
+  raw <- raw[!is.na(raw) & nzchar(raw)]
+  levels_sorted <- sort(unique(tolower(raw)))
+  stats::setNames(paste0("Operator_", seq_along(levels_sorted)), levels_sorted)
+}
+.anonymise_operator <- function(x, operator_map) {
+  unname(operator_map[tolower(trimws(as.character(x)))])
+}
+
 qc_log <- list()
 log_exclusion <- function(code, reason) {
   qc_log[[length(qc_log) + 1]] <<- data.frame(code = code, reason = reason, stringsAsFactors = FALSE)
@@ -102,11 +129,24 @@ for (code in unmatched) {
 }
 principal_ok <- principal[!principal$code_norm %in% unmatched, ]
 
+## ---- 2b. Biais_ut sheet, read early only to build the operator map -----
+## (full cleaning of this sheet happens in step 3 below; it is read here
+## too so that the anonymisation map is built once from the union of
+## operator names in *both* sheets, guaranteeing the same real person maps
+## to the same "Operator_<n>" label everywhere, see .build_operator_map()).
+biais_raw <- read_excel(MPATH, sheet = "Biais_ut")
+
+operator_map <- .build_operator_map(principal_ok$Utilisateur, biais_raw$Utilisateur)
+cat("\nOperator anonymisation map (real name -> anonymous label; not printed to any",
+    "shipped file):\n")
+print(operator_map)
+
 long_principal <- do.call(rbind, lapply(seq_len(nrow(principal_ok)), function(i) {
   row <- principal_ok[i, ]
-  specimen <- paste0(row$code_norm, "_", row$Utilisateur)
+  op_anon <- .anonymise_operator(row$Utilisateur, operator_map)
+  specimen <- paste0(row$code_norm, "_", op_anon)
   data.frame(
-    specimen = specimen, code = row$code_norm, operator = row$Utilisateur,
+    specimen = specimen, code = row$code_norm, operator = op_anon,
     landmark = 1:21,
     X = as.numeric(row[paste0("X_", 1:21)]),
     Y = as.numeric(row[paste0("Y_", 1:21)])
@@ -118,7 +158,7 @@ cat("\nlandmarks_operators long:", nrow(long_principal), "rows |",
     length(unique(long_principal$code)), "fish\n")
 
 ## ---- 3. Biais_ut sheet (1 operator x up to 10 replicates) -> long format -
-biais <- read_excel(MPATH, sheet = "Biais_ut")
+biais <- biais_raw
 n_before <- nrow(biais)
 biais <- biais[!is.na(biais$Code), ]
 if (n_before - nrow(biais) > 0) {
@@ -138,7 +178,7 @@ long_biais <- do.call(rbind, lapply(seq_len(nrow(biais_ok)), function(i) {
   specimen <- paste0(row$code_norm, "_rep", rep)
   data.frame(
     specimen = specimen, code = row$code_norm, replicate = rep,
-    operator = row$Utilisateur, site = row$Site, landmark = 1:21,
+    operator = .anonymise_operator(row$Utilisateur, operator_map), site = row$Site, landmark = 1:21,
     X = as.numeric(row[paste0(1:21, "_X")]),
     Y = as.numeric(row[paste0(1:21, "_Y")])
   )

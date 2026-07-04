@@ -6,9 +6,14 @@
 \usage{
 \method{plot}{intrait_morphospace}(
   x,
-  style = c("spider", "hull", "none"),
+  style = c("spider", "hull", "density", "none"),
   ellipse_level = 0.95,
+  density_level = 0.95,
   legend = !is.null(x$groups),
+  legend_position = "outside",
+  legend_title = "Group",
+  legend_italic = FALSE,
+  abbreviate_species = FALSE,
   ...
 )
 }
@@ -16,16 +21,41 @@
 \item{x}{An object of class \code{"intrait_morphospace"}, from
 \code{\link[=morpho_space]{morpho_space()}}.}
 
-\item{style}{Character, one of \code{"spider"} (default), \code{"hull"}, or
-\code{"none"}, controlling how groups are displayed (see Details).
-Ignored if \code{x$groups} is \code{NULL}.}
+\item{style}{Character, one of \code{"spider"} (default), \code{"hull"},
+\code{"density"}, or \code{"none"}, controlling how groups are displayed (see
+Details). Ignored if \code{x$groups} is \code{NULL}.}
 
 \item{ellipse_level}{Coverage probability of the per-group dispersion
 ellipse drawn when \code{style = "spider"}, under a bivariate-normal
 approximation. Defaults to \code{0.95}.}
 
+\item{density_level}{Coverage probability of the per-group
+kernel-density contour drawn when \code{style = "density"} (see Details);
+groups with fewer than 5 points are silently skipped (too few
+observations for a meaningful 2D density estimate). Defaults to
+\code{0.95}.}
+
 \item{legend}{Logical, draw a legend of group colors. Defaults to
 \code{TRUE} when \code{x$groups} is available.}
+
+\item{legend_position}{One of \code{"outside"} (default: drawn in the
+margin, just outside the top-right corner of the plot box, so the
+legend never overlaps the data points, at the cost of a wider right
+margin) or a standard \code{\link[graphics:legend]{graphics::legend()}} position keyword (e.g.
+\code{"topright"}, \code{"bottomleft"}) to draw it inside the plot box instead,
+as in previous versions.}
+
+\item{legend_title}{Character, the legend's title. Defaults to
+\code{"Group"}; set to \code{"Species"} when \code{x$groups} represents species
+identity (as it does, e.g., throughout \code{demo(pipeline_T26_saudrune)}).}
+
+\item{legend_italic}{Logical, italicise the legend labels (standard
+typographic convention for taxonomic names). Defaults to \code{FALSE}.}
+
+\item{abbreviate_species}{Logical, abbreviate \code{"Genus species"} legend
+labels to \code{"G. species"} (e.g. \code{"Barbatula barbatula"} becomes
+\code{"B. barbatula"}); labels that are not a clean two-part binomial are
+left unchanged. Only affects the legend text. Defaults to \code{FALSE}.}
 
 \item{...}{Further arguments passed to \code{\link[graphics:plot]{graphics::plot()}}.}
 }
@@ -44,6 +74,15 @@ assuming approximate bivariate normality of the group's scores (as in
 \code{vegan::ordiellipse()}/\code{car::dataEllipse()}). This mirrors the
 star/spider plots commonly used to display group structure in
 geometric-morphometric and functional-trait ordinations. Use
-\code{style = "hull"} for the classical convex-hull display, or
-\code{style = "none"} to plot points without any group decoration.
+\code{style = "hull"} for the classical convex-hull display, \code{style = "density"} for a non-parametric kernel-density contour of coverage
+\code{density_level} around each group's mean (using the same lightweight
+bivariate Gaussian-kernel estimator as \code{MASS::kde2d()}, without
+requiring MASS itself; see Hyndman, 1996, for the highest-density-region
+construction used to pick the contour threshold) — a useful alternative
+to the ellipse when a group's point cloud is visibly skewed or
+multimodal, since it does not assume bivariate normality — or \code{style = "none"} to plot points without any group decoration.
+}
+\references{
+Hyndman RJ (1996). Computing and graphing highest density regions. The
+American Statistician, 50(2), 120-126.
 }

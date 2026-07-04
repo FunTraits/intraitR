@@ -64,6 +64,15 @@ A single configuration can be inspected visually with [plot_landmarks()]:
 plot_landmarks(fish, specimen = 1)
 ```
 
+When the original specimen photographs are available, `plot_landmarks()`
+(and [plot_fishmorph_points()], below) can overlay the landmarks directly
+on the photograph via `background_image`, a useful visual check that no
+landmark was placed off the body outline:
+
+```{r, eval = FALSE}
+plot_landmarks(fish, specimen = 1, background_image = "specimen1.jpg")
+```
+
 If landmarks have not yet been digitized, [digitize_landmarks()] provides
 an interactive, point-and-click front end (built on
 [geomorph::digitize2d()]) that digitizes directly from specimen
@@ -111,13 +120,27 @@ Procrustes shape coordinates. By default, `plot()` displays each group as
 its individual points, a "spider" of dashed segments linking every point
 to its group mean, the group mean itself, and a 95% dispersion ellipse
 (`style = "spider"`); pass `style = "hull"` for a classical convex-hull
-display, or `style = "none"` for plain points:
+display, `style = "density"` for a non-parametric kernel-density contour
+(useful when a group's points are visibly skewed or multimodal, so a
+bivariate-normal ellipse would be a poor fit), or `style = "none"` for
+plain points. The group legend is drawn just outside the plot box by
+default (`legend_position = "outside"`), so it never overlaps the data;
+pass a standard `legend()` keyword (e.g. `"topright"`) to draw it inside
+the plot box instead, as in previous versions. Axis limits are computed
+to fully contain the ellipse/hull/contour, not just the raw points, so
+none of these are ever clipped at the plot box edge. When `groups`
+represents species identity, `legend_title`, `legend_italic`, and
+`abbreviate_species` produce a properly typeset "Species" legend
+(e.g. `"Barbatula barbatula"` displayed as italic *B. barbatula*):
 
 ```{r}
 ms <- morpho_space(gpa, groups = fish$metadata$species)
 ms
-plot(ms)
-plot(ms, style = "hull")
+plot(ms, legend_title = "Species", legend_italic = TRUE, abbreviate_species = TRUE)
+plot(ms, style = "hull", legend_title = "Species", legend_italic = TRUE,
+     abbreviate_species = TRUE)
+plot(ms, style = "density", legend_title = "Species", legend_italic = TRUE,
+     abbreviate_species = TRUE)
 ```
 
 ## 5. Intraspecific morphological variability
@@ -286,6 +309,33 @@ trait matrix rather than on the two axes shown in the plot above:
 ```{r}
 td <- trait_disparity(fts, iter = 199)
 td
+```
+
+[bootstrap_functional_space()] asks a related but different question:
+does representing species by real individuals, rather than by their
+centroid, inflate the estimated functional space (an n-dimensional
+convex-hull volume in PCA space)? For each of `n_boot` bootstrap
+"communities" it draws one individual at random per species and computes
+the resulting convex-hull volume, and compares this distribution to a
+single centroid-based reference volume, following Bertrand (2026);
+requires the `geometry` package (Suggested, not installed by default):
+
+```{r, eval = requireNamespace("geometry", quietly = TRUE)}
+bf <- bootstrap_functional_space(fts, n_axes = 2, n_boot = 100)
+bf
+plot(bf)
+```
+
+[species_sensitivity()] then asks *which* species drive that difference:
+each species' centroid is replaced, one individual at a time, by that
+individual's own position (every other species fixed at its centroid),
+and the resulting percent change in functional richness is summarised
+per species as a mean effect and a min-max range (Bertrand, 2026):
+
+```{r, eval = requireNamespace("geometry", quietly = TRUE)}
+ss <- species_sensitivity(fts, n_axes = 2)
+ss
+plot(ss)
 ```
 
 Because `fishmorph_segments()` and `fishmorph_ratios()` return plain

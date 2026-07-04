@@ -68,7 +68,13 @@ test_that("plot.intrait_traitspace() does not error, in any style", {
   grDevices::png(tmp)
   expect_error(plot(ts), NA)
   expect_error(plot(ts, style = "hull"), NA)
+  expect_error(plot(ts, style = "density"), NA)
   expect_error(plot(ts, style = "none"), NA)
+  expect_error(plot(ts, legend_position = "bottomleft"), NA)
+  expect_error(
+    plot(ts, legend_title = "Species", legend_italic = TRUE, abbreviate_species = TRUE),
+    NA
+  )
   grDevices::dev.off()
   unlink(tmp)
 })
@@ -223,4 +229,123 @@ test_that("trait_space() na_action = 'missforest' errors informatively without t
   )
   df <- data.frame(a = c(1, NA, 3), b = c(1, 2, 3))
   expect_error(trait_space(df, na_action = "missforest"), "missForest")
+})
+
+test_that("trait_space() flags a planted within-group outlier", {
+  # Group "A": 6 tight individuals plus 1 individual planted far away on
+  # both traits; group "B": 3 individuals (below the default
+  # outlier_min_n = 5), which should get a distance but never be flagged.
+  set.seed(42)
+  a_tight <- data.frame(
+    x = rnorm(6, 10, 0.3), y = rnorm(6, 10, 0.3)
+  )
+  a_outlier <- data.frame(x = 40, y = 40)
+  b <- data.frame(x = rnorm(3, 5, 0.3), y = rnorm(3, 5, 0.3))
+  df <- rbind(a_tight, a_outlier, b)
+  rownames(df) <- paste0("ind", seq_len(nrow(df)))
+  groups <- c(rep("A", 7), rep("B", 3))
+
+  ts <- suppressMessages(trait_space(df, groups = groups, log_transform = FALSE))
+
+  expect_false(is.null(ts$outlier_screen))
+  expect_equal(nrow(ts$outlier_screen), 10)
+  expect_equal(rownames(ts$outlier_screen), rownames(df))
+
+  # The planted outlier ("ind7") must be flagged; the 6 tight individuals
+  # of group A must not be.
+  expect_true(ts$outlier_screen["ind7", "flagged"])
+  expect_false(any(ts$outlier_screen[paste0("ind", 1:6), "flagged"]))
+
+  # Group B (n = 3 < outlier_min_n) gets a distance but NA flagged, for
+  # every one of its members.
+  expect_true(all(is.na(ts$outlier_screen[paste0("ind", 8:10), "flagged"])))
+  expect_false(anyNA(ts$outlier_screen$distance))
+})
+
+test_that("trait_space() emits messages when outliers/skipped groups are found", {
+  set.seed(43)
+  a_tight <- data.frame(x = rnorm(6, 10, 0.3), y = rnorm(6, 10, 0.3))
+  a_outlier <- data.frame(x = 40, y = 40)
+  df <- rbind(a_tight, a_outlier)
+  groups <- rep("A", 7)
+
+  expect_message(
+    trait_space(df, groups = groups, log_transform = FALSE),
+    "flagged as within-group outlier"
+  )
+})
+
+test_that("trait_space() flag_outliers = FALSE disables the outlier screen", {
+  set.seed(44)
+  df <- data.frame(x = rnorm(10, 10, 1), y = rnorm(10, 10, 1))
+  groups <- rep(c("A", "B"), each = 5)
+  ts <- trait_space(df, groups = groups, log_transform = FALSE, flag_outliers = FALSE)
+  expect_null(ts$outlier_screen)
+})
+
+test_that("trait_space() outlier screen has no effect without `groups`", {
+  df <- data.frame(x = c(1, 2, 3, 4, 100), y = c(1, 2, 3, 4, 100))
+  ts <- trait_space(df, log_transform = FALSE)
+  expect_null(ts$outlier_screen)
+})
+
+test_that("remove_outliers = TRUE excludes flagged specimens from the ordination", {
+  set.seed(45)
+  a_tight <- data.frame(x = rnorm(6, 10, 0.3), y = rnorm(6, 10, 0.3))
+  a_outlier <- data.frame(x = 40, y = 40)
+  b <- data.frame(x = rnorm(3, 5, 0.3), y = rnorm(3, 5, 0.3))
+  df <- rbind(a_tight, a_outlier, b)
+  rownames(df) <- paste0("ind", seq_len(nrow(df)))
+  groups <- c(rep("A", 7), rep("B", 3))
+
+  ts <- suppressMessages(trait_space(
+    df, groups = groups, log_transform = FALSE, remove_outliers = TRUE
+  ))
+
+  # The planted outlier ("ind7") is gone from the ordination entirely.
+  expect_equal(nrow(ts$scores), 9)
+  expect_false("ind7" %in% rownames(ts$scores))
+  expect_false("ind7" %in% rownames(ts$X))
+  expect_equal(length(ts$groups), 9)
+
+  # ...but is recorded in $removed_outliers, and $outlier_screen is
+  # reduced to (and consistent with) the specimens actually used.
+  expect_false(is.null(ts$removed_outliers))
+  expect_equal(rownames(ts$removed_outliers), "ind7")
+  expect_equal(ts$removed_outliers$group, "A")
+  expect_equal(nrow(ts$outlier_screen), 9)
+  expect_false("ind7" %in% rownames(ts$outlier_screen))
+  expect_false(any(ts$outlier_screen$flagged, na.rm = TRUE))
+})
+
+test_that("remove_outliers = TRUE is a no-op when nothing is flagged", {
+  set.seed(46)
+  df <- data.frame(x = rnorm(10, 10, 0.3), y = rnorm(10, 10, 0.3))
+  groups <- rep(c("A", "B"), each = 5)
+  ts <- trait_space(df, groups = groups, log_transform = FALSE, remove_outliers = TRUE)
+  expect_null(ts$removed_outliers)
+  expect_equal(nrow(ts$scores), 10)
+})
+
+test_that("remove_outliers = TRUE requires flag_outliers = TRUE", {
+  df <- data.frame(x = 1:10, y = 10:1)
+  groups <- rep(c("A", "B"), each = 5)
+  expect_error(
+    trait_space(df, groups = groups, log_transform = FALSE,
+                flag_outliers = FALSE, remove_outliers = TRUE),
+    "requires `flag_outliers = TRUE`"
+  )
+})
+
+test_that("remove_outliers = TRUE messages about what was removed", {
+  set.seed(47)
+  a_tight <- data.frame(x = rnorm(6, 10, 0.3), y = rnorm(6, 10, 0.3))
+  a_outlier <- data.frame(x = 40, y = 40)
+  df <- rbind(a_tight, a_outlier)
+  groups <- rep("A", 7)
+
+  expect_message(
+    trait_space(df, groups = groups, log_transform = FALSE, remove_outliers = TRUE),
+    "remove_outliers: removing 1 specimen"
+  )
 })

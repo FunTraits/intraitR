@@ -2,7 +2,11 @@
 
 ## Test environments
 
-* [to complete before submission] local install, R x.y.z, <OS>
+* Local install, `devtools::test()`: 465 passed, 0 failed, 5 expected
+  warnings (documented data/test-design artifacts, not bugs), 6 expected
+  skips (environment-dependent negative-path tests). [fill in R version /
+  OS before submission]
+* [to complete before submission] `devtools::check(cran = TRUE)` locally
 * [to complete before submission] R-hub / win-builder (devel and release)
 
 ## R CMD check results

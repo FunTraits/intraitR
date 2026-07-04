@@ -43,13 +43,16 @@
 #' @seealso [gpa_fish()], [morpho_ratios()], [measurement_error()]
 #'
 #' @examples
-#' fish <- simulate_fish_landmarks(n_per_species = 10, n_replicates = 1)
-#' gpa <- gpa_fish(fish)
-#' distances <- list(SL = c(1, 7), BD = c(3, 10))
-#' ratios <- morpho_ratios(fish, distances, norm_by = "SL")
+#' # real T-26 Saudrune data (see ?fishmorph_shape_landmarks for why the
+#' # scale bar and incomplete/unidentified specimens are dropped first):
+#' fish <- load_t26_saudrune_landmarks()
+#' fish_shape <- fishmorph_shape_landmarks(fish)
+#' gpa <- gpa_fish(fish_shape)
+#' distances <- list(SL = c(1, 2), BD = c(3, 4))
+#' ratios <- morpho_ratios(fish_shape, distances, norm_by = "SL")
 #' \donttest{
 #' iv <- intraspecific_variability(
-#'   gpa = gpa, groups = fish$metadata$species,
+#'   gpa = gpa, groups = fish_shape$metadata$species,
 #'   traits = ratios[, "BD_ratio", drop = FALSE], iter = 99
 #' )
 #' iv
@@ -102,7 +105,11 @@ intraspecific_variability <- function(gpa = NULL, groups, traits = NULL, iter = 
   structure(results, class = "intrait_variability")
 }
 
+#' @return Invisibly returns `x`.
 #' @export
+#' @rdname intraspecific_variability
+#' @param x An object of class `"intrait_variability"`, as returned by
+#'   [intraspecific_variability()].
 print.intrait_variability <- function(x, ...) {
   cat("<intrait_variability>\n")
   if (!is.null(x$shape_disparity)) {

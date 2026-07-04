@@ -10,7 +10,11 @@ fishmorph_ratios(
   no_caudal_fin = FALSE,
   ventral_mouth = FALSE,
   no_pectoral_fin = FALSE,
-  digits = 4
+  digits = 4,
+  groups = NULL,
+  na_action = c("keep", "omit", "impute_mean", "impute_group_mean", "missforest"),
+  missforest_ntree = 100,
+  missforest_maxiter = 10
 )
 }
 \arguments{
@@ -41,12 +45,42 @@ set to 0, following Villéger et al. (2010). Defaults to \code{FALSE}.}
 
 \item{digits}{Integer, number of decimal places to round ratios to.
 Defaults to \code{4}.}
+
+\item{groups}{Optional factor (or character vector), one value per row
+of \code{segments}, used only by \code{na_action = "impute_group_mean"} (and
+optionally by \code{"missforest"}, as an auxiliary predictor). If \code{NULL}
+and \code{segments} has a \code{species} column, it is used automatically (as
+in \code{\link[=trait_space]{trait_space()}}).}
+
+\item{na_action}{Character, how to handle missing values in the 9
+computed ratio columns (e.g. because one of the two segments a ratio
+divides was itself \code{NA}, whether from a missing landmark or from
+\code{\link[=fishmorph_segments]{fishmorph_segments()}} having already left it \code{NA}): \code{"keep"}
+(default) leaves \code{NA} in place, exactly as in previous package
+versions; \code{"omit"} removes affected specimens and reports how many;
+\code{"impute_mean"} replaces missing ratio values with the column mean;
+\code{"impute_group_mean"} uses the within-group (e.g. within-species)
+mean instead, falling back to the column mean, with a warning, for a
+group entirely missing a ratio; \code{"missforest"} uses random-forest-
+based iterative imputation (\code{missForest::missForest()}). Same
+convention, options, and messages as \code{\link[=trait_space]{trait_space()}}'s \code{na_action}
+-- see there for details -- except that here imputation operates on
+the derived \emph{ratios} directly; imputing at the landmark level with
+\code{\link[=impute_landmarks]{impute_landmarks()}}, or at the \code{\link[=fishmorph_segments]{fishmorph_segments()}} stage instead
+(before computing ratios), is usually preferable when both are
+missing for the same specimen.}
+
+\item{missforest_ntree, missforest_maxiter}{Number of trees per forest
+and maximum number of iterations passed to \code{missForest::missForest()}
+when \code{na_action = "missforest"}; ignored otherwise. Default to
+\code{missForest}'s own defaults (\code{100} and \code{10}).}
 }
 \value{
 A \code{data.frame} (class \code{"intrait_fishmorph"}) with one row per
-specimen, an \code{MBl} column if supplied, and columns \code{BEl}, \code{VEp},
-\code{REs}, \code{OGp}, \code{RMl}, \code{BLs}, \code{PFv}, \code{PFs}, \code{CPt}, preceded by any
-metadata columns carried over from \code{segments}.
+specimen (fewer, if \code{na_action = "omit"} dropped any), an \code{MBl}
+column if supplied, and columns \code{BEl}, \code{VEp}, \code{REs}, \code{OGp}, \code{RMl},
+\code{BLs}, \code{PFv}, \code{PFs}, \code{CPt}, preceded by any metadata columns carried
+over from \code{segments}.
 }
 \description{
 Derives the nine dimensionless morphological ratios (traits) defined by
@@ -83,6 +117,10 @@ fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
 fishmorph_ratios(segments)
 
+# impute missing ratios (na_action defaults to "keep") using the
+# within-species mean instead of carrying NA forward:
+fishmorph_ratios(segments, groups = segments$species, na_action = "impute_group_mean")
+
 }
 \references{
 Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
@@ -96,5 +134,6 @@ tropical fish communities after habitat degradation. Ecological
 Applications, 20(6), 1512-1522.
 }
 \seealso{
-\code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=trait_space]{trait_space()}}, \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}
+\code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=trait_space]{trait_space()}},
+\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}, \code{\link[=impute_landmarks]{impute_landmarks()}}
 }

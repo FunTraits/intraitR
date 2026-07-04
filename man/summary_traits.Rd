@@ -24,8 +24,10 @@ or more morphological traits (e.g. linear distances or ratios), broken
 down by a grouping variable such as species or population.
 }
 \examples{
-fish <- simulate_fish_landmarks(n_per_species = 8, n_replicates = 1)
-distances <- list(SL = c(1, 7), BD = c(3, 10))
+# real T-26 Saudrune data; landmark indices follow the FISHMORPH scheme
+# (see ?fishmorph_segments)
+fish <- load_t26_saudrune_landmarks()
+distances <- list(SL = c(1, 2), BD = c(3, 4))
 ratios <- morpho_ratios(fish, distances, norm_by = "SL")
 summary_traits(ratios[, "BD_ratio", drop = FALSE], fish$metadata$species)
 

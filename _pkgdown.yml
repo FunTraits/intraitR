@@ -71,6 +71,8 @@ reference:
       - print.intrait_bootstrap_fspace
       - species_sensitivity
       - print.intrait_species_sensitivity
+      - compare_functional_richness
+      - print.intrait_richness_comparison
 
   - title: Intraspecific variability and measurement error
     desc: >

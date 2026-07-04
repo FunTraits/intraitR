@@ -69,6 +69,8 @@ your own data set before settling on a final value. Only used by
 
 \item{x}{An object of class \code{"intrait_geometry_check"}, as returned by
 \code{correct_landmarks(rule = "check_geometry")}.}
+
+\item{...}{Currently unused.}
 }
 \value{
 For \code{rule = "align"}: an object of the same class as \code{landmarks}, with

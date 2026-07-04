@@ -366,6 +366,7 @@ correct_landmarks <- function(landmarks, specimen = NULL, rule = c("align", "che
 #' @rdname correct_landmarks
 #' @param x An object of class `"intrait_geometry_check"`, as returned by
 #'   `correct_landmarks(rule = "check_geometry")`.
+#' @param ... Currently unused.
 print.intrait_geometry_check <- function(x, ...) {
   cat("<intrait_geometry_check>\n")
   n_specimens <- length(unique(x$specimen))

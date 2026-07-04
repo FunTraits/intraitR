@@ -36,6 +36,7 @@ Imports:
     utils
 Suggests:
     dplyr,
+    future,
     future.apply,
     geometry,
     ggplot2,

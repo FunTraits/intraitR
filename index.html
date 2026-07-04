@@ -54,6 +54,16 @@
 
 <p><code>intraitR</code> is an R package for the analysis of morphological traits in freshwater fish: from raw landmark digitization to morphological ratios, morphological space, intraspecific variability, and measurement error. It builds on the geometric morphometric framework implemented in <a href="https://cran.r-project.org/package=geomorph" class="external-link"><code>geomorph</code></a> and adds fish-specific conveniences for ecomorphological analyses.</p>
 <div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"FunTraits/intraitR"</span><span class="op">)</span></span></code></pre></div>
+<p><code>intraitR</code> requires the <code>geomorph</code> package (available on CRAN):</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"geomorph"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="workflow">Workflow<a class="anchor" aria-label="anchor" href="#workflow"></a>
 </h2>
 <ol style="list-style-type: decimal">
@@ -73,14 +83,14 @@
 <h3 id="importing-your-own-data-read_landmarks_xlsx">Importing your own data (<code>read_landmarks_xlsx()</code>)<a class="anchor" aria-label="anchor" href="#importing-your-own-data-read_landmarks_xlsx"></a>
 </h3>
 <p>Most manual digitization workflows produce a “wide” spreadsheet: one row per specimen (or per replicate digitization), and one pair of columns per landmark (e.g. <code>X_1, Y_1, X_2, Y_2, ...</code>, or <code>1_X, 1_Y, 2_X, 2_Y, ...</code>), rather than the “long”/tidy layout expected by <code><a href="reference/read_landmarks_csv.html">read_landmarks_csv()</a></code>. <code><a href="reference/read_landmarks_xlsx.html">read_landmarks_xlsx()</a></code> reads this layout directly from an <code>.xlsx</code>/<code>.xls</code> file and reshapes it into an <code>"intrait_landmarks"</code> object, without any hand-written reshaping code – whatever the exact column-naming convention (<code>x_pattern</code>/<code>y_pattern</code>) or number of landmarks (<code>n_landmarks</code>) involved. It also optionally joins a second, one-row-per-specimen spreadsheet of identifications or other metadata directly (<code>species_file</code>):</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_landmarks_xlsx.html">read_landmarks_xlsx</a></span><span class="op">(</span></span>
 <span>  <span class="st">"measurements.xlsx"</span>, sheet <span class="op">=</span> <span class="st">"Principal"</span>, n_landmarks <span class="op">=</span> <span class="fl">21</span>,</span>
 <span>  id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Code"</span>, <span class="st">"Operator"</span><span class="op">)</span>,</span>
 <span>  species_file <span class="op">=</span> <span class="st">"identifications.xlsx"</span>, species_by <span class="op">=</span> <span class="st">"Code"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>A replicate-digitization sheet (several digitizations per specimen, one row each – e.g. for <code><a href="reference/measurement_error.html">measurement_error()</a></code>/<code><a href="reference/digitization_error.html">digitization_error()</a></code>) works the same way, just with a different <code>x_pattern</code>/<code>y_pattern</code> and <code>id_cols</code>:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">biais</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_landmarks_xlsx.html">read_landmarks_xlsx</a></span><span class="op">(</span></span>
 <span>  <span class="st">"measurements.xlsx"</span>, sheet <span class="op">=</span> <span class="st">"Repeatability"</span>, n_landmarks <span class="op">=</span> <span class="fl">21</span>,</span>
 <span>  x_pattern <span class="op">=</span> <span class="st">"{i}_X"</span>, y_pattern <span class="op">=</span> <span class="st">"{i}_Y"</span>,</span>
@@ -92,7 +102,7 @@
 <h3 id="digitization-error-digitization_error">Digitization error (<code>digitization_error()</code>)<a class="anchor" aria-label="anchor" href="#digitization-error-digitization_error"></a>
 </h3>
 <p>For a set of specimens digitized several times each (replicated landmarking of the same photographs), <code><a href="reference/digitization_error.html">digitization_error()</a></code> quantifies how dispersed repeated landmark placements are around their consensus position, normalised so that bias is comparable across specimens of different sizes, and aggregated hierarchically from landmark to individual, species, and overall community bias:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/simulate_fish_landmarks.html">simulate_fish_landmarks</a></span><span class="op">(</span>n_per_species <span class="op">=</span> <span class="fl">8</span>, n_replicates <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="va">individual_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_rep[0-9]+$"</span>, <span class="st">""</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">derr</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/digitization_error.html">digitization_error</a></span><span class="op">(</span><span class="va">fish</span>, individual <span class="op">=</span> <span class="va">individual_id</span><span class="op">)</span></span>
@@ -114,7 +124,7 @@
 </ul>
 <p>Every one of these functions records what it changed and why in a shared, mergeable audit-trail attribute (<code>attr(x$coords, "corrected")</code> and <code>attr(x$coords, "correction_log")</code>), so a full correction history accumulates across successive calls on the same object, and <code><a href="reference/plot_landmarks.html">plot_landmarks()</a></code> / <code><a href="reference/plot_fishmorph_points.html">plot_fishmorph_points()</a></code> highlight imputed and corrected points visually (red and blue, respectively) for review.</p>
 <p>A complete pipeline from raw landmarks to a functional trait space, including this quality-control step, looks like this:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fish</span>          <span class="op">&lt;-</span> <span class="fu"><a href="reference/load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">fish_imputed</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/impute_landmarks.html">impute_landmarks</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span>
 <span><span class="va">fish_oriented</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/standardize_orientation.html">standardize_orientation</a></span><span class="op">(</span><span class="va">fish_imputed</span><span class="op">)</span></span>
@@ -171,23 +181,13 @@
 <li><p><strong>Convex-hull cost grows quickly with dimension.</strong> The three functions above rely on <code><a href="https://rdrr.io/pkg/geometry/man/convhulln.html" class="external-link">geometry::convhulln()</a></code> (Qhull), whose worst-case complexity for <code>n</code> points in <code>d</code> dimensions is  (the McMullen, 1970, upper bound theorem on the maximum number of facets of a <code>d</code>-dimensional polytope). In practice this means the default 2-3 retained PCA axes (<code>n_axes</code>, or the <code>var_threshold</code>-based automatic choice) stay fast even for hundreds of species, but requesting a much higher <code>n_axes</code> on a species-rich data set can make each individual hull computation noticeably slower — worth keeping in mind before increasing <code>n_axes</code> much beyond what <code>var_threshold</code> already selects.</p></li>
 <li>
 <p><strong>Each repeated computation is independent of the others</strong>, so all three functions distribute their loop across worker processes via the (Suggested) <a href="https://future.apply.futureverse.org/" class="external-link"><code>future.apply</code></a> package when it is installed, with zero configuration required from the package itself: set up a plan once per session with <a href="https://future.futureverse.org/" class="external-link"><code>future</code></a>, e.g.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">future</span><span class="fu">::</span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="fu">future</span><span class="fu">::</span><span class="va"><a href="https://future.futureverse.org/reference/multisession.html" class="external-link">multisession</a></span>, workers <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="va">bfs</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/bootstrap_functional_space.html">bootstrap_functional_space</a></span><span class="op">(</span><span class="va">ts</span>, n_boot <span class="op">=</span> <span class="fl">2000</span><span class="op">)</span>  <span class="co"># now parallelised</span></span>
 <span><span class="fu">future</span><span class="fu">::</span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="fu">future</span><span class="fu">::</span><span class="va"><a href="https://future.futureverse.org/reference/sequential.html" class="external-link">sequential</a></span><span class="op">)</span>  <span class="co"># back to single-core when done</span></span></code></pre></div>
 <p>With no <code>plan()</code> set, or without <code>future.apply</code> installed, all three functions run exactly as before (a plain sequential loop), so this is purely an opt-in speed-up — results are identical either way, since parallel draws use <code>future.seed = TRUE</code> (L’Ecuyer-CMRG streams) for reproducible random number generation across workers.</p>
 </li>
 </ul>
-</div>
-<div class="section level2">
-<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
-</h2>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"FunTraits/intraitR"</span><span class="op">)</span></span></code></pre></div>
-<p><code>intraitR</code> requires the <code>geomorph</code> package (available on CRAN):</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"geomorph"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="quick-example">Quick example<a class="anchor" aria-label="anchor" href="#quick-example"></a>

@@ -3,7 +3,7 @@ pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   intraitR-intro: intraitR-intro.html
-last_built: 2026-07-04T11:58Z
+last_built: 2026-07-04T12:05Z
 urls:
   reference: https://funtraits.github.io/intraitR/reference
   article: https://funtraits.github.io/intraitR/articles

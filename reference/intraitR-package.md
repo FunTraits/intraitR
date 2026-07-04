@@ -106,6 +106,8 @@ Useful links:
 
 - <https://github.com/FunTraits/intraitR>
 
+- <https://funtraits.github.io/intraitR/>
+
 - Report bugs at <https://github.com/FunTraits/intraitR/issues>
 
 ## Author

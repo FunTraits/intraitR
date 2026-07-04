@@ -7,6 +7,21 @@ It builds on the geometric morphometric framework implemented in
 [`geomorph`](https://cran.r-project.org/package=geomorph) and adds
 fish-specific conveniences for ecomorphological analyses.
 
+## Installation
+
+``` r
+
+# install.packages("remotes")
+remotes::install_github("FunTraits/intraitR")
+```
+
+`intraitR` requires the `geomorph` package (available on CRAN):
+
+``` r
+
+install.packages("geomorph")
+```
+
 ## Workflow
 
 1.  **Import** landmark coordinates:
@@ -343,21 +358,6 @@ for instance, had 1,302 individuals across 55 species):
   purely an opt-in speed-up — results are identical either way, since
   parallel draws use `future.seed = TRUE` (L’Ecuyer-CMRG streams) for
   reproducible random number generation across workers.
-
-## Installation
-
-``` r
-
-# install.packages("remotes")
-remotes::install_github("FunTraits/intraitR")
-```
-
-`intraitR` requires the `geomorph` package (available on CRAN):
-
-``` r
-
-install.packages("geomorph")
-```
 
 ## Quick example
 

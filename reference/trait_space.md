@@ -173,6 +173,10 @@ print(x, ...)
   An object of class `"intrait_traitspace"`, as returned by
   `trait_space()`.
 
+- ...:
+
+  Currently unused.
+
 ## Value
 
 An object of class `"intrait_traitspace"`, a list with elements `scores`

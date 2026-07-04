@@ -49,6 +49,10 @@ print(x, ...)
   An object of class `"intrait_variability"`, as returned by
   `intraspecific_variability()`.
 
+- ...:
+
+  Currently unused.
+
 ## Value
 
 An object of class `"intrait_variability"`, a list optionally

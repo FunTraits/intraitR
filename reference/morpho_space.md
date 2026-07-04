@@ -38,6 +38,10 @@ print(x, ...)
   An object of class `"intrait_morphospace"`, as returned by
   `morpho_space()`.
 
+- ...:
+
+  Currently unused.
+
 ## Value
 
 An object of class `"intrait_morphospace"`, a list with elements

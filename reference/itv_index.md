@@ -66,6 +66,10 @@ print(x, ...)
 
   An object of class `"intrait_itv"`, as returned by `itv_index()`.
 
+- ...:
+
+  Currently unused.
+
 ## Value
 
 An object of class `"intrait_itv"`, a list with elements:

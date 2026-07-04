@@ -42,6 +42,10 @@ print(x, ...)
   An object of class `"intrait_outliers"`, as returned by
   `detect_outliers()`.
 
+- ...:
+
+  Currently unused.
+
 ## Value
 
 An object of class `"intrait_outliers"`, a list with elements

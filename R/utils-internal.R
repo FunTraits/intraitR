@@ -296,6 +296,16 @@
 #'
 #' @param n Number of colours needed (i.e. `nlevels(groups)`).
 #' @return A character vector of `n` hex colour codes.
+#' @details
+#' The sequence returned is a *prefix* of a single, fixed underlying
+#' palette: colour 1 is always the same hex code regardless of `n`, colour
+#' 2 is always the same, and so on, up to 40 groups (beyond the curated
+#' 10-colour set, a single fixed-size `grDevices::hcl.colors(40, ...)`
+#' vector is sliced rather than one sized to `n`, which would otherwise
+#' respace hues and change already-issued colours as `n` grows). This
+#' prefix-stability is what lets `.stable_group_colors()` hand out colours
+#' one group at a time, as new groups are first seen, without ever having
+#' to reassign a colour already given to an earlier group.
 #' @noRd
 .ordination_palette <- function(n) {
   base_pal <- c(
@@ -303,7 +313,66 @@
     "#76B7B2", "#EDC948", "#FF9DA7", "#9C755F", "#BAB0AC"
   )
   if (n <= length(base_pal)) return(base_pal[seq_len(n)])
-  grDevices::hcl.colors(n, palette = "Dark 3")
+  extra_n <- n - length(base_pal)
+  extra_pal <- grDevices::hcl.colors(max(extra_n, 40L), palette = "Dark 3")
+  c(base_pal, extra_pal[seq_len(extra_n)])
+}
+
+#' Session-level cache backing `.stable_group_colors()`
+#' @noRd
+.intrait_color_cache <- new.env(parent = emptyenv())
+
+#' Stable, session-persistent colours for group/species labels
+#'
+#' Assigns each distinct label in `labels` a colour from
+#' `.ordination_palette()`, in the order labels are first encountered, and
+#' remembers that assignment in a package-level cache for the rest of the
+#' R session: the same label (e.g. the same species name) always gets the
+#' same colour, in every subsequent call, even when it is plotted from a
+#' different object whose own row-filtering (missing traits, outlier
+#' removal, etc.) happens to retain a different subset of species than the
+#' object plotted before it. This is what keeps a species' colour
+#' consistent between, say, [plot.intrait_morphospace()] and
+#' [plot.intrait_traitspace()] built from the same underlying dataset.
+#' Already-cached labels never change colour as new, previously-unseen
+#' labels are added; only the newly seen ones are appended using
+#' `.ordination_palette()`'s next unused slot(s) (relying on that
+#' function's prefix-stability). Call `reset_group_colors()` to clear the
+#' cache, e.g. before starting on an unrelated dataset, or at the top of a
+#' script that must be reproducible regardless of what ran earlier in the
+#' session.
+#'
+#' @param labels Character vector or factor of group labels, one per
+#'   observation (duplicates expected). A label equal to `""` (e.g. an
+#'   unresolved/blank identification stored as an empty string rather
+#'   than `NA`) is treated like any other label, not as missing.
+#' @return A named character vector of hex colours, one per element of
+#'   `unique(labels)` (in that order), named by the label itself.
+#' @noRd
+.stable_group_colors <- function(labels) {
+  labels <- as.character(labels)
+  uniq <- unique(labels)
+  # The cache is a single named character vector (colour, named by label),
+  # stored as one object in .intrait_color_cache -- not one environment
+  # variable per label via assign()/get() -- specifically because a named
+  # vector has no trouble with a `""` name, whereas assign()/get() on an
+  # environment error on a zero-length variable name (a real hazard here:
+  # e.g. an unresolved species identification stored as "" rather than
+  # `NA` in the source data would previously crash plotting entirely).
+  cache <- if (exists("map", envir = .intrait_color_cache, inherits = FALSE)) {
+    get("map", envir = .intrait_color_cache, inherits = FALSE)
+  } else {
+    character(0)
+  }
+  new_labels <- setdiff(uniq, names(cache))
+  if (length(new_labels) > 0) {
+    pal <- .ordination_palette(length(cache) + length(new_labels))
+    new_cols <- pal[seq(length(cache) + 1, length(cache) + length(new_labels))]
+    names(new_cols) <- new_labels
+    cache <- c(cache, new_cols)
+    assign("map", cache, envir = .intrait_color_cache)
+  }
+  cache[uniq]
 }
 
 #' n-dimensional convex-hull volume, via Qhull
@@ -1273,12 +1342,30 @@
 #'   ticks).
 #' @param n Number of tick positions (evenly spaced, including both
 #'   endpoints); the default of 5 gives quarter increments across
-#'   `xlim`/`ylim`.
+#'   `xlim`/`ylim`. Ignored if `pretty_ticks = TRUE`.
+#' @param pretty_ticks Logical. `FALSE` (default) places `n` ticks evenly
+#'   across the exact `xlim`/`ylim` -- correct for the package's `[0, 1]`
+#'   digitization convention, whose quarter increments (0, 0.25, 0.5,
+#'   0.75, 1) are already round numbers by construction. Set to `TRUE`
+#'   for a data-driven range that generally is *not* already round (e.g.
+#'   `plot_fishmorph_shapes()`'s centred, size-standardised coordinates),
+#'   which instead places ticks via [grDevices::axisTicks()] -- the same
+#'   underlying "round numbers" computation R's own default axes use
+#'   (`graphics::axis()` when its `at` argument is left unspecified) --
+#'   so labels read like `0.25`/`0.5` rather than arbitrary many-digit
+#'   fractions of whatever range the data happened
+#'   to span.
 #' @return Invisibly, `NULL`.
 #' @noRd
-.draw_coord_axes <- function(xlim, ylim, cex_axis = 0.75, tick_length = -0.25, n = 5) {
-  at_x <- seq(xlim[1], xlim[2], length.out = n)
-  at_y <- seq(ylim[1], ylim[2], length.out = n)
+.draw_coord_axes <- function(xlim, ylim, cex_axis = 0.75, tick_length = -0.25, n = 5,
+                              pretty_ticks = FALSE) {
+  if (isTRUE(pretty_ticks)) {
+    at_x <- grDevices::axisTicks(xlim, log = FALSE, nint = n - 1)
+    at_y <- grDevices::axisTicks(ylim, log = FALSE, nint = n - 1)
+  } else {
+    at_x <- seq(xlim[1], xlim[2], length.out = n)
+    at_y <- seq(ylim[1], ylim[2], length.out = n)
+  }
   graphics::axis(1, at = at_x, cex.axis = cex_axis, tcl = tick_length, mgp = c(3, 0.4, 0), las = 1)
   graphics::axis(2, at = at_y, cex.axis = cex_axis, tcl = tick_length, mgp = c(3, 0.5, 0), las = 1)
   invisible(NULL)
@@ -1629,7 +1716,16 @@
   # subset) so the palette/legend never reserves a colour and a legend
   # entry for a group with zero points.
   groups <- droplevels(as.factor(groups))
-  pal <- .ordination_palette(nlevels(groups))
+  # Colours are looked up by *label*, from a session-persistent cache
+  # (.stable_group_colors()), rather than derived from this call's own
+  # `nlevels(groups)`/`as.integer(groups)` position -- otherwise the same
+  # species would get a different colour in, say, plot.intrait_morphospace()
+  # vs plot.intrait_traitspace() whenever those two objects happen to
+  # retain a different subset of species after their own upstream
+  # NA/outlier filtering (which shifts positional indices even though the
+  # species themselves are identical). See .stable_group_colors().
+  label_colors <- .stable_group_colors(levels(groups))
+  pal <- unname(label_colors[levels(groups)])
   # `pal` itself (fully opaque) is kept as-is for the legend swatches
   # further down, and for the spider/hull/density group-summary elements
   # (ellipses, hulls, centroids), which should stay crisp; only the raw

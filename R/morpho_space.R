@@ -148,6 +148,15 @@ print.intrait_morphospace <- function(x, ...) {
 #' multimodal, since it does not assume bivariate normality — or `style =
 #' "none"` to plot points without any group decoration.
 #'
+#' Group colours are assigned per label (e.g. per species) and cached for
+#' the rest of the R session, so the same species keeps the same colour
+#' across separate calls to `plot.intrait_morphospace()` and
+#' [plot.intrait_traitspace()] -- including when built from the same
+#' dataset but retaining different subsets of specimens (and so,
+#' potentially, different subsets of species) after each function's own
+#' missing-data or outlier handling. Call [reset_group_colors()] to clear
+#' this cache, e.g. before moving on to an unrelated dataset.
+#'
 #' @references
 #' Hyndman RJ (1996). Computing and graphing highest density regions. The
 #' American Statistician, 50(2), 120-126.

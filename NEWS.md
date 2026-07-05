@@ -42,6 +42,55 @@
   dedicated `print()` (summary table + agreement count) and `plot()`
   (dot-and-whisker comparison, one row per method) methods.
 
+* Fixed group/species colours not staying consistent between
+  `plot.intrait_morphospace()` and `plot.intrait_traitspace()` built from
+  the same dataset: colours were previously derived from each call's own
+  `nlevels(groups)`/position within its *observed* factor levels, so the
+  same species could get a different colour whenever the two objects
+  happened to retain a different subset of species after their own
+  upstream missing-data or outlier filtering. Colours are now looked up
+  by label from a session-persistent cache, so a given species always
+  gets the same colour once assigned, regardless of which other species
+  are present in a later call. New `reset_group_colors()` clears this
+  cache (e.g. before an unrelated dataset, or for full reproducibility
+  irrespective of call history).
+
+* New `plot_fishmorph_shapes()`: overlays the landmark points and body
+  outline (the same FISHMORPH outline path used by
+  `plot_fishmorph_points()`) of every specimen in a given species, or of
+  an explicit vector of individuals, on a single figure -- no landmark
+  numbers, measurement segments, eye, or internal reference lines -- for
+  a fast visual read of shape variability across many specimens at once.
+  By default (`align = TRUE`) each specimen is independently centred on
+  its own centroid and rescaled to unit centroid size (translation and
+  scale only, no rotation) before being drawn, so the overlay compares
+  shape rather than raw digitization position/size; set `align = FALSE`
+  for already-comparable coordinates (e.g. `gpa_fish()` output). Axis
+  tick labels use `grDevices::axisTicks()` (the same "round numbers"
+  computation behind R's own default axes) rather than evenly spaced raw
+  fractions of the data range, since that range is data-driven here and
+  generally not already round -- unlike `plot_fishmorph_points()`'s fixed
+  `[0, 1]` convention, whose quarter increments are round by construction.
+
+* Fixed a crash ("attempt to use zero-length variable name") in
+  `plot.intrait_morphospace()`/`plot.intrait_traitspace()` whenever a
+  group level was an empty string `""` (e.g. an unresolved species
+  identification stored as `""` rather than `NA` in the source data): the
+  session-level colour cache previously stored one colour per group by
+  `assign()`ing an environment variable named after the raw label, which
+  errors on `""`. Colours are now stored in a single named vector instead,
+  which has no such restriction; `""` is now treated like any other
+  distinct label.
+
+* New `group_colors()`: returns the exact group/species colours
+  `plot.intrait_morphospace()`/`plot.intrait_traitspace()` use (or would
+  use), as a `group`/`color` `data.frame`, in the same order as their own
+  legend -- for building a single shared legend across several panels
+  (e.g. `par(mfrow = c(2, 2))`, each plotted with `legend = FALSE`)
+  without reimplementing or guessing at the underlying colour
+  assignment. Accepts either an object with a `$groups` element (e.g.
+  `morpho_space()`/`trait_space()` output) or a raw label vector.
+
 # intraitR 1.0.0
 
 First stable release. Functionally identical to 0.13.0, promoted to

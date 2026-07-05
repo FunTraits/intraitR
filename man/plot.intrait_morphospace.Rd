@@ -85,6 +85,15 @@ requiring MASS itself; see Hyndman, 1996, for the highest-density-region
 construction used to pick the contour threshold) — a useful alternative
 to the ellipse when a group's point cloud is visibly skewed or
 multimodal, since it does not assume bivariate normality — or \code{style = "none"} to plot points without any group decoration.
+
+Group colours are assigned per label (e.g. per species) and cached for
+the rest of the R session, so the same species keeps the same colour
+across separate calls to \code{plot.intrait_morphospace()} and
+\code{\link[=plot.intrait_traitspace]{plot.intrait_traitspace()}} -- including when built from the same
+dataset but retaining different subsets of specimens (and so,
+potentially, different subsets of species) after each function's own
+missing-data or outlier handling. Call \code{\link[=reset_group_colors]{reset_group_colors()}} to clear
+this cache, e.g. before moving on to an unrelated dataset.
 }
 \references{
 Hyndman RJ (1996). Computing and graphing highest density regions. The

@@ -54,6 +54,7 @@ reference:
       - fishmorph_segments
       - fishmorph_ratios
       - plot_fishmorph_points
+      - plot_fishmorph_shapes
 
   - title: Functional and morphological space
     desc: >
@@ -73,6 +74,8 @@ reference:
       - print.intrait_species_sensitivity
       - compare_functional_richness
       - print.intrait_richness_comparison
+      - group_colors
+      - reset_group_colors
 
   - title: Intraspecific variability and measurement error
     desc: >

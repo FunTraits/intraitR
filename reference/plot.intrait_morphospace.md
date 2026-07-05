@@ -111,6 +111,16 @@ to the ellipse when a group's point cloud is visibly skewed or
 multimodal, since it does not assume bivariate normality — or
 `style = "none"` to plot points without any group decoration.
 
+Group colours are assigned per label (e.g. per species) and cached for
+the rest of the R session, so the same species keeps the same colour
+across separate calls to `plot.intrait_morphospace()` and
+[`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
+– including when built from the same dataset but retaining different
+subsets of specimens (and so, potentially, different subsets of species)
+after each function's own missing-data or outlier handling. Call
+[`reset_group_colors()`](https://funtraits.github.io/intraitR/reference/reset_group_colors.md)
+to clear this cache, e.g. before moving on to an unrelated dataset.
+
 ## References
 
 Hyndman RJ (1996). Computing and graphing highest density regions. The

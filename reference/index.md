@@ -75,6 +75,9 @@ et al., 2021) 11-measurement/9-ratio protocol.
   : Compute the nine FISHMORPH unitless ecomorphological ratios
 - [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
   : Plot a specimen following the FISHMORPH point digitization scheme
+- [`plot_fishmorph_shapes()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_shapes.md)
+  : Overlay the body shape of every specimen in a species or a set of
+  individuals
 
 ## Functional and morphological space
 
@@ -131,6 +134,13 @@ functional richness.
   :
 
   Print and plot an `"intrait_richness_comparison"` object
+
+- [`group_colors()`](https://funtraits.github.io/intraitR/reference/group_colors.md)
+  : Look up the group/species colours used by the ordination plot
+  methods
+
+- [`reset_group_colors()`](https://funtraits.github.io/intraitR/reference/reset_group_colors.md)
+  : Reset the session-level group/species colour cache
 
 ## Intraspecific variability and measurement error
 

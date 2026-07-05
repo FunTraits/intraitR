@@ -145,6 +145,14 @@ requiring MASS itself; see Hyndman, 1996, for the highest-density-region
 construction used to pick the contour threshold) — a useful alternative
 to the ellipse when a group's point cloud is visibly skewed or
 multimodal, since it does not assume bivariate normality — or <code>style = "none"</code> to plot points without any group decoration.</p>
+<p>Group colours are assigned per label (e.g. per species) and cached for
+the rest of the R session, so the same species keeps the same colour
+across separate calls to <code>plot.intrait_morphospace()</code> and
+<code><a href="plot.intrait_traitspace.html">plot.intrait_traitspace()</a></code> – including when built from the same
+dataset but retaining different subsets of specimens (and so,
+potentially, different subsets of species) after each function's own
+missing-data or outlier handling. Call <code><a href="reset_group_colors.html">reset_group_colors()</a></code> to clear
+this cache, e.g. before moving on to an unrelated dataset.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

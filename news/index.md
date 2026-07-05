@@ -106,6 +106,18 @@
   Colours are now stored in a single named vector instead, which has no
   such restriction; `""` is now treated like any other distinct label.
 
+- Fixed a follow-on bug from the `""`-label fix above: the colour
+  cache’s own lookup, `cache[uniq]`, relied on `[`’s character-name
+  matching, which R documents as never matching a `""` index to a `""`
+  name even when that name is genuinely present
+  ([`?Extract`](https://rdrr.io/r/base/Extract.html): “Neither empty
+  (’’) nor NA indices match any names, not even empty nor missing
+  names.”). A `""`-labelled group was therefore still assigned `NA`
+  instead of its cached colour on lookup, even though storage worked
+  correctly. Lookup now uses
+  [`match()`](https://rdrr.io/r/base/match.html), which has no such
+  exception.
+
 - New
   [`group_colors()`](https://funtraits.github.io/intraitR/reference/group_colors.md):
   returns the exact group/species colours
@@ -118,6 +130,15 @@
   (e.g.
   [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
   output) or a raw label vector.
+
+- Fixed a bug in
+  [`group_colors()`](https://funtraits.github.io/intraitR/reference/group_colors.md)
+  where passing a list without a `$groups` element (anything other than
+  the intended
+  [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
+  output or a raw label vector) silently used the list itself as if it
+  were the label vector instead of raising the documented “no `groups`
+  element” error.
 
 ## intraitR 1.0.0
 

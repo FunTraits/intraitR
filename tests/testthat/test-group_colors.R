@@ -96,9 +96,10 @@ test_that("plot.intrait_morphospace() and plot.intrait_traitspace() use the same
   reset_group_colors()
   on.exit(reset_group_colors(), add = TRUE)
 
-  fish <- simulate_fish_landmarks(n_per_species = 8, n_replicates = 1)
-  gpa <- gpa_fish(fish)
-  ms <- morpho_space(gpa, groups = fish$metadata$species)
+  fish <- simulate_fishmorph_points(n_per_species = 8, n_replicates = 1)
+  fish_shape <- fishmorph_shape_landmarks(fish)
+  gpa <- gpa_fish(fish_shape)
+  ms <- morpho_space(gpa, groups = fish_shape$metadata$species)
 
   segments <- fishmorph_segments(fish)
   ratios <- fishmorph_ratios(segments)

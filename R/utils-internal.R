@@ -372,7 +372,13 @@
     cache <- c(cache, new_cols)
     assign("map", cache, envir = .intrait_color_cache)
   }
-  cache[uniq]
+  # Deliberately not `cache[uniq]`: R's `[` never matches a `""` character
+  # index to a `""` name (documented in `?Extract`: "Neither empty ("") nor
+  # NA indices match any names, not even empty nor missing names"), so a
+  # label stored as "" would always come back as NA here even though it is
+  # genuinely present in `cache`. `match()` performs ordinary value
+  # equality instead, so it has no such exception.
+  stats::setNames(unname(cache[match(uniq, names(cache))]), uniq)
 }
 
 #' n-dimensional convex-hull volume, via Qhull

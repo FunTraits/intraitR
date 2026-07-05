@@ -72,13 +72,17 @@ reset_group_colors <- function() {
 #' # or directly from a label vector:
 #' group_colors(fish$metadata$species)
 group_colors <- function(x) {
-  labels <- if (is.list(x) && !is.null(x$groups)) x$groups else x
-  if (is.null(labels)) {
-    stop(
-      "`x` has no `groups` element (or none were supplied when it was created), ",
-      "and is not itself a vector of group labels.",
-      call. = FALSE
-    )
+  if (is.list(x)) {
+    labels <- x$groups
+    if (is.null(labels)) {
+      stop(
+        "`x` has no `groups` element (or none were supplied when it was created), ",
+        "and is not itself a vector of group labels.",
+        call. = FALSE
+      )
+    }
+  } else {
+    labels <- x
   }
   groups_f <- droplevels(as.factor(labels))
   lv <- levels(groups_f)

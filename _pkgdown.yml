@@ -78,6 +78,15 @@ reference:
       - group_colors
       - reset_group_colors
 
+  - title: Phylogenetic data and ordination
+    desc: >
+      A bundled reference phylogeny and a phylogenetic PCoA ordination
+      producing axes directly usable as `traits` in `trait_space()`, for
+      comparing functional and phylogenetic diversity loss.
+    contents:
+      - load_fishmorph_phylogeny
+      - phylo_pcoa
+
   - title: Intraspecific variability and measurement error
     desc: >
       Decompose trait variance into interspecific/intraspecific

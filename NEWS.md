@@ -1,5 +1,30 @@
 # intraitR 1.1.0
 
+* New function `exclude_specimens()`: removes one or more known-bad (e.g.
+  mismeasured/mis-digitized) specimens from an `"intrait_landmarks"` object
+  (as returned by `read_tps()`, `read_landmarks_csv()`,
+  `read_landmarks_xlsx()`, or `load_t26_saudrune_landmarks()`) or a raw
+  landmark array, right after loading, so every downstream step
+  (`fishmorph_segments()`, `gpa_fish()`, `correct_geometry()`, ...) simply
+  never sees it -- rather than repeating an ad hoc `dplyr::filter()` on
+  derived output (`segments`/`ratios`/`trait_space()`) at every stage of a
+  pipeline, which is easy to apply inconsistently and, in the case of a
+  typo/formatting mismatch (e.g. a leading zero), can silently filter out
+  nothing at all. `coords`, `scale`, and `metadata` are filtered
+  consistently by specimen name; any pre-existing per-specimen audit-trail
+  attribute (`standardization_log`, `correction_log`, `corrected`,
+  `orientation_log`) is filtered the same way, so it never refers to a
+  specimen no longer in the data. Every exclusion is recorded, with an
+  optional `reason`, in a `$removed_specimens` data.frame that accumulates
+  across successive calls (mirroring `gpa_fish()`'s own
+  `remove_outliers`/`$removed_outliers`), and is now surfaced by
+  `print.intrait_landmarks()`. Explicitly errors, rather than silently
+  doing the wrong thing, for an `"intrait_gpa"` object (Procrustes
+  alignment is computed jointly across all specimens, so deleting a row
+  after the fact does not undo its effect on the consensus shape) or an
+  unknown specimen name (a typo no longer just matches, and removes,
+  nothing).
+
 * `correct_geometry()`'s pipeline is now also available as two separate
   functions, for workflows that want to inspect or use its value-preserving
   standardization on its own before deciding whether its value-changing

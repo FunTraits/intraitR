@@ -170,5 +170,11 @@ print.intrait_landmarks <- function(x, ...) {
   if (!is.null(x$metadata)) {
     cat("  Metadata columns:", paste(names(x$metadata), collapse = ", "), "\n")
   }
+  if (!is.null(x$removed_specimens)) {
+    cat(sprintf(
+      "  %d specimen(s) excluded via exclude_specimens() (see $removed_specimens): %s\n",
+      nrow(x$removed_specimens), paste(x$removed_specimens$specimen, collapse = ", ")
+    ))
+  }
   invisible(x)
 }

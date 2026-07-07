@@ -35,6 +35,7 @@ reference:
       and geometry correction), Generalised Procrustes Analysis, allometric
       correction, and digitization/outlier quality control.
     contents:
+      - exclude_specimens
       - impute_landmarks
       - standardize_orientation
       - correct_landmarks

@@ -211,8 +211,8 @@ if (requireNamespace("geometry", quietly = TRUE)) {
 #>  Phoxinus phoxinus/bigerri   5   +7.07%   [+0.00%, +35.34%]
 #>          Perca fluviatilis  14   +5.06%  [-13.36%, +44.93%]
 #>    Leuciscus burdigalensis  13   +4.43%   [+0.00%, +23.49%]
-#>           Lepomis gibbosus   2   -0.00%  [-17.56%, +17.56%]
 #>                             NA   +0.00%    [+0.00%, +0.00%]
 #>              Barbus barbus   5   +0.00%    [+0.00%, +0.00%]
+#>           Lepomis gibbosus   2   +0.00%  [-17.56%, +17.56%]
 # }
 ```

@@ -63,7 +63,7 @@ scale bar, for quality control of digitization.</p>
 <span>  highlight_corrected <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  geometry_check <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  highlight_geometry <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  scale_label <span class="op">=</span> <span class="st">"scale (1 cm)"</span>,</span>
+<span>  scale_unit <span class="op">=</span> <span class="st">"cm"</span>,</span>
 <span>  axis_range <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -197,19 +197,27 @@ highlighting described above. Only relevant when <code>geometry_check</code> is
 supplied. Defaults to <code>TRUE</code>.</p></dd>
 
 
-<dt id="arg-scale-label">scale_label<a class="anchor" aria-label="anchor" href="#arg-scale-label"></a></dt>
-<dd><p>Character text drawn just above the digitization
-scale bar (landmarks 20-21), or <code>NULL</code> to omit it. Defaults to
-<code>"scale (1 cm)"</code>, the FISHMORPH protocol's standard calibration
-segment; change it (e.g. <code>"scale (2 cm)"</code>) if a data set was
-digitized against a different calibration length. Only drawn when
-both landmarks 20 and 21 are present (non-<code>NA</code>) for this specimen.
-The bar itself is drawn schematically near the plot's own origin
-(bottom-left corner) rather than at landmarks 20/21's true digitized
-coordinates – which can otherwise land anywhere in the frame, even
-on the fish – while still being drawn to the real digitized length
-between them (i.e. still true to scale); neither landmark is
-individually number-labelled.</p></dd>
+<dt id="arg-scale-unit">scale_unit<a class="anchor" aria-label="anchor" href="#arg-scale-unit"></a></dt>
+<dd><p>Character, the real-world unit the digitization scale
+bar (landmarks 20-21) represents one of (e.g. <code>"mm"</code>, <code>"cm"</code>, <code>"dm"</code>,
+<code>"m"</code>, or any other unit label) – the FISHMORPH protocol's standard
+calibration segment is 1 cm, hence the default <code>"cm"</code>; change it if a
+data set was digitized against a different real-world unit. Set to
+<code>NULL</code> to omit the bar's text label entirely (the bar itself is still
+drawn). The label is built automatically as <code>"1 &lt;scale_unit&gt; = &lt;length&gt;"</code>,
+where <code>&lt;length&gt;</code> is that specimen's own digitized distance between
+landmarks 20 and 21, so it always reflects the actual calibration
+length used for that specimen rather than a fixed, possibly
+inaccurate, caption. Only drawn when both landmarks 20 and 21 are
+present (non-<code>NA</code>) for this specimen. The bar itself is drawn as a
+solid, filled bar with its own border (not a thin open line), low
+down, schematically near the plot's own origin (bottom-left corner)
+rather than at landmarks 20/21's true digitized coordinates – which
+can otherwise land anywhere in the frame, even on the fish – while
+still being drawn to the real digitized length between them (i.e.
+still true to scale); its caption is placed directly below it.
+Neither landmark is individually number-labelled or marked with its
+own point symbol.</p></dd>
 
 
 <dt id="arg-axis-range">axis_range<a class="anchor" aria-label="anchor" href="#arg-axis-range"></a></dt>
@@ -288,7 +296,7 @@ units, so this layout looks the same regardless of whether coordinates
 are already normalised to <code>[0, 1]</code> or are raw, not-yet-corrected
 digitization pixels in the hundreds or thousands. Landmarks 20 and 21
 (the scale bar) are excluded from this numbering, and from the plain
-scattered dots, entirely – see <code>scale_label</code> above.</p>
+scattered dots, entirely – see <code>scale_unit</code> above.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

@@ -137,7 +137,7 @@ unpublished, supervised by A. Toussaint and S. Brosse.
 # \donttest{
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.
+#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ratios <- fishmorph_ratios(segments)
 ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 #> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
@@ -558,10 +558,10 @@ cmp
 #> <intrait_richness_comparison>
 #>   4 method(s) requested, 4 succeeded
 #>       method status fd_ref fd_boot_mean pct_diff p_value significant
-#>   convexhull     ok  6.104         10.3   +68.7% 0.07921       FALSE
-#>   dendrogram     ok  13.55        18.75   +38.3%  0.1089       FALSE
-#>          tpd     ok  36.67        43.68   +19.1% 0.07921       FALSE
-#>  hypervolume     ok  19.48        23.77   +22.0%  0.1089       FALSE
+#>   convexhull     ok  6.104        11.71   +91.9% 0.06931       FALSE
+#>   dendrogram     ok  13.55        17.73   +30.8% 0.06931       FALSE
+#>          tpd     ok  36.67        43.12   +17.6%  0.1188       FALSE
+#>  hypervolume     ok  19.25        23.94   +24.4% 0.07921       FALSE
 #> 
 #>   0/4 method(s) agree that individual-based richness significantly
 #>   exceeds the centroid-based reference (p < 0.05).

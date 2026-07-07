@@ -34,7 +34,8 @@ bootstrap_functional_space(
   tpd_bw_factor = 0.5,
   tpd_n_divisions = NULL,
   hv_bw_method = "silverman",
-  hv_samples_per_point = 500
+  hv_samples_per_point = 500,
+  composition = NULL
 )
 ```
 
@@ -191,6 +192,25 @@ bootstrap_functional_space(
   dimensionality-scaled default), since this value is paid `n_boot`
   times over; increase it for a more precise (but slower) estimate.
 
+- composition:
+
+  Optional numeric matrix or data.frame giving the species composition
+  of one or more communities/sites: one row per community, one column
+  per species, with column names matching the species labels used in
+  `groups` (i.e. `levels(factor(groups))`). Entries can be
+  presence/absence (`0`/`1`) or abundance – either way, only whether an
+  entry is greater than `0` is used (abundance values themselves do not
+  otherwise weight the computation; see Details). Row names, if present,
+  are used as community identifiers (otherwise `"community_1"`,
+  `"community_2"`, ...). Columns not matching any species in `groups`
+  are dropped with a warning. When supplied, the exact same
+  reference-vs-bootstrap principle described above is repeated
+  independently for each community, restricted to that community's own
+  species (see Details); the results are returned in `$communities` (see
+  Return) in addition to, not instead of, the whole-species-pool
+  `fd_ref`/`fd_boot` above. Defaults to `NULL` (no per-community
+  computation).
+
 ## Value
 
 An object of class `"intrait_bootstrap_fspace"`, a list with elements
@@ -202,7 +222,34 @@ p-value, see Details), `method`, `n_axes` (actual number of PCA axes
 used), `var_explained` (cumulative proportion of variance captured by
 those `n_axes` axes), `n_boot`, and `groups`. Has dedicated
 [`print()`](https://rdrr.io/r/base/print.html) and
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods.
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods. If
+`composition` was supplied, also includes:
+
+- `communities`:
+
+  A `data.frame`, one row per community (in `composition`'s row order),
+  with columns `community`, `n_species` (species matched between that
+  community and `groups`), `fd_obs` (that community's own centroid-based
+  richness – the direct, per-community analogue of the whole-pool
+  `fd_ref` above), `fd_expected` (that community's own bootstrap mean,
+  the analogue of `fd_boot_mean`), `fd_sd` (that community's own
+  bootstrap SD), `ses` (Standardized Effect Size,
+  `(fd_obs - fd_expected) / fd_sd`), and `p_value` (one-sided, same
+  convention as the whole-pool `p_value`). A community matched to fewer
+  than 2 species has every one of these set to `NA` (nothing to compute
+  a richness from), with a warning.
+
+- `community_boot`:
+
+  A named list (by community identifier), the raw per-community
+  bootstrap richness vectors (length `n_boot`, or length `0` for a
+  community left `NA` above) `fd_expected`/ `fd_sd`/`ses`/`p_value` were
+  summarised from – kept for custom downstream inspection or plotting.
+
+- `composition`:
+
+  The `composition` matrix actually used, i.e. after dropping any column
+  that did not match a species in `groups` (see `composition` above).
 
 ## Details
 
@@ -269,6 +316,46 @@ Species represented by a single individual necessarily contribute the
 same point to every bootstrap draw (there is nothing to resample for
 that species); this is expected behaviour, not an error.
 
+**Per-community results (`composition`).** When `composition` is
+supplied, the exact same `fd_ref`/`fd_boot` machinery above is repeated
+once per community, restricted to that community's own species subset:
+the shared, whole-pool PCA space, and the shared `method`-specific
+auxiliary quantities (kernel bandwidth/grid for `"tpd"`/`"hypervolume"`,
+computed once from the full individual-level data, see above) are reused
+unchanged for every community, so richness values stay comparable
+*across* communities as well as within one – only the set of species
+(and their individuals) entering the centroid/bootstrap computation
+changes from community to community. For community `c`: `fd_obs` is the
+centroid-based richness of exactly the species present in `c` (the
+direct analogue of `fd_ref`), `fd_expected`/`fd_sd` are the mean/SD of
+`n_boot` draws of one random individual per species present in `c` (the
+analogue of `fd_boot`), and the Standardized Effect Size
+`ses = (fd_obs - fd_expected) / fd_sd` expresses how far `fd_obs` sits
+from its own community-specific bootstrap expectation, in units of that
+expectation's own bootstrap SD – the standard way to make effect sizes
+comparable across communities that differ in species richness and
+composition (e.g. Gotelli & McCabe, 2002), unlike comparing raw `fd_obs`
+values directly. `p_value` follows the same one-sided, resampling-based
+convention as the whole-pool `p_value` above (the proportion of that
+community's own `fd_boot` draws at or below its own `fd_obs`, `+ 1`
+corrected). Only presence (`composition > 0`) is used to decide which
+species enter a community's computation; an abundance matrix is accepted
+for convenience but abundance values themselves do not otherwise weight
+the centroid or the bootstrap draws (every present species contributes
+exactly one point to `fd_obs`, and exactly one randomly drawn individual
+to each bootstrap draw, regardless of its abundance) – a deliberate
+choice for comparability with `fd_ref`/ `fd_boot` above, which make the
+same assumption for the whole pool. Every community's `n_boot` draws are
+combined with every other's into a single flattened task list before
+being dispatched (via the same `future.apply`-based mechanism described
+above), for the same reason individual replacements are flattened in
+[`species_sensitivity()`](https://funtraits.github.io/intraitR/reference/species_sensitivity.md)
+rather than run as nested loops: each (community, draw) pair is entirely
+independent of every other, so distributing them all at once lets a
+parallel
+[`future::plan()`](https://future.futureverse.org/reference/plan.html)
+(see above) balance the full workload across its workers in one pass.
+
 The `n_boot` bootstrap draws are independent of one another (each is
 just one random individual per species plus a functional-richness
 recomputation), so they parallelise trivially. If the `future.apply`
@@ -316,6 +403,9 @@ hypervolumes. Methods in Ecology and Evolution, 9(2), 305-319.
 Davison AC, Hinkley DV (1997). Bootstrap Methods and their Application.
 Cambridge University Press.
 
+Gotelli NJ, McCabe DJ (2002). Species co-occurrence: a meta-analysis of
+J. M. Diamond's assembly rules model. Ecology, 83(8), 2091-2096.
+
 ## See also
 
 [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
@@ -327,7 +417,7 @@ Cambridge University Press.
 # \donttest{
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.
+#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ratios <- fishmorph_ratios(segments)
 ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 #> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
@@ -581,5 +671,30 @@ if (requireNamespace("hypervolume", quietly = TRUE)) {
 #>   Centroid-based reference richness (FD_ref): 19.14
 #>   Bootstrap richness (FD_boot, 20 draws): mean = 23.93, SD = 3.291, 5-95% = [19.33, 29.76]
 #>   Difference (mean FD_boot - FD_ref): 4.787 (one-sided bootstrap p = 0.09524)
+
+# Per-community results: a communities x species composition matrix
+# (here, three toy communities over the species in `ts`) gives obs/
+# expected/SES/p-value per community, restricted to each community's
+# own species subset (see Details).
+# levels(), not on the raw character column: fish$metadata$species is a
+# plain character vector (not a factor), so levels(fish$metadata$species)
+# would silently return NULL rather than erroring.
+sp <- levels(factor(fish$metadata$species))
+composition <- rbind(
+  site_A = as.integer(sp %in% sp[1:3]),
+  site_B = as.integer(sp %in% sp[2:4]),
+  site_C = as.integer(sp %in% sp)
+)
+colnames(composition) <- sp
+bf_comm <- bootstrap_functional_space(
+  ts, method = "dendrogram", n_axes = 2, n_boot = 200, composition = composition
+)
+bf_comm$communities
+#>   community n_species    fd_obs fd_expected    fd_sd        ses   p_value
+#> 1    site_A         3  7.225431    8.191091 5.726199 -0.1686390 0.5671642
+#> 2    site_B         3  4.872859    7.459348 4.120782 -0.6276695 0.1592040
+#> 3    site_C        10 13.551419   17.999694 6.309353 -0.7050288 0.1194030
+plot(bf_comm, type = "communities")
+
 # }
 ```

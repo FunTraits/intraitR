@@ -27,14 +27,17 @@
 <url><loc>https://funtraits.github.io/intraitR/reference/intraspecific_variability.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/itv_index.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/linear_distances.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/load_fishmorph_phylogeny.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/load_t26_saudrune.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/measurement_error.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/morpho_ratios.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/morpho_space.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/phylo_pcoa.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/plot.intrait_itv.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/plot_correlation_circle.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/plot_fishmorph_shapes.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/plot_landmarks.html</loc></url>

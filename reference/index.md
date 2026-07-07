@@ -34,8 +34,7 @@ geometry correction), Generalised Procrustes Analysis, allometric
 correction, and digitization/outlier quality control.
 
 - [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
-  : Impute missing (NA) landmark coordinates using geometric
-  morphometric methods
+  : Impute missing (NA) landmark coordinates
 - [`standardize_orientation()`](https://funtraits.github.io/intraitR/reference/standardize_orientation.md)
   : Standardize every specimen to the same head-left, belly-down
   orientation
@@ -92,6 +91,9 @@ functional richness.
 - [`plot(`*`<intrait_traitspace>`*`)`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
   : Plot a functional trait space
 
+- [`plot_correlation_circle()`](https://funtraits.github.io/intraitR/reference/plot_correlation_circle.md)
+  : Plot the correlation circle of a functional trait space
+
 - [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md)
   [`print(`*`<intrait_morphospace>`*`)`](https://funtraits.github.io/intraitR/reference/morpho_space.md)
   : Build a morphological space from Procrustes shape coordinates
@@ -141,6 +143,23 @@ functional richness.
 
 - [`reset_group_colors()`](https://funtraits.github.io/intraitR/reference/reset_group_colors.md)
   : Reset the session-level group/species colour cache
+
+## Phylogenetic data and ordination
+
+A bundled reference phylogeny and a phylogenetic PCoA ordination
+producing axes directly usable as `traits` in
+[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
+for comparing functional and phylogenetic diversity loss.
+
+- [`load_fishmorph_phylogeny()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylogeny.md)
+  :
+
+  Bundled global fish phylogeny, ready to use with
+  [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md)
+
+- [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md)
+  [`print(`*`<intrait_phylopcoa>`*`)`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md)
+  : Phylogenetic Principal Coordinates Analysis
 
 ## Intraspecific variability and measurement error
 

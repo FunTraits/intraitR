@@ -65,9 +65,12 @@ comparative ecology (e.g. Villéger et al., 2017).</p>
 <span>  log_transform <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  scale <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  axes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>,</span>
-<span>  na_action <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fail"</span>, <span class="st">"omit"</span>, <span class="st">"impute_mean"</span>, <span class="st">"impute_group_mean"</span>, <span class="st">"missforest"</span><span class="op">)</span>,</span>
+<span>  na_action <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fail"</span>, <span class="st">"omit"</span>, <span class="st">"impute_mean"</span>, <span class="st">"impute_group_mean"</span>, <span class="st">"missforest"</span>,</span>
+<span>    <span class="st">"missforest_phylo"</span><span class="op">)</span>,</span>
 <span>  missforest_ntree <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  missforest_maxiter <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  tree <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  missforest_phylo_k <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  flag_outliers <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  outlier_threshold <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  outlier_min_n <span class="op">=</span> <span class="fl">5</span>,</span>
@@ -92,7 +95,10 @@ warning, since they carry no information for an ordination and
 cannot be rescaled to unit variance; this commonly happens when
 incidental numeric metadata (e.g. a digitization replicate counter)
 is carried over from <code><a href="fishmorph_segments.html">fishmorph_segments()</a></code>/<code><a href="fishmorph_ratios.html">fishmorph_ratios()</a></code> and
-passed to <code>trait_space()</code> unfiltered.</p></dd>
+passed to <code>trait_space()</code> unfiltered. A non-finite value (<code>Inf</code>/
+<code>-Inf</code>, as from a ratio with a zero-length denominator segment) is
+always an error regardless of <code>na_action</code> (it is not treated as an
+ordinary missing value – see Details).</p></dd>
 
 
 <dt id="arg-groups">groups<a class="anchor" aria-label="anchor" href="#arg-groups"></a></dt>
@@ -148,17 +154,40 @@ back to the column mean, with a warning, for a group entirely missing
 a trait; <code>"missforest"</code> uses random-forest-based iterative imputation
 (<code><a href="https://rdrr.io/pkg/missForest/man/missForest.html" class="external-link">missForest::missForest()</a></code>, Stekhoven &amp; Bühlmann, 2012) on the
 numeric trait matrix, using <code>groups</code> (when available) as an
-additional predictor. <code>"omit"</code> and every imputation option print a
-<code><a href="https://rdrr.io/r/base/message.html" class="external-link">message()</a></code> reporting the number of rows removed or values imputed
-(plus, for <code>"missforest"</code>, the out-of-bag normalised RMSE of the
-imputation), so this is never a silent operation.</p></dd>
+additional predictor; <code>"missforest_phylo"</code> does the same but also
+augments the predictor matrix with phylogenetic PCoA axes (see
+<code><a href="phylo_pcoa.html">phylo_pcoa()</a></code>, <code>tree</code>/<code>missforest_phylo_k</code>) for the species in
+<code>groups</code>, so that phylogenetically related species can inform each
+other's imputed values in addition to shared species identity –
+falling back to plain <code>"missforest"</code>, with a warning explaining why,
+if phylogenetic axes cannot be used (no <code>groups</code>, fewer than 3 species
+matched to <code>tree</code>, "ape" not installed, etc.). <code>"omit"</code> and every
+imputation option print a <code><a href="https://rdrr.io/r/base/message.html" class="external-link">message()</a></code> reporting the number of rows
+removed or values imputed (plus, for <code>"missforest"</code>/
+<code>"missforest_phylo"</code>, the out-of-bag normalised RMSE of the
+imputation, and, for <code>"missforest_phylo"</code>, how many phylogenetic axes
+and matched species were actually used), so this is never a silent
+operation.</p></dd>
 
 
 <dt id="arg-missforest-ntree-missforest-maxiter">missforest_ntree, missforest_maxiter<a class="anchor" aria-label="anchor" href="#arg-missforest-ntree-missforest-maxiter"></a></dt>
 <dd><p>Number of trees per forest
 and maximum number of iterations passed to
-<code><a href="https://rdrr.io/pkg/missForest/man/missForest.html" class="external-link">missForest::missForest()</a></code> when <code>na_action = "missforest"</code>; ignored
-otherwise. Default to <code>missForest</code>'s own defaults (<code>100</code> and <code>10</code>).</p></dd>
+<code><a href="https://rdrr.io/pkg/missForest/man/missForest.html" class="external-link">missForest::missForest()</a></code> when <code>na_action</code> is <code>"missforest"</code>/
+<code>"missforest_phylo"</code>; ignored otherwise. Default to <code>missForest</code>'s
+own defaults (<code>100</code> and <code>10</code>).</p></dd>
+
+
+<dt id="arg-tree">tree<a class="anchor" aria-label="anchor" href="#arg-tree"></a></dt>
+<dd><p>Used only by <code>na_action = "missforest_phylo"</code>: an object of
+class <code>"phylo"</code> (e.g. from <code><a href="https://rdrr.io/pkg/ape/man/read.tree.html" class="external-link">ape::read.tree()</a></code>), or <code>NULL</code> (default) to
+use the bundled <code><a href="load_fishmorph_phylogeny.html">load_fishmorph_phylogeny()</a></code> tree.</p></dd>
+
+
+<dt id="arg-missforest-phylo-k">missforest_phylo_k<a class="anchor" aria-label="anchor" href="#arg-missforest-phylo-k"></a></dt>
+<dd><p>Used only by <code>na_action = "missforest_phylo"</code>:
+maximum number of phylogenetic PCoA axes to add as predictors.
+Defaults to <code>10</code>.</p></dd>
 
 
 <dt id="arg-flag-outliers">flag_outliers<a class="anchor" aria-label="anchor" href="#arg-flag-outliers"></a></dt>
@@ -240,7 +269,19 @@ a <code>data.frame</code> with the same columns as <code>outlier_screen</code>, 
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>By default (<code>na_action = "fail"</code>), rows with <code>NA</code> in any numeric trait
+    <p>A non-finite trait value (<code>Inf</code>/<code>-Inf</code>) is rejected with an error
+regardless of <code>na_action</code>, before any missing-value handling: unlike
+<code>NA</code>, <code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code>/<code><a href="https://rdrr.io/r/base/NA.html" class="external-link">anyNA()</a></code> do not detect <code>Inf</code>/<code>-Inf</code>, so such a value
+would otherwise silently pass through every <code>na_action</code> unimputed and
+corrupt the ordination (and, specifically for <code>na_action = "missforest"</code>, can crash <code><a href="https://rdrr.io/pkg/missForest/man/missForest.html" class="external-link">missForest::missForest()</a></code> itself with a
+cryptic "missing value where TRUE/FALSE needed" error, because its
+internal convergence check computes <code>Inf - Inf = NaN</code>). This most
+commonly arises from a ratio with a zero-length denominator segment,
+e.g. from a degenerate or duplicated landmark (see
+<code><a href="fishmorph_segments.html">fishmorph_segments()</a></code>/<code><a href="fishmorph_ratios.html">fishmorph_ratios()</a></code>); investigate and correct
+the underlying measurement, or replace it with <code>NA</code> yourself first if
+you want it handled like any other missing value.</p>
+<p>By default (<code>na_action = "fail"</code>), rows with <code>NA</code> in any numeric trait
 cause an error; set <code>na_action</code> to <code>"omit"</code> or one of the imputation
 options to handle missing values automatically (see <code>na_action</code>). Mean
 imputation (<code>"impute_mean"</code>, <code>"impute_group_mean"</code>) is a simple,
@@ -255,7 +296,14 @@ predictor) to predict each missing value, and is generally preferred
 over mean imputation once more than a few values are missing;
 it requires the <code>missForest</code> package (not installed by default; see
 <code>Suggests</code>) and is stochastic, so results vary run to run unless
-<code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> is called beforehand. If a very large fraction of values
+<code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> is called beforehand. <code>na_action = "missforest_phylo"</code>
+extends this further with phylogenetic PCoA axes (see <code><a href="phylo_pcoa.html">phylo_pcoa()</a></code>)
+as additional predictors, so species can also borrow information from
+their close relatives, not only from shared species identity; this can
+help when a species has very few (or zero) complete specimens of its
+own for <code>missForest</code> to learn from, but adds a phylogenetic assumption
+(trait similarity correlates with relatedness) that should be
+reasonable for the trait in question. If a very large fraction of values
 is missing, no automated imputation method is a substitute for
 reviewing the missing-data mechanism directly. This function does not
 implement Gower distance for mixed (numeric and categorical) trait
@@ -329,7 +377,7 @@ challenges. Aquatic Sciences, 79(4), 783-801.</p>
 <span class="r-in"><span><span class="co"># landmarks (see ?load_t26_saudrune_landmarks)</span></span></span>
 <span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">segments</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
 <span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="va">segments</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ts</span> <span class="op">&lt;-</span> <span class="fu">trait_space</span><span class="op">(</span><span class="va">ratios</span>, groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>, na_action <span class="op">=</span> <span class="st">"omit"</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator</span>

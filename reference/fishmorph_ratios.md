@@ -19,9 +19,13 @@ fishmorph_ratios(
   no_pectoral_fin = FALSE,
   digits = 4,
   groups = NULL,
-  na_action = c("keep", "omit", "impute_mean", "impute_group_mean", "missforest"),
+  na_action = c("keep", "omit", "impute_mean", "impute_group_mean", "missforest",
+    "missforest_phylo"),
   missforest_ntree = 100,
-  missforest_maxiter = 10
+  missforest_maxiter = 10,
+  tree = NULL,
+  missforest_phylo_k = 10,
+  landmarks = NULL
 )
 ```
 
@@ -88,7 +92,12 @@ fishmorph_ratios(
   within-group (e.g. within-species) mean instead, falling back to the
   column mean, with a warning, for a group entirely missing a ratio;
   `"missforest"` uses random-forest- based iterative imputation
-  ([`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html)).
+  ([`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html));
+  `"missforest_phylo"` does the same but additionally augments the
+  predictor matrix with phylogenetic PCoA axes (see
+  [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md),
+  `tree`) for the species in `groups`, falling back to plain
+  `"missforest"` (with a warning) if phylogenetic axes cannot be used.
   Same convention, options, and messages as
   [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)'s
   `na_action` – see there for details – except that here imputation
@@ -104,8 +113,41 @@ fishmorph_ratios(
 
   Number of trees per forest and maximum number of iterations passed to
   [`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html)
-  when `na_action = "missforest"`; ignored otherwise. Default to
-  `missForest`'s own defaults (`100` and `10`).
+  when `na_action` is `"missforest"`/`"missforest_phylo"`; ignored
+  otherwise. Default to `missForest`'s own defaults (`100` and `10`).
+
+- tree:
+
+  Used only by `na_action = "missforest_phylo"`: an object of class
+  `"phylo"`, or `NULL` (default) to use the bundled
+  [`load_fishmorph_phylogeny()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylogeny.md)
+  tree.
+
+- missforest_phylo_k:
+
+  Used only by `na_action = "missforest_phylo"`: maximum number of
+  phylogenetic PCoA axes to add as predictors. Defaults to `10`.
+
+- landmarks:
+
+  Optional: the same `"intrait_landmarks"` object or raw `p x k x n`
+  array originally passed to
+  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
+  to produce `segments`. When supplied, rescues the nine ratios (not the
+  absolute segment values, nor `MBl`) for specimens whose scale bar
+  (landmarks 20-21) was missing or invalid – i.e. whose row in
+  `segments` is entirely `NA`,
+  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)'s
+  signature for this case. Because every ratio here divides two
+  measurements from the very same specimen, an unknown/missing scale
+  factor cancels out algebraically, so these ratios can be recomputed
+  directly from the raw pixel-space landmark distances, without ever
+  needing a valid scale bar. Matched to `segments` by row name/specimen
+  id; only rescues rows that are entirely `NA` (a specimen with just one
+  missing anatomical landmark, or a single `geometry_check`-flagged
+  segment, is left untouched, since mixing pixel-space and calibrated
+  values for the same specimen would defeat that quality control).
+  Ignored, with no effect, if `NULL` (default).
 
 ## Value
 
@@ -137,6 +179,18 @@ of its body in lateral-view pictures — cannot be corrected after the
 fact and must instead be applied when digitizing landmarks 3-4 (see
 [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)).
 
+A missing or zero-length scale bar makes every one of
+[`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)'s
+11 measurements `NA` for that specimen (the pixel-to-centimetre
+conversion factor is a single, per-specimen scalar applied to all of
+them), which would normally also make all nine ratios `NA`. Passing the
+original `landmarks` here recovers them anyway: because a ratio is
+always (segment / segment) *for that same specimen*, the shared, unknown
+scale factor cancels out of the division exactly, so the ratio is
+identical whether computed from calibrated (cm) or raw (pixel) segment
+values. This cannot recover the absolute segments themselves (`Bl`,
+`Bd`, ...) or `MBl`, only the nine unitless ratios.
+
 ## References
 
 Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
@@ -161,7 +215,7 @@ Applications, 20(6), 1512-1522.
 ``` r
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.
+#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 fishmorph_ratios(segments)
 #>                                      specimen  individual
 #> T-26-0001_Operator_1     T-26-0001_Operator_1   T-26-0001
@@ -4577,6 +4631,2247 @@ fishmorph_ratios(segments, groups = segments$species, na_action = "impute_group_
 #> T-26-0249_Operator_1   0.2114 0.1142 2.1457
 #> T-26-0249_Operator_2   0.1442 0.1075 2.1326
 #> T-26-0250_Operator_1   0.2984 0.1011 2.6291
+#> T-26-0250_Operator_2   0.2134 0.1091 3.2154
+#> T-26-0251_Operator_1   0.2693 0.1567 3.2278
+#> T-26-0251_Operator_2   0.2998 0.1563 3.4067
+#> T-26-0252_Operator_1   0.2250 0.1532 3.6045
+#> T-26-0252_Operator_2   0.1018 0.1725 3.5160
+#> T-26-0261-1_Operator_1 0.3205 0.2296 2.0517
+#> T-26-0261-1_Operator_2 0.3398 0.2360 2.0573
+#> T-26-0261-2_Operator_1 0.4198 0.2301 2.3985
+#> T-26-0261-2_Operator_2 0.2976 0.2403 2.5774
+#> T-26-0261-3_Operator_1 0.3437 0.2065 1.6847
+#> T-26-0261-3_Operator_2 0.3391 0.1864 2.3416
+#> T-26-0261-4_Operator_1 0.3482 0.2150 2.5497
+#> T-26-0261-4_Operator_2 0.3331 0.2006 2.8535
+#> T-26-0261-5_Operator_1 0.2771 0.2141 1.5109
+#> T-26-0261-5_Operator_2 0.2904 0.2087 1.8031
+#> T-26-0262-1_Operator_1 0.3469 0.1999 1.1547
+#> T-26-0262-1_Operator_2 0.3689 0.2065 1.1389
+#> T-26-0262-2_Operator_1 0.4293 0.1937 1.2638
+#> T-26-0262-2_Operator_2 0.3850 0.1961 1.3551
+#> T-26-0263_Operator_1   0.3054 0.1751 1.5327
+#> T-26-0263_Operator_2   0.2137 0.1591 1.6357
+#> T-26-0264-1_Operator_1 0.3148 0.2081 1.7574
+#> T-26-0264-1_Operator_2 0.2988 0.1468 1.9998
+#> T-26-0264-2_Operator_1 0.2751 0.1567 1.2155
+#> T-26-0264-2_Operator_2 0.2493 0.1690 1.6604
+#> T-26-0264-3_Operator_1 0.2489 0.1847 2.6742
+#> T-26-0264-3_Operator_2 0.2083 0.2087 2.7701
+#> T-26-0264-4_Operator_1 0.2869 0.1588 1.9676
+#> T-26-0264-4_Operator_2 0.2279 0.1391 2.0600
+#> T-26-0265_Operator_1   0.2679 0.1402 2.3205
+#> T-26-0265_Operator_2   0.2019 0.1511 2.3401
+#> T-26-0266_Operator_1   0.2532 0.1620 2.7325
+#> T-26-0266_Operator_2   0.2250 0.1668 2.8041
+#> T-26-0267_Operator_1   0.3136 0.1714 3.2411
+#> T-26-0267_Operator_2   0.2752 0.1752 3.4590
+#> T-26-0268_Operator_1   0.2106 0.1860 1.5730
+#> T-26-0268_Operator_2   0.2050 0.1697 1.8273
+#> T-26-0269_Operator_1   0.2793 0.1673 2.9307
+#> T-26-0269_Operator_2   0.2673 0.1572 3.0045
+#> T-26-0270-1_Operator_1 0.2671 0.1640 2.4044
+#> T-26-0270-1_Operator_2 0.2314 0.1777 2.5754
+#> T-26-0270-2_Operator_1 0.2169 0.1685 1.8649
+#> T-26-0270-2_Operator_2 0.2490 0.1724 2.0357
+#> T-26-0271_Operator_1   0.3645 0.1436 3.5386
+#> T-26-0271_Operator_2   0.0480 0.2064 3.5693
+#> T-26-0272_Operator_1   0.3065 0.2220 1.6041
+#> T-26-0272_Operator_2   0.3277 0.2123 1.6961
+#> T-26-0273_Operator_1   0.2184 0.1696 3.2782
+#> T-26-0273_Operator_2   0.2209 0.1691 3.2456
+#> T-26-0274_Operator_1   0.4495 0.1727 1.5263
+#> T-26-0274_Operator_2   0.3909 0.1853 1.7446
+#> T-26-0275_Operator_1   0.3443 0.2007 1.8572
+#> T-26-0275_Operator_2   0.3068 0.1837 1.8406
+#> T-26-0276_Operator_1   0.3416 0.1714 0.7808
+#> T-26-0276_Operator_2   0.3515 0.1636 1.0527
+#> T-26-0277_Operator_1   0.2168 0.1525 1.1568
+#> T-26-0277_Operator_2   0.2688 0.1547 1.3079
+#> T-26-0278-1_Operator_1 0.3025 0.1706 0.5314
+#> T-26-0278-1_Operator_2 0.3608 0.1883 0.4689
+#> T-26-0278-2_Operator_1 0.2180 0.1963 0.6824
+#> T-26-0278-2_Operator_2 0.2378 0.1898 0.6733
+#> T-26-0279_Operator_1   0.4965 0.1773 1.9401
+#> T-26-0279_Operator_2   0.4157 0.2019 1.9990
+
+# rescue ratios (only) for specimens with a missing/invalid scale bar,
+# directly from pixel-space landmark distances:
+fishmorph_ratios(segments, landmarks = fish)
+#> fishmorph_ratios(): rescued ratios for 3 specimen(s) with a missing/invalid scale bar directly from pixel-space landmark distances (the unknown scale factor cancels out in every ratio); their absolute segment values remain unrecoverable.
+#>                                      specimen  individual
+#> T-26-0001_Operator_1     T-26-0001_Operator_1   T-26-0001
+#> T-26-0001_Operator_2     T-26-0001_Operator_2   T-26-0001
+#> T-26-0002_Operator_1     T-26-0002_Operator_1   T-26-0002
+#> T-26-0002_Operator_2     T-26-0002_Operator_2   T-26-0002
+#> T-26-0003_Operator_1     T-26-0003_Operator_1   T-26-0003
+#> T-26-0003_Operator_2     T-26-0003_Operator_2   T-26-0003
+#> T-26-0004_Operator_1     T-26-0004_Operator_1   T-26-0004
+#> T-26-0004_Operator_2     T-26-0004_Operator_2   T-26-0004
+#> T-26-0005_Operator_1     T-26-0005_Operator_1   T-26-0005
+#> T-26-0005_Operator_2     T-26-0005_Operator_2   T-26-0005
+#> T-26-0006_Operator_1     T-26-0006_Operator_1   T-26-0006
+#> T-26-0006_Operator_2     T-26-0006_Operator_2   T-26-0006
+#> T-26-0007_Operator_1     T-26-0007_Operator_1   T-26-0007
+#> T-26-0007_Operator_2     T-26-0007_Operator_2   T-26-0007
+#> T-26-0008_Operator_1     T-26-0008_Operator_1   T-26-0008
+#> T-26-0008_Operator_2     T-26-0008_Operator_2   T-26-0008
+#> T-26-0009_Operator_1     T-26-0009_Operator_1   T-26-0009
+#> T-26-0009_Operator_2     T-26-0009_Operator_2   T-26-0009
+#> T-26-0010_Operator_1     T-26-0010_Operator_1   T-26-0010
+#> T-26-0010_Operator_2     T-26-0010_Operator_2   T-26-0010
+#> T-26-0011_Operator_1     T-26-0011_Operator_1   T-26-0011
+#> T-26-0011_Operator_2     T-26-0011_Operator_2   T-26-0011
+#> T-26-0012_Operator_1     T-26-0012_Operator_1   T-26-0012
+#> T-26-0012_Operator_2     T-26-0012_Operator_2   T-26-0012
+#> T-26-0013_Operator_1     T-26-0013_Operator_1   T-26-0013
+#> T-26-0013_Operator_2     T-26-0013_Operator_2   T-26-0013
+#> T-26-0014_Operator_1     T-26-0014_Operator_1   T-26-0014
+#> T-26-0014_Operator_2     T-26-0014_Operator_2   T-26-0014
+#> T-26-0015_Operator_1     T-26-0015_Operator_1   T-26-0015
+#> T-26-0015_Operator_2     T-26-0015_Operator_2   T-26-0015
+#> T-26-0016_Operator_1     T-26-0016_Operator_1   T-26-0016
+#> T-26-0016_Operator_2     T-26-0016_Operator_2   T-26-0016
+#> T-26-0017_Operator_1     T-26-0017_Operator_1   T-26-0017
+#> T-26-0017_Operator_2     T-26-0017_Operator_2   T-26-0017
+#> T-26-0018_Operator_1     T-26-0018_Operator_1   T-26-0018
+#> T-26-0018_Operator_2     T-26-0018_Operator_2   T-26-0018
+#> T-26-0019_Operator_1     T-26-0019_Operator_1   T-26-0019
+#> T-26-0019_Operator_2     T-26-0019_Operator_2   T-26-0019
+#> T-26-0020_Operator_1     T-26-0020_Operator_1   T-26-0020
+#> T-26-0020_Operator_2     T-26-0020_Operator_2   T-26-0020
+#> T-26-0021_Operator_1     T-26-0021_Operator_1   T-26-0021
+#> T-26-0021_Operator_2     T-26-0021_Operator_2   T-26-0021
+#> T-26-0022_Operator_1     T-26-0022_Operator_1   T-26-0022
+#> T-26-0022_Operator_2     T-26-0022_Operator_2   T-26-0022
+#> T-26-0023-2_Operator_1 T-26-0023-2_Operator_1 T-26-0023-2
+#> T-26-0023-2_Operator_2 T-26-0023-2_Operator_2 T-26-0023-2
+#> T-26-0024_Operator_1     T-26-0024_Operator_1   T-26-0024
+#> T-26-0024_Operator_2     T-26-0024_Operator_2   T-26-0024
+#> T-26-0025_Operator_1     T-26-0025_Operator_1   T-26-0025
+#> T-26-0025_Operator_2     T-26-0025_Operator_2   T-26-0025
+#> T-26-0026_Operator_1     T-26-0026_Operator_1   T-26-0026
+#> T-26-0026_Operator_2     T-26-0026_Operator_2   T-26-0026
+#> T-26-0027_Operator_1     T-26-0027_Operator_1   T-26-0027
+#> T-26-0027_Operator_2     T-26-0027_Operator_2   T-26-0027
+#> T-26-0028_Operator_1     T-26-0028_Operator_1   T-26-0028
+#> T-26-0028_Operator_2     T-26-0028_Operator_2   T-26-0028
+#> T-26-0029_Operator_1     T-26-0029_Operator_1   T-26-0029
+#> T-26-0029_Operator_2     T-26-0029_Operator_2   T-26-0029
+#> T-26-0030_Operator_1     T-26-0030_Operator_1   T-26-0030
+#> T-26-0030_Operator_2     T-26-0030_Operator_2   T-26-0030
+#> T-26-0031_Operator_1     T-26-0031_Operator_1   T-26-0031
+#> T-26-0031_Operator_2     T-26-0031_Operator_2   T-26-0031
+#> T-26-0032_Operator_1     T-26-0032_Operator_1   T-26-0032
+#> T-26-0032_Operator_2     T-26-0032_Operator_2   T-26-0032
+#> T-26-0033_Operator_1     T-26-0033_Operator_1   T-26-0033
+#> T-26-0033_Operator_2     T-26-0033_Operator_2   T-26-0033
+#> T-26-0034_Operator_1     T-26-0034_Operator_1   T-26-0034
+#> T-26-0034_Operator_2     T-26-0034_Operator_2   T-26-0034
+#> T-26-0035_Operator_1     T-26-0035_Operator_1   T-26-0035
+#> T-26-0035_Operator_2     T-26-0035_Operator_2   T-26-0035
+#> T-26-0036_Operator_1     T-26-0036_Operator_1   T-26-0036
+#> T-26-0036_Operator_2     T-26-0036_Operator_2   T-26-0036
+#> T-26-0037_Operator_1     T-26-0037_Operator_1   T-26-0037
+#> T-26-0037_Operator_2     T-26-0037_Operator_2   T-26-0037
+#> T-26-0038_Operator_1     T-26-0038_Operator_1   T-26-0038
+#> T-26-0038_Operator_2     T-26-0038_Operator_2   T-26-0038
+#> T-26-0039_Operator_1     T-26-0039_Operator_1   T-26-0039
+#> T-26-0039_Operator_2     T-26-0039_Operator_2   T-26-0039
+#> T-26-0040_Operator_1     T-26-0040_Operator_1   T-26-0040
+#> T-26-0040_Operator_2     T-26-0040_Operator_2   T-26-0040
+#> T-26-0041_Operator_1     T-26-0041_Operator_1   T-26-0041
+#> T-26-0041_Operator_2     T-26-0041_Operator_2   T-26-0041
+#> T-26-0042_Operator_1     T-26-0042_Operator_1   T-26-0042
+#> T-26-0042_Operator_2     T-26-0042_Operator_2   T-26-0042
+#> T-26-0043_Operator_1     T-26-0043_Operator_1   T-26-0043
+#> T-26-0043_Operator_2     T-26-0043_Operator_2   T-26-0043
+#> T-26-0044_Operator_1     T-26-0044_Operator_1   T-26-0044
+#> T-26-0044_Operator_2     T-26-0044_Operator_2   T-26-0044
+#> T-26-0045_Operator_1     T-26-0045_Operator_1   T-26-0045
+#> T-26-0045_Operator_2     T-26-0045_Operator_2   T-26-0045
+#> T-26-0046_Operator_1     T-26-0046_Operator_1   T-26-0046
+#> T-26-0046_Operator_2     T-26-0046_Operator_2   T-26-0046
+#> T-26-0047_Operator_1     T-26-0047_Operator_1   T-26-0047
+#> T-26-0047_Operator_2     T-26-0047_Operator_2   T-26-0047
+#> T-26-0048_Operator_1     T-26-0048_Operator_1   T-26-0048
+#> T-26-0048_Operator_2     T-26-0048_Operator_2   T-26-0048
+#> T-26-0049_Operator_1     T-26-0049_Operator_1   T-26-0049
+#> T-26-0049_Operator_2     T-26-0049_Operator_2   T-26-0049
+#> T-26-0050_Operator_1     T-26-0050_Operator_1   T-26-0050
+#> T-26-0050_Operator_2     T-26-0050_Operator_2   T-26-0050
+#> T-26-0051_Operator_1     T-26-0051_Operator_1   T-26-0051
+#> T-26-0051_Operator_2     T-26-0051_Operator_2   T-26-0051
+#> T-26-0052_Operator_1     T-26-0052_Operator_1   T-26-0052
+#> T-26-0052_Operator_2     T-26-0052_Operator_2   T-26-0052
+#> T-26-0053_Operator_1     T-26-0053_Operator_1   T-26-0053
+#> T-26-0053_Operator_2     T-26-0053_Operator_2   T-26-0053
+#> T-26-0054_Operator_1     T-26-0054_Operator_1   T-26-0054
+#> T-26-0054_Operator_2     T-26-0054_Operator_2   T-26-0054
+#> T-26-0055_Operator_1     T-26-0055_Operator_1   T-26-0055
+#> T-26-0055_Operator_2     T-26-0055_Operator_2   T-26-0055
+#> T-26-0056-2_Operator_1 T-26-0056-2_Operator_1 T-26-0056-2
+#> T-26-0056-2_Operator_2 T-26-0056-2_Operator_2 T-26-0056-2
+#> T-26-0057_Operator_1     T-26-0057_Operator_1   T-26-0057
+#> T-26-0057_Operator_2     T-26-0057_Operator_2   T-26-0057
+#> T-26-0058_Operator_1     T-26-0058_Operator_1   T-26-0058
+#> T-26-0058_Operator_2     T-26-0058_Operator_2   T-26-0058
+#> T-26-0059_Operator_1     T-26-0059_Operator_1   T-26-0059
+#> T-26-0059_Operator_2     T-26-0059_Operator_2   T-26-0059
+#> T-26-0060_Operator_1     T-26-0060_Operator_1   T-26-0060
+#> T-26-0060_Operator_2     T-26-0060_Operator_2   T-26-0060
+#> T-26-0061_Operator_1     T-26-0061_Operator_1   T-26-0061
+#> T-26-0061_Operator_2     T-26-0061_Operator_2   T-26-0061
+#> T-26-0062_Operator_1     T-26-0062_Operator_1   T-26-0062
+#> T-26-0062_Operator_2     T-26-0062_Operator_2   T-26-0062
+#> T-26-0063_Operator_1     T-26-0063_Operator_1   T-26-0063
+#> T-26-0063_Operator_2     T-26-0063_Operator_2   T-26-0063
+#> T-26-0064_Operator_1     T-26-0064_Operator_1   T-26-0064
+#> T-26-0064_Operator_2     T-26-0064_Operator_2   T-26-0064
+#> T-26-0065_Operator_1     T-26-0065_Operator_1   T-26-0065
+#> T-26-0065_Operator_2     T-26-0065_Operator_2   T-26-0065
+#> T-26-0067_Operator_1     T-26-0067_Operator_1   T-26-0067
+#> T-26-0067_Operator_2     T-26-0067_Operator_2   T-26-0067
+#> T-26-0068_Operator_1     T-26-0068_Operator_1   T-26-0068
+#> T-26-0068_Operator_2     T-26-0068_Operator_2   T-26-0068
+#> T-26-0069_Operator_1     T-26-0069_Operator_1   T-26-0069
+#> T-26-0069_Operator_2     T-26-0069_Operator_2   T-26-0069
+#> T-26-0070_Operator_1     T-26-0070_Operator_1   T-26-0070
+#> T-26-0070_Operator_2     T-26-0070_Operator_2   T-26-0070
+#> T-26-0071_Operator_1     T-26-0071_Operator_1   T-26-0071
+#> T-26-0071_Operator_2     T-26-0071_Operator_2   T-26-0071
+#> T-26-0072_Operator_1     T-26-0072_Operator_1   T-26-0072
+#> T-26-0072_Operator_2     T-26-0072_Operator_2   T-26-0072
+#> T-26-0073_Operator_1     T-26-0073_Operator_1   T-26-0073
+#> T-26-0073_Operator_2     T-26-0073_Operator_2   T-26-0073
+#> T-26-0074_Operator_1     T-26-0074_Operator_1   T-26-0074
+#> T-26-0074_Operator_2     T-26-0074_Operator_2   T-26-0074
+#> T-26-0075_Operator_1     T-26-0075_Operator_1   T-26-0075
+#> T-26-0075_Operator_2     T-26-0075_Operator_2   T-26-0075
+#> T-26-0076_Operator_1     T-26-0076_Operator_1   T-26-0076
+#> T-26-0076_Operator_2     T-26-0076_Operator_2   T-26-0076
+#> T-26-0077_Operator_1     T-26-0077_Operator_1   T-26-0077
+#> T-26-0077_Operator_2     T-26-0077_Operator_2   T-26-0077
+#> T-26-0078_Operator_1     T-26-0078_Operator_1   T-26-0078
+#> T-26-0078_Operator_2     T-26-0078_Operator_2   T-26-0078
+#> T-26-0079_Operator_1     T-26-0079_Operator_1   T-26-0079
+#> T-26-0079_Operator_2     T-26-0079_Operator_2   T-26-0079
+#> T-26-0080_Operator_1     T-26-0080_Operator_1   T-26-0080
+#> T-26-0080_Operator_2     T-26-0080_Operator_2   T-26-0080
+#> T-26-0081_Operator_1     T-26-0081_Operator_1   T-26-0081
+#> T-26-0081_Operator_2     T-26-0081_Operator_2   T-26-0081
+#> T-26-0082_Operator_1     T-26-0082_Operator_1   T-26-0082
+#> T-26-0082_Operator_2     T-26-0082_Operator_2   T-26-0082
+#> T-26-0083_Operator_1     T-26-0083_Operator_1   T-26-0083
+#> T-26-0083_Operator_2     T-26-0083_Operator_2   T-26-0083
+#> T-26-0084_Operator_1     T-26-0084_Operator_1   T-26-0084
+#> T-26-0084_Operator_2     T-26-0084_Operator_2   T-26-0084
+#> T-26-0085_Operator_1     T-26-0085_Operator_1   T-26-0085
+#> T-26-0085_Operator_2     T-26-0085_Operator_2   T-26-0085
+#> T-26-0086_Operator_1     T-26-0086_Operator_1   T-26-0086
+#> T-26-0086_Operator_2     T-26-0086_Operator_2   T-26-0086
+#> T-26-0087_Operator_1     T-26-0087_Operator_1   T-26-0087
+#> T-26-0087_Operator_2     T-26-0087_Operator_2   T-26-0087
+#> T-26-0088_Operator_1     T-26-0088_Operator_1   T-26-0088
+#> T-26-0088_Operator_2     T-26-0088_Operator_2   T-26-0088
+#> T-26-0089_Operator_1     T-26-0089_Operator_1   T-26-0089
+#> T-26-0089_Operator_2     T-26-0089_Operator_2   T-26-0089
+#> T-26-0090_Operator_1     T-26-0090_Operator_1   T-26-0090
+#> T-26-0090_Operator_2     T-26-0090_Operator_2   T-26-0090
+#> T-26-0091_Operator_1     T-26-0091_Operator_1   T-26-0091
+#> T-26-0091_Operator_2     T-26-0091_Operator_2   T-26-0091
+#> T-26-0092_Operator_1     T-26-0092_Operator_1   T-26-0092
+#> T-26-0092_Operator_2     T-26-0092_Operator_2   T-26-0092
+#> T-26-0093_Operator_1     T-26-0093_Operator_1   T-26-0093
+#> T-26-0093_Operator_2     T-26-0093_Operator_2   T-26-0093
+#> T-26-0094_Operator_1     T-26-0094_Operator_1   T-26-0094
+#> T-26-0094_Operator_2     T-26-0094_Operator_2   T-26-0094
+#> T-26-0095_Operator_1     T-26-0095_Operator_1   T-26-0095
+#> T-26-0095_Operator_2     T-26-0095_Operator_2   T-26-0095
+#> T-26-0096_Operator_1     T-26-0096_Operator_1   T-26-0096
+#> T-26-0096_Operator_2     T-26-0096_Operator_2   T-26-0096
+#> T-26-0097_Operator_1     T-26-0097_Operator_1   T-26-0097
+#> T-26-0097_Operator_2     T-26-0097_Operator_2   T-26-0097
+#> T-26-0098_Operator_1     T-26-0098_Operator_1   T-26-0098
+#> T-26-0098_Operator_2     T-26-0098_Operator_2   T-26-0098
+#> T-26-0099_Operator_1     T-26-0099_Operator_1   T-26-0099
+#> T-26-0099_Operator_2     T-26-0099_Operator_2   T-26-0099
+#> T-26-0100_Operator_1     T-26-0100_Operator_1   T-26-0100
+#> T-26-0100_Operator_2     T-26-0100_Operator_2   T-26-0100
+#> T-26-0101_Operator_1     T-26-0101_Operator_1   T-26-0101
+#> T-26-0101_Operator_2     T-26-0101_Operator_2   T-26-0101
+#> T-26-0102_Operator_1     T-26-0102_Operator_1   T-26-0102
+#> T-26-0102_Operator_2     T-26-0102_Operator_2   T-26-0102
+#> T-26-0103_Operator_1     T-26-0103_Operator_1   T-26-0103
+#> T-26-0103_Operator_2     T-26-0103_Operator_2   T-26-0103
+#> T-26-0104_Operator_1     T-26-0104_Operator_1   T-26-0104
+#> T-26-0104_Operator_2     T-26-0104_Operator_2   T-26-0104
+#> T-26-0107_Operator_1     T-26-0107_Operator_1   T-26-0107
+#> T-26-0107_Operator_2     T-26-0107_Operator_2   T-26-0107
+#> T-26-0108_Operator_1     T-26-0108_Operator_1   T-26-0108
+#> T-26-0108_Operator_2     T-26-0108_Operator_2   T-26-0108
+#> T-26-0109_Operator_1     T-26-0109_Operator_1   T-26-0109
+#> T-26-0109_Operator_2     T-26-0109_Operator_2   T-26-0109
+#> T-26-0111_Operator_1     T-26-0111_Operator_1   T-26-0111
+#> T-26-0111_Operator_2     T-26-0111_Operator_2   T-26-0111
+#> T-26-0112-2_Operator_1 T-26-0112-2_Operator_1 T-26-0112-2
+#> T-26-0112-2_Operator_2 T-26-0112-2_Operator_2 T-26-0112-2
+#> T-26-0112_Operator_1     T-26-0112_Operator_1   T-26-0112
+#> T-26-0112_Operator_2     T-26-0112_Operator_2   T-26-0112
+#> T-26-0113_Operator_1     T-26-0113_Operator_1   T-26-0113
+#> T-26-0113_Operator_2     T-26-0113_Operator_2   T-26-0113
+#> T-26-0114_Operator_1     T-26-0114_Operator_1   T-26-0114
+#> T-26-0114_Operator_2     T-26-0114_Operator_2   T-26-0114
+#> T-26-0115_Operator_1     T-26-0115_Operator_1   T-26-0115
+#> T-26-0115_Operator_2     T-26-0115_Operator_2   T-26-0115
+#> T-26-0116_Operator_1     T-26-0116_Operator_1   T-26-0116
+#> T-26-0116_Operator_2     T-26-0116_Operator_2   T-26-0116
+#> T-26-0117_Operator_1     T-26-0117_Operator_1   T-26-0117
+#> T-26-0117_Operator_2     T-26-0117_Operator_2   T-26-0117
+#> T-26-0118_Operator_1     T-26-0118_Operator_1   T-26-0118
+#> T-26-0118_Operator_2     T-26-0118_Operator_2   T-26-0118
+#> T-26-0120_Operator_1     T-26-0120_Operator_1   T-26-0120
+#> T-26-0120_Operator_2     T-26-0120_Operator_2   T-26-0120
+#> T-26-0121_Operator_1     T-26-0121_Operator_1   T-26-0121
+#> T-26-0121_Operator_2     T-26-0121_Operator_2   T-26-0121
+#> T-26-0122_Operator_1     T-26-0122_Operator_1   T-26-0122
+#> T-26-0122_Operator_2     T-26-0122_Operator_2   T-26-0122
+#> T-26-0123_Operator_1     T-26-0123_Operator_1   T-26-0123
+#> T-26-0123_Operator_2     T-26-0123_Operator_2   T-26-0123
+#> T-26-0125_Operator_1     T-26-0125_Operator_1   T-26-0125
+#> T-26-0125_Operator_2     T-26-0125_Operator_2   T-26-0125
+#> T-26-0126_Operator_1     T-26-0126_Operator_1   T-26-0126
+#> T-26-0126_Operator_2     T-26-0126_Operator_2   T-26-0126
+#> T-26-0127_Operator_1     T-26-0127_Operator_1   T-26-0127
+#> T-26-0127_Operator_2     T-26-0127_Operator_2   T-26-0127
+#> T-26-0128_Operator_1     T-26-0128_Operator_1   T-26-0128
+#> T-26-0128_Operator_2     T-26-0128_Operator_2   T-26-0128
+#> T-26-0130_Operator_1     T-26-0130_Operator_1   T-26-0130
+#> T-26-0130_Operator_2     T-26-0130_Operator_2   T-26-0130
+#> T-26-0131_Operator_1     T-26-0131_Operator_1   T-26-0131
+#> T-26-0131_Operator_2     T-26-0131_Operator_2   T-26-0131
+#> T-26-0132_Operator_1     T-26-0132_Operator_1   T-26-0132
+#> T-26-0132_Operator_2     T-26-0132_Operator_2   T-26-0132
+#> T-26-0133_Operator_1     T-26-0133_Operator_1   T-26-0133
+#> T-26-0133_Operator_2     T-26-0133_Operator_2   T-26-0133
+#> T-26-0134_Operator_1     T-26-0134_Operator_1   T-26-0134
+#> T-26-0134_Operator_2     T-26-0134_Operator_2   T-26-0134
+#> T-26-0135_Operator_1     T-26-0135_Operator_1   T-26-0135
+#> T-26-0135_Operator_2     T-26-0135_Operator_2   T-26-0135
+#> T-26-0136_Operator_1     T-26-0136_Operator_1   T-26-0136
+#> T-26-0136_Operator_2     T-26-0136_Operator_2   T-26-0136
+#> T-26-0137_Operator_1     T-26-0137_Operator_1   T-26-0137
+#> T-26-0137_Operator_2     T-26-0137_Operator_2   T-26-0137
+#> T-26-0138_Operator_1     T-26-0138_Operator_1   T-26-0138
+#> T-26-0138_Operator_2     T-26-0138_Operator_2   T-26-0138
+#> T-26-0139_Operator_1     T-26-0139_Operator_1   T-26-0139
+#> T-26-0139_Operator_2     T-26-0139_Operator_2   T-26-0139
+#> T-26-0140_Operator_1     T-26-0140_Operator_1   T-26-0140
+#> T-26-0140_Operator_2     T-26-0140_Operator_2   T-26-0140
+#> T-26-0141_Operator_1     T-26-0141_Operator_1   T-26-0141
+#> T-26-0141_Operator_2     T-26-0141_Operator_2   T-26-0141
+#> T-26-0142_Operator_1     T-26-0142_Operator_1   T-26-0142
+#> T-26-0142_Operator_2     T-26-0142_Operator_2   T-26-0142
+#> T-26-0143_Operator_1     T-26-0143_Operator_1   T-26-0143
+#> T-26-0143_Operator_2     T-26-0143_Operator_2   T-26-0143
+#> T-26-0144_Operator_1     T-26-0144_Operator_1   T-26-0144
+#> T-26-0144_Operator_2     T-26-0144_Operator_2   T-26-0144
+#> T-26-0145_Operator_1     T-26-0145_Operator_1   T-26-0145
+#> T-26-0145_Operator_2     T-26-0145_Operator_2   T-26-0145
+#> T-26-0146_Operator_1     T-26-0146_Operator_1   T-26-0146
+#> T-26-0146_Operator_2     T-26-0146_Operator_2   T-26-0146
+#> T-26-0147_Operator_1     T-26-0147_Operator_1   T-26-0147
+#> T-26-0147_Operator_2     T-26-0147_Operator_2   T-26-0147
+#> T-26-0148_Operator_1     T-26-0148_Operator_1   T-26-0148
+#> T-26-0148_Operator_2     T-26-0148_Operator_2   T-26-0148
+#> T-26-0149_Operator_1     T-26-0149_Operator_1   T-26-0149
+#> T-26-0149_Operator_2     T-26-0149_Operator_2   T-26-0149
+#> T-26-0150_Operator_1     T-26-0150_Operator_1   T-26-0150
+#> T-26-0150_Operator_2     T-26-0150_Operator_2   T-26-0150
+#> T-26-0151_Operator_1     T-26-0151_Operator_1   T-26-0151
+#> T-26-0151_Operator_2     T-26-0151_Operator_2   T-26-0151
+#> T-26-0152_Operator_1     T-26-0152_Operator_1   T-26-0152
+#> T-26-0152_Operator_2     T-26-0152_Operator_2   T-26-0152
+#> T-26-0153_Operator_1     T-26-0153_Operator_1   T-26-0153
+#> T-26-0153_Operator_2     T-26-0153_Operator_2   T-26-0153
+#> T-26-0154_Operator_1     T-26-0154_Operator_1   T-26-0154
+#> T-26-0154_Operator_2     T-26-0154_Operator_2   T-26-0154
+#> T-26-0155_Operator_1     T-26-0155_Operator_1   T-26-0155
+#> T-26-0155_Operator_2     T-26-0155_Operator_2   T-26-0155
+#> T-26-0156_Operator_1     T-26-0156_Operator_1   T-26-0156
+#> T-26-0156_Operator_2     T-26-0156_Operator_2   T-26-0156
+#> T-26-0157_Operator_1     T-26-0157_Operator_1   T-26-0157
+#> T-26-0157_Operator_2     T-26-0157_Operator_2   T-26-0157
+#> T-26-0158_Operator_1     T-26-0158_Operator_1   T-26-0158
+#> T-26-0158_Operator_2     T-26-0158_Operator_2   T-26-0158
+#> T-26-0159_Operator_1     T-26-0159_Operator_1   T-26-0159
+#> T-26-0159_Operator_2     T-26-0159_Operator_2   T-26-0159
+#> T-26-0160_Operator_1     T-26-0160_Operator_1   T-26-0160
+#> T-26-0160_Operator_2     T-26-0160_Operator_2   T-26-0160
+#> T-26-0161_Operator_1     T-26-0161_Operator_1   T-26-0161
+#> T-26-0161_Operator_2     T-26-0161_Operator_2   T-26-0161
+#> T-26-0162_Operator_1     T-26-0162_Operator_1   T-26-0162
+#> T-26-0162_Operator_2     T-26-0162_Operator_2   T-26-0162
+#> T-26-0163_Operator_1     T-26-0163_Operator_1   T-26-0163
+#> T-26-0163_Operator_2     T-26-0163_Operator_2   T-26-0163
+#> T-26-0164_Operator_1     T-26-0164_Operator_1   T-26-0164
+#> T-26-0164_Operator_2     T-26-0164_Operator_2   T-26-0164
+#> T-26-0165_Operator_1     T-26-0165_Operator_1   T-26-0165
+#> T-26-0165_Operator_2     T-26-0165_Operator_2   T-26-0165
+#> T-26-0166_Operator_1     T-26-0166_Operator_1   T-26-0166
+#> T-26-0166_Operator_2     T-26-0166_Operator_2   T-26-0166
+#> T-26-0167_Operator_1     T-26-0167_Operator_1   T-26-0167
+#> T-26-0167_Operator_2     T-26-0167_Operator_2   T-26-0167
+#> T-26-0168_Operator_1     T-26-0168_Operator_1   T-26-0168
+#> T-26-0168_Operator_2     T-26-0168_Operator_2   T-26-0168
+#> T-26-0169_Operator_1     T-26-0169_Operator_1   T-26-0169
+#> T-26-0169_Operator_2     T-26-0169_Operator_2   T-26-0169
+#> T-26-0170_Operator_1     T-26-0170_Operator_1   T-26-0170
+#> T-26-0170_Operator_2     T-26-0170_Operator_2   T-26-0170
+#> T-26-0171_Operator_1     T-26-0171_Operator_1   T-26-0171
+#> T-26-0171_Operator_2     T-26-0171_Operator_2   T-26-0171
+#> T-26-0172_Operator_1     T-26-0172_Operator_1   T-26-0172
+#> T-26-0172_Operator_2     T-26-0172_Operator_2   T-26-0172
+#> T-26-0173_Operator_1     T-26-0173_Operator_1   T-26-0173
+#> T-26-0173_Operator_2     T-26-0173_Operator_2   T-26-0173
+#> T-26-0174_Operator_1     T-26-0174_Operator_1   T-26-0174
+#> T-26-0174_Operator_2     T-26-0174_Operator_2   T-26-0174
+#> T-26-0175_Operator_1     T-26-0175_Operator_1   T-26-0175
+#> T-26-0175_Operator_2     T-26-0175_Operator_2   T-26-0175
+#> T-26-0176_Operator_1     T-26-0176_Operator_1   T-26-0176
+#> T-26-0176_Operator_2     T-26-0176_Operator_2   T-26-0176
+#> T-26-0177_Operator_1     T-26-0177_Operator_1   T-26-0177
+#> T-26-0177_Operator_2     T-26-0177_Operator_2   T-26-0177
+#> T-26-0178_Operator_1     T-26-0178_Operator_1   T-26-0178
+#> T-26-0178_Operator_2     T-26-0178_Operator_2   T-26-0178
+#> T-26-0179-3_Operator_1 T-26-0179-3_Operator_1 T-26-0179-3
+#> T-26-0179-3_Operator_2 T-26-0179-3_Operator_2 T-26-0179-3
+#> T-26-0179_Operator_1     T-26-0179_Operator_1   T-26-0179
+#> T-26-0179_Operator_2     T-26-0179_Operator_2   T-26-0179
+#> T-26-0180_Operator_1     T-26-0180_Operator_1   T-26-0180
+#> T-26-0180_Operator_2     T-26-0180_Operator_2   T-26-0180
+#> T-26-0181_Operator_1     T-26-0181_Operator_1   T-26-0181
+#> T-26-0181_Operator_2     T-26-0181_Operator_2   T-26-0181
+#> T-26-0182_Operator_1     T-26-0182_Operator_1   T-26-0182
+#> T-26-0182_Operator_2     T-26-0182_Operator_2   T-26-0182
+#> T-26-0183_Operator_1     T-26-0183_Operator_1   T-26-0183
+#> T-26-0183_Operator_2     T-26-0183_Operator_2   T-26-0183
+#> T-26-0184_Operator_1     T-26-0184_Operator_1   T-26-0184
+#> T-26-0184_Operator_2     T-26-0184_Operator_2   T-26-0184
+#> T-26-0185_Operator_1     T-26-0185_Operator_1   T-26-0185
+#> T-26-0185_Operator_2     T-26-0185_Operator_2   T-26-0185
+#> T-26-0186_Operator_1     T-26-0186_Operator_1   T-26-0186
+#> T-26-0186_Operator_2     T-26-0186_Operator_2   T-26-0186
+#> T-26-0187_Operator_1     T-26-0187_Operator_1   T-26-0187
+#> T-26-0187_Operator_2     T-26-0187_Operator_2   T-26-0187
+#> T-26-0188_Operator_1     T-26-0188_Operator_1   T-26-0188
+#> T-26-0188_Operator_2     T-26-0188_Operator_2   T-26-0188
+#> T-26-0189_Operator_1     T-26-0189_Operator_1   T-26-0189
+#> T-26-0189_Operator_2     T-26-0189_Operator_2   T-26-0189
+#> T-26-0190_Operator_1     T-26-0190_Operator_1   T-26-0190
+#> T-26-0190_Operator_2     T-26-0190_Operator_2   T-26-0190
+#> T-26-0191_Operator_1     T-26-0191_Operator_1   T-26-0191
+#> T-26-0191_Operator_2     T-26-0191_Operator_2   T-26-0191
+#> T-26-0192_Operator_1     T-26-0192_Operator_1   T-26-0192
+#> T-26-0192_Operator_2     T-26-0192_Operator_2   T-26-0192
+#> T-26-0193_Operator_1     T-26-0193_Operator_1   T-26-0193
+#> T-26-0193_Operator_2     T-26-0193_Operator_2   T-26-0193
+#> T-26-0194_Operator_1     T-26-0194_Operator_1   T-26-0194
+#> T-26-0194_Operator_2     T-26-0194_Operator_2   T-26-0194
+#> T-26-0195_Operator_1     T-26-0195_Operator_1   T-26-0195
+#> T-26-0195_Operator_2     T-26-0195_Operator_2   T-26-0195
+#> T-26-0196_Operator_1     T-26-0196_Operator_1   T-26-0196
+#> T-26-0196_Operator_2     T-26-0196_Operator_2   T-26-0196
+#> T-26-0197_Operator_1     T-26-0197_Operator_1   T-26-0197
+#> T-26-0197_Operator_2     T-26-0197_Operator_2   T-26-0197
+#> T-26-0198_Operator_1     T-26-0198_Operator_1   T-26-0198
+#> T-26-0198_Operator_2     T-26-0198_Operator_2   T-26-0198
+#> T-26-0199_Operator_1     T-26-0199_Operator_1   T-26-0199
+#> T-26-0199_Operator_2     T-26-0199_Operator_2   T-26-0199
+#> T-26-0200_Operator_1     T-26-0200_Operator_1   T-26-0200
+#> T-26-0200_Operator_2     T-26-0200_Operator_2   T-26-0200
+#> T-26-0201_Operator_1     T-26-0201_Operator_1   T-26-0201
+#> T-26-0201_Operator_2     T-26-0201_Operator_2   T-26-0201
+#> T-26-0202_Operator_1     T-26-0202_Operator_1   T-26-0202
+#> T-26-0202_Operator_2     T-26-0202_Operator_2   T-26-0202
+#> T-26-0203_Operator_1     T-26-0203_Operator_1   T-26-0203
+#> T-26-0203_Operator_2     T-26-0203_Operator_2   T-26-0203
+#> T-26-0204_Operator_1     T-26-0204_Operator_1   T-26-0204
+#> T-26-0204_Operator_2     T-26-0204_Operator_2   T-26-0204
+#> T-26-0205_Operator_1     T-26-0205_Operator_1   T-26-0205
+#> T-26-0205_Operator_2     T-26-0205_Operator_2   T-26-0205
+#> T-26-0206_Operator_1     T-26-0206_Operator_1   T-26-0206
+#> T-26-0206_Operator_2     T-26-0206_Operator_2   T-26-0206
+#> T-26-0207_Operator_1     T-26-0207_Operator_1   T-26-0207
+#> T-26-0207_Operator_2     T-26-0207_Operator_2   T-26-0207
+#> T-26-0208_Operator_1     T-26-0208_Operator_1   T-26-0208
+#> T-26-0208_Operator_2     T-26-0208_Operator_2   T-26-0208
+#> T-26-0209_Operator_1     T-26-0209_Operator_1   T-26-0209
+#> T-26-0209_Operator_2     T-26-0209_Operator_2   T-26-0209
+#> T-26-0210_Operator_1     T-26-0210_Operator_1   T-26-0210
+#> T-26-0210_Operator_2     T-26-0210_Operator_2   T-26-0210
+#> T-26-0211_Operator_1     T-26-0211_Operator_1   T-26-0211
+#> T-26-0211_Operator_2     T-26-0211_Operator_2   T-26-0211
+#> T-26-0212_Operator_1     T-26-0212_Operator_1   T-26-0212
+#> T-26-0212_Operator_2     T-26-0212_Operator_2   T-26-0212
+#> T-26-0213_Operator_1     T-26-0213_Operator_1   T-26-0213
+#> T-26-0213_Operator_2     T-26-0213_Operator_2   T-26-0213
+#> T-26-0214_Operator_1     T-26-0214_Operator_1   T-26-0214
+#> T-26-0214_Operator_2     T-26-0214_Operator_2   T-26-0214
+#> T-26-0215_Operator_1     T-26-0215_Operator_1   T-26-0215
+#> T-26-0215_Operator_2     T-26-0215_Operator_2   T-26-0215
+#> T-26-0216_Operator_1     T-26-0216_Operator_1   T-26-0216
+#> T-26-0216_Operator_2     T-26-0216_Operator_2   T-26-0216
+#> T-26-0217_Operator_1     T-26-0217_Operator_1   T-26-0217
+#> T-26-0217_Operator_2     T-26-0217_Operator_2   T-26-0217
+#> T-26-0218_Operator_1     T-26-0218_Operator_1   T-26-0218
+#> T-26-0218_Operator_2     T-26-0218_Operator_2   T-26-0218
+#> T-26-0219_Operator_1     T-26-0219_Operator_1   T-26-0219
+#> T-26-0219_Operator_2     T-26-0219_Operator_2   T-26-0219
+#> T-26-0220_Operator_1     T-26-0220_Operator_1   T-26-0220
+#> T-26-0220_Operator_2     T-26-0220_Operator_2   T-26-0220
+#> T-26-0221_Operator_1     T-26-0221_Operator_1   T-26-0221
+#> T-26-0221_Operator_2     T-26-0221_Operator_2   T-26-0221
+#> T-26-0222_Operator_1     T-26-0222_Operator_1   T-26-0222
+#> T-26-0222_Operator_2     T-26-0222_Operator_2   T-26-0222
+#> T-26-0223_Operator_1     T-26-0223_Operator_1   T-26-0223
+#> T-26-0223_Operator_2     T-26-0223_Operator_2   T-26-0223
+#> T-26-0224_Operator_1     T-26-0224_Operator_1   T-26-0224
+#> T-26-0224_Operator_2     T-26-0224_Operator_2   T-26-0224
+#> T-26-0225_Operator_1     T-26-0225_Operator_1   T-26-0225
+#> T-26-0225_Operator_2     T-26-0225_Operator_2   T-26-0225
+#> T-26-0226_Operator_1     T-26-0226_Operator_1   T-26-0226
+#> T-26-0226_Operator_2     T-26-0226_Operator_2   T-26-0226
+#> T-26-0227_Operator_1     T-26-0227_Operator_1   T-26-0227
+#> T-26-0227_Operator_2     T-26-0227_Operator_2   T-26-0227
+#> T-26-0228_Operator_1     T-26-0228_Operator_1   T-26-0228
+#> T-26-0228_Operator_2     T-26-0228_Operator_2   T-26-0228
+#> T-26-0229_Operator_1     T-26-0229_Operator_1   T-26-0229
+#> T-26-0229_Operator_2     T-26-0229_Operator_2   T-26-0229
+#> T-26-0230-1_Operator_1 T-26-0230-1_Operator_1 T-26-0230-1
+#> T-26-0230-1_Operator_2 T-26-0230-1_Operator_2 T-26-0230-1
+#> T-26-0230-2_Operator_1 T-26-0230-2_Operator_1 T-26-0230-2
+#> T-26-0230-2_Operator_2 T-26-0230-2_Operator_2 T-26-0230-2
+#> T-26-0230-3_Operator_1 T-26-0230-3_Operator_1 T-26-0230-3
+#> T-26-0230-3_Operator_2 T-26-0230-3_Operator_2 T-26-0230-3
+#> T-26-0230-4_Operator_1 T-26-0230-4_Operator_1 T-26-0230-4
+#> T-26-0230-4_Operator_2 T-26-0230-4_Operator_2 T-26-0230-4
+#> T-26-0231_Operator_1     T-26-0231_Operator_1   T-26-0231
+#> T-26-0231_Operator_2     T-26-0231_Operator_2   T-26-0231
+#> T-26-0232_Operator_1     T-26-0232_Operator_1   T-26-0232
+#> T-26-0232_Operator_2     T-26-0232_Operator_2   T-26-0232
+#> T-26-0233_Operator_1     T-26-0233_Operator_1   T-26-0233
+#> T-26-0233_Operator_2     T-26-0233_Operator_2   T-26-0233
+#> T-26-0234_Operator_1     T-26-0234_Operator_1   T-26-0234
+#> T-26-0234_Operator_2     T-26-0234_Operator_2   T-26-0234
+#> T-26-0235_Operator_1     T-26-0235_Operator_1   T-26-0235
+#> T-26-0235_Operator_2     T-26-0235_Operator_2   T-26-0235
+#> T-26-0236_Operator_1     T-26-0236_Operator_1   T-26-0236
+#> T-26-0236_Operator_2     T-26-0236_Operator_2   T-26-0236
+#> T-26-0237_Operator_1     T-26-0237_Operator_1   T-26-0237
+#> T-26-0237_Operator_2     T-26-0237_Operator_2   T-26-0237
+#> T-26-0238_Operator_1     T-26-0238_Operator_1   T-26-0238
+#> T-26-0238_Operator_2     T-26-0238_Operator_2   T-26-0238
+#> T-26-0239_Operator_1     T-26-0239_Operator_1   T-26-0239
+#> T-26-0239_Operator_2     T-26-0239_Operator_2   T-26-0239
+#> T-26-0240_Operator_1     T-26-0240_Operator_1   T-26-0240
+#> T-26-0240_Operator_2     T-26-0240_Operator_2   T-26-0240
+#> T-26-0241_Operator_1     T-26-0241_Operator_1   T-26-0241
+#> T-26-0241_Operator_2     T-26-0241_Operator_2   T-26-0241
+#> T-26-0242_Operator_1     T-26-0242_Operator_1   T-26-0242
+#> T-26-0242_Operator_2     T-26-0242_Operator_2   T-26-0242
+#> T-26-0243_Operator_1     T-26-0243_Operator_1   T-26-0243
+#> T-26-0243_Operator_2     T-26-0243_Operator_2   T-26-0243
+#> T-26-0244_Operator_1     T-26-0244_Operator_1   T-26-0244
+#> T-26-0244_Operator_2     T-26-0244_Operator_2   T-26-0244
+#> T-26-0245_Operator_1     T-26-0245_Operator_1   T-26-0245
+#> T-26-0245_Operator_2     T-26-0245_Operator_2   T-26-0245
+#> T-26-0246_Operator_1     T-26-0246_Operator_1   T-26-0246
+#> T-26-0246_Operator_2     T-26-0246_Operator_2   T-26-0246
+#> T-26-0247_Operator_1     T-26-0247_Operator_1   T-26-0247
+#> T-26-0247_Operator_2     T-26-0247_Operator_2   T-26-0247
+#> T-26-0248_Operator_1     T-26-0248_Operator_1   T-26-0248
+#> T-26-0248_Operator_2     T-26-0248_Operator_2   T-26-0248
+#> T-26-0249_Operator_1     T-26-0249_Operator_1   T-26-0249
+#> T-26-0249_Operator_2     T-26-0249_Operator_2   T-26-0249
+#> T-26-0250_Operator_1     T-26-0250_Operator_1   T-26-0250
+#> T-26-0250_Operator_2     T-26-0250_Operator_2   T-26-0250
+#> T-26-0251_Operator_1     T-26-0251_Operator_1   T-26-0251
+#> T-26-0251_Operator_2     T-26-0251_Operator_2   T-26-0251
+#> T-26-0252_Operator_1     T-26-0252_Operator_1   T-26-0252
+#> T-26-0252_Operator_2     T-26-0252_Operator_2   T-26-0252
+#> T-26-0261-1_Operator_1 T-26-0261-1_Operator_1 T-26-0261-1
+#> T-26-0261-1_Operator_2 T-26-0261-1_Operator_2 T-26-0261-1
+#> T-26-0261-2_Operator_1 T-26-0261-2_Operator_1 T-26-0261-2
+#> T-26-0261-2_Operator_2 T-26-0261-2_Operator_2 T-26-0261-2
+#> T-26-0261-3_Operator_1 T-26-0261-3_Operator_1 T-26-0261-3
+#> T-26-0261-3_Operator_2 T-26-0261-3_Operator_2 T-26-0261-3
+#> T-26-0261-4_Operator_1 T-26-0261-4_Operator_1 T-26-0261-4
+#> T-26-0261-4_Operator_2 T-26-0261-4_Operator_2 T-26-0261-4
+#> T-26-0261-5_Operator_1 T-26-0261-5_Operator_1 T-26-0261-5
+#> T-26-0261-5_Operator_2 T-26-0261-5_Operator_2 T-26-0261-5
+#> T-26-0262-1_Operator_1 T-26-0262-1_Operator_1 T-26-0262-1
+#> T-26-0262-1_Operator_2 T-26-0262-1_Operator_2 T-26-0262-1
+#> T-26-0262-2_Operator_1 T-26-0262-2_Operator_1 T-26-0262-2
+#> T-26-0262-2_Operator_2 T-26-0262-2_Operator_2 T-26-0262-2
+#> T-26-0263_Operator_1     T-26-0263_Operator_1   T-26-0263
+#> T-26-0263_Operator_2     T-26-0263_Operator_2   T-26-0263
+#> T-26-0264-1_Operator_1 T-26-0264-1_Operator_1 T-26-0264-1
+#> T-26-0264-1_Operator_2 T-26-0264-1_Operator_2 T-26-0264-1
+#> T-26-0264-2_Operator_1 T-26-0264-2_Operator_1 T-26-0264-2
+#> T-26-0264-2_Operator_2 T-26-0264-2_Operator_2 T-26-0264-2
+#> T-26-0264-3_Operator_1 T-26-0264-3_Operator_1 T-26-0264-3
+#> T-26-0264-3_Operator_2 T-26-0264-3_Operator_2 T-26-0264-3
+#> T-26-0264-4_Operator_1 T-26-0264-4_Operator_1 T-26-0264-4
+#> T-26-0264-4_Operator_2 T-26-0264-4_Operator_2 T-26-0264-4
+#> T-26-0265_Operator_1     T-26-0265_Operator_1   T-26-0265
+#> T-26-0265_Operator_2     T-26-0265_Operator_2   T-26-0265
+#> T-26-0266_Operator_1     T-26-0266_Operator_1   T-26-0266
+#> T-26-0266_Operator_2     T-26-0266_Operator_2   T-26-0266
+#> T-26-0267_Operator_1     T-26-0267_Operator_1   T-26-0267
+#> T-26-0267_Operator_2     T-26-0267_Operator_2   T-26-0267
+#> T-26-0268_Operator_1     T-26-0268_Operator_1   T-26-0268
+#> T-26-0268_Operator_2     T-26-0268_Operator_2   T-26-0268
+#> T-26-0269_Operator_1     T-26-0269_Operator_1   T-26-0269
+#> T-26-0269_Operator_2     T-26-0269_Operator_2   T-26-0269
+#> T-26-0270-1_Operator_1 T-26-0270-1_Operator_1 T-26-0270-1
+#> T-26-0270-1_Operator_2 T-26-0270-1_Operator_2 T-26-0270-1
+#> T-26-0270-2_Operator_1 T-26-0270-2_Operator_1 T-26-0270-2
+#> T-26-0270-2_Operator_2 T-26-0270-2_Operator_2 T-26-0270-2
+#> T-26-0271_Operator_1     T-26-0271_Operator_1   T-26-0271
+#> T-26-0271_Operator_2     T-26-0271_Operator_2   T-26-0271
+#> T-26-0272_Operator_1     T-26-0272_Operator_1   T-26-0272
+#> T-26-0272_Operator_2     T-26-0272_Operator_2   T-26-0272
+#> T-26-0273_Operator_1     T-26-0273_Operator_1   T-26-0273
+#> T-26-0273_Operator_2     T-26-0273_Operator_2   T-26-0273
+#> T-26-0274_Operator_1     T-26-0274_Operator_1   T-26-0274
+#> T-26-0274_Operator_2     T-26-0274_Operator_2   T-26-0274
+#> T-26-0275_Operator_1     T-26-0275_Operator_1   T-26-0275
+#> T-26-0275_Operator_2     T-26-0275_Operator_2   T-26-0275
+#> T-26-0276_Operator_1     T-26-0276_Operator_1   T-26-0276
+#> T-26-0276_Operator_2     T-26-0276_Operator_2   T-26-0276
+#> T-26-0277_Operator_1     T-26-0277_Operator_1   T-26-0277
+#> T-26-0277_Operator_2     T-26-0277_Operator_2   T-26-0277
+#> T-26-0278-1_Operator_1 T-26-0278-1_Operator_1 T-26-0278-1
+#> T-26-0278-1_Operator_2 T-26-0278-1_Operator_2 T-26-0278-1
+#> T-26-0278-2_Operator_1 T-26-0278-2_Operator_1 T-26-0278-2
+#> T-26-0278-2_Operator_2 T-26-0278-2_Operator_2 T-26-0278-2
+#> T-26-0279_Operator_1     T-26-0279_Operator_1   T-26-0279
+#> T-26-0279_Operator_2     T-26-0279_Operator_2   T-26-0279
+#>                                          species population replicate
+#> T-26-0001_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0001_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0002_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0002_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0003_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0003_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0004_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0004_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0005_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0005_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0006_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0006_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0007_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0007_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0008_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0008_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0009_Operator_1            Lepomis gibbosus       <NA>         1
+#> T-26-0009_Operator_2            Lepomis gibbosus       <NA>         2
+#> T-26-0010_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0010_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0011_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0011_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0012_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0012_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0013_Operator_1               Barbus barbus       <NA>         1
+#> T-26-0013_Operator_2               Barbus barbus       <NA>         2
+#> T-26-0014_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0014_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0015_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0015_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0016_Operator_1           Perca fluviatilis       <NA>         1
+#> T-26-0016_Operator_2           Perca fluviatilis       <NA>         2
+#> T-26-0017_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0017_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0018_Operator_1     Leuciscus burdigalensis       <NA>         1
+#> T-26-0018_Operator_2     Leuciscus burdigalensis       <NA>         2
+#> T-26-0019_Operator_1     Leuciscus burdigalensis       <NA>         1
+#> T-26-0019_Operator_2     Leuciscus burdigalensis       <NA>         2
+#> T-26-0020_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0020_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0021_Operator_1           Perca fluviatilis       <NA>         1
+#> T-26-0021_Operator_2           Perca fluviatilis       <NA>         2
+#> T-26-0022_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0022_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0023-2_Operator_1         Phoxinus phoxinus       <NA>         1
+#> T-26-0023-2_Operator_2         Phoxinus phoxinus       <NA>         2
+#> T-26-0024_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0024_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0025_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0025_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0026_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0026_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0027_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0027_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0028_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0028_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0029_Operator_1            Lepomis gibbosus       <NA>         1
+#> T-26-0029_Operator_2            Lepomis gibbosus       <NA>         2
+#> T-26-0030_Operator_1     Leuciscus burdigalensis       <NA>         1
+#> T-26-0030_Operator_2     Leuciscus burdigalensis       <NA>         2
+#> T-26-0031_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0031_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0032_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0032_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0033_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0033_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0034_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0034_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0035_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0035_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0036_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0036_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0037_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0037_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0038_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0038_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0039_Operator_1   Phoxinus phoxinus/bigerri       <NA>         1
+#> T-26-0039_Operator_2   Phoxinus phoxinus/bigerri       <NA>         2
+#> T-26-0040_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0040_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0041_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0041_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0042_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0042_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0043_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0043_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0044_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0044_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0045_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0045_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0046_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0046_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0047_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0047_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0048_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0048_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0049_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0049_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0050_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0050_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0051_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0051_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0052_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0052_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0053_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0053_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0054_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0054_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0055_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0055_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0056-2_Operator_1          Gobio occitaniae       <NA>         1
+#> T-26-0056-2_Operator_2          Gobio occitaniae       <NA>         2
+#> T-26-0057_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0057_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0058_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0058_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0059_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0059_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0060_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0060_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0061_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0061_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0062_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0062_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0063_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0063_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0064_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0064_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0065_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0065_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0067_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0067_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0068_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0068_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0069_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0069_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0070_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0070_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0071_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0071_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0072_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0072_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0073_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0073_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0074_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0074_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0075_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0075_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0076_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0076_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0077_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0077_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0078_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0078_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0079_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0079_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0080_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0080_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0081_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0081_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0082_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0082_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0083_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0083_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0084_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0084_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0085_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0085_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0086_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0086_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0087_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0087_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0088_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0088_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0089_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0089_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0090_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0090_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0091_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0091_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0092_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0092_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0093_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0093_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0094_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0094_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0095_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0095_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0096_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0096_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0097_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0097_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0098_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0098_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0099_Operator_1   Phoxinus phoxinus/bigerri       <NA>         1
+#> T-26-0099_Operator_2   Phoxinus phoxinus/bigerri       <NA>         2
+#> T-26-0100_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0100_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0101_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0101_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0102_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0102_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0103_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0103_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0104_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0104_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0107_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0107_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0108_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0108_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0109_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0109_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0111_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0111_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0112-2_Operator_1 Phoxinus phoxinus/bigerri       <NA>         1
+#> T-26-0112-2_Operator_2 Phoxinus phoxinus/bigerri       <NA>         2
+#> T-26-0112_Operator_1   Phoxinus phoxinus/bigerri       <NA>         1
+#> T-26-0112_Operator_2   Phoxinus phoxinus/bigerri       <NA>         2
+#> T-26-0113_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0113_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0114_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0114_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0115_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0115_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0116_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0116_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0117_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0117_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0118_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0118_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0120_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0120_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0121_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0121_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0122_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0122_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0123_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0123_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0125_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0125_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0126_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0126_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0127_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0127_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0128_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0128_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0130_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0130_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0131_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0131_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0132_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0132_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0133_Operator_1           Perca fluviatilis       <NA>         1
+#> T-26-0133_Operator_2           Perca fluviatilis       <NA>         2
+#> T-26-0134_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0134_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0135_Operator_1           Perca fluviatilis       <NA>         1
+#> T-26-0135_Operator_2           Perca fluviatilis       <NA>         2
+#> T-26-0136_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0136_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0137_Operator_1     Leuciscus burdigalensis       <NA>         1
+#> T-26-0137_Operator_2     Leuciscus burdigalensis       <NA>         2
+#> T-26-0138_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0138_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0139_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0139_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0140_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0140_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0141_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0141_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0142_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0142_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0143_Operator_1     Leuciscus burdigalensis       <NA>         1
+#> T-26-0143_Operator_2     Leuciscus burdigalensis       <NA>         2
+#> T-26-0144_Operator_1     Leuciscus burdigalensis       <NA>         1
+#> T-26-0144_Operator_2     Leuciscus burdigalensis       <NA>         2
+#> T-26-0145_Operator_1                                   <NA>         1
+#> T-26-0145_Operator_2                                   <NA>         2
+#> T-26-0146_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0146_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0147_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0147_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0148_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0148_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0149_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0149_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0150_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0150_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0151_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0151_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0152_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0152_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0153_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0153_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0154_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0154_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0155_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0155_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0156_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0156_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0157_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0157_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0158_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0158_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0159_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0159_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0160_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0160_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0161_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0161_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0162_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0162_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0163_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0163_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0164_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0164_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0165_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0165_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0166_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0166_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0167_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0167_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0168_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0168_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0169_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0169_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0170_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0170_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0171_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0171_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0172_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0172_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0173_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0173_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0174_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0174_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0175_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0175_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0176_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0176_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0177_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0177_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0178_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0178_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0179-3_Operator_1          Gobio occitaniae       <NA>         1
+#> T-26-0179-3_Operator_2          Gobio occitaniae       <NA>         2
+#> T-26-0179_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0179_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0180_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0180_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0181_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0181_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0182_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0182_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0183_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0183_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0184_Operator_1           Perca fluviatilis       <NA>         1
+#> T-26-0184_Operator_2           Perca fluviatilis       <NA>         2
+#> T-26-0185_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0185_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0186_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0186_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0187_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0187_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0188_Operator_1         Barbatula barbatula       <NA>         1
+#> T-26-0188_Operator_2         Barbatula barbatula       <NA>         2
+#> T-26-0189_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0189_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0190_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0190_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0191_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0191_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0192_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0192_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0193_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0193_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0194_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0194_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0195_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0195_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0196_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0196_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0197_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0197_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0198_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0198_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0199_Operator_1         Barbatula barbatula       <NA>         1
+#> T-26-0199_Operator_2         Barbatula barbatula       <NA>         2
+#> T-26-0200_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0200_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0201_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0201_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0202_Operator_1           Perca fluviatilis       <NA>         1
+#> T-26-0202_Operator_2           Perca fluviatilis       <NA>         2
+#> T-26-0203_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0203_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0204_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0204_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0205_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0205_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0206_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0206_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0207_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0207_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0208_Operator_1         Barbatula barbatula       <NA>         1
+#> T-26-0208_Operator_2         Barbatula barbatula       <NA>         2
+#> T-26-0209_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0209_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0210_Operator_1               Barbus barbus       <NA>         1
+#> T-26-0210_Operator_2               Barbus barbus       <NA>         2
+#> T-26-0211_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0211_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0212_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0212_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0213_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0213_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0214_Operator_1     Leuciscus burdigalensis       <NA>         1
+#> T-26-0214_Operator_2     Leuciscus burdigalensis       <NA>         2
+#> T-26-0215_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0215_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0216_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0216_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0217_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0217_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0218_Operator_1         Barbatula barbatula       <NA>         1
+#> T-26-0218_Operator_2         Barbatula barbatula       <NA>         2
+#> T-26-0219_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0219_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0220_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0220_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0221_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0221_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0222_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0222_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0223_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0223_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0224_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0224_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0225_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0225_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0226_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0226_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0227_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0227_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0228_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0228_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0229_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0229_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0230-1_Operator_1       Barbatula barbatula       <NA>         1
+#> T-26-0230-1_Operator_2       Barbatula barbatula       <NA>         2
+#> T-26-0230-2_Operator_1       Barbatula barbatula       <NA>         1
+#> T-26-0230-2_Operator_2       Barbatula barbatula       <NA>         2
+#> T-26-0230-3_Operator_1       Barbatula barbatula       <NA>         1
+#> T-26-0230-3_Operator_2       Barbatula barbatula       <NA>         2
+#> T-26-0230-4_Operator_1       Barbatula barbatula       <NA>         1
+#> T-26-0230-4_Operator_2       Barbatula barbatula       <NA>         2
+#> T-26-0231_Operator_1         Barbatula barbatula       <NA>         1
+#> T-26-0231_Operator_2         Barbatula barbatula       <NA>         2
+#> T-26-0232_Operator_1         Barbatula barbatula       <NA>         1
+#> T-26-0232_Operator_2         Barbatula barbatula       <NA>         2
+#> T-26-0233_Operator_1         Barbatula barbatula       <NA>         1
+#> T-26-0233_Operator_2         Barbatula barbatula       <NA>         2
+#> T-26-0234_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0234_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0235_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0235_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0236_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0236_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0237_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0237_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0238_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0238_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0239_Operator_1           Perca fluviatilis       <NA>         1
+#> T-26-0239_Operator_2           Perca fluviatilis       <NA>         2
+#> T-26-0240_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0240_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0241_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0241_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0242_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0242_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0243_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0243_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0244_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0244_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0245_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0245_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0246_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0246_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0247_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0247_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0248_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0248_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0249_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0249_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0250_Operator_1           Phoxinus phoxinus       <NA>         1
+#> T-26-0250_Operator_2           Phoxinus phoxinus       <NA>         2
+#> T-26-0251_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0251_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0252_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0252_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0261-1_Operator_1          Gobio occitaniae       <NA>         1
+#> T-26-0261-1_Operator_2          Gobio occitaniae       <NA>         2
+#> T-26-0261-2_Operator_1          Gobio occitaniae       <NA>         1
+#> T-26-0261-2_Operator_2          Gobio occitaniae       <NA>         2
+#> T-26-0261-3_Operator_1          Gobio occitaniae       <NA>         1
+#> T-26-0261-3_Operator_2          Gobio occitaniae       <NA>         2
+#> T-26-0261-4_Operator_1          Gobio occitaniae       <NA>         1
+#> T-26-0261-4_Operator_2          Gobio occitaniae       <NA>         2
+#> T-26-0261-5_Operator_1          Gobio occitaniae       <NA>         1
+#> T-26-0261-5_Operator_2          Gobio occitaniae       <NA>         2
+#> T-26-0262-1_Operator_1          Gobio occitaniae       <NA>         1
+#> T-26-0262-1_Operator_2          Gobio occitaniae       <NA>         2
+#> T-26-0262-2_Operator_1          Gobio occitaniae       <NA>         1
+#> T-26-0262-2_Operator_2          Gobio occitaniae       <NA>         2
+#> T-26-0263_Operator_1            Gobio occitaniae       <NA>         1
+#> T-26-0263_Operator_2            Gobio occitaniae       <NA>         2
+#> T-26-0264-1_Operator_1             Barbus barbus       <NA>         1
+#> T-26-0264-1_Operator_2             Barbus barbus       <NA>         2
+#> T-26-0264-2_Operator_1             Barbus barbus       <NA>         1
+#> T-26-0264-2_Operator_2             Barbus barbus       <NA>         2
+#> T-26-0264-3_Operator_1             Barbus barbus       <NA>         1
+#> T-26-0264-3_Operator_2             Barbus barbus       <NA>         2
+#> T-26-0264-4_Operator_1          Gobio occitaniae       <NA>         1
+#> T-26-0264-4_Operator_2          Gobio occitaniae       <NA>         2
+#> T-26-0265_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0265_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0266_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0266_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0267_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0267_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0268_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0268_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0269_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0269_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0270-1_Operator_1         Squalius cephalus       <NA>         1
+#> T-26-0270-1_Operator_2         Squalius cephalus       <NA>         2
+#> T-26-0270-2_Operator_1         Squalius cephalus       <NA>         1
+#> T-26-0270-2_Operator_2         Squalius cephalus       <NA>         2
+#> T-26-0271_Operator_1           Perca fluviatilis       <NA>         1
+#> T-26-0271_Operator_2           Perca fluviatilis       <NA>         2
+#> T-26-0272_Operator_1         Barbatula barbatula       <NA>         1
+#> T-26-0272_Operator_2         Barbatula barbatula       <NA>         2
+#> T-26-0273_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0273_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0274_Operator_1         Barbatula barbatula       <NA>         1
+#> T-26-0274_Operator_2         Barbatula barbatula       <NA>         2
+#> T-26-0275_Operator_1         Barbatula barbatula       <NA>         1
+#> T-26-0275_Operator_2         Barbatula barbatula       <NA>         2
+#> T-26-0276_Operator_1           Squalius cephalus       <NA>         1
+#> T-26-0276_Operator_2           Squalius cephalus       <NA>         2
+#> T-26-0277_Operator_1         Barbatula barbatula       <NA>         1
+#> T-26-0277_Operator_2         Barbatula barbatula       <NA>         2
+#> T-26-0278-1_Operator_1       Barbatula barbatula       <NA>         1
+#> T-26-0278-1_Operator_2       Barbatula barbatula       <NA>         2
+#> T-26-0278-2_Operator_1       Barbatula barbatula       <NA>         1
+#> T-26-0278-2_Operator_2       Barbatula barbatula       <NA>         2
+#> T-26-0279_Operator_1         Barbatula barbatula       <NA>         1
+#> T-26-0279_Operator_2         Barbatula barbatula       <NA>         2
+#>                          operator     BEl    VEp    REs    OGp    RMl    BLs
+#> T-26-0001_Operator_1   Operator_1  3.8385 0.7416     NA 0.4938     NA     NA
+#> T-26-0001_Operator_2   Operator_2  3.8495 0.7597     NA 0.5105     NA     NA
+#> T-26-0002_Operator_1   Operator_1  4.1703 0.7647     NA 0.5368     NA     NA
+#> T-26-0002_Operator_2   Operator_2  4.0660 0.7599     NA 0.5187     NA     NA
+#> T-26-0003_Operator_1   Operator_1  4.1158 0.7157     NA 0.4778     NA     NA
+#> T-26-0003_Operator_2   Operator_2  4.0287 0.6798     NA 0.4527     NA     NA
+#> T-26-0004_Operator_1   Operator_1  3.9896 0.6080 0.3728 0.5463 0.4369 0.4560
+#> T-26-0004_Operator_2   Operator_2  3.8967 0.6078 0.4142 0.5509 0.4463 0.4451
+#> T-26-0005_Operator_1   Operator_1  4.3445 0.8213     NA 0.6255     NA     NA
+#> T-26-0005_Operator_2   Operator_2  4.9863 0.8611     NA 0.6498     NA     NA
+#> T-26-0006_Operator_1   Operator_1  4.1088 0.6982     NA 0.4570     NA     NA
+#> T-26-0006_Operator_2   Operator_2  4.0234 0.6932     NA 0.4033     NA     NA
+#> T-26-0007_Operator_1   Operator_1  3.6401 0.6233 0.4022 0.5358 0.6690 0.4556
+#> T-26-0007_Operator_2   Operator_2  3.5312 0.6247 0.4076 0.5454 0.4392 0.4417
+#> T-26-0008_Operator_1   Operator_1  3.8701 0.7346 0.4104 0.7098 0.6624 0.4692
+#> T-26-0008_Operator_2   Operator_2  3.6291 0.6734 0.3951 0.6426 0.4710 0.4410
+#> T-26-0009_Operator_1   Operator_1  2.3752 0.5992 0.4262 0.5230 0.2672 0.5058
+#> T-26-0009_Operator_2   Operator_2  2.3055 0.6166 0.4388 0.5228 0.3584 0.4998
+#> T-26-0010_Operator_1   Operator_1  3.7494 0.7994     NA 0.6008     NA     NA
+#> T-26-0010_Operator_2   Operator_2  3.7047 0.7984 0.1639 0.6264 0.2387 0.8895
+#> T-26-0011_Operator_1   Operator_1  3.6860 0.7706     NA 0.7335     NA     NA
+#> T-26-0011_Operator_2   Operator_2  3.4283 0.7463 0.1739 0.6673 0.3193 0.7750
+#> T-26-0012_Operator_1   Operator_1  4.2503 0.7140     NA 0.4061     NA     NA
+#> T-26-0012_Operator_2   Operator_2  4.1360 0.7366 0.1516 0.4475 0.2021 1.3766
+#> T-26-0013_Operator_1   Operator_1  4.1765 0.6557     NA 0.4549     NA     NA
+#> T-26-0013_Operator_2   Operator_2  4.1477 0.6716     NA 0.4663     NA     NA
+#> T-26-0014_Operator_1   Operator_1  3.9892 0.8026     NA 0.5568     NA     NA
+#> T-26-0014_Operator_2   Operator_2  3.8338 0.8173     NA 0.5997     NA     NA
+#> T-26-0015_Operator_1   Operator_1  4.2620 0.7537     NA 0.4919     NA     NA
+#> T-26-0015_Operator_2   Operator_2  4.0005 0.7072     NA 0.4790     NA     NA
+#> T-26-0016_Operator_1   Operator_1  3.5306 0.5848 0.3563 0.5085 0.4901 0.5416
+#> T-26-0016_Operator_2   Operator_2  3.4157 0.6143     NA 0.4925     NA     NA
+#> T-26-0017_Operator_1   Operator_1  4.1011 0.7045     NA 0.3987     NA     NA
+#> T-26-0017_Operator_2   Operator_2  4.0098 0.7255     NA 0.4234     NA     NA
+#> T-26-0018_Operator_1   Operator_1  3.2886 0.7071     NA 0.6402     NA     NA
+#> T-26-0018_Operator_2   Operator_2  3.2354 0.6952 0.2747 0.6322 0.3385 0.5431
+#> T-26-0019_Operator_1   Operator_1  4.0461 0.5569 0.4750 0.5061 0.4013 0.4784
+#> T-26-0019_Operator_2   Operator_2  4.0285 0.5598 0.4597 0.4964 0.5401 0.4762
+#> T-26-0020_Operator_1   Operator_1  3.5220 0.7710     NA 0.5435     NA     NA
+#> T-26-0020_Operator_2   Operator_2  3.5080 0.7774 0.1445 0.5493 0.2224 0.8848
+#> T-26-0021_Operator_1   Operator_1  3.5312 0.4866 0.4644 0.3650 0.3455 0.5208
+#> T-26-0021_Operator_2   Operator_2  3.5154 0.5127 0.4840 0.3536 0.6430 0.5402
+#> T-26-0022_Operator_1   Operator_1  4.0848 0.6033 0.4672 0.5964 0.4455 0.5102
+#> T-26-0022_Operator_2   Operator_2  4.0185 0.5825 0.4830 0.5724 0.5464 0.4884
+#> T-26-0023-2_Operator_1 Operator_1  4.4543 0.4953 0.5743 0.4934     NA 0.5595
+#> T-26-0023-2_Operator_2 Operator_2  4.3328 0.4740     NA 0.4900     NA     NA
+#> T-26-0024_Operator_1   Operator_1  3.9444 0.8035     NA 0.5868     NA     NA
+#> T-26-0024_Operator_2   Operator_2  3.9467 0.8342     NA 0.6118     NA     NA
+#> T-26-0025_Operator_1   Operator_1  3.5367 0.8071     NA 0.5467     NA     NA
+#> T-26-0025_Operator_2   Operator_2  3.5431 0.8404     NA 0.5899     NA     NA
+#> T-26-0026_Operator_1   Operator_1  3.6900 0.6832 0.3463 0.5589 0.5575 0.5416
+#> T-26-0026_Operator_2   Operator_2  3.6150 0.7018     NA 0.5820     NA     NA
+#> T-26-0027_Operator_1   Operator_1  3.7636 0.8653     NA 0.7397     NA     NA
+#> T-26-0027_Operator_2   Operator_2  3.7205 0.8097     NA 0.6803     NA     NA
+#> T-26-0028_Operator_1   Operator_1  3.7230 0.7755     NA 0.5620     NA     NA
+#> T-26-0028_Operator_2   Operator_2  3.5789 0.7874     NA 0.5755     NA     NA
+#> T-26-0029_Operator_1   Operator_1  2.5920 0.5420 0.4524 0.4515     NA 0.5350
+#> T-26-0029_Operator_2   Operator_2  2.5779 0.5586 0.4736 0.4497 0.6207 0.5271
+#> T-26-0030_Operator_1   Operator_1  4.0561 0.7086 0.4216 0.6943 0.4858 0.5078
+#> T-26-0030_Operator_2   Operator_2  3.9397 0.6272 0.4473 0.6093 0.5527 0.4914
+#> T-26-0031_Operator_1   Operator_1  3.7954 0.7841     NA 0.5600     NA     NA
+#> T-26-0031_Operator_2   Operator_2  3.7014 0.7871 0.2130 0.5636 0.2939 0.7670
+#> T-26-0032_Operator_1   Operator_1  3.7480 0.7990 0.2812 0.7405 0.3640 0.5157
+#> T-26-0032_Operator_2   Operator_2  3.5101 0.7029 0.2819 0.6340 0.4137 0.4715
+#> T-26-0033_Operator_1   Operator_1  3.6316 0.8432     NA 0.6382     NA     NA
+#> T-26-0033_Operator_2   Operator_2  3.5878 0.8065     NA 0.6076     NA     NA
+#> T-26-0034_Operator_1   Operator_1  3.3921 0.7293     NA 0.5435     NA     NA
+#> T-26-0034_Operator_2   Operator_2  3.4097 0.7846     NA 0.6044     NA     NA
+#> T-26-0035_Operator_1   Operator_1  4.2407 0.8419     NA 0.6347     NA     NA
+#> T-26-0035_Operator_2   Operator_2  4.1967 0.8022     NA 0.5987     NA     NA
+#> T-26-0036_Operator_1   Operator_1  4.0148 0.6757 0.4594 0.6481 0.4580 0.4686
+#> T-26-0036_Operator_2   Operator_2  3.9967 0.6430 0.4727 0.6056 0.4880 0.4462
+#> T-26-0037_Operator_1   Operator_1  3.8269 0.7021 0.3962 0.6432 0.4228 0.4609
+#> T-26-0037_Operator_2   Operator_2  3.8205 0.6347 0.4008 0.5916 0.5018 0.4544
+#> T-26-0038_Operator_1   Operator_1  3.7666 0.7862     NA 0.5595     NA     NA
+#> T-26-0038_Operator_2   Operator_2  3.6959 0.7525     NA 0.5343     NA     NA
+#> T-26-0039_Operator_1   Operator_1  3.6520 0.5714 0.4818 0.5571 0.3793 0.4691
+#> T-26-0039_Operator_2   Operator_2  3.6885 0.5941 0.5036 0.5619 0.4621 0.4829
+#> T-26-0040_Operator_1   Operator_1  3.9223 0.7123     NA 0.5167     NA     NA
+#> T-26-0040_Operator_2   Operator_2  3.9293 0.7302 0.2549 0.5410 0.4382 0.5950
+#> T-26-0041_Operator_1   Operator_1  4.1767 0.7505     NA 0.4937     NA     NA
+#> T-26-0041_Operator_2   Operator_2  4.0725 0.7501     NA 0.5201     NA     NA
+#> T-26-0042_Operator_1   Operator_1  4.0865 0.7752     NA 0.5866     NA     NA
+#> T-26-0042_Operator_2   Operator_2  3.9817 0.7617     NA 0.5598     NA     NA
+#> T-26-0043_Operator_1   Operator_1  4.4321 0.6218     NA 0.3423     NA     NA
+#> T-26-0043_Operator_2   Operator_2  4.3338 0.6899 0.2801 0.3990 0.3729 0.5863
+#> T-26-0044_Operator_1   Operator_1  3.4591 0.7562     NA 0.5430     NA     NA
+#> T-26-0044_Operator_2   Operator_2  3.3632 0.7579 0.2686 0.5237 0.3028 0.6025
+#> T-26-0045_Operator_1   Operator_1  3.8745 0.5718 0.3831 0.5000 0.4268 0.4736
+#> T-26-0045_Operator_2   Operator_2  3.8933 0.6039 0.4125 0.5191 0.4578 0.4886
+#> T-26-0046_Operator_1   Operator_1  3.9759 0.7625     NA 0.5245     NA     NA
+#> T-26-0046_Operator_2   Operator_2  3.7517 0.7396     NA 0.5075     NA     NA
+#> T-26-0047_Operator_1   Operator_1  3.5144 0.7750 0.2627 0.7048 0.3495 0.4247
+#> T-26-0047_Operator_2   Operator_2  3.3384 0.7150 0.2783 0.6339 0.3902 0.4187
+#> T-26-0048_Operator_1   Operator_1  4.2883 0.7466     NA 0.4632     NA     NA
+#> T-26-0048_Operator_2   Operator_2  4.0744 0.7518 0.1899 0.4696 0.3335 0.6570
+#> T-26-0049_Operator_1   Operator_1  4.0387 0.5637 0.4293 0.5165 0.4379 0.4849
+#> T-26-0049_Operator_2   Operator_2  3.9899 0.5939 0.4710 0.5643 0.5306 0.4856
+#> T-26-0050_Operator_1   Operator_1  3.8226 0.7639     NA 0.5420     NA     NA
+#> T-26-0050_Operator_2   Operator_2 61.1622 0.7568 0.2750 0.5135 3.8500 0.5405
+#> T-26-0051_Operator_1   Operator_1  3.8224 0.7767     NA 0.6060     NA     NA
+#> T-26-0051_Operator_2   Operator_2  3.7430 0.7760 0.2526 0.5849 0.4269 0.6013
+#> T-26-0052_Operator_1   Operator_1 10.7099 0.6380 0.3169 4.8423 4.6974 1.2352
+#> T-26-0052_Operator_2   Operator_2  3.9257 0.5547 0.4433 0.5514 0.5977 0.4586
+#> T-26-0053_Operator_1   Operator_1  3.7247 0.5417 0.3675 0.5262 0.4369 0.4653
+#> T-26-0053_Operator_2   Operator_2  3.7266 0.5408 0.3978 0.5086 0.4655 0.4581
+#> T-26-0054_Operator_1   Operator_1  3.8377 0.6325 0.3921 0.6160 0.4279 0.4975
+#> T-26-0054_Operator_2   Operator_2  3.8543 0.6425 0.4106 0.5889 0.4358 0.4897
+#> T-26-0055_Operator_1   Operator_1  3.6597 0.8004     NA 0.5972     NA     NA
+#> T-26-0055_Operator_2   Operator_2  3.5635 0.7868     NA 0.5871     NA     NA
+#> T-26-0056-2_Operator_1 Operator_1  3.4972 0.7728     NA 0.6328     NA     NA
+#> T-26-0056-2_Operator_2 Operator_2  3.4822 0.7529 0.2968 0.6020 0.4562 0.5323
+#> T-26-0057_Operator_1   Operator_1  3.5929 0.7135 0.2370 0.5153 0.4257 0.4917
+#> T-26-0057_Operator_2   Operator_2  3.5520 0.7503 0.3103 0.5133 0.3491 0.5007
+#> T-26-0058_Operator_1   Operator_1  3.6572 0.7772     NA 0.6383     NA     NA
+#> T-26-0058_Operator_2   Operator_2  3.5835 0.7737     NA 0.5909     NA     NA
+#> T-26-0059_Operator_1   Operator_1  3.7626 0.7434     NA 0.5789     NA     NA
+#> T-26-0059_Operator_2   Operator_2  3.7024 0.7568 0.2467 0.5269 0.3318 0.5271
+#> T-26-0060_Operator_1   Operator_1  4.1447 0.7578     NA 0.5423     NA     NA
+#> T-26-0060_Operator_2   Operator_2  4.1597 0.7564 0.2483 0.5398 0.4153 0.6025
+#> T-26-0061_Operator_1   Operator_1  4.1225 0.6965 0.4009 0.6825 0.4264 0.5252
+#> T-26-0061_Operator_2   Operator_2  4.0882 0.6523 0.4340 0.5967 0.4146 0.5251
+#> T-26-0062_Operator_1   Operator_1  4.0971 0.6577 0.3771 0.6481 0.4743 0.5209
+#> T-26-0062_Operator_2   Operator_2  4.0823 0.5959 0.4296 0.5496 0.4850 0.5045
+#> T-26-0063_Operator_1   Operator_1  3.6933 0.8503     NA 0.6400     NA     NA
+#> T-26-0063_Operator_2   Operator_2  3.5965 0.8401 0.3166 0.6017 0.4398 0.5091
+#> T-26-0064_Operator_1   Operator_1  3.7664 0.6542     NA 0.4376     NA     NA
+#> T-26-0064_Operator_2   Operator_2  3.6872 0.6720 0.3007 0.4209 0.4367 0.5510
+#> T-26-0065_Operator_1   Operator_1  3.6983 0.7821     NA 0.6225     NA     NA
+#> T-26-0065_Operator_2   Operator_2  3.5979 0.7627 0.2964 0.5698 0.3651 0.5351
+#> T-26-0067_Operator_1   Operator_1  3.4583 0.7298 0.2581 0.5692 0.3841 0.5071
+#> T-26-0067_Operator_2   Operator_2  3.4969 0.7464 0.2499 0.5920 0.3674 0.5155
+#> T-26-0068_Operator_1   Operator_1  4.0333 0.6249 0.4464 0.5407 0.3063 0.5264
+#> T-26-0068_Operator_2   Operator_2  3.9851 0.6021 0.4517 0.6179 0.6843 0.5035
+#> T-26-0069_Operator_1   Operator_1  4.1884 0.5478 0.4076 0.6405 0.4641 0.5497
+#> T-26-0069_Operator_2   Operator_2  4.1132 0.5220 0.4831 0.5460 0.5066 0.5458
+#> T-26-0070_Operator_1   Operator_1  3.7211 0.5344 0.4417 0.5341 0.5616 0.4866
+#> T-26-0070_Operator_2   Operator_2  3.8847 0.5792 0.4293 0.5730 0.5733 0.5090
+#> T-26-0071_Operator_1   Operator_1  4.2218 0.8086 0.2375 0.5812 0.3010 0.6348
+#> T-26-0071_Operator_2   Operator_2  4.1307 0.7555 0.2500 0.5635 0.4214 0.6232
+#> T-26-0072_Operator_1   Operator_1  4.0828 0.8087     NA 0.6371     NA     NA
+#> T-26-0072_Operator_2   Operator_2  3.9880 0.7968 0.2754 0.6267 0.3862 0.5984
+#> T-26-0073_Operator_1   Operator_1  3.7374 0.8005     NA 0.6341     NA     NA
+#> T-26-0073_Operator_2   Operator_2  3.6395 0.7885 0.2639 0.5875 0.3774 0.5620
+#> T-26-0074_Operator_1   Operator_1  3.8019 0.6629 0.2819 0.4605 0.4337 0.5701
+#> T-26-0074_Operator_2   Operator_2  3.6764 0.6892 0.2753 0.4702 0.4337 0.5546
+#> T-26-0075_Operator_1   Operator_1  3.6331 0.8071 0.2983 0.6703 0.3894 0.5365
+#> T-26-0075_Operator_2   Operator_2  3.6471 0.7756 0.2862 0.6139 0.3891 0.5371
+#> T-26-0076_Operator_1   Operator_1  4.0480 0.6395 0.4563 0.7295 0.3497 0.5091
+#> T-26-0076_Operator_2   Operator_2  3.9254 0.5769 0.4905 0.5896 0.4876 0.4949
+#> T-26-0077_Operator_1   Operator_1  4.1577 0.7111     NA 0.5317     NA     NA
+#> T-26-0077_Operator_2   Operator_2  4.0835 0.6940 0.3766 0.4680 0.4295 0.5880
+#> T-26-0078_Operator_1   Operator_1  3.8892 0.6422     NA 0.4375     NA     NA
+#> T-26-0078_Operator_2   Operator_2  3.9567 0.6758 0.3052 0.4169 0.4138 0.5929
+#> T-26-0079_Operator_1   Operator_1  3.5706 0.7453     NA 0.5849     NA     NA
+#> T-26-0079_Operator_2   Operator_2  3.5337 0.7584 0.3774 0.5862 0.4507 0.4867
+#> T-26-0080_Operator_1   Operator_1  3.7052 0.5429 0.5596 0.5786 0.5603 0.4914
+#> T-26-0080_Operator_2   Operator_2  3.7819 0.5647 0.5311 0.5791 0.6117 0.5067
+#> T-26-0081_Operator_1   Operator_1  4.2994 0.6433     NA 0.4472     NA     NA
+#> T-26-0081_Operator_2   Operator_2  4.1303 0.6381     NA 0.4269     NA     NA
+#> T-26-0082_Operator_1   Operator_1  3.8540 0.6451 0.4821 0.6520 0.2223 0.4732
+#> T-26-0082_Operator_2   Operator_2  3.8515 0.6165 0.4892 0.6691 0.5110 0.4813
+#> T-26-0083_Operator_1   Operator_1  3.9220 0.7626     NA 0.6098     NA     NA
+#> T-26-0083_Operator_2   Operator_2  3.9027 0.7757     NA 0.6081     NA     NA
+#> T-26-0084_Operator_1   Operator_1  3.7465 0.6885     NA 0.5107     NA     NA
+#> T-26-0084_Operator_2   Operator_2  3.7116 0.7504     NA 0.5478     NA     NA
+#> T-26-0085_Operator_1   Operator_1  3.5757 0.6134 0.3018 0.4916 0.5152 0.5294
+#> T-26-0085_Operator_2   Operator_2  3.6062 0.6445 0.3224 0.5199 0.5105 0.5243
+#> T-26-0086_Operator_1   Operator_1  4.1694 0.8192     NA 0.6578     NA     NA
+#> T-26-0086_Operator_2   Operator_2  3.9891 0.8059 0.2734 0.6694 0.5016 0.6157
+#> T-26-0087_Operator_1   Operator_1  3.6777 0.8119     NA 0.6721     NA     NA
+#> T-26-0087_Operator_2   Operator_2  3.5967 0.7915 0.1275 0.6617 0.1943 1.2896
+#> T-26-0088_Operator_1   Operator_1  3.5675 0.6013     NA 0.3971     NA     NA
+#> T-26-0088_Operator_2   Operator_2  3.5180 0.6728     NA 0.5220     NA     NA
+#> T-26-0089_Operator_1   Operator_1  5.1037 0.5274 0.5709 0.5999     NA 0.6838
+#> T-26-0089_Operator_2   Operator_2  4.6097 0.5116 0.5595 0.5274 0.6145 0.6297
+#> T-26-0090_Operator_1   Operator_1  4.5030 0.6862 0.4444 0.5877     NA 0.6092
+#> T-26-0090_Operator_2   Operator_2  4.4881 0.6876 0.4462 0.5340 0.4342 0.6179
+#> T-26-0091_Operator_1   Operator_1  4.2787 0.7253 0.2430 0.5963 0.4221 0.6208
+#> T-26-0091_Operator_2   Operator_2  3.9885 0.7375 0.2555 0.6067 0.4407 0.5953
+#> T-26-0092_Operator_1   Operator_1  3.5162 0.6140     NA 0.4687     NA     NA
+#> T-26-0092_Operator_2   Operator_2  3.5062 0.6878     NA 0.5503     NA     NA
+#> T-26-0093_Operator_1   Operator_1  3.6515 0.7731     NA 0.6354     NA     NA
+#> T-26-0093_Operator_2   Operator_2  3.6390 0.7991     NA 0.6550     NA     NA
+#> T-26-0094_Operator_1   Operator_1  3.9384 0.7421 0.3432 0.5613 0.3813 0.5937
+#> T-26-0094_Operator_2   Operator_2  3.8940 0.7524     NA 0.5799     NA     NA
+#> T-26-0095_Operator_1   Operator_1  4.1026 0.7298     NA 0.4906     NA     NA
+#> T-26-0095_Operator_2   Operator_2  3.8907 0.7428     NA 0.5512     NA     NA
+#> T-26-0096_Operator_1   Operator_1  3.7410 0.6876 0.3148 0.4551 0.5158 0.5082
+#> T-26-0096_Operator_2   Operator_2  3.7672 0.7502 0.3262 0.5753 0.4629 0.5223
+#> T-26-0097_Operator_1   Operator_1  3.9665 0.6513 0.2772 0.5065 0.6640 0.5804
+#> T-26-0097_Operator_2   Operator_2  3.9468 0.6920 0.2621 0.5132 0.3559 0.5868
+#> T-26-0098_Operator_1   Operator_1  4.0799 0.7422     NA 0.6079     NA     NA
+#> T-26-0098_Operator_2   Operator_2  3.8984 0.6630 0.3684 0.5367 0.5060 0.5363
+#> T-26-0099_Operator_1   Operator_1  4.4524 0.4477 0.5732 0.4717     NA 0.5588
+#> T-26-0099_Operator_2   Operator_2  4.2963 0.4781 0.5302 0.4661 0.6799 0.5451
+#> T-26-0100_Operator_1   Operator_1  3.8087 0.6949     NA 0.5164     NA     NA
+#> T-26-0100_Operator_2   Operator_2  3.7407 0.7386 0.2685 0.5485 0.2727 0.7621
+#> T-26-0101_Operator_1   Operator_1  3.1552 0.7509     NA 0.5583     NA     NA
+#> T-26-0101_Operator_2   Operator_2  3.4653 0.7596     NA 0.5958     NA     NA
+#> T-26-0102_Operator_1   Operator_1  3.8204 0.7101     NA 0.6381     NA     NA
+#> T-26-0102_Operator_2   Operator_2  3.7266 0.7111     NA 0.5635     NA     NA
+#> T-26-0103_Operator_1   Operator_1  3.7024 0.6255 0.4115 0.5966 0.4691 0.5570
+#> T-26-0103_Operator_2   Operator_2  3.5276 0.6409 0.3632 0.5509 0.4036 0.5224
+#> T-26-0104_Operator_1   Operator_1  3.5710 0.6119     NA 0.5532     NA     NA
+#> T-26-0104_Operator_2   Operator_2  3.5925 0.6574 0.3995 0.5168 0.3890 0.4802
+#> T-26-0107_Operator_1   Operator_1  3.5393 0.7031     NA 0.6502     NA     NA
+#> T-26-0107_Operator_2   Operator_2  3.6164 0.7179     NA 0.5547     NA     NA
+#> T-26-0108_Operator_1   Operator_1  4.1378 0.5984     NA 0.3773     NA     NA
+#> T-26-0108_Operator_2   Operator_2  4.1148 0.6374     NA 0.4749     NA     NA
+#> T-26-0109_Operator_1   Operator_1  3.8009 0.7407     NA 0.5305     NA     NA
+#> T-26-0109_Operator_2   Operator_2  3.6844 0.7037     NA 0.5271     NA     NA
+#> T-26-0111_Operator_1   Operator_1  4.7021 0.7731     NA 0.4440     NA     NA
+#> T-26-0111_Operator_2   Operator_2  4.4883 0.6336     NA 0.4589     NA     NA
+#> T-26-0112-2_Operator_1 Operator_1  4.1214 0.6657 0.3770 0.4958 0.3423 0.5686
+#> T-26-0112-2_Operator_2 Operator_2  4.1001 0.6995 0.4115 0.5016 0.4753 0.5529
+#> T-26-0112_Operator_1   Operator_1  4.3802 0.6180 0.4357 0.5444     NA 0.6216
+#> T-26-0112_Operator_2   Operator_2  4.2401 0.6463 0.4123 0.4831     NA 0.5908
+#> T-26-0113_Operator_1   Operator_1  4.2014 0.5439 0.3226 0.2762 0.5431 0.6147
+#> T-26-0113_Operator_2   Operator_2  4.3109 0.6431     NA 0.4263     NA     NA
+#> T-26-0114_Operator_1   Operator_1  3.8084 0.6877     NA 0.5035     NA     NA
+#> T-26-0114_Operator_2   Operator_2  3.8293 0.6437     NA 0.4690     NA     NA
+#> T-26-0115_Operator_1   Operator_1  3.7650 0.5892     NA 0.4254     NA     NA
+#> T-26-0115_Operator_2   Operator_2  4.0662 0.6629     NA 0.4928     NA     NA
+#> T-26-0116_Operator_1   Operator_1  4.0919 0.6061 0.3882 0.5179 0.4526 0.5601
+#> T-26-0116_Operator_2   Operator_2  3.8749 0.7331     NA 0.5494     NA     NA
+#> T-26-0117_Operator_1   Operator_1  3.8999 0.6811     NA 0.5137     NA     NA
+#> T-26-0117_Operator_2   Operator_2  3.9076 0.7827     NA 0.5985     NA     NA
+#> T-26-0118_Operator_1   Operator_1  4.0144 0.7788     NA 0.5893     NA     NA
+#> T-26-0118_Operator_2   Operator_2  3.9678 0.7197     NA 0.5610     NA     NA
+#> T-26-0120_Operator_1   Operator_1  4.3265 0.7701 0.2923 0.6021 0.4856 0.6293
+#> T-26-0120_Operator_2   Operator_2  4.1869 0.7093 0.2915 0.5319 0.3402 0.6129
+#> T-26-0121_Operator_1   Operator_1  3.9226 0.7240     NA 0.5412     NA     NA
+#> T-26-0121_Operator_2   Operator_2  0.0932 0.7264     NA 0.5387     NA     NA
+#> T-26-0122_Operator_1   Operator_1  3.7785 0.6624 0.2797 0.4728 0.5979 0.5605
+#> T-26-0122_Operator_2   Operator_2  3.7299 0.6495     NA 0.4423     NA     NA
+#> T-26-0123_Operator_1   Operator_1  4.0764 0.6439     NA 0.4601     NA     NA
+#> T-26-0123_Operator_2   Operator_2  3.9776 0.7043     NA 0.5210     NA     NA
+#> T-26-0125_Operator_1   Operator_1  4.6513 0.7097     NA 0.5612     NA     NA
+#> T-26-0125_Operator_2   Operator_2  4.6353 0.7740     NA 0.6425     NA     NA
+#> T-26-0126_Operator_1   Operator_1  3.6116 0.6890     NA 0.5563     NA     NA
+#> T-26-0126_Operator_2   Operator_2  3.6836 0.7394     NA 0.5745     NA     NA
+#> T-26-0127_Operator_1   Operator_1  3.5056 0.7091     NA 0.5592     NA     NA
+#> T-26-0127_Operator_2   Operator_2  3.4154 0.6934     NA 0.5355     NA     NA
+#> T-26-0128_Operator_1   Operator_1  4.1707 0.5768 0.3995 0.3919 0.4634 0.5476
+#> T-26-0128_Operator_2   Operator_2  4.1889 0.6203 0.4050 0.4744 0.5938 0.5578
+#> T-26-0130_Operator_1   Operator_1  4.3562 0.6280 0.4542 0.4420 0.4114 0.5897
+#> T-26-0130_Operator_2   Operator_2  4.2816 0.6174 0.4535 0.3973 0.4841 0.5629
+#> T-26-0131_Operator_1   Operator_1  3.8372 0.6695     NA 0.5150     NA     NA
+#> T-26-0131_Operator_2   Operator_2  3.8276 0.6737 0.3206 0.5055 0.4347 0.5007
+#> T-26-0132_Operator_1   Operator_1  3.4952 0.7191     NA 0.5462     NA     NA
+#> T-26-0132_Operator_2   Operator_2  3.4201 0.7198 0.2821 0.5085 0.4169 0.4902
+#> T-26-0133_Operator_1   Operator_1  3.6858 0.4608 0.5078 0.2747 0.4905 0.5536
+#> T-26-0133_Operator_2   Operator_2  3.5317 0.4845 0.4944 0.3928 0.5794 0.5471
+#> T-26-0134_Operator_1   Operator_1  3.8795 0.7813     NA 0.6016     NA     NA
+#> T-26-0134_Operator_2   Operator_2  3.8084 0.7742     NA 0.6123     NA     NA
+#> T-26-0135_Operator_1   Operator_1  3.8046 0.4882 0.4763 0.2985 0.5790 0.5559
+#> T-26-0135_Operator_2   Operator_2  3.7762 0.5201 0.4834 0.4429 0.5427 0.5793
+#> T-26-0136_Operator_1   Operator_1  3.6703 0.7055 0.3448 0.5583 0.4088 0.5073
+#> T-26-0136_Operator_2   Operator_2  3.6072 0.6961 0.3321 0.5870 0.4704 0.5039
+#> T-26-0137_Operator_1   Operator_1  3.8933 0.5520 0.4737 0.5378 0.3964 0.4388
+#> T-26-0137_Operator_2   Operator_2  3.9309 0.5656 0.4943 0.5643 0.4138 0.4414
+#> T-26-0138_Operator_1   Operator_1  3.7524 0.7023     NA 0.5032     NA     NA
+#> T-26-0138_Operator_2   Operator_2  3.6446 0.7156     NA 0.5245     NA     NA
+#> T-26-0139_Operator_1   Operator_1  3.8743 0.7200     NA 0.5554     NA     NA
+#> T-26-0139_Operator_2   Operator_2  3.7982 0.7142     NA 0.5401     NA     NA
+#> T-26-0140_Operator_1   Operator_1  4.0299 0.7072     NA 0.5794     NA     NA
+#> T-26-0140_Operator_2   Operator_2  4.0171 0.7376     NA 0.5775     NA     NA
+#> T-26-0141_Operator_1   Operator_1  3.8734 0.7173     NA 0.5608     NA     NA
+#> T-26-0141_Operator_2   Operator_2  3.8731 0.7248     NA 0.5661     NA     NA
+#> T-26-0142_Operator_1   Operator_1  4.0045 0.7097     NA 0.5397     NA     NA
+#> T-26-0142_Operator_2   Operator_2  4.1084 0.7460     NA 0.5371     NA     NA
+#> T-26-0143_Operator_1   Operator_1  3.9987 0.5757 0.5244 0.5659 0.2430 0.5161
+#> T-26-0143_Operator_2   Operator_2  3.9269 0.5817 0.5146 0.6310 0.4022 0.5222
+#> T-26-0144_Operator_1   Operator_1  4.5892 0.4958 0.4787 0.4219 0.3322 0.5877
+#> T-26-0144_Operator_2   Operator_2  4.6270 0.5660 0.4694 0.5703 0.5103 0.6151
+#> T-26-0145_Operator_1   Operator_1  4.7564 0.5861 0.5662 0.6372     NA 0.6326
+#> T-26-0145_Operator_2   Operator_2  4.7001 0.6582 0.5556 0.6642 0.6246 0.6401
+#> T-26-0146_Operator_1   Operator_1  3.7599 0.7865     NA 0.6192     NA     NA
+#> T-26-0146_Operator_2   Operator_2  3.7567 0.8323     NA 0.6642     NA     NA
+#> T-26-0147_Operator_1   Operator_1  3.7263 0.6752 0.3835 0.5442 0.5371 0.4780
+#> T-26-0147_Operator_2   Operator_2  3.7199 0.7025 0.3851 0.6156 0.5148 0.4611
+#> T-26-0148_Operator_1   Operator_1  3.5927 0.5968 0.4750 0.5118 0.3916 0.4609
+#> T-26-0148_Operator_2   Operator_2  3.5726 0.5899 0.4434 0.5850 0.4756 0.4706
+#> T-26-0149_Operator_1   Operator_1  3.4540 0.7142 0.3617 0.6032 0.2806 0.4417
+#> T-26-0149_Operator_2   Operator_2  3.4235 0.6653 0.3220 0.6614 0.4670 0.4355
+#> T-26-0150_Operator_1   Operator_1  4.0428 0.6349 0.3536 0.5029 0.6533 0.4674
+#> T-26-0150_Operator_2   Operator_2  4.0701 0.6696 0.3503 0.5628 0.5937 0.4780
+#> T-26-0151_Operator_1   Operator_1  3.8229 0.6323 0.3134 0.4806 0.4343 0.5599
+#> T-26-0151_Operator_2   Operator_2  3.7468 0.6611     NA 0.4759     NA     NA
+#> T-26-0152_Operator_1   Operator_1  4.4669 0.6594 0.4554 0.5047     NA 0.6254
+#> T-26-0152_Operator_2   Operator_2  4.5800 0.6852 0.4354 0.5150     NA 0.6513
+#> T-26-0153_Operator_1   Operator_1  4.1439 0.5798 0.3609 0.4047 0.5128 0.5972
+#> T-26-0153_Operator_2   Operator_2  4.0781 0.6228 0.3569 0.4609 0.4727 0.6032
+#> T-26-0154_Operator_1   Operator_1  4.0043 0.7337     NA 0.5480     NA     NA
+#> T-26-0154_Operator_2   Operator_2  3.9641 0.7359 0.4244 0.5806 0.4936 0.5582
+#> T-26-0155_Operator_1   Operator_1  4.1470 0.6774     NA 0.4943     NA     NA
+#> T-26-0155_Operator_2   Operator_2  4.1726 0.7050     NA 0.5283     NA     NA
+#> T-26-0156_Operator_1   Operator_1  3.8082 0.6982 0.3738 0.5851 0.2788 0.5064
+#> T-26-0156_Operator_2   Operator_2  3.6220 0.6432 0.3614 0.6500 0.4448 0.4868
+#> T-26-0157_Operator_1   Operator_1  3.9206 0.6809 0.2684 0.5343 0.4024 0.5841
+#> T-26-0157_Operator_2   Operator_2  3.8442 0.7075 0.2864 0.5623 0.4227 0.5744
+#> T-26-0158_Operator_1   Operator_1  3.9094 0.7413 0.3793 0.5852 0.4485 0.5488
+#> T-26-0158_Operator_2   Operator_2  3.8044 0.7403 0.3707 0.6181 0.4349 0.5340
+#> T-26-0159_Operator_1   Operator_1  3.8193 0.6081 0.2863 0.4742 0.4435 0.5736
+#> T-26-0159_Operator_2   Operator_2  3.7941 0.6294     NA 0.4929     NA     NA
+#> T-26-0160_Operator_1   Operator_1  3.8934 0.6396     NA 0.4505     NA     NA
+#> T-26-0160_Operator_2   Operator_2  3.8478 0.6728     NA 0.4600     NA     NA
+#> T-26-0161_Operator_1   Operator_1  3.9247 0.7263     NA 0.4882     NA     NA
+#> T-26-0161_Operator_2   Operator_2  3.8507 0.7480     NA 0.6085     NA     NA
+#> T-26-0162_Operator_1   Operator_1  3.7154 0.7073     NA 0.5050     NA     NA
+#> T-26-0162_Operator_2   Operator_2  3.6545 0.7426     NA 0.5624     NA     NA
+#> T-26-0163_Operator_1   Operator_1  3.9331 0.6282     NA 0.4688     NA     NA
+#> T-26-0163_Operator_2   Operator_2  3.8627 0.6686 0.3492 0.4773 0.4008 0.5257
+#> T-26-0164_Operator_1   Operator_1  4.2335 0.5510 0.4407 0.3504 0.5345 0.5656
+#> T-26-0164_Operator_2   Operator_2  4.2331 0.5889 0.3950 0.3865 0.4579 0.5520
+#> T-26-0165_Operator_1   Operator_1  3.7669 0.6782 0.4306 0.5291 0.4695 0.4898
+#> T-26-0165_Operator_2   Operator_2  3.7812 0.7182 0.3941 0.5865 0.3989 0.5033
+#> T-26-0166_Operator_1   Operator_1  4.0386 0.6560 0.3990 0.4522 0.5374 0.5829
+#> T-26-0166_Operator_2   Operator_2  4.1593 0.6981 0.3826 0.5034 0.5643 0.6000
+#> T-26-0167_Operator_1   Operator_1  3.7746 0.6710 0.4286 0.6079 0.4233 0.4399
+#> T-26-0167_Operator_2   Operator_2  3.5949 0.6583 0.4129 0.6481 0.4976 0.4357
+#> T-26-0168_Operator_1   Operator_1  3.4482 0.6465 0.4140 0.5266 0.4537 0.4670
+#> T-26-0168_Operator_2   Operator_2  3.3987 0.6716 0.3993 0.5454 0.3962 0.4634
+#> T-26-0169_Operator_1   Operator_1  3.9261 0.6743 0.3350 0.5636 0.4991 0.5624
+#> T-26-0169_Operator_2   Operator_2  3.8724 0.6968 0.3296 0.5211 0.4402 0.5578
+#> T-26-0170_Operator_1   Operator_1  3.5732 0.6494 0.3110 0.5289 0.3858 0.5325
+#> T-26-0170_Operator_2   Operator_2  3.5546 0.7041 0.3127 0.5557 0.4005 0.5382
+#> T-26-0171_Operator_1   Operator_1  4.0267 0.6921 0.3448 0.6063 0.5099 0.5531
+#> T-26-0171_Operator_2   Operator_2  3.8637 0.7291 0.3359 0.6202 0.4750 0.5378
+#> T-26-0172_Operator_1   Operator_1  4.1056 0.6215 0.3627 0.4761 0.4321 0.5763
+#> T-26-0172_Operator_2   Operator_2  4.0089 0.6563 0.3821 0.4934 0.4752 0.5708
+#> T-26-0173_Operator_1   Operator_1  3.9416 0.7351 0.4363 0.6344 0.6322 0.5299
+#> T-26-0173_Operator_2   Operator_2  3.8098 0.7660 0.4227 0.6099 0.4269 0.5222
+#> T-26-0174_Operator_1   Operator_1  3.5704 0.7735     NA 0.6047     NA     NA
+#> T-26-0174_Operator_2   Operator_2  3.4462 0.7872 0.2864 0.6142 0.2736 0.5904
+#> T-26-0175_Operator_1   Operator_1  3.9830 0.7445 0.3279 0.5935 0.3583 0.5701
+#> T-26-0175_Operator_2   Operator_2  3.9206 0.7742 0.3369 0.6168 0.3207 0.5837
+#> T-26-0176_Operator_1   Operator_1  3.6607 0.6327 0.3131 0.4913 0.4879 0.5773
+#> T-26-0176_Operator_2   Operator_2  3.6460 0.6718 0.3379 0.5327 0.4956 0.5772
+#> T-26-0177_Operator_1   Operator_1  3.4340 0.7740     NA 0.6018     NA     NA
+#> T-26-0177_Operator_2   Operator_2  3.4539 0.7646     NA 0.6229     NA     NA
+#> T-26-0178_Operator_1   Operator_1  4.0236 0.7369 0.3363 0.5959 0.3688 0.5942
+#> T-26-0178_Operator_2   Operator_2  3.9084 0.7671 0.3142 0.6030 0.3580 0.5955
+#> T-26-0179-3_Operator_1 Operator_1  3.7063 0.6730     NA 0.4828     NA     NA
+#> T-26-0179-3_Operator_2 Operator_2  3.6548 0.6759     NA 0.5322     NA     NA
+#> T-26-0179_Operator_1   Operator_1  4.0540 0.5543 0.5000 0.4556 0.4721 0.5362
+#> T-26-0179_Operator_2   Operator_2  3.9751 0.6236 0.4488 0.4832 0.3402 0.5367
+#> T-26-0180_Operator_1   Operator_1  3.7159 0.6647     NA 0.4886     NA     NA
+#> T-26-0180_Operator_2   Operator_2  3.6657 0.6752 0.3689 0.5283 0.3921 0.5244
+#> T-26-0181_Operator_1   Operator_1  3.4959 0.6552 0.3935 0.5274 0.4658 0.5307
+#> T-26-0181_Operator_2   Operator_2  3.5256 0.6764 0.3662 0.5426 0.3801 0.5428
+#> T-26-0182_Operator_1   Operator_1  4.2898 0.7126     NA 0.5526     NA     NA
+#> T-26-0182_Operator_2   Operator_2  4.2755 0.7326 0.2748 0.5604 0.4355 0.6690
+#> T-26-0183_Operator_1   Operator_1  3.9570 0.5873     NA 0.4557     NA     NA
+#> T-26-0183_Operator_2   Operator_2  3.9154 0.6409 0.4211 0.4655 0.4221 0.5248
+#> T-26-0184_Operator_1   Operator_1  3.4332 0.5392 0.4660 0.4484 0.4090 0.5258
+#> T-26-0184_Operator_2   Operator_2  3.5665 0.5762 0.4340 0.5016 0.4883 0.5678
+#> T-26-0185_Operator_1   Operator_1  4.3620 0.6764 0.4142 0.5443 0.5412 0.5570
+#> T-26-0185_Operator_2   Operator_2  4.2175 0.7003 0.3735 0.5284 0.4028 0.5446
+#> T-26-0186_Operator_1   Operator_1  3.8293 0.7258 0.3538 0.5835 0.4191 0.5535
+#> T-26-0186_Operator_2   Operator_2  3.7397 0.7029 0.3719 0.6081 0.4295 0.5507
+#> T-26-0187_Operator_1   Operator_1  4.0498 0.6826 0.3332 0.5358 0.4188 0.5953
+#> T-26-0187_Operator_2   Operator_2  3.9377 0.7136 0.3230 0.5636 0.4057 0.5811
+#> T-26-0188_Operator_1   Operator_1  4.8555 0.6219     NA 0.4323     NA     NA
+#> T-26-0188_Operator_2   Operator_2  4.8494 0.6393 0.2939 0.4430 0.5133 0.4936
+#> T-26-0189_Operator_1   Operator_1  3.7858 0.7100     NA 0.5872     NA     NA
+#> T-26-0189_Operator_2   Operator_2  3.7990 0.7360 0.3895 0.5792 0.3829 0.5133
+#> T-26-0190_Operator_1   Operator_1  3.9922 0.6126 0.3846 0.4621 0.4914 0.5959
+#> T-26-0190_Operator_2   Operator_2  3.9707 0.6064 0.3585 0.4697 0.4541 0.5832
+#> T-26-0191_Operator_1   Operator_1  3.8915 0.6648     NA 0.5065     NA     NA
+#> T-26-0191_Operator_2   Operator_2  3.8354 0.6723 0.3306 0.5195 0.4452 0.5845
+#> T-26-0192_Operator_1   Operator_1  3.9186 0.6215     NA 0.4402     NA     NA
+#> T-26-0192_Operator_2   Operator_2  3.8599 0.6465 0.2931 0.4682 0.3866 0.5704
+#> T-26-0193_Operator_1   Operator_1  3.8391 0.7745     NA 0.6592     NA     NA
+#> T-26-0193_Operator_2   Operator_2  3.7669 0.8164 0.2930 0.6675 0.3317 0.5892
+#> T-26-0194_Operator_1   Operator_1  3.8093 0.7932     NA 0.6511     NA     NA
+#> T-26-0194_Operator_2   Operator_2  3.7436 0.8139 0.2855 0.6930 0.4355 0.5388
+#> T-26-0195_Operator_1   Operator_1  3.8370 0.6179     NA 0.4813     NA     NA
+#> T-26-0195_Operator_2   Operator_2  3.7555 0.6403 0.3504 0.5171 0.4117 0.5180
+#> T-26-0196_Operator_1   Operator_1  4.1914 0.6097 0.4498 0.5156 0.4526 0.5664
+#> T-26-0196_Operator_2   Operator_2  4.1274 0.6046 0.4400 0.5494 0.5071 0.5490
+#> T-26-0197_Operator_1   Operator_1  3.6174 0.6792 0.3834 0.5538 0.4331 0.5202
+#> T-26-0197_Operator_2   Operator_2  3.5329 0.7004 0.4057 0.5564 0.4087 0.5167
+#> T-26-0198_Operator_1   Operator_1  3.6720 0.6628     NA 0.5218     NA     NA
+#> T-26-0198_Operator_2   Operator_2  3.6541 0.6909 0.3835 0.5534 0.5176 0.5012
+#> T-26-0199_Operator_1   Operator_1  5.3683 0.7022     NA 0.5449     NA     NA
+#> T-26-0199_Operator_2   Operator_2  5.3993 0.7387 0.2424 0.4906 0.3600 0.5540
+#> T-26-0200_Operator_1   Operator_1  3.4527 0.6882     NA 0.5225     NA     NA
+#> T-26-0200_Operator_2   Operator_2  3.4239 0.7248 0.3134 0.5735 0.3776 0.5161
+#> T-26-0201_Operator_1   Operator_1  3.9070 0.6540     NA 0.4669     NA     NA
+#> T-26-0201_Operator_2   Operator_2  3.8253 0.6730 0.3943 0.4640 0.4072 0.5241
+#> T-26-0202_Operator_1   Operator_1  3.4848 0.4987 0.3791 0.3026 0.4575 0.6048
+#> T-26-0202_Operator_2   Operator_2  3.5595 0.5194 0.3426 0.3918 0.5367 0.6175
+#> T-26-0203_Operator_1   Operator_1  4.1784 0.7236 0.3538 0.5659 0.4448 0.5844
+#> T-26-0203_Operator_2   Operator_2  4.1102 0.7282 0.3189 0.5511 0.4138 0.5789
+#> T-26-0204_Operator_1   Operator_1  4.1284 0.6273 0.3670 0.4652 0.4492 0.5697
+#> T-26-0204_Operator_2   Operator_2  4.0528 0.6416 0.3485 0.4758 0.4032 0.5623
+#> T-26-0205_Operator_1   Operator_1  3.9451 0.7253     NA 0.5384     NA     NA
+#> T-26-0205_Operator_2   Operator_2  3.8714 0.7556 0.3852 0.5416 0.2980 0.5519
+#> T-26-0206_Operator_1   Operator_1  3.9538 0.6289     NA 0.4628     NA     NA
+#> T-26-0206_Operator_2   Operator_2  3.9326 0.6915 0.3712 0.4702 0.4091 0.5478
+#> T-26-0207_Operator_1   Operator_1  4.1059 0.5971 0.3862 0.4050 0.4766 0.5478
+#> T-26-0207_Operator_2   Operator_2  4.1077 0.6228 0.3347 0.4215 0.4156 0.5373
+#> T-26-0208_Operator_1   Operator_1  5.3296 0.6905     NA 0.4816     NA     NA
+#> T-26-0208_Operator_2   Operator_2  5.3690 0.7214 0.2235 0.5066 0.4107 0.5272
+#> T-26-0209_Operator_1   Operator_1  3.6993 0.7127     NA 0.5476     NA     NA
+#> T-26-0209_Operator_2   Operator_2  3.7879 0.7157 0.3489 0.5698 0.4498 0.5168
+#> T-26-0210_Operator_1   Operator_1  4.3482 0.6270 0.4861 0.5276 0.4452 0.5967
+#> T-26-0210_Operator_2   Operator_2  4.3400 0.6443 0.4467 0.5630 0.3759 0.5956
+#> T-26-0211_Operator_1   Operator_1  3.8303 0.7312     NA 0.5497     NA     NA
+#> T-26-0211_Operator_2   Operator_2  3.8423 0.7366 0.3306 0.5596 0.3761 0.5450
+#> T-26-0212_Operator_1   Operator_1  4.1891 0.6454 0.4324 0.5127 0.4804 0.5836
+#> T-26-0212_Operator_2   Operator_2  4.1229 0.6599 0.3890 0.4994 0.4544 0.5733
+#> T-26-0213_Operator_1   Operator_1  3.8549 0.7067     NA 0.6100     NA     NA
+#> T-26-0213_Operator_2   Operator_2  3.9571 0.7622 0.4008 0.6433 0.4034 0.5117
+#> T-26-0214_Operator_1   Operator_1  3.4885 0.5673 0.4375 0.5611 0.3959 0.4559
+#> T-26-0214_Operator_2   Operator_2  3.5101 0.6268 0.4457 0.5897 0.3725 0.4665
+#> T-26-0215_Operator_1   Operator_1  3.5545 0.6931 0.3658 0.5548 0.4158 0.5365
+#> T-26-0215_Operator_2   Operator_2  3.4966 0.6932 0.3152 0.5555 0.2993 0.5335
+#> T-26-0216_Operator_1   Operator_1  4.0129 0.7873     NA 0.6455     NA     NA
+#> T-26-0216_Operator_2   Operator_2  3.9605 0.8209     NA 0.6681     NA     NA
+#> T-26-0217_Operator_1   Operator_1  4.0105 0.5619 0.3550 0.4578 0.5240 0.5582
+#> T-26-0217_Operator_2   Operator_2  4.0056 0.6343 0.3022 0.4580 0.3783 0.5707
+#> T-26-0218_Operator_1   Operator_1  5.3134 0.6635 0.2565 0.4390 0.5602 0.5585
+#> T-26-0218_Operator_2   Operator_2  5.2011 0.6788 0.2384 0.4385 0.3825 0.5529
+#> T-26-0219_Operator_1   Operator_1  4.0376 0.7612 0.4507 0.6624 0.4662 0.5728
+#> T-26-0219_Operator_2   Operator_2  3.9574 0.7625 0.3920 0.6774 0.4243 0.5604
+#> T-26-0220_Operator_1   Operator_1  4.1302 0.6594     NA 0.4315     NA     NA
+#> T-26-0220_Operator_2   Operator_2  4.0513 0.6620     NA 0.4204     NA     NA
+#> T-26-0221_Operator_1   Operator_1  4.7639 0.6128 0.5656 0.6479 0.1926 0.5753
+#> T-26-0221_Operator_2   Operator_2  4.4522 0.5936 0.5402 0.6055 0.3227 0.5436
+#> T-26-0222_Operator_1   Operator_1  4.3608 0.4659 0.4693 0.4583 0.5770 0.4983
+#> T-26-0222_Operator_2   Operator_2  4.2989 0.4786 0.4752 0.4814 0.5662 0.5076
+#> T-26-0223_Operator_1   Operator_1  3.5871 0.7431     NA 0.5982     NA     NA
+#> T-26-0223_Operator_2   Operator_2  3.6264 0.7423     NA 0.6033     NA     NA
+#> T-26-0224_Operator_1   Operator_1  3.9715 0.6974     NA 0.4580     NA     NA
+#> T-26-0224_Operator_2   Operator_2  4.0675 0.7356     NA 0.4488     NA     NA
+#> T-26-0225_Operator_1   Operator_1  3.7532 0.5338 0.5679 0.5746 0.4478 0.4639
+#> T-26-0225_Operator_2   Operator_2  3.8911 0.5678 0.5303 0.5763 0.4508 0.4758
+#> T-26-0226_Operator_1   Operator_1  4.3402 0.5662 0.5023 0.4233 0.3065 0.5794
+#> T-26-0226_Operator_2   Operator_2  4.2957 0.5788 0.4695 0.4304 0.3003 0.5680
+#> T-26-0227_Operator_1   Operator_1  4.2675 0.5215 0.5475 0.5413 0.3714 0.5550
+#> T-26-0227_Operator_2   Operator_2  4.2148 0.4976 0.4956 0.5755 0.5841 0.5645
+#> T-26-0228_Operator_1   Operator_1  4.1200 0.5537 0.4796 0.5626 0.2912 0.5323
+#> T-26-0228_Operator_2   Operator_2  4.0353 0.5546 0.4598 0.5527 0.4968 0.5208
+#> T-26-0229_Operator_1   Operator_1  3.8555 0.5199 0.4444 0.3870 0.4913 0.4925
+#> T-26-0229_Operator_2   Operator_2  3.9824 0.5518 0.4355 0.3923 0.5334 0.5024
+#> T-26-0230-1_Operator_1 Operator_1  6.0137 0.8286     NA 0.5604     NA     NA
+#> T-26-0230-1_Operator_2 Operator_2  0.1790 0.8750 0.2332 0.5881 0.0649 0.5909
+#> T-26-0230-2_Operator_1 Operator_1  5.5520 0.5948     NA 0.3237     NA     NA
+#> T-26-0230-2_Operator_2 Operator_2  6.1441 0.7101 0.2264 0.3671 0.3472 0.6089
+#> T-26-0230-3_Operator_1 Operator_1  5.7059 0.6314 0.3196 0.4305 0.6872 0.5586
+#> T-26-0230-3_Operator_2 Operator_2  5.8779 0.6794 0.3068 0.4432 0.3714 0.5756
+#> T-26-0230-4_Operator_1 Operator_1  5.2108 0.6964 0.2775 0.4843 0.5927 0.5701
+#> T-26-0230-4_Operator_2 Operator_2  5.1662 0.7082 0.2353 0.4783 0.3805 0.5527
+#> T-26-0231_Operator_1   Operator_1  5.1376 0.5553 0.2500 0.3887 0.6619 0.5300
+#> T-26-0231_Operator_2   Operator_2  5.1401 0.5666 0.2418 0.3881 0.5668 0.5428
+#> T-26-0232_Operator_1   Operator_1  4.8136 0.7259     NA 0.5127     NA     NA
+#> T-26-0232_Operator_2   Operator_2  4.7848 0.7498     NA 0.5636     NA     NA
+#> T-26-0233_Operator_1   Operator_1  5.2079     NA     NA     NA     NA     NA
+#> T-26-0233_Operator_2   Operator_2  5.1373 0.7946     NA 0.5746     NA     NA
+#> T-26-0234_Operator_1   Operator_1  4.0917 0.6775 0.3258 0.6023 0.3097 0.5916
+#> T-26-0234_Operator_2   Operator_2  3.9908 0.7059 0.3223 0.5824 0.2335 0.5826
+#> T-26-0235_Operator_1   Operator_1  4.0431 0.6165 0.5306 0.6465 0.3224 0.5602
+#> T-26-0235_Operator_2   Operator_2  3.9196 0.6126 0.5022 0.6130 0.3255 0.5382
+#> T-26-0236_Operator_1   Operator_1  4.0246 0.5525 0.4842 0.5483 0.3997 0.4830
+#> T-26-0236_Operator_2   Operator_2  3.9994 0.5488 0.4399 0.5614 0.4588 0.4748
+#> T-26-0237_Operator_1   Operator_1  3.9116 0.5011 0.4493 0.5100 0.3867 0.4490
+#> T-26-0237_Operator_2   Operator_2  3.9458 0.5446 0.4891 0.5273 0.5571 0.4258
+#> T-26-0238_Operator_1   Operator_1  3.8533 0.4935 0.4456 0.4881 0.3019 0.4762
+#> T-26-0238_Operator_2   Operator_2  3.7772 0.5094 0.4865 0.5111 0.2627 0.4799
+#> T-26-0239_Operator_1   Operator_1  3.6164 0.4836 0.4284 0.3735 0.3856 0.5339
+#> T-26-0239_Operator_2   Operator_2  3.4478 0.5324 0.4032 0.3856 0.4026 0.5195
+#> T-26-0240_Operator_1   Operator_1  3.9436 0.5613 0.4582 0.5759 0.3613 0.5027
+#> T-26-0240_Operator_2   Operator_2  3.9241 0.5834 0.4502 0.5796 0.3027 0.4902
+#> T-26-0241_Operator_1   Operator_1  4.6104 0.6190 0.5089 0.5073 0.5229 0.5874
+#> T-26-0241_Operator_2   Operator_2  4.4957 0.6559 0.4166 0.5282 0.3142 0.5975
+#> T-26-0242_Operator_1   Operator_1  3.6393 0.6574 0.4693 0.6175 0.4119 0.4218
+#> T-26-0242_Operator_2   Operator_2  3.5800 0.6782 0.4000 0.6185 0.2958 0.4131
+#> T-26-0243_Operator_1   Operator_1  4.1389 0.4834 0.5544 0.5000     NA 0.5331
+#> T-26-0243_Operator_2   Operator_2  4.0731 0.4974 0.5404 0.4889 0.4743 0.5190
+#> T-26-0244_Operator_1   Operator_1  4.7097 0.6896 0.4596 0.5579     NA 0.6401
+#> T-26-0244_Operator_2   Operator_2  4.4216 0.6899 0.4072 0.5381 0.4667 0.6107
+#> T-26-0245_Operator_1   Operator_1  4.0614 0.4990 0.4840 0.4836 0.2012 0.6012
+#> T-26-0245_Operator_2   Operator_2  3.8494 0.4950 0.4083 0.5033 0.3170 0.5882
+#> T-26-0246_Operator_1   Operator_1  4.1089 0.4972 0.4965 0.5324 0.3091 0.5675
+#> T-26-0246_Operator_2   Operator_2  4.1016 0.5556 0.4919 0.5719 0.2870 0.5556
+#> T-26-0247_Operator_1   Operator_1  4.4898 0.6032 0.4767 0.4736 0.4556 0.6073
+#> T-26-0247_Operator_2   Operator_2  4.5779 0.6311 0.4341 0.4406 0.4565 0.6126
+#> T-26-0248_Operator_1   Operator_1  4.3748 0.4243 0.4311 0.5344 0.4797 0.6199
+#> T-26-0248_Operator_2   Operator_2  4.1829 0.4516 0.4796 0.5231 0.4770 0.6115
+#> T-26-0249_Operator_1   Operator_1  4.4138 0.4174 0.5190 0.5174 0.4655 0.6423
+#> T-26-0249_Operator_2   Operator_2  4.3332 0.4714 0.5211 0.5103 0.4555 0.6259
+#> T-26-0250_Operator_1   Operator_1  4.4807 0.5360 0.5254 0.6036 0.3538 0.6519
+#> T-26-0250_Operator_2   Operator_2  4.1788 0.5462 0.5208 0.5901 0.3362 0.6024
+#> T-26-0251_Operator_1   Operator_1  4.5944 0.5589 0.4043 0.4187 0.4412 0.6182
+#> T-26-0251_Operator_2   Operator_2  4.3584 0.6022 0.3872 0.4506 0.4856 0.5865
+#> T-26-0252_Operator_1   Operator_1  4.4476 0.4431 0.5228 0.4470 0.3044 0.5800
+#> T-26-0252_Operator_2   Operator_2  4.2720 0.4253 0.5142 0.4461 0.4532 0.5257
+#> T-26-0261-1_Operator_1 Operator_1  3.9138 0.6957     NA 0.4088     NA     NA
+#> T-26-0261-1_Operator_2 Operator_2  3.9380 0.7190     NA 0.4556     NA     NA
+#> T-26-0261-2_Operator_1 Operator_1  3.7076 0.7458     NA 0.5794     NA     NA
+#> T-26-0261-2_Operator_2 Operator_2  3.7433 0.7308     NA 0.5651     NA     NA
+#> T-26-0261-3_Operator_1 Operator_1  3.6136 0.7605 0.3468 0.6355 0.5245 0.4750
+#> T-26-0261-3_Operator_2 Operator_2  3.6333 0.7887     NA 0.6120     NA     NA
+#> T-26-0261-4_Operator_1 Operator_1  4.1539 0.8295     NA 0.6744     NA     NA
+#> T-26-0261-4_Operator_2 Operator_2  4.0100 0.8390     NA 0.6736     NA     NA
+#> T-26-0261-5_Operator_1 Operator_1  4.3722 0.7605 0.2651 0.6670 0.5215 0.6662
+#> T-26-0261-5_Operator_2 Operator_2  4.2556 0.7557     NA 0.6751     NA     NA
+#> T-26-0262-1_Operator_1 Operator_1  4.1041 0.7551     NA 0.5637     NA     NA
+#> T-26-0262-1_Operator_2 Operator_2  4.0812 0.7792     NA 0.5769     NA     NA
+#> T-26-0262-2_Operator_1 Operator_1  3.7582 0.8232 0.3823 0.6694 0.4033 0.5152
+#> T-26-0262-2_Operator_2 Operator_2  3.7852 0.8000     NA 0.6525     NA     NA
+#> T-26-0263_Operator_1   Operator_1  4.2846 0.5159 0.4837 0.3495 0.4966 0.6047
+#> T-26-0263_Operator_2   Operator_2  4.5746 0.5162 0.4454 0.3608 0.3916 0.5938
+#> T-26-0264-1_Operator_1 Operator_1  4.4258 0.6418     NA 0.4251     NA     NA
+#> T-26-0264-1_Operator_2 Operator_2  4.3254 0.6280     NA 0.3698     NA     NA
+#> T-26-0264-2_Operator_1 Operator_1  4.4510 0.5734 0.4928 0.4784 0.6470 0.6211
+#> T-26-0264-2_Operator_2 Operator_2  4.4245 0.5862 0.4627 0.4993 0.4812 0.5928
+#> T-26-0264-3_Operator_1 Operator_1  4.2927 0.6868 0.4116 0.5319 0.6005 0.5946
+#> T-26-0264-3_Operator_2 Operator_2  4.3337 0.6868     NA 0.5159     NA     NA
+#> T-26-0264-4_Operator_1 Operator_1  4.7236 0.4953 0.5070 0.3070 0.4896 0.6360
+#> T-26-0264-4_Operator_2 Operator_2  4.8014 0.5102 0.4975 0.3542 0.3245 0.6443
+#> T-26-0265_Operator_1   Operator_1  3.9798 0.5615 0.4375 0.5672 0.5763 0.5480
+#> T-26-0265_Operator_2   Operator_2  3.9965 0.5780 0.3984 0.5631 0.4557 0.5642
+#> T-26-0266_Operator_1   Operator_1  4.0643 0.6582 0.2804 0.5496 0.3942 0.5886
+#> T-26-0266_Operator_2   Operator_2  4.1094 0.6872 0.2833 0.5317 0.3635 0.5833
+#> T-26-0267_Operator_1   Operator_1  3.7445 0.7455 0.3045 0.6090 0.3907 0.5444
+#> T-26-0267_Operator_2   Operator_2  3.6588 0.7287 0.3188 0.6158 0.2761 0.5349
+#> T-26-0268_Operator_1   Operator_1  3.7133 0.5048 0.3936 0.4597 0.3644 0.5735
+#> T-26-0268_Operator_2   Operator_2  3.8120 0.4999 0.3762 0.5012 0.3674 0.5849
+#> T-26-0269_Operator_1   Operator_1  3.9659 0.5425 0.4332 0.5119 0.6875 0.5627
+#> T-26-0269_Operator_2   Operator_2  3.9218 0.5540 0.4052 0.5903 0.6735 0.5488
+#> T-26-0270-1_Operator_1 Operator_1  4.0627 0.5480 0.4245 0.4987 0.5549 0.5483
+#> T-26-0270-1_Operator_2 Operator_2  4.0202 0.5304 0.3821 0.5382 0.6843 0.5512
+#> T-26-0270-2_Operator_1 Operator_1  4.2495 0.5468 0.4038 0.5524 0.6648 0.5533
+#> T-26-0270-2_Operator_2 Operator_2  4.1500 0.5734 0.4323 0.5529 0.6606 0.5070
+#> T-26-0271_Operator_1   Operator_1  3.4346 0.5160 0.4681 0.4442 0.6309 0.5163
+#> T-26-0271_Operator_2   Operator_2  3.3328 0.5217 0.4406 0.4492 0.8260 0.5215
+#> T-26-0272_Operator_1   Operator_1  5.9233 0.6211 0.3720 0.5545 0.5391 0.6290
+#> T-26-0272_Operator_2   Operator_2  5.6521 0.6612 0.3232 0.6067 0.5296 0.6035
+#> T-26-0273_Operator_1   Operator_1  4.2931 0.5170 0.4720 0.5222 0.5838 0.5765
+#> T-26-0273_Operator_2   Operator_2  4.2388 0.5189 0.4343 0.5609 0.5084 0.5773
+#> T-26-0274_Operator_1   Operator_1  6.1431 0.8230     NA 0.6271     NA     NA
+#> T-26-0274_Operator_2   Operator_2  5.7661 0.8170     NA 0.6015     NA     NA
+#> T-26-0275_Operator_1   Operator_1  5.8654 0.7205     NA 0.5256     NA     NA
+#> T-26-0275_Operator_2   Operator_2  5.7566 0.7330     NA 0.5397     NA     NA
+#> T-26-0276_Operator_1   Operator_1  3.9965 0.6087 0.4092 0.5015 0.6772 0.5465
+#> T-26-0276_Operator_2   Operator_2  3.9674 0.6479 0.4033 0.5049 0.5133 0.5375
+#> T-26-0277_Operator_1   Operator_1  5.1773 0.5886 0.4543 0.6052 0.5634 0.5725
+#> T-26-0277_Operator_2   Operator_2  4.9592 0.5828 0.4150 0.5818     NA 0.5528
+#> T-26-0278-1_Operator_1 Operator_1  4.3391 0.6247 0.3288 0.6365 0.4379 0.4603
+#> T-26-0278-1_Operator_2 Operator_2  4.3781 0.6632 0.2840 0.6663     NA 0.4618
+#> T-26-0278-2_Operator_1 Operator_1  5.6186 0.5457 0.3417 0.4178 0.6655 0.5645
+#> T-26-0278-2_Operator_2 Operator_2  5.4567 0.5632 0.2280 0.4266 0.4726 0.5581
+#> T-26-0279_Operator_1   Operator_1  4.7931 0.7270     NA 0.5645     NA     NA
+#> T-26-0279_Operator_2   Operator_2  4.5365 0.6933     NA 0.5239     NA     NA
+#>                           PFv    PFs    CPt
+#> T-26-0001_Operator_1   0.4132 0.1951 3.1986
+#> T-26-0001_Operator_2   0.4177 0.1943 2.6705
+#> T-26-0002_Operator_1   0.4369 0.1856 3.4455
+#> T-26-0002_Operator_2   0.4497 0.1777 3.5021
+#> T-26-0003_Operator_1   0.4213 0.1782 1.9760
+#> T-26-0003_Operator_2   0.3993 0.2025 2.1587
+#> T-26-0004_Operator_1   0.2860 0.1689 3.5301
+#> T-26-0004_Operator_2   0.2863 0.1697 3.6052
+#> T-26-0005_Operator_1   0.4837 0.1755 2.0305
+#> T-26-0005_Operator_2   0.4850 0.1714 2.2560
+#> T-26-0006_Operator_1   0.4725 0.1698 3.7049
+#> T-26-0006_Operator_2   0.4750 0.1572 3.4024
+#> T-26-0007_Operator_1   0.3775 0.2019 3.2350
+#> T-26-0007_Operator_2   0.3726 0.1920 3.3636
+#> T-26-0008_Operator_1   0.4373 0.1743 3.2771
+#> T-26-0008_Operator_2   0.3997 0.1797 3.5007
+#> T-26-0009_Operator_1   0.3982     NA 3.0983
+#> T-26-0009_Operator_2   0.3588 0.2525 3.0815
+#> T-26-0010_Operator_1   0.3128 0.1996 3.5864
+#> T-26-0010_Operator_2   0.4854 0.2021 3.6993
+#> T-26-0011_Operator_1   0.3985 0.1872 2.4109
+#> T-26-0011_Operator_2   0.3581 0.1850 2.5343
+#> T-26-0012_Operator_1   0.4046 0.2349 3.6640
+#> T-26-0012_Operator_2   0.4527 0.2128 3.7575
+#> T-26-0013_Operator_1   0.3920 0.1978 3.5271
+#> T-26-0013_Operator_2   0.3769 0.1799 3.6960
+#> T-26-0014_Operator_1   0.5541 0.2286 3.7254
+#> T-26-0014_Operator_2   0.5240 0.2123 3.7165
+#> T-26-0015_Operator_1   0.5174 0.2179 3.9063
+#> T-26-0015_Operator_2   0.4810 0.1978 3.8680
+#> T-26-0016_Operator_1   0.4366 0.1915 4.0319
+#> T-26-0016_Operator_2   0.3615 0.1886 4.1694
+#> T-26-0017_Operator_1   0.3884 0.2236 3.6685
+#> T-26-0017_Operator_2   0.4014 0.2121 3.7097
+#> T-26-0018_Operator_1   0.3983 0.1745 3.0205
+#> T-26-0018_Operator_2   0.3982 0.1784 3.0712
+#> T-26-0019_Operator_1   0.3152 0.1648 3.1623
+#> T-26-0019_Operator_2   0.3133 0.1657 3.1741
+#> T-26-0020_Operator_1   0.5059 0.1998 3.6437
+#> T-26-0020_Operator_2   0.4763 0.2069 3.3809
+#> T-26-0021_Operator_1   0.3754     NA 2.6773
+#> T-26-0021_Operator_2   0.3368 0.1761 2.7163
+#> T-26-0022_Operator_1   0.3351 0.1786 3.2820
+#> T-26-0022_Operator_2   0.3265 0.1727 3.3973
+#> T-26-0023-2_Operator_1 0.2571     NA 2.3243
+#> T-26-0023-2_Operator_2 0.2222 0.1369 2.2772
+#> T-26-0024_Operator_1   0.5108 0.1791 3.4530
+#> T-26-0024_Operator_2   0.4941 0.1640 3.5565
+#> T-26-0025_Operator_1   0.4982 0.2105 3.8088
+#> T-26-0025_Operator_2   0.5242 0.1912 3.6559
+#> T-26-0026_Operator_1   0.3485 0.2075 3.4437
+#> T-26-0026_Operator_2   0.3371 0.1950 3.3965
+#> T-26-0027_Operator_1   0.5147 0.1955 2.9678
+#> T-26-0027_Operator_2   0.4807 0.1846 2.7822
+#> T-26-0028_Operator_1   0.5036 0.1880 2.9397
+#> T-26-0028_Operator_2   0.4879 0.1815 2.9112
+#> T-26-0029_Operator_1   0.3998     NA 2.9318
+#> T-26-0029_Operator_2   0.3571 0.1727 2.9544
+#> T-26-0030_Operator_1   0.3907 0.1823 2.3857
+#> T-26-0030_Operator_2   0.3254 0.1885 2.6387
+#> T-26-0031_Operator_1   0.4670 0.1895 2.6205
+#> T-26-0031_Operator_2   0.4474 0.1953 2.6698
+#> T-26-0032_Operator_1   0.4185 0.1896 2.7170
+#> T-26-0032_Operator_2   0.3555 0.1931 2.8749
+#> T-26-0033_Operator_1   0.5355 0.2045 3.5295
+#> T-26-0033_Operator_2   0.5022 0.2032 3.5332
+#> T-26-0034_Operator_1   0.5025 0.1979 3.0362
+#> T-26-0034_Operator_2   0.4949 0.2025 2.8820
+#> T-26-0035_Operator_1   0.4774 0.1998 2.5641
+#> T-26-0035_Operator_2   0.4390 0.1979 2.4779
+#> T-26-0036_Operator_1   0.4008 0.1571 2.4808
+#> T-26-0036_Operator_2   0.3245 0.1620 2.4973
+#> T-26-0037_Operator_1   0.4174 0.1930 2.3847
+#> T-26-0037_Operator_2   0.3455 0.1784 2.4758
+#> T-26-0038_Operator_1   0.5167 0.2122 2.5095
+#> T-26-0038_Operator_2   0.4806 0.2342 2.3798
+#> T-26-0039_Operator_1   0.3582 0.1477 3.1410
+#> T-26-0039_Operator_2   0.3109 0.1793 3.2276
+#> T-26-0040_Operator_1   0.4527 0.2119 2.0553
+#> T-26-0040_Operator_2   0.4268 0.2180 1.9740
+#> T-26-0041_Operator_1   0.4669 0.2188 3.2687
+#> T-26-0041_Operator_2   0.4109 0.2303 3.1334
+#> T-26-0042_Operator_1   0.4536 0.2175 3.7735
+#> T-26-0042_Operator_2   0.4221 0.2031 3.4866
+#> T-26-0043_Operator_1   0.3924 0.2112 3.2646
+#> T-26-0043_Operator_2   0.4110 0.2240 3.1839
+#> T-26-0044_Operator_1   0.4803 0.2095 3.5099
+#> T-26-0044_Operator_2   0.4570 0.2094 3.1641
+#> T-26-0045_Operator_1   0.3176 0.1844 3.7715
+#> T-26-0045_Operator_2   0.2928 0.1775 3.8030
+#> T-26-0046_Operator_1   0.4970 0.2183 3.5300
+#> T-26-0046_Operator_2   0.4345 0.2298 3.6007
+#> T-26-0047_Operator_1   0.4481 0.1863 3.4050
+#> T-26-0047_Operator_2   0.3989 0.1839 3.4721
+#> T-26-0048_Operator_1   0.5305 0.1654 2.9619
+#> T-26-0048_Operator_2   0.4745 0.1928 2.6660
+#> T-26-0049_Operator_1   0.3050 0.1690 3.4375
+#> T-26-0049_Operator_2   0.3039 0.1686 3.3285
+#> T-26-0050_Operator_1   0.4788 0.2143 3.6795
+#> T-26-0050_Operator_2   0.3604 0.1900 2.0000
+#> T-26-0051_Operator_1   0.4743 0.2169 3.9330
+#> T-26-0051_Operator_2   0.4507 0.2116 3.7832
+#> T-26-0052_Operator_1   0.7877 0.1502 1.4389
+#> T-26-0052_Operator_2   0.2907 0.1816 3.3024
+#> T-26-0053_Operator_1   0.3005 0.1785 2.5762
+#> T-26-0053_Operator_2   0.3020 0.1782 2.6443
+#> T-26-0054_Operator_1   0.3650 0.1810 2.9464
+#> T-26-0054_Operator_2   0.3316 0.1886 2.8795
+#> T-26-0055_Operator_1   0.5192 0.2016 3.0079
+#> T-26-0055_Operator_2   0.4801 0.1872 2.8518
+#> T-26-0056-2_Operator_1 0.4872 0.1913 3.6811
+#> T-26-0056-2_Operator_2 0.4245 0.1892 3.3616
+#> T-26-0057_Operator_1   0.4455 0.1960 3.4247
+#> T-26-0057_Operator_2   0.4531 0.1951 3.1162
+#> T-26-0058_Operator_1   0.4738 0.2167 2.8724
+#> T-26-0058_Operator_2   0.4449 0.2063 2.9379
+#> T-26-0059_Operator_1   0.4543 0.0830 3.2409
+#> T-26-0059_Operator_2       NA     NA 3.2478
+#> T-26-0060_Operator_1   0.4506 0.1970 2.8131
+#> T-26-0060_Operator_2   0.4253 0.1874 2.8424
+#> T-26-0061_Operator_1   0.3426 0.1615 3.0731
+#> T-26-0061_Operator_2   0.2922 0.1735 2.9747
+#> T-26-0062_Operator_1   0.3393 0.1816 3.4290
+#> T-26-0062_Operator_2   0.2801 0.1850 3.5053
+#> T-26-0063_Operator_1   0.5466 0.2133 3.1911
+#> T-26-0063_Operator_2   0.4994 0.1801 3.1092
+#> T-26-0064_Operator_1   0.4301 0.2198 2.2547
+#> T-26-0064_Operator_2   0.3607 0.2295 2.3261
+#> T-26-0065_Operator_1   0.4205 0.1758 3.2743
+#> T-26-0065_Operator_2   0.3972 0.1768 3.1335
+#> T-26-0067_Operator_1   0.4065 0.2064 1.7273
+#> T-26-0067_Operator_2   0.3861 0.2003 1.7270
+#> T-26-0068_Operator_1   0.3750 0.1644 3.4425
+#> T-26-0068_Operator_2   0.3026 0.1710 3.3253
+#> T-26-0069_Operator_1   0.2962 0.1733 3.0676
+#> T-26-0069_Operator_2   0.2130 0.1831 3.1066
+#> T-26-0070_Operator_1   0.2776 0.1527 3.0594
+#> T-26-0070_Operator_2   0.2811 0.1513 2.8847
+#> T-26-0071_Operator_1   0.4145 0.2161 3.2518
+#> T-26-0071_Operator_2   0.3928 0.2140 3.1273
+#> T-26-0072_Operator_1   0.4531 0.2211 2.2670
+#> T-26-0072_Operator_2   0.4098 0.2034 2.2645
+#> T-26-0073_Operator_1   0.4592 0.1954 2.9719
+#> T-26-0073_Operator_2   0.4244 0.2105 2.9891
+#> T-26-0074_Operator_1   0.4231 0.2192 2.7387
+#> T-26-0074_Operator_2   0.4041 0.2119 2.7253
+#> T-26-0075_Operator_1   0.5271 0.1764 3.3436
+#> T-26-0075_Operator_2   0.3710 0.1710 2.9558
+#> T-26-0076_Operator_1   0.3475 0.1802 3.0445
+#> T-26-0076_Operator_2   0.2623 0.1797 2.8451
+#> T-26-0077_Operator_1   0.4319 0.2117 2.3083
+#> T-26-0077_Operator_2   0.3712 0.2074 2.1216
+#> T-26-0078_Operator_1   0.3579 0.2052 1.6233
+#> T-26-0078_Operator_2   0.3590 0.2117 1.7052
+#> T-26-0079_Operator_1   0.4285 0.1903 2.6472
+#> T-26-0079_Operator_2   0.3845 0.1931 2.7851
+#> T-26-0080_Operator_1   0.2923 0.1710 2.4543
+#> T-26-0080_Operator_2   0.2639 0.1625 2.5451
+#> T-26-0081_Operator_1   0.3663 0.2159 3.5715
+#> T-26-0081_Operator_2   0.3637 0.2030 3.4818
+#> T-26-0082_Operator_1   0.3465 0.1784 3.1707
+#> T-26-0082_Operator_2   0.3010 0.1853 3.1267
+#> T-26-0083_Operator_1   0.4920 0.2209 2.5485
+#> T-26-0083_Operator_2   0.4360 0.2267 2.5552
+#> T-26-0084_Operator_1   0.4040 0.1871 2.9226
+#> T-26-0084_Operator_2   0.4005 0.1826 2.9473
+#> T-26-0085_Operator_1   0.3558 0.2165 2.4515
+#> T-26-0085_Operator_2   0.3797 0.1967     NA
+#> T-26-0086_Operator_1   0.4840 0.2011 2.1845
+#> T-26-0086_Operator_2   0.4257 0.2035 2.4009
+#> T-26-0087_Operator_1   0.4822 0.2175 2.4678
+#> T-26-0087_Operator_2   0.4475 0.2079 2.5275
+#> T-26-0088_Operator_1   0.3849 0.2123 2.2947
+#> T-26-0088_Operator_2   0.4087 0.2039     NA
+#> T-26-0089_Operator_1   0.3136 0.0869 3.0376
+#> T-26-0089_Operator_2   0.1943 0.1006 3.2613
+#> T-26-0090_Operator_1   0.4277 0.1394 1.5627
+#> T-26-0090_Operator_2   0.3998 0.1563 1.7120
+#> T-26-0091_Operator_1   0.3746 0.1905 2.9583
+#> T-26-0091_Operator_2   0.3516 0.2000 2.9364
+#> T-26-0092_Operator_1   0.3539 0.1767 3.2357
+#> T-26-0092_Operator_2   0.3849 0.1842 3.0444
+#> T-26-0093_Operator_1   0.4484 0.1812 3.1218
+#> T-26-0093_Operator_2   0.4391 0.1934 3.2241
+#> T-26-0094_Operator_1   0.4296 0.2019 2.5393
+#> T-26-0094_Operator_2   0.3947 0.2019 2.6411
+#> T-26-0095_Operator_1   0.4435 0.2206 3.6996
+#> T-26-0095_Operator_2   0.4436 0.2229 3.8343
+#> T-26-0096_Operator_1   0.4416 0.1852 3.2347
+#> T-26-0096_Operator_2   0.4127 0.1926 3.0777
+#> T-26-0097_Operator_1   0.3761 0.2137 2.6508
+#> T-26-0097_Operator_2   0.3379 0.2087 2.6052
+#> T-26-0098_Operator_1   0.4268 0.1881 2.8766
+#> T-26-0098_Operator_2   0.3285 0.1871 3.1596
+#> T-26-0099_Operator_1   0.3073 0.0893 3.0489
+#> T-26-0099_Operator_2   0.1476 0.1816 3.0535
+#> T-26-0100_Operator_1   0.3898 0.1836 2.7426
+#> T-26-0100_Operator_2   0.4340 0.2009     NA
+#> T-26-0101_Operator_1   0.4323 0.2113 3.6876
+#> T-26-0101_Operator_2   0.4489 0.2062 3.5506
+#> T-26-0102_Operator_1   0.2972 0.2286 0.3406
+#> T-26-0102_Operator_2   0.3677 0.1828 3.3649
+#> T-26-0103_Operator_1   0.2515 0.2237 2.9126
+#> T-26-0103_Operator_2   0.2410 0.1900 3.2789
+#> T-26-0104_Operator_1   0.3453 0.2142 2.8803
+#> T-26-0104_Operator_2   0.3351 0.1982 3.2114
+#> T-26-0107_Operator_1   0.4061 0.1894 1.8083
+#> T-26-0107_Operator_2   0.3964 0.2096 2.2191
+#> T-26-0108_Operator_1   0.2577 0.2450 2.6746
+#> T-26-0108_Operator_2   0.3287 0.2143 3.0329
+#> T-26-0109_Operator_1   0.7796 0.1849 1.2636
+#> T-26-0109_Operator_2   0.3828 0.1916 1.5199
+#> T-26-0111_Operator_1   0.2719 0.3861 2.1819
+#> T-26-0111_Operator_2   0.2687 0.1200 2.2954
+#> T-26-0112-2_Operator_1 0.3714 0.1782 3.4838
+#> T-26-0112-2_Operator_2 0.3816 0.1857 3.5594
+#> T-26-0112_Operator_1   0.4063 0.1606 1.8362
+#> T-26-0112_Operator_2   0.3893 0.1605 1.9299
+#> T-26-0113_Operator_1   0.2776 0.2051 2.5653
+#> T-26-0113_Operator_2   0.3234 0.2016 2.4786
+#> T-26-0114_Operator_1   0.4014 0.1910 2.7484
+#> T-26-0114_Operator_2   0.3468 0.2232 2.2001
+#> T-26-0115_Operator_1   0.3546 0.2354 2.3333
+#> T-26-0115_Operator_2   0.2965 0.2162 2.4741
+#> T-26-0116_Operator_1   0.3171 0.2145 2.4128
+#> T-26-0116_Operator_2   0.3548 0.2063 2.7690
+#> T-26-0117_Operator_1   0.3985 0.2170 2.7518
+#> T-26-0117_Operator_2   0.3734 0.1891 2.8025
+#> T-26-0118_Operator_1   0.3809 0.1963 3.0456
+#> T-26-0118_Operator_2   0.3724 0.2128 2.7432
+#> T-26-0120_Operator_1   0.4282 0.1941 3.0275
+#> T-26-0120_Operator_2   0.3802 0.1877 2.8868
+#> T-26-0121_Operator_1   0.3511 0.1988     NA
+#> T-26-0121_Operator_2   0.3414 1.8701     NA
+#> T-26-0122_Operator_1   0.3656 0.2280 3.0469
+#> T-26-0122_Operator_2   0.3505 0.2206 3.1648
+#> T-26-0123_Operator_1   0.3190 0.2148 2.1719
+#> T-26-0123_Operator_2   0.3357 0.2105 2.0948
+#> T-26-0125_Operator_1   0.3180 0.2173 3.3999
+#> T-26-0125_Operator_2   0.3556 0.1992 3.6603
+#> T-26-0126_Operator_1   0.3708 0.2047 2.8139
+#> T-26-0126_Operator_2   0.3976 0.1953 2.7981
+#> T-26-0127_Operator_1   0.4235 0.2131 2.5782
+#> T-26-0127_Operator_2   0.4031 0.2039 2.8098
+#> T-26-0128_Operator_1   0.3747 0.1716 2.0738
+#> T-26-0128_Operator_2   0.3495 0.1665 2.1812
+#> T-26-0130_Operator_1   0.3944 0.1624 1.4242
+#> T-26-0130_Operator_2   0.3210 0.1600 1.3279
+#> T-26-0131_Operator_1   0.3847 0.1697 2.9261
+#> T-26-0131_Operator_2   0.3587 0.1821 2.7832
+#> T-26-0132_Operator_1   0.4086 0.2058 3.7135
+#> T-26-0132_Operator_2   0.3918 0.1913 3.7139
+#> T-26-0133_Operator_1   0.3652 0.2095 3.0740
+#> T-26-0133_Operator_2   0.2903 0.2197 2.7060
+#> T-26-0134_Operator_1   0.4156 0.1943 3.5577
+#> T-26-0134_Operator_2   0.3832 0.1918 3.3937
+#> T-26-0135_Operator_1   0.3265 0.1952 3.1490
+#> T-26-0135_Operator_2   0.2330 0.2151 3.1010
+#> T-26-0136_Operator_1   0.3936 0.2044 3.1218
+#> T-26-0136_Operator_2   0.3710 0.2103 2.9031
+#> T-26-0137_Operator_1   0.2933 0.1763 2.4649
+#> T-26-0137_Operator_2   0.2792 0.1719 2.5906
+#> T-26-0138_Operator_1   0.3527 0.2219 2.8682
+#> T-26-0138_Operator_2   0.3399 0.2107 2.7723
+#> T-26-0139_Operator_1   0.3631 0.2021 2.0274
+#> T-26-0139_Operator_2   0.3348 0.1966 1.8943
+#> T-26-0140_Operator_1   0.3537 0.1957 3.8061
+#> T-26-0140_Operator_2   0.3384 0.1918 3.3794
+#> T-26-0141_Operator_1   0.3617 0.1896 3.7302
+#> T-26-0141_Operator_2   0.3349 0.1935 3.4647
+#> T-26-0142_Operator_1   0.3683 0.2132 3.0696
+#> T-26-0142_Operator_2   0.3142 0.2041 3.0267
+#> T-26-0143_Operator_1   0.2936 0.1710 3.0601
+#> T-26-0143_Operator_2   0.2381 0.1790 3.0762
+#> T-26-0144_Operator_1   0.2395 0.1510 2.7137
+#> T-26-0144_Operator_2   0.1962 0.1600 2.5828
+#> T-26-0145_Operator_1   0.3118     NA 1.8002
+#> T-26-0145_Operator_2   0.2022 0.0960 1.9870
+#> T-26-0146_Operator_1   0.4268 0.2000 3.5767
+#> T-26-0146_Operator_2   0.4062 0.1940 3.3834
+#> T-26-0147_Operator_1   0.4084 0.1831 3.0733
+#> T-26-0147_Operator_2   0.4019 0.1776 3.1254
+#> T-26-0148_Operator_1   0.3065 0.1864 3.5648
+#> T-26-0148_Operator_2   0.3086 0.1861 3.5268
+#> T-26-0149_Operator_1   0.3365 0.1827 3.4687
+#> T-26-0149_Operator_2   0.3121 0.1879 3.3537
+#> T-26-0150_Operator_1   0.3848 0.1860 3.6817
+#> T-26-0150_Operator_2   0.3746 0.1957 3.6936
+#> T-26-0151_Operator_1   0.2729 0.2286 3.5741
+#> T-26-0151_Operator_2   0.3081 0.2301 3.4375
+#> T-26-0152_Operator_1   0.3158     NA 3.3490
+#> T-26-0152_Operator_2   0.2854 0.1332 3.4957
+#> T-26-0153_Operator_1   0.2367 0.2097 3.3581
+#> T-26-0153_Operator_2   0.2616 0.2073 3.1585
+#> T-26-0154_Operator_1   0.3455 0.2002 2.7463
+#> T-26-0154_Operator_2   0.3505 0.2219 2.6953
+#> T-26-0155_Operator_1   0.3256 0.2289 3.3917
+#> T-26-0155_Operator_2   0.3203 0.2247 3.3353
+#> T-26-0156_Operator_1   0.2967 0.1719 3.2319
+#> T-26-0156_Operator_2   0.2736 0.1713 3.0509
+#> T-26-0157_Operator_1   0.3133 0.2177 3.0757
+#> T-26-0157_Operator_2   0.3220 0.2099 2.7994
+#> T-26-0158_Operator_1   0.3343 0.1936 3.6716
+#> T-26-0158_Operator_2   0.3297 0.1934 3.4489
+#> T-26-0159_Operator_1   0.2765 0.2262 3.2331
+#> T-26-0159_Operator_2   0.2791 0.2258 3.1572
+#> T-26-0160_Operator_1   0.3443 0.2153 3.4442
+#> T-26-0160_Operator_2   0.3166 0.2084 3.2321
+#> T-26-0161_Operator_1   0.3953 0.2273 3.1132
+#> T-26-0161_Operator_2   0.3967 0.2255 2.8101
+#> T-26-0162_Operator_1   0.3914 0.2027 3.3012
+#> T-26-0162_Operator_2   0.3836 0.2010 3.1027
+#> T-26-0163_Operator_1   0.2709 0.2104 2.6211
+#> T-26-0163_Operator_2   0.2800 0.2216 2.4682
+#> T-26-0164_Operator_1   0.2454 0.1903 3.3757
+#> T-26-0164_Operator_2   0.2720 0.1767 3.2225
+#> T-26-0165_Operator_1   0.3312 0.2154 2.5561
+#> T-26-0165_Operator_2   0.3398 0.2169 2.5001
+#> T-26-0166_Operator_1   0.3057 0.2122 3.8190
+#> T-26-0166_Operator_2   0.3279 0.2045 3.7445
+#> T-26-0167_Operator_1   0.2809 0.1779 3.8788
+#> T-26-0167_Operator_2   0.2810 0.1792 3.8757
+#> T-26-0168_Operator_1   0.3205 0.2178 3.5454
+#> T-26-0168_Operator_2   0.3406 0.2064 3.5797
+#> T-26-0169_Operator_1   0.3054 0.2026 3.3835
+#> T-26-0169_Operator_2   0.2981 0.2091 3.3390
+#> T-26-0170_Operator_1   0.2890 0.1984 3.0343
+#> T-26-0170_Operator_2   0.2780 0.1952 2.5528
+#> T-26-0171_Operator_1   0.2997 0.2038 2.9390
+#> T-26-0171_Operator_2   0.3256 0.1990 2.9608
+#> T-26-0172_Operator_1   0.2401 0.1964 3.4631
+#> T-26-0172_Operator_2   0.2663 0.2090 3.2956
+#> T-26-0173_Operator_1   0.3143 0.1689 2.9811
+#> T-26-0173_Operator_2   0.3355 0.1988 2.9701
+#> T-26-0174_Operator_1   0.3647 0.1995 3.6433
+#> T-26-0174_Operator_2   0.3397 0.1961 3.3424
+#> T-26-0175_Operator_1   0.3084 0.2229 3.4313
+#> T-26-0175_Operator_2   0.3060 0.2265 3.3746
+#> T-26-0176_Operator_1   0.3265 0.1863 3.3121
+#> T-26-0176_Operator_2   0.3360 0.1874 3.3501
+#> T-26-0177_Operator_1   0.3766 0.1966 3.3770
+#> T-26-0177_Operator_2   0.3833 0.1946 3.3227
+#> T-26-0178_Operator_1   0.3171 0.2226 3.5849
+#> T-26-0178_Operator_2   0.3105 0.2130 3.5923
+#> T-26-0179-3_Operator_1 0.3162 0.1861 2.9611
+#> T-26-0179-3_Operator_2 0.2921 0.1873 2.9369
+#> T-26-0179_Operator_1   0.3043 0.1503 3.1701
+#> T-26-0179_Operator_2   0.3029 0.1456 3.1161
+#> T-26-0180_Operator_1   0.2905 0.1898 2.9034
+#> T-26-0180_Operator_2   0.3116 0.1897 2.8170
+#> T-26-0181_Operator_1   0.2797 0.2063 3.3334
+#> T-26-0181_Operator_2   0.2962 0.2010 3.3076
+#> T-26-0182_Operator_1   0.2561 0.2203 3.2180
+#> T-26-0182_Operator_2   0.2763 0.2168 3.0707
+#> T-26-0183_Operator_1   0.2604 0.2156 2.7173
+#> T-26-0183_Operator_2   0.3002 0.2032 2.6268
+#> T-26-0184_Operator_1   0.3236 0.1864 2.3232
+#> T-26-0184_Operator_2   0.2472 0.1732 1.8700
+#> T-26-0185_Operator_1   0.2917 0.1884 3.0950
+#> T-26-0185_Operator_2   0.2879 0.1885 2.7878
+#> T-26-0186_Operator_1   0.3055 0.2022 3.1696
+#> T-26-0186_Operator_2   0.2933 0.1999 3.1979
+#> T-26-0187_Operator_1   0.2593 0.2258 2.7704
+#> T-26-0187_Operator_2   0.2824 0.2151 2.6806
+#> T-26-0188_Operator_1   0.3658 0.1752 1.6902
+#> T-26-0188_Operator_2   0.3955 0.1902 1.8855
+#> T-26-0189_Operator_1   0.3485 0.1988 3.3019
+#> T-26-0189_Operator_2   0.3581 0.2167 3.2869
+#> T-26-0190_Operator_1   0.2668 0.2182 3.4228
+#> T-26-0190_Operator_2   0.2393 0.2234 3.3652
+#> T-26-0191_Operator_1   0.2572 0.1940 3.1942
+#> T-26-0191_Operator_2   0.2638 0.1940 3.1312
+#> T-26-0192_Operator_1   0.2674 0.1953 3.0594
+#> T-26-0192_Operator_2   0.2795 0.1998 2.8409
+#> T-26-0193_Operator_1   0.3529 0.1720 3.1182
+#> T-26-0193_Operator_2   0.3854 0.1774 3.1591
+#> T-26-0194_Operator_1   0.4159 0.1904 3.3858
+#> T-26-0194_Operator_2   0.4183 0.1823 3.3028
+#> T-26-0195_Operator_1   0.2433 0.2097 3.5145
+#> T-26-0195_Operator_2   0.2556 0.2152 3.5215
+#> T-26-0196_Operator_1   0.2114 0.1918 3.1887
+#> T-26-0196_Operator_2   0.2621 0.1964 3.1086
+#> T-26-0197_Operator_1   0.2831 0.2057 3.3235
+#> T-26-0197_Operator_2   0.3189 0.2237 3.3849
+#> T-26-0198_Operator_1   0.3110 0.1765 3.3915
+#> T-26-0198_Operator_2   0.3306 0.1956 3.2564
+#> T-26-0199_Operator_1   0.3824 0.1862 2.2369
+#> T-26-0199_Operator_2   0.3937 0.1767 2.3612
+#> T-26-0200_Operator_1   0.3792 0.1852 3.8787
+#> T-26-0200_Operator_2   0.3607 0.1985 3.6221
+#> T-26-0201_Operator_1   0.2674 0.2021 3.6696
+#> T-26-0201_Operator_2   0.2974 0.1943 3.6332
+#> T-26-0202_Operator_1   0.3480 0.1984 4.3316
+#> T-26-0202_Operator_2   0.2750 0.1987 3.9394
+#> T-26-0203_Operator_1   0.3017 0.1948 3.2169
+#> T-26-0203_Operator_2   0.2949 0.1954 3.1951
+#> T-26-0204_Operator_1   0.2667 0.2195 3.3665
+#> T-26-0204_Operator_2   0.2982 0.2106 3.0213
+#> T-26-0205_Operator_1   0.3515 0.1927 3.2399
+#> T-26-0205_Operator_2   0.3622 0.1881 3.0966
+#> T-26-0206_Operator_1   0.3073 0.2177 3.8690
+#> T-26-0206_Operator_2   0.3158 0.1980 3.8136
+#> T-26-0207_Operator_1   0.2870 0.2109 3.3493
+#> T-26-0207_Operator_2   0.2895 0.2030 3.3571
+#> T-26-0208_Operator_1   0.3387 0.1779 1.6771
+#> T-26-0208_Operator_2   0.3847 0.2077 1.7970
+#> T-26-0209_Operator_1   0.3750 0.2000 2.4074
+#> T-26-0209_Operator_2   0.3255 0.2015 2.2597
+#> T-26-0210_Operator_1   0.2928 0.1586 3.2354
+#> T-26-0210_Operator_2   0.2549 0.1656 3.3083
+#> T-26-0211_Operator_1   0.3459 0.2021 2.7706
+#> T-26-0211_Operator_2   0.3605 0.2026 2.7494
+#> T-26-0212_Operator_1   0.2389 0.1942 2.9950
+#> T-26-0212_Operator_2   0.2770 0.1868 2.9727
+#> T-26-0213_Operator_1   0.2956 0.1797 3.0094
+#> T-26-0213_Operator_2   0.3545 0.1903 3.0785
+#> T-26-0214_Operator_1   0.2513 0.1891 3.0635
+#> T-26-0214_Operator_2   0.2988 0.1899 3.0473
+#> T-26-0215_Operator_1   0.3153 0.2146 3.3240
+#> T-26-0215_Operator_2   0.3298 0.2049 3.1655
+#> T-26-0216_Operator_1   0.3455 0.2046 3.4372
+#> T-26-0216_Operator_2   0.3800 0.2080 3.5377
+#> T-26-0217_Operator_1   0.1764 0.2049 3.7861
+#> T-26-0217_Operator_2   0.2046 0.1958 3.9799
+#> T-26-0218_Operator_1   0.3627 0.1618 2.7625
+#> T-26-0218_Operator_2   0.3179 0.1894 2.6219
+#> T-26-0219_Operator_1   0.3903 0.2041 2.1768
+#> T-26-0219_Operator_2   0.3718 0.1989 2.2599
+#> T-26-0220_Operator_1   0.2891 0.1961 2.8929
+#> T-26-0220_Operator_2   0.3009 0.1832 2.9189
+#> T-26-0221_Operator_1   0.2311 0.1136 3.3006
+#> T-26-0221_Operator_2   0.2288 0.1469 3.1874
+#> T-26-0222_Operator_1   0.1840 0.1806 4.2688
+#> T-26-0222_Operator_2   0.1915 0.1923 3.9449
+#> T-26-0223_Operator_1   0.3426 0.1883 2.7942
+#> T-26-0223_Operator_2   0.3648 0.1971 2.5381
+#> T-26-0224_Operator_1   0.3044 0.2237 3.1983
+#> T-26-0224_Operator_2   0.2951 0.2256 3.2064
+#> T-26-0225_Operator_1   0.2541 0.1909 3.5294
+#> T-26-0225_Operator_2   0.2434 0.1945 3.6312
+#> T-26-0226_Operator_1   0.3228 0.1481 2.9591
+#> T-26-0226_Operator_2   0.2738 0.1605 3.0369
+#> T-26-0227_Operator_1   0.1819 0.1717 3.4981
+#> T-26-0227_Operator_2   0.1299 0.1784 3.4705
+#> T-26-0228_Operator_1   0.2275 0.1906 3.4699
+#> T-26-0228_Operator_2   0.1934 0.1767 3.6260
+#> T-26-0229_Operator_1   0.2513 0.1902 3.9410
+#> T-26-0229_Operator_2   0.2853 0.1977 3.9116
+#> T-26-0230-1_Operator_1 0.4363 0.2031 1.9477
+#> T-26-0230-1_Operator_2 0.4489 0.6032 1.9116
+#> T-26-0230-2_Operator_1 0.2622 0.2181 2.2681
+#> T-26-0230-2_Operator_2 0.3179 0.1995 2.3697
+#> T-26-0230-3_Operator_1 0.2536 0.1882 2.1247
+#> T-26-0230-3_Operator_2 0.2748 0.2027 2.2120
+#> T-26-0230-4_Operator_1 0.3771 0.1800 2.3387
+#> T-26-0230-4_Operator_2 0.4064 0.1761 2.2380
+#> T-26-0231_Operator_1   0.2839 0.1866 2.2503
+#> T-26-0231_Operator_2   0.3146 0.1779 2.3575
+#> T-26-0232_Operator_1   0.4239 0.2025 1.3101
+#> T-26-0232_Operator_2   0.4597 0.1988 1.4602
+#> T-26-0233_Operator_1       NA     NA     NA
+#> T-26-0233_Operator_2   0.4652 0.1713 1.9328
+#> T-26-0234_Operator_1   0.2653 0.1690 2.4988
+#> T-26-0234_Operator_2   0.2578 0.1649 2.6413
+#> T-26-0235_Operator_1   0.2671 0.1459 2.8095
+#> T-26-0235_Operator_2   0.2545 0.1590 2.9424
+#> T-26-0236_Operator_1   0.2170 0.1709 3.1222
+#> T-26-0236_Operator_2   0.2290 0.1615 3.1080
+#> T-26-0237_Operator_1   0.2104 0.1669 3.1270
+#> T-26-0237_Operator_2   0.2079 0.1572 3.1046
+#> T-26-0238_Operator_1   0.2186 0.1736 2.9792
+#> T-26-0238_Operator_2   0.2229 0.1785 2.9689
+#> T-26-0239_Operator_1   0.3136 0.1321 1.9110
+#> T-26-0239_Operator_2   0.0500 0.2060 2.0561
+#> T-26-0240_Operator_1   0.2541 0.1464 2.8491
+#> T-26-0240_Operator_2   0.2499 0.1435 2.9343
+#> T-26-0241_Operator_1   0.2779 0.1540 2.7380
+#> T-26-0241_Operator_2   0.2737 0.1688 2.5403
+#> T-26-0242_Operator_1   0.2890 0.1546 2.5040
+#> T-26-0242_Operator_2   0.3215 0.1677 2.5795
+#> T-26-0243_Operator_1   0.2542 0.0969     NA
+#> T-26-0243_Operator_2   0.2258 0.1218 3.0810
+#> T-26-0244_Operator_1   0.3133     NA 2.6976
+#> T-26-0244_Operator_2   0.1948 0.1195 2.5561
+#> T-26-0245_Operator_1   0.1927 0.1328 2.3409
+#> T-26-0245_Operator_2   0.1765 0.1212 2.3683
+#> T-26-0246_Operator_1   0.1899 0.1304 2.4776
+#> T-26-0246_Operator_2   0.1991 0.1456 2.6383
+#> T-26-0247_Operator_1   0.2409 0.1706 3.0259
+#> T-26-0247_Operator_2   0.2070 0.1777 2.5407
+#> T-26-0248_Operator_1   0.1956 0.1158 2.5098
+#> T-26-0248_Operator_2   0.1222 0.1207 2.9722
+#> T-26-0249_Operator_1   0.2114 0.1142 2.1457
+#> T-26-0249_Operator_2   0.1442 0.1075 2.1326
+#> T-26-0250_Operator_1   0.2984 0.1011     NA
 #> T-26-0250_Operator_2   0.2134 0.1091 3.2154
 #> T-26-0251_Operator_1   0.2693 0.1567 3.2278
 #> T-26-0251_Operator_2   0.2998 0.1563 3.4067

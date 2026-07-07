@@ -20,9 +20,12 @@ trait_space(
   log_transform = TRUE,
   scale = TRUE,
   axes = c(1, 2),
-  na_action = c("fail", "omit", "impute_mean", "impute_group_mean", "missforest"),
+  na_action = c("fail", "omit", "impute_mean", "impute_group_mean", "missforest",
+    "missforest_phylo"),
   missforest_ntree = 100,
   missforest_maxiter = 10,
+  tree = NULL,
+  missforest_phylo_k = 10,
   flag_outliers = TRUE,
   outlier_threshold = 3,
   outlier_min_n = 5,
@@ -46,7 +49,10 @@ print(x, ...)
   this commonly happens when incidental numeric metadata (e.g. a
   digitization replicate counter) is carried over from
   [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)/[`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
-  and passed to `trait_space()` unfiltered.
+  and passed to `trait_space()` unfiltered. A non-finite value (`Inf`/
+  `-Inf`, as from a ratio with a zero-length denominator segment) is
+  always an error regardless of `na_action` (it is not treated as an
+  ordinary missing value – see Details).
 
 - groups:
 
@@ -104,19 +110,43 @@ print(x, ...)
   `"missforest"` uses random-forest-based iterative imputation
   ([`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html),
   Stekhoven & Bühlmann, 2012) on the numeric trait matrix, using
-  `groups` (when available) as an additional predictor. `"omit"` and
-  every imputation option print a
-  [`message()`](https://rdrr.io/r/base/message.html) reporting the
-  number of rows removed or values imputed (plus, for `"missforest"`,
-  the out-of-bag normalised RMSE of the imputation), so this is never a
-  silent operation.
+  `groups` (when available) as an additional predictor;
+  `"missforest_phylo"` does the same but also augments the predictor
+  matrix with phylogenetic PCoA axes (see
+  [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md),
+  `tree`/`missforest_phylo_k`) for the species in `groups`, so that
+  phylogenetically related species can inform each other's imputed
+  values in addition to shared species identity – falling back to plain
+  `"missforest"`, with a warning explaining why, if phylogenetic axes
+  cannot be used (no `groups`, fewer than 3 species matched to `tree`,
+  "ape" not installed, etc.). `"omit"` and every imputation option print
+  a [`message()`](https://rdrr.io/r/base/message.html) reporting the
+  number of rows removed or values imputed (plus, for `"missforest"`/
+  `"missforest_phylo"`, the out-of-bag normalised RMSE of the
+  imputation, and, for `"missforest_phylo"`, how many phylogenetic axes
+  and matched species were actually used), so this is never a silent
+  operation.
 
 - missforest_ntree, missforest_maxiter:
 
   Number of trees per forest and maximum number of iterations passed to
   [`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html)
-  when `na_action = "missforest"`; ignored otherwise. Default to
-  `missForest`'s own defaults (`100` and `10`).
+  when `na_action` is `"missforest"`/ `"missforest_phylo"`; ignored
+  otherwise. Default to `missForest`'s own defaults (`100` and `10`).
+
+- tree:
+
+  Used only by `na_action = "missforest_phylo"`: an object of class
+  `"phylo"` (e.g. from
+  [`ape::read.tree()`](https://rdrr.io/pkg/ape/man/read.tree.html)), or
+  `NULL` (default) to use the bundled
+  [`load_fishmorph_phylogeny()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylogeny.md)
+  tree.
+
+- missforest_phylo_k:
+
+  Used only by `na_action = "missforest_phylo"`: maximum number of
+  phylogenetic PCoA axes to add as predictors. Defaults to `10`.
 
 - flag_outliers:
 
@@ -205,6 +235,22 @@ Invisibly returns `x`.
 
 ## Details
 
+A non-finite trait value (`Inf`/`-Inf`) is rejected with an error
+regardless of `na_action`, before any missing-value handling: unlike
+`NA`,
+[`is.na()`](https://rdrr.io/r/base/NA.html)/[`anyNA()`](https://rdrr.io/r/base/NA.html)
+do not detect `Inf`/`-Inf`, so such a value would otherwise silently
+pass through every `na_action` unimputed and corrupt the ordination
+(and, specifically for `na_action = "missforest"`, can crash
+[`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html)
+itself with a cryptic "missing value where TRUE/FALSE needed" error,
+because its internal convergence check computes `Inf - Inf = NaN`). This
+most commonly arises from a ratio with a zero-length denominator
+segment, e.g. from a degenerate or duplicated landmark (see
+[`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)/[`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md));
+investigate and correct the underlying measurement, or replace it with
+`NA` yourself first if you want it handled like any other missing value.
+
 By default (`na_action = "fail"`), rows with `NA` in any numeric trait
 cause an error; set `na_action` to `"omit"` or one of the imputation
 options to handle missing values automatically (see `na_action`). Mean
@@ -221,10 +267,18 @@ missing value, and is generally preferred over mean imputation once more
 than a few values are missing; it requires the `missForest` package (not
 installed by default; see `Suggests`) and is stochastic, so results vary
 run to run unless [`set.seed()`](https://rdrr.io/r/base/Random.html) is
-called beforehand. If a very large fraction of values is missing, no
-automated imputation method is a substitute for reviewing the
-missing-data mechanism directly. This function does not implement Gower
-distance for mixed (numeric and categorical) trait tables; for
+called beforehand. `na_action = "missforest_phylo"` extends this further
+with phylogenetic PCoA axes (see
+[`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md))
+as additional predictors, so species can also borrow information from
+their close relatives, not only from shared species identity; this can
+help when a species has very few (or zero) complete specimens of its own
+for `missForest` to learn from, but adds a phylogenetic assumption
+(trait similarity correlates with relatedness) that should be reasonable
+for the trait in question. If a very large fraction of values is
+missing, no automated imputation method is a substitute for reviewing
+the missing-data mechanism directly. This function does not implement
+Gower distance for mixed (numeric and categorical) trait tables; for
 mixed-trait functional spaces, standard tools such as the `mFD` or `FD`
 packages should be used instead.
 
@@ -306,7 +360,7 @@ challenges. Aquatic Sciences, 79(4), 783-801.
 # landmarks (see ?load_t26_saudrune_landmarks)
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.
+#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ratios <- fishmorph_ratios(segments)
 ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 #> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator

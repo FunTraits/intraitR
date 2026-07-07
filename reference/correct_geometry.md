@@ -70,8 +70,11 @@ correct_geometry(
 ## Value
 
 An object of the same class as `landmarks`, with every specimen's
-coordinates replaced by their standardized version. The returned
-`coords` array carries three attributes:
+coordinates replaced by their standardized version, and, if `landmarks`
+is an `intrait_landmarks` object with a `$scale` element, that element
+rescaled to match (see Details, step 1) so that no specimen's true
+real-world size is lost even though every specimen is now drawn at the
+same visual size. The returned `coords` array carries three attributes:
 
 - `standardization_log`:
 
@@ -118,7 +121,25 @@ FISHMORPH ratio and any shape-based analysis (GPA, shape PCA) computed
 afterwards. Consequently, only the longer of the two axes ends up
 spanning the full `[0, 1]` range exactly; if X is the shorter axis it is
 centered within `[0, 1]` at this stage (Y does not need centering here,
-since step 3 re-anchors it to `Y = 0.5` regardless).
+since step 3 re-anchors it to `Y = 0.5` regardless). This step changes
+the *visual* size every specimen is drawn at (every body now spans the
+same `[0, 1]` box, regardless of how large the real fish was), but never
+the *information* about each specimen's true real-world size: if
+`landmarks` is an `intrait_landmarks` object with a `$scale` element
+(real-world units per pixel; see
+[`read_tps()`](https://funtraits.github.io/intraitR/reference/read_tps.md)),
+that element is itself divided by the same per-specimen `scale_factor`,
+so
+[`linear_distances()`](https://funtraits.github.io/intraitR/reference/linear_distances.md)/[`morpho_ratios()`](https://funtraits.github.io/intraitR/reference/morpho_ratios.md)
+(which use `$scale` directly) keep returning correct, specimen-specific
+real-world distances from the now-normalized coordinates;
+[`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
+needs no such adjustment, since it always re-derives its own
+pixel-to-real-world factor from the scale bar's own current length (step
+2 below) rather than from a stored value. Two different specimens
+rescaled to the same `[0, 1]` box therefore still yield different,
+individually correct real-world sizes downstream – only their on-screen
+size is equalized.
 
 **Step 2 – reposition the scale bar.** Landmarks 20 and 21 (missing for
 a given specimen, this step is skipped for it, with a warning) are moved

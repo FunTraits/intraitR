@@ -168,7 +168,7 @@ hypervolumes. Methods in Ecology and Evolution, 9(2), 305-319.
 # \donttest{
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.
+#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ratios <- fishmorph_ratios(segments)
 ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 #> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
@@ -211,8 +211,8 @@ if (requireNamespace("geometry", quietly = TRUE)) {
 #>  Phoxinus phoxinus/bigerri   5   +7.07%   [+0.00%, +35.34%]
 #>          Perca fluviatilis  14   +5.06%  [-13.36%, +44.93%]
 #>    Leuciscus burdigalensis  13   +4.43%   [+0.00%, +23.49%]
+#>           Lepomis gibbosus   2   -0.00%  [-17.56%, +17.56%]
 #>                             NA   +0.00%    [+0.00%, +0.00%]
 #>              Barbus barbus   5   +0.00%    [+0.00%, +0.00%]
-#>           Lepomis gibbosus   2   +0.00%  [-17.56%, +17.56%]
 # }
 ```

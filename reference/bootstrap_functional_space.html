@@ -99,7 +99,8 @@ unusually low relative to the bootstrap distribution (see Details).</p>
 <span>  tpd_bw_factor <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  tpd_n_divisions <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  hv_bw_method <span class="op">=</span> <span class="st">"silverman"</span>,</span>
-<span>  hv_samples_per_point <span class="op">=</span> <span class="fl">500</span></span>
+<span>  hv_samples_per_point <span class="op">=</span> <span class="fl">500</span>,</span>
+<span>  composition <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -244,6 +245,25 @@ Defaults to <code>"silverman"</code>.</p></dd>
 since this value is paid <code>n_boot</code> times over; increase it for a more
 precise (but slower) estimate.</p></dd>
 
+
+<dt id="arg-composition">composition<a class="anchor" aria-label="anchor" href="#arg-composition"></a></dt>
+<dd><p>Optional numeric matrix or data.frame giving the
+species composition of one or more communities/sites: one row per
+community, one column per species, with column names matching the
+species labels used in <code>groups</code> (i.e. <code>levels(factor(groups))</code>).
+Entries can be presence/absence (<code>0</code>/<code>1</code>) or abundance – either way,
+only whether an entry is greater than <code>0</code> is used (abundance values
+themselves do not otherwise weight the computation; see Details).
+Row names, if present, are used as community identifiers (otherwise
+<code>"community_1"</code>, <code>"community_2"</code>, ...). Columns not matching any
+species in <code>groups</code> are dropped with a warning. When supplied, the
+exact same reference-vs-bootstrap principle described above is
+repeated independently for each community, restricted to that
+community's own species (see Details); the results are returned in
+<code>$communities</code> (see Return) in addition to, not instead of, the
+whole-species-pool <code>fd_ref</code>/<code>fd_boot</code> above. Defaults to <code>NULL</code> (no
+per-community computation).</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -255,8 +275,34 @@ elements <code>fd_ref</code> (centroid-based reference richness), <code>fd_boot<
 bootstrap p-value, see Details), <code>method</code>, <code>n_axes</code> (actual number of
 PCA axes used), <code>var_explained</code> (cumulative proportion of variance
 captured by those <code>n_axes</code> axes), <code>n_boot</code>, and <code>groups</code>. Has
-dedicated <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> methods.</p>
-    </div>
+dedicated <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> methods. If <code>composition</code> was
+supplied, also includes:</p><dl><dt><code>communities</code></dt>
+<dd><p>A <code>data.frame</code>, one row per community (in
+<code>composition</code>'s row order), with columns <code>community</code>, <code>n_species</code>
+(species matched between that community and <code>groups</code>), <code>fd_obs</code>
+(that community's own centroid-based richness – the direct,
+per-community analogue of the whole-pool <code>fd_ref</code> above),
+<code>fd_expected</code> (that community's own bootstrap mean, the analogue
+of <code>fd_boot_mean</code>), <code>fd_sd</code> (that community's own bootstrap SD),
+<code>ses</code> (Standardized Effect Size, <code>(fd_obs - fd_expected) / fd_sd</code>), and <code>p_value</code> (one-sided, same convention as the
+whole-pool <code>p_value</code>). A community matched to fewer than 2
+species has every one of these set to <code>NA</code> (nothing to compute a
+richness from), with a warning.</p></dd>
+
+<dt><code>community_boot</code></dt>
+<dd><p>A named list (by community identifier), the
+raw per-community bootstrap richness vectors (length <code>n_boot</code>,
+or length <code>0</code> for a community left <code>NA</code> above) <code>fd_expected</code>/
+<code>fd_sd</code>/<code>ses</code>/<code>p_value</code> were summarised from – kept for custom
+downstream inspection or plotting.</p></dd>
+
+<dt><code>composition</code></dt>
+<dd><p>The <code>composition</code> matrix actually used, i.e.
+after dropping any column that did not match a species in
+<code>groups</code> (see <code>composition</code> above).</p></dd>
+
+
+</dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>A fresh Principal Component Analysis is always performed inside this
@@ -314,6 +360,44 @@ strong, real excess when it is not.</p>
 <p>Species represented by a single individual necessarily contribute the
 same point to every bootstrap draw (there is nothing to resample for
 that species); this is expected behaviour, not an error.</p>
+<p><strong>Per-community results (<code>composition</code>).</strong> When <code>composition</code> is
+supplied, the exact same <code>fd_ref</code>/<code>fd_boot</code> machinery above is repeated
+once per community, restricted to that community's own species subset:
+the shared, whole-pool PCA space, and the shared <code>method</code>-specific
+auxiliary quantities (kernel bandwidth/grid for <code>"tpd"</code>/<code>"hypervolume"</code>,
+computed once from the full individual-level data, see above) are
+reused unchanged for every community, so richness values stay
+comparable <em>across</em> communities as well as within one – only the set
+of species (and their individuals) entering the centroid/bootstrap
+computation changes from community to community. For community <code>c</code>:
+<code>fd_obs</code> is the centroid-based richness of exactly the species present
+in <code>c</code> (the direct analogue of <code>fd_ref</code>), <code>fd_expected</code>/<code>fd_sd</code> are the
+mean/SD of <code>n_boot</code> draws of one random individual per species present
+in <code>c</code> (the analogue of <code>fd_boot</code>), and the Standardized Effect Size
+<code>ses = (fd_obs - fd_expected) / fd_sd</code> expresses how far <code>fd_obs</code> sits
+from its own community-specific bootstrap expectation, in units of that
+expectation's own bootstrap SD – the standard way to make effect sizes
+comparable across communities that differ in species richness and
+composition (e.g. Gotelli &amp; McCabe, 2002), unlike comparing raw
+<code>fd_obs</code> values directly. <code>p_value</code> follows the same one-sided,
+resampling-based convention as the whole-pool <code>p_value</code> above (the
+proportion of that community's own <code>fd_boot</code> draws at or below its own
+<code>fd_obs</code>, <code>+ 1</code> corrected). Only presence (<code>composition &gt; 0</code>) is used to
+decide which species enter a community's computation; an abundance
+matrix is accepted for convenience but abundance values themselves do
+not otherwise weight the centroid or the bootstrap draws (every present
+species contributes exactly one point to <code>fd_obs</code>, and exactly one
+randomly drawn individual to each bootstrap draw, regardless of its
+abundance) – a deliberate choice for comparability with <code>fd_ref</code>/
+<code>fd_boot</code> above, which make the same assumption for the whole pool.
+Every community's <code>n_boot</code> draws are combined with every other's into a
+single flattened task list before being dispatched (via the same
+<code>future.apply</code>-based mechanism described above), for the same reason
+individual replacements are flattened in <code><a href="species_sensitivity.html">species_sensitivity()</a></code> rather
+than run as nested loops: each (community, draw) pair is entirely
+independent of every other, so distributing them all at once lets a
+parallel <code><a href="https://future.futureverse.org/reference/plan.html" class="external-link">future::plan()</a></code> (see above) balance the full workload across
+its workers in one pass.</p>
 <p>The <code>n_boot</code> bootstrap draws are independent of one another (each is
 just one random individual per species plus a functional-richness
 recomputation), so they parallelise trivially. If the <code>future.apply</code>
@@ -352,6 +436,8 @@ n-dimensional hypervolumes. Methods in Ecology and Evolution, 9(2),
 305-319.</p>
 <p>Davison AC, Hinkley DV (1997). Bootstrap Methods and their Application.
 Cambridge University Press.</p>
+<p>Gotelli NJ, McCabe DJ (2002). Species co-occurrence: a meta-analysis of
+J. M. Diamond's assembly rules model. Ecology, 83(8), 2091-2096.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -363,7 +449,7 @@ Cambridge University Press.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">segments</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
 <span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="va">segments</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ts</span> <span class="op">&lt;-</span> <span class="fu"><a href="trait_space.html">trait_space</a></span><span class="op">(</span><span class="va">ratios</span>, groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>, na_action <span class="op">=</span> <span class="st">"omit"</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator</span>
@@ -617,6 +703,31 @@ Cambridge University Press.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Centroid-based reference richness (FD_ref): 19.14</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Bootstrap richness (FD_boot, 20 draws): mean = 23.93, SD = 3.291, 5-95% = [19.33, 29.76]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Difference (mean FD_boot - FD_ref): 4.787 (one-sided bootstrap p = 0.09524)</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Per-community results: a communities x species composition matrix</span></span></span>
+<span class="r-in"><span><span class="co"># (here, three toy communities over the species in `ts`) gives obs/</span></span></span>
+<span class="r-in"><span><span class="co"># expected/SES/p-value per community, restricted to each community's</span></span></span>
+<span class="r-in"><span><span class="co"># own species subset (see Details).</span></span></span>
+<span class="r-in"><span><span class="co"># levels(), not on the raw character column: fish$metadata$species is a</span></span></span>
+<span class="r-in"><span><span class="co"># plain character vector (not a factor), so levels(fish$metadata$species)</span></span></span>
+<span class="r-in"><span><span class="co"># would silently return NULL rather than erroring.</span></span></span>
+<span class="r-in"><span><span class="va">sp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">composition</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  site_A <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">sp</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">sp</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  site_B <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">sp</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">sp</span><span class="op">[</span><span class="fl">2</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  site_C <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">sp</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">sp</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">composition</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">sp</span></span></span>
+<span class="r-in"><span><span class="va">bf_comm</span> <span class="op">&lt;-</span> <span class="fu">bootstrap_functional_space</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">ts</span>, method <span class="op">=</span> <span class="st">"dendrogram"</span>, n_axes <span class="op">=</span> <span class="fl">2</span>, n_boot <span class="op">=</span> <span class="fl">200</span>, composition <span class="op">=</span> <span class="va">composition</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">bf_comm</span><span class="op">$</span><span class="va">communities</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   community n_species    fd_obs fd_expected    fd_sd        ses   p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1    site_A         3  7.225431    8.191091 5.726199 -0.1686390 0.5671642</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    site_B         3  4.872859    7.459348 4.120782 -0.6276695 0.1592040</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3    site_C        10 13.551419   17.999694 6.309353 -0.7050288 0.1194030</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">bf_comm</span>, type <span class="op">=</span> <span class="st">"communities"</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="bootstrap_functional_space-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

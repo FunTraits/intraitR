@@ -13,10 +13,13 @@ fishmorph_segments(
   landmarks,
   scale_cm = 1,
   groups = NULL,
-  na_action = c("keep", "omit", "impute_mean", "impute_group_mean", "missforest"),
+  na_action = c("keep", "omit", "impute_mean", "impute_group_mean", "missforest",
+    "missforest_phylo"),
   missforest_ntree = 100,
   missforest_maxiter = 10,
-  geometry_check = NULL
+  geometry_check = NULL,
+  tree = NULL,
+  missforest_phylo_k = 10
 )
 ```
 
@@ -60,7 +63,12 @@ fishmorph_segments(
   instead, falling back to the column mean, with a warning, for a group
   entirely missing a segment; `"missforest"` uses random-forest-based
   iterative imputation
-  ([`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html)).
+  ([`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html));
+  `"missforest_phylo"` does the same but additionally augments the
+  predictor matrix with phylogenetic PCoA axes (see
+  [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md),
+  `tree`) for the species in `groups`, falling back to plain
+  `"missforest"` (with a warning) if phylogenetic axes cannot be used.
   Same convention, options, and messages as
   [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)'s
   `na_action` – see there for details – except that here imputation
@@ -75,8 +83,8 @@ fishmorph_segments(
 
   Number of trees per forest and maximum number of iterations passed to
   [`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html)
-  when `na_action = "missforest"`; ignored otherwise. Default to
-  `missForest`'s own defaults (`100` and `10`).
+  when `na_action` is `"missforest"`/`"missforest_phylo"`; ignored
+  otherwise. Default to `missForest`'s own defaults (`100` and `10`).
 
 - geometry_check:
 
@@ -95,6 +103,18 @@ fishmorph_segments(
   `Jl`, `CPd`, `CFd` involve landmarks outside the checked battery).
   `NULL` (default) leaves every measurement as computed, regardless of
   `geometry_check`.
+
+- tree:
+
+  Used only by `na_action = "missforest_phylo"`: an object of class
+  `"phylo"`, or `NULL` (default) to use the bundled
+  [`load_fishmorph_phylogeny()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylogeny.md)
+  tree.
+
+- missforest_phylo_k:
+
+  Used only by `na_action = "missforest_phylo"`: maximum number of
+  phylogenetic PCoA axes to add as predictors. Defaults to `10`.
 
 ## Value
 
@@ -223,7 +243,7 @@ Biogeography, 30(11), 2330-2336.
 # simulate_fishmorph_points()
 fish <- load_t26_saudrune_landmarks()
 fishmorph_segments(fish)
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.
+#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 #>                                      specimen  individual
 #> T-26-0001_Operator_1     T-26-0001_Operator_1   T-26-0001
 #> T-26-0001_Operator_2     T-26-0001_Operator_2   T-26-0001
@@ -3024,7 +3044,7 @@ fishmorph_segments(fish)
 # segments as NA; impute them using the within-species mean instead of
 # carrying the NA forward (na_action defaults to "keep"):
 fishmorph_segments(fish, groups = fish$metadata$species, na_action = "impute_group_mean")
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.
+#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 #> na_action = "impute_group_mean": imputed 273 missing value(s) using within-group means.
 #>                                      specimen  individual
 #> T-26-0001_Operator_1     T-26-0001_Operator_1   T-26-0001
@@ -5827,7 +5847,7 @@ fishmorph_segments(fish, groups = fish$metadata$species, na_action = "impute_gro
 # set to NA before na_action runs:
 geom_check <- correct_landmarks(fish, rule = "check_geometry")
 fishmorph_segments(fish, geometry_check = geom_check, na_action = "impute_group_mean")
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.
+#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 #> geometry_check: set 1140 measurement value(s) to NA because their underlying landmark line was flagged as non-conforming by correct_landmarks(rule = "check_geometry").
 #> na_action = "impute_group_mean": imputed 1413 missing value(s) using within-group means.
 #>                                      specimen  individual

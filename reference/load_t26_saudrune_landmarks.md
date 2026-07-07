@@ -144,9 +144,9 @@ dim(gobio_squalius$coords)
 fish_op1 <- load_t26_saudrune_landmarks(operator = "Operator_1")
 fish_op2 <- load_t26_saudrune_landmarks(operator = "Operator_2")
 ratios_op1 <- fishmorph_ratios(fishmorph_segments(fish_op1))
-#> Warning: 1 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.
+#> Warning: 1 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ratios_op2 <- fishmorph_ratios(fishmorph_segments(fish_op2))
-#> Warning: 2 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.
+#> Warning: 2 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ts_op1 <- trait_space(ratios_op1, groups = fish_op1$metadata$species, na_action = "omit")
 #> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
 #> na_action = "omit": removing 139 row(s) out of 279 with missing values.

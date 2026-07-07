@@ -56,10 +56,13 @@ scale bar digitized directly on the picture.</p>
 <span>  <span class="va">landmarks</span>,</span>
 <span>  scale_cm <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  na_action <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"keep"</span>, <span class="st">"omit"</span>, <span class="st">"impute_mean"</span>, <span class="st">"impute_group_mean"</span>, <span class="st">"missforest"</span><span class="op">)</span>,</span>
+<span>  na_action <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"keep"</span>, <span class="st">"omit"</span>, <span class="st">"impute_mean"</span>, <span class="st">"impute_group_mean"</span>, <span class="st">"missforest"</span>,</span>
+<span>    <span class="st">"missforest_phylo"</span><span class="op">)</span>,</span>
 <span>  missforest_ntree <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  missforest_maxiter <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  geometry_check <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  geometry_check <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  tree <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  missforest_phylo_k <span class="op">=</span> <span class="fl">10</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -100,11 +103,15 @@ reports how many; <code>"impute_mean"</code> replaces missing segment values wit
 the column mean; <code>"impute_group_mean"</code> uses the within-group (e.g.
 within-species) mean instead, falling back to the column mean, with a
 warning, for a group entirely missing a segment; <code>"missforest"</code> uses
-random-forest-based iterative imputation
-(<code><a href="https://rdrr.io/pkg/missForest/man/missForest.html" class="external-link">missForest::missForest()</a></code>). Same convention, options, and messages
-as <code><a href="trait_space.html">trait_space()</a></code>'s <code>na_action</code> – see there for details – except
-that here imputation operates on the derived linear <em>measurements</em>,
-not on landmark coordinates: this is not a substitute for a proper
+random-forest-based iterative imputation (<code><a href="https://rdrr.io/pkg/missForest/man/missForest.html" class="external-link">missForest::missForest()</a></code>);
+<code>"missforest_phylo"</code> does the same but additionally augments the
+predictor matrix with phylogenetic PCoA axes (see <code><a href="phylo_pcoa.html">phylo_pcoa()</a></code>,
+<code>tree</code>) for the species in <code>groups</code>, falling back to plain
+<code>"missforest"</code> (with a warning) if phylogenetic axes cannot be used.
+Same convention, options, and messages as <code><a href="trait_space.html">trait_space()</a></code>'s
+<code>na_action</code> – see there for details – except that here imputation
+operates on the derived linear <em>measurements</em>, not on landmark
+coordinates: this is not a substitute for a proper
 geometric-morphometric estimate of a missing landmark's position (see
 <code><a href="impute_landmarks.html">impute_landmarks()</a></code>, run on <code>landmarks</code> <em>before</em> calling this
 function), and is best reserved for a small number of missing values.</p></dd>
@@ -113,8 +120,8 @@ function), and is best reserved for a small number of missing values.</p></dd>
 <dt id="arg-missforest-ntree-missforest-maxiter">missforest_ntree, missforest_maxiter<a class="anchor" aria-label="anchor" href="#arg-missforest-ntree-missforest-maxiter"></a></dt>
 <dd><p>Number of trees per forest
 and maximum number of iterations passed to <code><a href="https://rdrr.io/pkg/missForest/man/missForest.html" class="external-link">missForest::missForest()</a></code>
-when <code>na_action = "missforest"</code>; ignored otherwise. Default to
-<code>missForest</code>'s own defaults (<code>100</code> and <code>10</code>).</p></dd>
+when <code>na_action</code> is <code>"missforest"</code>/<code>"missforest_phylo"</code>; ignored
+otherwise. Default to <code>missForest</code>'s own defaults (<code>100</code> and <code>10</code>).</p></dd>
 
 
 <dt id="arg-geometry-check">geometry_check<a class="anchor" aria-label="anchor" href="#arg-geometry-check"></a></dt>
@@ -133,6 +140,18 @@ own rotation are used for this (see
 <code>Jl</code>, <code>CPd</code>, <code>CFd</code> involve landmarks outside the checked battery).
 <code>NULL</code> (default) leaves every measurement as computed, regardless of
 <code>geometry_check</code>.</p></dd>
+
+
+<dt id="arg-tree">tree<a class="anchor" aria-label="anchor" href="#arg-tree"></a></dt>
+<dd><p>Used only by <code>na_action = "missforest_phylo"</code>: an object of
+class <code>"phylo"</code>, or <code>NULL</code> (default) to use the bundled
+<code><a href="load_fishmorph_phylogeny.html">load_fishmorph_phylogeny()</a></code> tree.</p></dd>
+
+
+<dt id="arg-missforest-phylo-k">missforest_phylo_k<a class="anchor" aria-label="anchor" href="#arg-missforest-phylo-k"></a></dt>
+<dd><p>Used only by <code>na_action = "missforest_phylo"</code>:
+maximum number of phylogenetic PCoA axes to add as predictors.
+Defaults to <code>10</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -243,7 +262,7 @@ Biogeography, 30(11), 2330-2336.</p>
 <span class="r-in"><span><span class="co"># simulate_fishmorph_points()</span></span></span>
 <span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">fishmorph_segments</span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                      specimen  individual</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0001_Operator_1     T-26-0001_Operator_1   T-26-0001</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0001_Operator_2     T-26-0001_Operator_2   T-26-0001</span>
@@ -3044,7 +3063,7 @@ Biogeography, 30(11), 2330-2336.</p>
 <span class="r-in"><span><span class="co"># segments as NA; impute them using the within-species mean instead of</span></span></span>
 <span class="r-in"><span><span class="co"># carrying the NA forward (na_action defaults to "keep"):</span></span></span>
 <span class="r-in"><span><span class="fu">fishmorph_segments</span><span class="op">(</span><span class="va">fish</span>, groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>, na_action <span class="op">=</span> <span class="st">"impute_group_mean"</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "impute_group_mean": imputed 273 missing value(s) using within-group means.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                      specimen  individual</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0001_Operator_1     T-26-0001_Operator_1   T-26-0001</span>
@@ -5847,7 +5866,7 @@ Biogeography, 30(11), 2330-2336.</p>
 <span class="r-in"><span><span class="co"># set to NA before na_action runs:</span></span></span>
 <span class="r-in"><span><span class="va">geom_check</span> <span class="op">&lt;-</span> <span class="fu"><a href="correct_landmarks.html">correct_landmarks</a></span><span class="op">(</span><span class="va">fish</span>, rule <span class="op">=</span> <span class="st">"check_geometry"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">fishmorph_segments</span><span class="op">(</span><span class="va">fish</span>, geometry_check <span class="op">=</span> <span class="va">geom_check</span>, na_action <span class="op">=</span> <span class="st">"impute_group_mean"</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> geometry_check: set 1140 measurement value(s) to NA because their underlying landmark line was flagged as non-conforming by correct_landmarks(rule = "check_geometry").</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "impute_group_mean": imputed 1413 missing value(s) using within-group means.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                      specimen  individual</span>

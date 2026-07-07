@@ -132,8 +132,12 @@ instead of correcting them.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of the same class as <code>landmarks</code>, with every
-specimen's coordinates replaced by their standardized version. The
-returned <code>coords</code> array carries three attributes:</p><dl><dt><code>standardization_log</code></dt>
+specimen's coordinates replaced by their standardized version, and,
+if <code>landmarks</code> is an <code>intrait_landmarks</code> object with a <code>$scale</code>
+element, that element rescaled to match (see Details, step 1) so
+that no specimen's true real-world size is lost even though every
+specimen is now drawn at the same visual size. The returned <code>coords</code>
+array carries three attributes:</p><dl><dt><code>standardization_log</code></dt>
 <dd><p>a <code>data.frame</code>, one row per specimen
 processed, with columns <code>specimen</code>, <code>scale_factor</code> (the isotropic
 factor applied in step 1), <code>rotation_deg</code> (the rotation applied in
@@ -175,7 +179,21 @@ every FISHMORPH ratio and any shape-based analysis (GPA, shape PCA)
 computed afterwards. Consequently, only the longer of the two axes ends
 up spanning the full <code>[0, 1]</code> range exactly; if X is the shorter axis it
 is centered within <code>[0, 1]</code> at this stage (Y does not need centering
-here, since step 3 re-anchors it to <code>Y = 0.5</code> regardless).</p>
+here, since step 3 re-anchors it to <code>Y = 0.5</code> regardless). This step
+changes the <em>visual</em> size every specimen is drawn at (every body now
+spans the same <code>[0, 1]</code> box, regardless of how large the real fish
+was), but never the <em>information</em> about each specimen's true
+real-world size: if <code>landmarks</code> is an <code>intrait_landmarks</code> object with a
+<code>$scale</code> element (real-world units per pixel; see <code><a href="read_tps.html">read_tps()</a></code>), that
+element is itself divided by the same per-specimen <code>scale_factor</code>, so
+<code><a href="linear_distances.html">linear_distances()</a></code>/<code><a href="morpho_ratios.html">morpho_ratios()</a></code> (which use <code>$scale</code> directly)
+keep returning correct, specimen-specific real-world distances from the
+now-normalized coordinates; <code><a href="fishmorph_segments.html">fishmorph_segments()</a></code> needs no such
+adjustment, since it always re-derives its own pixel-to-real-world
+factor from the scale bar's own current length (step 2 below) rather
+than from a stored value. Two different specimens rescaled to the same
+<code>[0, 1]</code> box therefore still yield different, individually correct
+real-world sizes downstream – only their on-screen size is equalized.</p>
 <p><strong>Step 2 – reposition the scale bar.</strong> Landmarks 20 and 21 (missing for
 a given specimen, this step is skipped for it, with a warning) are
 moved to <code>scale_bar_pos</code> and <code>scale_bar_pos + c(length, 0)</code>

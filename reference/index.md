@@ -33,6 +33,9 @@ Landmark quality control (missing-landmark imputation, orientation and
 geometry correction), Generalised Procrustes Analysis, allometric
 correction, and digitization/outlier quality control.
 
+- [`exclude_specimens()`](https://funtraits.github.io/intraitR/reference/exclude_specimens.md)
+  : Exclude known-bad specimens (e.g. mismeasured fish) from a landmark
+  data set
 - [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
   : Impute missing (NA) landmark coordinates
 - [`standardize_orientation()`](https://funtraits.github.io/intraitR/reference/standardize_orientation.md)

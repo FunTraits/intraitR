@@ -271,3 +271,55 @@ test_that("plot_fishmorph_points() warns and drops background_image when `indivi
   grDevices::dev.off()
   unlink(tmp)
 })
+
+test_that("plot_fishmorph_points() draws the scale bar without error using the default scale_unit ('cm')", {
+  fish <- simulate_fishmorph_points(n_per_species = 3, n_replicates = 1)
+
+  tmp <- tempfile(fileext = ".png")
+  grDevices::png(tmp)
+  expect_error(plot_fishmorph_points(fish, specimen = 1), NA)
+  grDevices::dev.off()
+  unlink(tmp)
+
+  expect_true("scale_unit" %in% names(formals(plot_fishmorph_points)))
+  expect_equal(eval(formals(plot_fishmorph_points)$scale_unit), "cm")
+  # `scale_label` was replaced by `scale_unit`; guard against a regression
+  # silently bringing back the old argument name (and its fixed caption).
+  expect_false("scale_label" %in% names(formals(plot_fishmorph_points)))
+})
+
+test_that("plot_fishmorph_points() accepts an arbitrary user-specified scale_unit (mm, dm, m, or other)", {
+  fish <- simulate_fishmorph_points(n_per_species = 3, n_replicates = 1)
+
+  tmp <- tempfile(fileext = ".png")
+  grDevices::png(tmp)
+  for (unit in c("mm", "dm", "m", "in")) {
+    expect_error(plot_fishmorph_points(fish, specimen = 1, scale_unit = unit), NA)
+  }
+  grDevices::dev.off()
+  unlink(tmp)
+})
+
+test_that("plot_fishmorph_points() omits the scale bar's text label when scale_unit = NULL, without erroring", {
+  fish <- simulate_fishmorph_points(n_per_species = 3, n_replicates = 1)
+
+  tmp <- tempfile(fileext = ".png")
+  grDevices::png(tmp)
+  expect_error(plot_fishmorph_points(fish, specimen = 1, scale_unit = NULL), NA)
+  grDevices::dev.off()
+  unlink(tmp)
+})
+
+test_that("plot_fishmorph_points()'s scale bar label is built as '1 <unit> = <length>' from the actual digitized scale-bar length", {
+  # The label text itself cannot be read back from a base-R graphics device
+  # (drawing calls have no return value), so this pins down the exact
+  # formula used internally -- sprintf("1 %s = %s", scale_unit,
+  # formatC(scale_len, format = "f", digits = 1)) -- against a hand-picked
+  # length, guarding against a silent drift back to the old, fixed
+  # "scale (1 cm)" caption or to a different rounding.
+  scale_len <- 0.05
+  expect_equal(
+    sprintf("1 %s = %s", "cm", formatC(scale_len, format = "f", digits = 1)),
+    "1 cm = 0.1"
+  )
+})

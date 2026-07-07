@@ -261,6 +261,76 @@ test_that("correct_geometry() errors on an invalid `scale_bar_pos`", {
   expect_error(correct_geometry(A, scale_bar_pos = c(NA, 0.1)), "scale_bar_pos")
 })
 
+test_that("correct_geometry() keeps `landmarks$scale` consistent with rescaled coordinates, preserving true real-world size", {
+  # Real-world Bl (distance between landmarks 1 and 2) before standardization:
+  # raw distance is exactly 8000 (see make_std_source_array()'s comment
+  # above), so at scale = 0.02 real-world-units per pixel, real Bl = 160.
+  A <- make_std_source_array()
+  landmarks <- structure(
+    list(coords = A, scale = c(s1 = 0.02), metadata = NULL),
+    class = "intrait_landmarks"
+  )
+  bl_before <- linear_distances(A, list(Bl = c(1, 2)), scale = c(s1 = 0.02))
+
+  out <- suppressMessages(correct_geometry(landmarks))
+  expect_s3_class(out, "intrait_landmarks")
+
+  # scale_factor for this fixture is 1 / 8000 (see make_std_source_array());
+  # landmarks$scale must be divided by it to stay calibrated for the
+  # now-rescaled coordinates.
+  expect_equal(out$scale[["s1"]], 0.02 / (1 / 8000))
+
+  # Core invariant explicitly requested: a real-world distance computed
+  # after correct_geometry() (via the automatically-used, rescaled
+  # landmarks$scale) must be identical to the one computed before it, even
+  # though the raw/digitized coordinates themselves are now rescaled to fit
+  # inside [0, 1] -- i.e. only the *visual* size changed, never the true one.
+  bl_after <- linear_distances(out, list(Bl = c(1, 2)))
+  expect_equal(bl_after["s1", "Bl"], bl_before["s1", "Bl"])
+})
+
+test_that("correct_geometry() preserves each specimen's own distinct true size even though every specimen is drawn at the same visual size", {
+  A <- make_std_source_array(c("s1", "s2"))
+  # Make s2 a physically larger fish: scale its body landmarks (1-19) by 1.5
+  # around landmark 1 (uniform scaling about a body point preserves axis
+  # (1, 2)'s direction, so rotation_deg stays 0 for both specimens; the
+  # scale bar, 20-21, is left as-is here since it is unrelated to body size).
+  pivot <- A[1, , "s2"]
+  for (li in 1:19) A[li, , "s2"] <- pivot + (A[li, , "s2"] - pivot) * 1.5
+
+  landmarks <- structure(
+    list(coords = A, scale = c(s1 = 0.02, s2 = 0.02), metadata = NULL),
+    class = "intrait_landmarks"
+  )
+  bl_before <- linear_distances(A, list(Bl = c(1, 2)), scale = c(s1 = 0.02, s2 = 0.02))
+
+  out <- suppressMessages(correct_geometry(landmarks))
+
+  # Both specimens are now drawn at the same visual size...
+  expect_equal(unname(out$coords[1, , "s1"]), c(0, 0.5))
+  expect_equal(unname(out$coords[2, , "s1"]), c(1, 0.5))
+  expect_equal(unname(out$coords[1, , "s2"]), c(0, 0.5))
+  expect_equal(unname(out$coords[2, , "s2"]), c(1, 0.5))
+
+  # ...yet their true real-world sizes, recovered via the independently
+  # rescaled landmarks$scale, remain distinct and exactly match what they
+  # were before standardization.
+  bl_after <- linear_distances(out, list(Bl = c(1, 2)))
+  expect_equal(bl_after["s1", "Bl"], bl_before["s1", "Bl"])
+  expect_equal(bl_after["s2", "Bl"], bl_before["s2", "Bl"])
+  expect_true(bl_after["s2", "Bl"] > bl_after["s1", "Bl"])
+})
+
+test_that("correct_geometry() leaves a raw (non-classed) array's behaviour unchanged when there is no `$scale` to update", {
+  # Backward-compatibility check: every pre-existing test in this file uses
+  # a raw array, for which `has_scale_attr` is FALSE and this code path is
+  # a no-op; this test pins that down explicitly.
+  A <- make_std_source_array()
+  out <- suppressMessages(correct_geometry(A))
+  expect_true(is.array(out))
+  expect_false(inherits(out, "intrait_landmarks"))
+})
+
 test_that("correct_geometry() errors on an invalid `tolerance_coord`", {
   A <- make_std_source_array()
   expect_error(correct_geometry(A, tolerance_coord = -1), "tolerance_coord")

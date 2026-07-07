@@ -17,7 +17,10 @@
 #'   cannot be rescaled to unit variance; this commonly happens when
 #'   incidental numeric metadata (e.g. a digitization replicate counter)
 #'   is carried over from [fishmorph_segments()]/[fishmorph_ratios()] and
-#'   passed to `trait_space()` unfiltered.
+#'   passed to `trait_space()` unfiltered. A non-finite value (`Inf`/
+#'   `-Inf`, as from a ratio with a zero-length denominator segment) is
+#'   always an error regardless of `na_action` (it is not treated as an
+#'   ordinary missing value -- see Details).
 #' @param groups Optional factor (or character vector), one value per row
 #'   of `traits`, used to colour/group observations when plotting. If
 #'   `NULL` and `traits` contains a `species` column, it is used
@@ -55,14 +58,31 @@
 #'   a trait; `"missforest"` uses random-forest-based iterative imputation
 #'   (`missForest::missForest()`, Stekhoven & Bühlmann, 2012) on the
 #'   numeric trait matrix, using `groups` (when available) as an
-#'   additional predictor. `"omit"` and every imputation option print a
-#'   `message()` reporting the number of rows removed or values imputed
-#'   (plus, for `"missforest"`, the out-of-bag normalised RMSE of the
-#'   imputation), so this is never a silent operation.
+#'   additional predictor; `"missforest_phylo"` does the same but also
+#'   augments the predictor matrix with phylogenetic PCoA axes (see
+#'   [phylo_pcoa()], `tree`/`missforest_phylo_k`) for the species in
+#'   `groups`, so that phylogenetically related species can inform each
+#'   other's imputed values in addition to shared species identity --
+#'   falling back to plain `"missforest"`, with a warning explaining why,
+#'   if phylogenetic axes cannot be used (no `groups`, fewer than 3 species
+#'   matched to `tree`, "ape" not installed, etc.). `"omit"` and every
+#'   imputation option print a `message()` reporting the number of rows
+#'   removed or values imputed (plus, for `"missforest"`/
+#'   `"missforest_phylo"`, the out-of-bag normalised RMSE of the
+#'   imputation, and, for `"missforest_phylo"`, how many phylogenetic axes
+#'   and matched species were actually used), so this is never a silent
+#'   operation.
 #' @param missforest_ntree,missforest_maxiter Number of trees per forest
 #'   and maximum number of iterations passed to
-#'   `missForest::missForest()` when `na_action = "missforest"`; ignored
-#'   otherwise. Default to `missForest`'s own defaults (`100` and `10`).
+#'   `missForest::missForest()` when `na_action` is `"missforest"`/
+#'   `"missforest_phylo"`; ignored otherwise. Default to `missForest`'s
+#'   own defaults (`100` and `10`).
+#' @param tree Used only by `na_action = "missforest_phylo"`: an object of
+#'   class `"phylo"` (e.g. from `ape::read.tree()`), or `NULL` (default) to
+#'   use the bundled [load_fishmorph_phylogeny()] tree.
+#' @param missforest_phylo_k Used only by `na_action = "missforest_phylo"`:
+#'   maximum number of phylogenetic PCoA axes to add as predictors.
+#'   Defaults to `10`.
 #' @param flag_outliers Logical, screen for potential within-group (e.g.
 #'   within-species) outliers -- specimens unusually far from other members
 #'   of their own group in the standardised trait space -- and report them
@@ -118,6 +138,20 @@
 #'   *excluded* specimen, for the record). Has a dedicated [plot()] method.
 #'
 #' @details
+#' A non-finite trait value (`Inf`/`-Inf`) is rejected with an error
+#' regardless of `na_action`, before any missing-value handling: unlike
+#' `NA`, `is.na()`/`anyNA()` do not detect `Inf`/`-Inf`, so such a value
+#' would otherwise silently pass through every `na_action` unimputed and
+#' corrupt the ordination (and, specifically for `na_action =
+#' "missforest"`, can crash `missForest::missForest()` itself with a
+#' cryptic "missing value where TRUE/FALSE needed" error, because its
+#' internal convergence check computes `Inf - Inf = NaN`). This most
+#' commonly arises from a ratio with a zero-length denominator segment,
+#' e.g. from a degenerate or duplicated landmark (see
+#' [fishmorph_segments()]/[fishmorph_ratios()]); investigate and correct
+#' the underlying measurement, or replace it with `NA` yourself first if
+#' you want it handled like any other missing value.
+#'
 #' By default (`na_action = "fail"`), rows with `NA` in any numeric trait
 #' cause an error; set `na_action` to `"omit"` or one of the imputation
 #' options to handle missing values automatically (see `na_action`). Mean
@@ -133,7 +167,14 @@
 #' over mean imputation once more than a few values are missing;
 #' it requires the `missForest` package (not installed by default; see
 #' `Suggests`) and is stochastic, so results vary run to run unless
-#' `set.seed()` is called beforehand. If a very large fraction of values
+#' `set.seed()` is called beforehand. `na_action = "missforest_phylo"`
+#' extends this further with phylogenetic PCoA axes (see [phylo_pcoa()])
+#' as additional predictors, so species can also borrow information from
+#' their close relatives, not only from shared species identity; this can
+#' help when a species has very few (or zero) complete specimens of its
+#' own for `missForest` to learn from, but adds a phylogenetic assumption
+#' (trait similarity correlates with relatedness) that should be
+#' reasonable for the trait in question. If a very large fraction of values
 #' is missing, no automated imputation method is a substitute for
 #' reviewing the missing-data mechanism directly. This function does not
 #' implement Gower distance for mixed (numeric and categorical) trait
@@ -223,8 +264,10 @@
 #' @export
 trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
                          log_transform = TRUE, scale = TRUE, axes = c(1, 2),
-                         na_action = c("fail", "omit", "impute_mean", "impute_group_mean", "missforest"),
+                         na_action = c("fail", "omit", "impute_mean", "impute_group_mean",
+                                       "missforest", "missforest_phylo"),
                          missforest_ntree = 100, missforest_maxiter = 10,
+                         tree = NULL, missforest_phylo_k = 10,
                          flag_outliers = TRUE, outlier_threshold = 3, outlier_min_n = 5,
                          remove_outliers = FALSE) {
   method <- match.arg(method)
@@ -267,12 +310,48 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
 
   X <- as.matrix(traits_df[numeric_cols])
 
+  # Inf/-Inf are not caught by anyNA()/is.na() (only NA and NaN are), so a
+  # ratio with a zero-length denominator (e.g. a degenerate/duplicate
+  # landmark collapsing a segment to zero -- see fishmorph_segments()/
+  # fishmorph_ratios()) would otherwise sail straight through every
+  # `na_action`, silently corrupting the ordination -- and, for
+  # na_action = "missforest" specifically, can crash missForest itself
+  # with a cryptic "missing value where TRUE/FALSE needed" error, because
+  # its convergence check computes Inf - Inf = NaN internally. Caught here,
+  # unconditionally (regardless of `na_action`), since a non-finite value
+  # is not an ordinary missing measurement and should not be imputed as if
+  # it were one.
+  non_finite <- !is.na(X) & !is.finite(X)
+  if (any(non_finite)) {
+    bad <- which(non_finite, arr.ind = TRUE)
+    bad_cols <- unique(colnames(X)[bad[, "col"]])
+    bad_rows <- rownames(X)[bad[, "row"]]
+    if (is.null(bad_rows) || anyNA(bad_rows)) bad_rows <- as.character(bad[, "row"])
+    bad_rows <- unique(bad_rows)
+    stop(sprintf(
+      paste(
+        "`traits` contains %d non-finite value(s) (Inf/-Inf, not NA) in",
+        "column(s): %s. This is not an ordinary missing value and is not",
+        "handled by `na_action` -- it usually indicates a zero-length",
+        "denominator segment (e.g. from a degenerate/duplicate landmark;",
+        "see fishmorph_segments()/fishmorph_ratios()) rather than a",
+        "genuinely missing measurement. Affected row(s): %s%s. Investigate",
+        "and correct the underlying measurement(s), or explicitly replace",
+        "these entries with NA yourself first if you do want them treated",
+        "as missing data by `na_action`."
+      ),
+      sum(non_finite), paste(bad_cols, collapse = ", "),
+      paste(utils::head(bad_rows, 10), collapse = ", "),
+      if (length(bad_rows) > 10) ", ..." else ""
+    ), call. = FALSE)
+  }
+
   if (anyNA(X)) {
     if (na_action == "fail") {
       stop(
         "`traits` contains missing values; remove or impute NAs before building ",
         "a trait space, or set `na_action` to \"omit\", \"impute_mean\", ",
-        "\"impute_group_mean\", or \"missforest\" (see ?trait_space).",
+        "\"impute_group_mean\", \"missforest\", or \"missforest_phylo\" (see ?trait_space).",
         call. = FALSE
       )
     }
@@ -330,10 +409,10 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
         "na_action = \"impute_group_mean\": imputed %d missing value(s) using within-group means.",
         n_na
       ))
-    } else if (na_action == "missforest") {
+    } else if (na_action %in% c("missforest", "missforest_phylo")) {
       if (!requireNamespace("missForest", quietly = TRUE)) {
         stop(
-          "na_action = \"missforest\" requires the \"missForest\" package. ",
+          "na_action = \"", na_action, "\" requires the \"missForest\" package. ",
           "Install it with install.packages(\"missForest\").",
           call. = FALSE
         )
@@ -341,6 +420,25 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
       n_na <- sum(is.na(X))
       df_for_rf <- as.data.frame(X)
       if (!is.null(groups)) df_for_rf$.group <- groups
+
+      phylo_note <- ""
+      if (na_action == "missforest_phylo") {
+        pax <- .phylo_axes_for_groups(groups, tree = tree, k_phylo = missforest_phylo_k)
+        if (is.null(pax$axes)) {
+          warning(
+            "na_action = \"missforest_phylo\": phylogenetic axes could not be used (",
+            pax$reason, "); falling back to plain \"missforest\" (no phylogenetic predictors).",
+            call. = FALSE
+          )
+        } else {
+          df_for_rf <- cbind(df_for_rf, pax$axes)
+          phylo_note <- sprintf(
+            ", augmented with %d phylogenetic PCoA axis/axes (%d species matched to the tree)",
+            pax$k_used, pax$n_matched
+          )
+        }
+      }
+
       imp <- missForest::missForest(
         df_for_rf, ntree = missforest_ntree, maxiter = missforest_maxiter,
         verbose = FALSE
@@ -350,9 +448,10 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
       storage.mode(X) <- "double"
       nrmse <- if ("NRMSE" %in% names(imp$OOBerror)) imp$OOBerror[["NRMSE"]] else NA_real_
       message(sprintf(
-        "na_action = \"missforest\": imputed %d missing value(s) using random-forest imputation (missForest)%s%s.",
-        n_na,
+        "na_action = \"%s\": imputed %d missing value(s) using random-forest imputation (missForest)%s%s%s.",
+        na_action, n_na,
         if (!is.null(groups)) ", using `groups` as an auxiliary predictor" else "",
+        phylo_note,
         if (!is.na(nrmse)) sprintf(" (out-of-bag NRMSE = %.3f)", nrmse) else ""
       ))
     }

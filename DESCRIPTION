@@ -36,6 +36,7 @@ Imports:
     tools,
     utils
 Suggests:
+    ape,
     dplyr,
     future,
     future.apply,
@@ -45,6 +46,7 @@ Suggests:
     jpeg,
     knitr,
     missForest,
+    phytools,
     png,
     readxl,
     rmarkdown,

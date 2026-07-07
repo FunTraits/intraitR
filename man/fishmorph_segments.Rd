@@ -8,10 +8,13 @@ fishmorph_segments(
   landmarks,
   scale_cm = 1,
   groups = NULL,
-  na_action = c("keep", "omit", "impute_mean", "impute_group_mean", "missforest"),
+  na_action = c("keep", "omit", "impute_mean", "impute_group_mean", "missforest",
+    "missforest_phylo"),
   missforest_ntree = 100,
   missforest_maxiter = 10,
-  geometry_check = NULL
+  geometry_check = NULL,
+  tree = NULL,
+  missforest_phylo_k = 10
 )
 }
 \arguments{
@@ -41,19 +44,23 @@ reports how many; \code{"impute_mean"} replaces missing segment values with
 the column mean; \code{"impute_group_mean"} uses the within-group (e.g.
 within-species) mean instead, falling back to the column mean, with a
 warning, for a group entirely missing a segment; \code{"missforest"} uses
-random-forest-based iterative imputation
-(\code{missForest::missForest()}). Same convention, options, and messages
-as \code{\link[=trait_space]{trait_space()}}'s \code{na_action} -- see there for details -- except
-that here imputation operates on the derived linear \emph{measurements},
-not on landmark coordinates: this is not a substitute for a proper
+random-forest-based iterative imputation (\code{missForest::missForest()});
+\code{"missforest_phylo"} does the same but additionally augments the
+predictor matrix with phylogenetic PCoA axes (see \code{\link[=phylo_pcoa]{phylo_pcoa()}},
+\code{tree}) for the species in \code{groups}, falling back to plain
+\code{"missforest"} (with a warning) if phylogenetic axes cannot be used.
+Same convention, options, and messages as \code{\link[=trait_space]{trait_space()}}'s
+\code{na_action} -- see there for details -- except that here imputation
+operates on the derived linear \emph{measurements}, not on landmark
+coordinates: this is not a substitute for a proper
 geometric-morphometric estimate of a missing landmark's position (see
 \code{\link[=impute_landmarks]{impute_landmarks()}}, run on \code{landmarks} \emph{before} calling this
 function), and is best reserved for a small number of missing values.}
 
 \item{missforest_ntree, missforest_maxiter}{Number of trees per forest
 and maximum number of iterations passed to \code{missForest::missForest()}
-when \code{na_action = "missforest"}; ignored otherwise. Default to
-\code{missForest}'s own defaults (\code{100} and \code{10}).}
+when \code{na_action} is \code{"missforest"}/\code{"missforest_phylo"}; ignored
+otherwise. Default to \code{missForest}'s own defaults (\code{100} and \code{10}).}
 
 \item{geometry_check}{Optional object of class \code{"intrait_geometry_check"},
 as returned by \code{correct_landmarks(landmarks, rule = "check_geometry")}
@@ -70,6 +77,14 @@ own rotation are used for this (see
 \code{Jl}, \code{CPd}, \code{CFd} involve landmarks outside the checked battery).
 \code{NULL} (default) leaves every measurement as computed, regardless of
 \code{geometry_check}.}
+
+\item{tree}{Used only by \code{na_action = "missforest_phylo"}: an object of
+class \code{"phylo"}, or \code{NULL} (default) to use the bundled
+\code{\link[=load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}} tree.}
+
+\item{missforest_phylo_k}{Used only by \code{na_action = "missforest_phylo"}:
+maximum number of phylogenetic PCoA axes to add as predictors.
+Defaults to \code{10}.}
 }
 \value{
 A \code{data.frame} (class \code{"intrait_segments"}) with one row per

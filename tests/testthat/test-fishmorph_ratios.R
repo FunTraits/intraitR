@@ -148,3 +148,85 @@ test_that("fishmorph_ratios() na_action = 'missforest' imputes missing values", 
   )
   expect_false(anyNA(r$REs))
 })
+
+test_that("fishmorph_ratios() na_action = 'missforest_phylo' falls back to plain missforest, with a warning, below the 3-species phylogenetic minimum", {
+  testthat::skip_if_not_installed("missForest")
+  testthat::skip_if_not_installed("ape")
+  set.seed(655)
+  seg <- make_segments_with_na() # only 2 distinct species ("A", "B")
+  tree <- ape::rcoal(3, tip.label = c("A", "B", "C"))
+  expect_warning(
+    r <- suppressMessages(fishmorph_ratios(
+      seg, na_action = "missforest_phylo", tree = tree,
+      missforest_ntree = 20, missforest_maxiter = 2
+    )),
+    "phylogenetic axes could not be used"
+  )
+  expect_false(anyNA(r$REs))
+})
+
+# --- landmarks-based ratio rescue for a missing scale bar --------------
+
+test_that("fishmorph_ratios(landmarks = ...) rescues ratios exactly when only the scale bar is missing", {
+  set.seed(701)
+  fish <- simulate_fishmorph_points(n_per_species = 4, n_replicates = 1)
+  seg_ok <- fishmorph_segments(fish)
+  ratios_ok <- fishmorph_ratios(seg_ok)
+
+  fish_bad <- fish
+  fish_bad$coords[20, , 1] <- NA_real_ # specimen 1's scale bar goes missing
+  seg_bad <- suppressWarnings(fishmorph_segments(fish_bad))
+  required <- c("Bl", "Bd", "Hd", "Eh", "Mo", "PFi", "PFl", "Ed", "Jl", "CPd", "CFd")
+  expect_true(all(is.na(seg_bad[1, required])))
+
+  ratio_cols <- c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")
+  expect_message(
+    ratios_rescued <- fishmorph_ratios(seg_bad, landmarks = fish_bad),
+    "rescued ratios for 1 specimen"
+  )
+  expect_equal(
+    as.numeric(ratios_rescued[1, ratio_cols]),
+    as.numeric(ratios_ok[1, ratio_cols])
+  )
+  # absolute segments are not, and cannot be, rescued -- only the ratios
+  expect_false(anyNA(ratios_rescued[, ratio_cols]))
+})
+
+test_that("fishmorph_ratios(landmarks = ...) leaves specimens with only a partial NA pattern untouched", {
+  set.seed(702)
+  fish <- simulate_fishmorph_points(n_per_species = 4, n_replicates = 1)
+  fish$coords[5, , 1] <- NA_real_ # specimen 1 missing one anatomical landmark; scale bar intact
+  seg <- fishmorph_segments(fish) # Hd (and ratios using it) are NA for specimen 1; Bl/Bd/etc are not
+  required <- c("Bl", "Bd", "Hd", "Eh", "Mo", "PFi", "PFl", "Ed", "Jl", "CPd", "CFd")
+  expect_false(all(is.na(seg[1, required])))
+
+  ratios_before <- fishmorph_ratios(seg)
+  expect_silent(ratios_after <- fishmorph_ratios(seg, landmarks = fish))
+  # partial-NA specimen is left exactly as-is: same values, same NA pattern
+  expect_equal(ratios_after[1, ], ratios_before[1, ])
+})
+
+test_that("fishmorph_ratios(landmarks = ...) warns and ignores a malformed `landmarks` argument", {
+  set.seed(703)
+  fish <- simulate_fishmorph_points(n_per_species = 3, n_replicates = 1)
+  fish$coords[20, , 1] <- NA_real_
+  seg <- suppressWarnings(fishmorph_segments(fish))
+  expect_warning(
+    fishmorph_ratios(seg, landmarks = matrix(1:4, 2, 2)),
+    "could not be used to rescue"
+  )
+})
+
+test_that("fishmorph_ratios(landmarks = ...) is a silent no-op when no specimen matches", {
+  set.seed(704)
+  fish <- simulate_fishmorph_points(n_per_species = 3, n_replicates = 1)
+  fish$coords[20, , 1] <- NA_real_
+  seg <- suppressWarnings(fishmorph_segments(fish))
+
+  unrelated <- fish
+  dimnames(unrelated$coords)[[3]] <- paste0("other_", seq_len(dim(unrelated$coords)[3]))
+
+  ratio_cols <- c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")
+  expect_silent(r <- fishmorph_ratios(seg, landmarks = unrelated))
+  expect_true(all(is.na(r[1, ratio_cols])))
+})

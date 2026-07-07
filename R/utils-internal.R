@@ -283,6 +283,26 @@
   }, character(1), USE.NAMES = FALSE)
 }
 
+#' Canonicalise a species label for cross-source matching
+#'
+#' Phylogenetic tip labels, this package's own `species` columns, and
+#' user-supplied composition/tree data all use different, otherwise
+#' equivalent, word-separator conventions for the same binomial name --
+#' e.g. `"Barbus barbus"` (this package's own convention), `"Barbus_barbus"`
+#' (a common tip-label convention), and `"Barbus.barbus"` (the convention
+#' used by the bundled [load_fishmorph_phylogeny()] tree). This collapses
+#' any run of spaces, underscores, and/or dots to a single underscore and
+#' trims leading/trailing whitespace, so labels from any of these sources
+#' can be compared for equality regardless of which separator each side
+#' happens to use.
+#'
+#' @param x Character vector of species labels.
+#' @return Character vector, same length as `x`.
+#' @noRd
+.canon_species_name <- function(x) {
+  gsub("[ ._]+", "_", trimws(as.character(x)))
+}
+
 #' Qualitative colour palette for ordination group plots
 #'
 #' A curated, high-contrast categorical palette (the "Tableau 10" set,
@@ -797,30 +817,46 @@
 #'
 #' Shared implementation of the `na_action` convention introduced by
 #' [trait_space()] (`"fail"`/`"keep"`, `"omit"`, `"impute_mean"`,
-#' `"impute_group_mean"`, `"missforest"`), reused by [trait_space()],
-#' [fishmorph_segments()], and [fishmorph_ratios()] so the same options
+#' `"impute_group_mean"`, `"missforest"`, `"missforest_phylo"`), reused by
+#' [fishmorph_segments()] and [fishmorph_ratios()] so the same options
 #' behave identically (same messages, same imputation logic) wherever
-#' missing values need handling in this package.
+#' missing values need handling in this package. [trait_space()] and
+#' [impute_landmarks()] implement the same options inline (they operate on
+#' a different shape of input -- a full ordination input / raw landmark
+#' coordinates, respectively -- rather than a plain specimen x trait
+#' matrix), calling the shared [.phylo_axes_for_groups()] helper for the
+#' phylogenetic-augmentation step specifically, so that step at least is
+#' not duplicated three times over.
 #'
 #' @param X A numeric matrix, one row per specimen/observation.
 #' @param groups Optional factor, one value per row of `X`; required for
 #'   `na_action = "impute_group_mean"`, optionally used as an auxiliary
-#'   predictor for `na_action = "missforest"`.
+#'   predictor for `na_action = "missforest"`/`"missforest_phylo"`.
 #' @param na_action Character: `"keep"`/`"fail"` do nothing except, for
 #'   `"fail"`, stop with an error if `X` has any `NA`; `"omit"` reports and
 #'   drops incomplete rows; `"impute_mean"`/`"impute_group_mean"` replace
 #'   `NA` with the column/within-group mean; `"missforest"` uses
-#'   `missForest::missForest()`.
+#'   `missForest::missForest()`; `"missforest_phylo"` does the same but
+#'   additionally augments the predictor matrix with phylogenetic PCoA axes
+#'   (see [phylo_pcoa()]) for the species in `groups`, falling back to
+#'   plain `"missforest"` (with a warning) if phylogenetic axes cannot be
+#'   used (no `groups`, too few species matched to `tree`, etc.).
 #' @param missforest_ntree,missforest_maxiter Passed to
 #'   `missForest::missForest()`.
 #' @param context Character, used only to word messages/errors (e.g.
 #'   `"traits"`, `"segments"`, `"ratios"`).
+#' @param tree Used only by `na_action = "missforest_phylo"`: an object of
+#'   class `"phylo"`, or `NULL` (default) to use the bundled
+#'   [load_fishmorph_phylogeny()] tree; see [.phylo_axes_for_groups()].
+#' @param missforest_phylo_k Used only by `na_action = "missforest_phylo"`:
+#'   maximum number of phylogenetic PCoA axes to add as predictors.
 #' @return A list with `X` (the possibly modified/row-reduced matrix) and
 #'   `keep` (logical vector, length `nrow(X)` as passed in, `TRUE` for rows
 #'   retained -- all `TRUE` unless `na_action = "omit"` dropped some).
 #' @noRd
 .apply_na_action <- function(X, groups, na_action, missforest_ntree = 100,
-                              missforest_maxiter = 10, context = "traits") {
+                              missforest_maxiter = 10, context = "traits",
+                              tree = NULL, missforest_phylo_k = 10) {
   n <- nrow(X)
   if (!anyNA(X)) {
     return(list(X = X, keep = rep(TRUE, n)))
@@ -831,8 +867,8 @@
   if (na_action == "fail") {
     stop(
       "`", context, "` contains missing values; set `na_action` to \"omit\", ",
-      "\"impute_mean\", \"impute_group_mean\", or \"missforest\" to handle them ",
-      "(see the function's documentation).",
+      "\"impute_mean\", \"impute_group_mean\", \"missforest\", or ",
+      "\"missforest_phylo\" to handle them (see the function's documentation).",
       call. = FALSE
     )
   }
@@ -904,10 +940,10 @@
       "na_action = \"impute_group_mean\": imputed %d missing value(s) using within-group means.",
       n_imputed
     ))
-  } else if (na_action == "missforest") {
+  } else if (na_action %in% c("missforest", "missforest_phylo")) {
     if (!requireNamespace("missForest", quietly = TRUE)) {
       stop(
-        "na_action = \"missforest\" requires the \"missForest\" package. ",
+        "na_action = \"", na_action, "\" requires the \"missForest\" package. ",
         "Install it with install.packages(\"missForest\").",
         call. = FALSE
       )
@@ -915,6 +951,25 @@
     n_na <- sum(is.na(X))
     df_for_rf <- as.data.frame(X)
     if (!is.null(groups)) df_for_rf$.group <- groups
+
+    phylo_note <- ""
+    if (na_action == "missforest_phylo") {
+      pax <- .phylo_axes_for_groups(groups, tree = tree, k_phylo = missforest_phylo_k)
+      if (is.null(pax$axes)) {
+        warning(
+          "na_action = \"missforest_phylo\": phylogenetic axes could not be used (",
+          pax$reason, "); falling back to plain \"missforest\" (no phylogenetic predictors).",
+          call. = FALSE
+        )
+      } else {
+        df_for_rf <- cbind(df_for_rf, pax$axes)
+        phylo_note <- sprintf(
+          ", augmented with %d phylogenetic PCoA axis/axes (%d species matched to the tree)",
+          pax$k_used, pax$n_matched
+        )
+      }
+    }
+
     imp <- missForest::missForest(
       df_for_rf, ntree = missforest_ntree, maxiter = missforest_maxiter,
       verbose = FALSE
@@ -924,14 +979,85 @@
     storage.mode(X) <- "double"
     nrmse <- if ("NRMSE" %in% names(imp$OOBerror)) imp$OOBerror[["NRMSE"]] else NA_real_
     message(sprintf(
-      "na_action = \"missforest\": imputed %d missing value(s) using random-forest imputation (missForest)%s%s.",
-      n_na,
+      "na_action = \"%s\": imputed %d missing value(s) using random-forest imputation (missForest)%s%s%s.",
+      na_action, n_na,
       if (!is.null(groups)) ", using `groups` as an auxiliary predictor" else "",
+      phylo_note,
       if (!is.na(nrmse)) sprintf(" (out-of-bag NRMSE = %.3f)", nrmse) else ""
     ))
   }
 
   list(X = X, keep = keep)
+}
+
+#' Species-level phylogenetic PCoA axes, broadcast to match `groups`
+#'
+#' Used internally by every `na_action`/`method = "missforest_phylo"`
+#' option ([trait_space()], [fishmorph_segments()]/[fishmorph_ratios()] via
+#' [.apply_na_action()], [impute_landmarks()]) to compute phylogenetic
+#' PCoA axes (see [phylo_pcoa()]) for the species actually present in
+#' `groups`, and broadcast them out to one row per element of `groups` so
+#' they can be column-bound onto a missForest predictor matrix. Never
+#' errors: any failure (no `groups`, no usable `tree`, too few matched
+#' species, "ape"/"missForest" missing, ...) is reported back as `$reason`
+#' instead, so callers can fall back to plain `"missforest"` with an
+#' informative message rather than aborting the whole imputation --
+#' phylogenetic augmentation is an opportunistic improvement, not a
+#' requirement.
+#'
+#' @param groups Factor or character vector, one value per row to augment
+#'   (e.g. specimens); `NA` entries, and entries whose species has no match
+#'   in `tree$tip.label`, get `NA` phylogenetic axes (missForest imputes
+#'   these internally along with everything else, so this is not an
+#'   error -- it just means those specimens get no phylogenetic benefit).
+#' @param tree `NULL` (default: try [load_fishmorph_phylogeny()]) or an
+#'   object of class `"phylo"`.
+#' @param k_phylo Integer, maximum number of phylogenetic axes to use.
+#' @return A list with `axes` (a `data.frame` with `length(groups)` rows
+#'   and up to `k_phylo` columns `phylo_1, phylo_2, ...`, or `NULL` on
+#'   failure), `reason` (`NULL` on success, else a one-line character
+#'   explanation of why phylogenetic augmentation was skipped), `n_matched`
+#'   (number of distinct species successfully matched to the tree), and
+#'   `k_used` (number of phylogenetic axes actually included).
+#' @noRd
+.phylo_axes_for_groups <- function(groups, tree = NULL, k_phylo = 10) {
+  if (is.null(groups)) {
+    return(list(axes = NULL, reason = "no `groups` supplied", n_matched = 0L, k_used = 0L))
+  }
+  if (is.null(tree)) {
+    tree <- tryCatch(load_fishmorph_phylogeny(), error = function(e) e)
+    if (inherits(tree, "error")) {
+      return(list(
+        axes = NULL,
+        reason = paste0(
+          "no `tree` supplied and the bundled phylogeny could not be loaded: ",
+          conditionMessage(tree)
+        ),
+        n_matched = 0L, k_used = 0L
+      ))
+    }
+  }
+
+  sp_pool <- unique(as.character(groups)[!is.na(groups)])
+  pp <- tryCatch(
+    phylo_pcoa(tree, species = sp_pool, k = NULL, ultrametric = FALSE),
+    error = function(e) e
+  )
+  if (inherits(pp, "error")) {
+    return(list(axes = NULL, reason = conditionMessage(pp), n_matched = 0L, k_used = 0L))
+  }
+
+  k_use <- min(k_phylo, pp$k)
+  ax <- pp$traits[, c("species", paste0("PCoA", seq_len(k_use))), drop = FALSE]
+  names(ax) <- c("species", paste0("phylo_", seq_len(k_use)))
+
+  canon_groups <- .canon_species_name(as.character(groups))
+  canon_ax_sp <- .canon_species_name(ax$species)
+  m <- match(canon_groups, canon_ax_sp)
+  out <- ax[m, paste0("phylo_", seq_len(k_use)), drop = FALSE]
+  rownames(out) <- NULL
+
+  list(axes = out, reason = NULL, n_matched = nrow(ax), k_used = k_use)
 }
 
 #' Orientation of the best-fit line through a set of 2D points
@@ -1058,6 +1184,69 @@
     parallel_vertical_segments         = c("Mo", "Bd", "PFi", "Hd", "Eh", "Ed"),
     axis_horizontal_parallel           = "Bl"
   )
+}
+
+#' Compute the 11 FISHMORPH linear measurements directly in pixel
+#' (digitization) units, with no scale-bar conversion
+#'
+#' Shared geometry engine behind [fishmorph_segments()] (which multiplies
+#' this by a per-specimen `scale_cm / scale_px` factor to obtain real-world
+#' centimetres) and [fishmorph_ratios()]'s `landmarks`-based rescue of
+#' specimens whose scale bar (points 20-21) is missing or invalid: since
+#' every one of the nine FISHMORPH ratios divides two measurements from the
+#' very same specimen, an unknown/missing scale factor cancels out
+#' algebraically, so the *ratios* can be recovered directly from these raw
+#' pixel distances even when no calibrated (cm) segment values exist.
+#'
+#' @param A A `p x 2 x n` landmark coordinate array (`p >= 21`), with
+#'   `dimnames(A)[[3]]` giving specimen identifiers.
+#' @return A `data.frame`, row-named by specimen, with columns `Bl`, `Bd`,
+#'   `Hd`, `Eh`, `Mo`, `PFi`, `PFl`, `Ed`, `Jl`, `CPd`, `CFd`, all in raw
+#'   pixel (digitization) units -- *not* centimetres.
+#' @noRd
+.fishmorph_pixel_segments <- function(A) {
+  n <- dim(A)[3]
+  p <- dim(A)[1]
+  has_curvature_point <- p >= 22
+
+  dist_lm <- function(a, b) {
+    diff_mat <- A[a, , ] - A[b, , ]
+    if (is.null(dim(diff_mat))) diff_mat <- matrix(diff_mat, ncol = n)
+    sqrt(colSums(diff_mat^2))
+  }
+
+  segments_def <- list(
+    Bd  = c(3, 4),
+    Hd  = c(5, 6),
+    Eh  = c(7, 8),
+    Mo  = c(1, 9),
+    PFi = c(10, 11),
+    PFl = c(10, 12),
+    Ed  = c(13, 14),
+    Jl  = c(1, 15),
+    CPd = c(16, 17),
+    CFd = c(18, 19)
+  )
+
+  if (has_curvature_point) {
+    pt22 <- A[22, , ]
+    if (is.null(dim(pt22))) pt22 <- matrix(pt22, ncol = n)
+    used_curvature <- colSums(abs(pt22), na.rm = TRUE) > 0 & !apply(pt22, 2, function(x) any(is.na(x)))
+    bl_straight <- dist_lm(1, 2)
+    bl_curved <- dist_lm(1, 22) + dist_lm(22, 2)
+    Bl <- ifelse(used_curvature, bl_curved, bl_straight)
+  } else {
+    Bl <- dist_lm(1, 2)
+  }
+
+  out <- list(Bl = Bl)
+  for (nm in names(segments_def)) {
+    pr <- segments_def[[nm]]
+    out[[nm]] <- dist_lm(pr[1], pr[2])
+  }
+  out <- as.data.frame(out)
+  rownames(out) <- dimnames(A)[[3]]
+  out
 }
 
 #' Resolve a `specimen` argument (`NULL`, integer, or character) into

@@ -101,18 +101,26 @@
 #'   paths rather than leaving a gap -- e.g. real T-26 specimens are
 #'   commonly missing landmark 5, in which case the body outline falls
 #'   back to a direct 1-3 segment. Defaults to `TRUE`.
-#' @param scale_label Character text drawn just above the digitization
-#'   scale bar (landmarks 20-21), or `NULL` to omit it. Defaults to
-#'   `"scale (1 cm)"`, the FISHMORPH protocol's standard calibration
-#'   segment; change it (e.g. `"scale (2 cm)"`) if a data set was
-#'   digitized against a different calibration length. Only drawn when
-#'   both landmarks 20 and 21 are present (non-`NA`) for this specimen.
-#'   The bar itself is drawn schematically near the plot's own origin
-#'   (bottom-left corner) rather than at landmarks 20/21's true digitized
-#'   coordinates -- which can otherwise land anywhere in the frame, even
-#'   on the fish -- while still being drawn to the real digitized length
-#'   between them (i.e. still true to scale); neither landmark is
-#'   individually number-labelled.
+#' @param scale_unit Character, the real-world unit the digitization scale
+#'   bar (landmarks 20-21) represents one of (e.g. `"mm"`, `"cm"`, `"dm"`,
+#'   `"m"`, or any other unit label) -- the FISHMORPH protocol's standard
+#'   calibration segment is 1 cm, hence the default `"cm"`; change it if a
+#'   data set was digitized against a different real-world unit. Set to
+#'   `NULL` to omit the bar's text label entirely (the bar itself is still
+#'   drawn). The label is built automatically as `"1 <scale_unit> = <length>"`,
+#'   where `<length>` is that specimen's own digitized distance between
+#'   landmarks 20 and 21, so it always reflects the actual calibration
+#'   length used for that specimen rather than a fixed, possibly
+#'   inaccurate, caption. Only drawn when both landmarks 20 and 21 are
+#'   present (non-`NA`) for this specimen. The bar itself is drawn as a
+#'   solid, filled bar with its own border (not a thin open line), low
+#'   down, schematically near the plot's own origin (bottom-left corner)
+#'   rather than at landmarks 20/21's true digitized coordinates -- which
+#'   can otherwise land anywhere in the frame, even on the fish -- while
+#'   still being drawn to the real digitized length between them (i.e.
+#'   still true to scale); its caption is placed directly below it.
+#'   Neither landmark is individually number-labelled or marked with its
+#'   own point symbol.
 #' @param axis_range Either `"auto"` (default) or a numeric vector of
 #'   length 2, `c(min, max)`, shared by both `x` and `y`. `"auto"` uses
 #'   `c(0, 1)`, with its clean, round tick labels, whenever every
@@ -167,7 +175,7 @@
 #' are already normalised to `[0, 1]` or are raw, not-yet-corrected
 #' digitization pixels in the hundreds or thousands. Landmarks 20 and 21
 #' (the scale bar) are excluded from this numbering, and from the plain
-#' scattered dots, entirely -- see `scale_label` above.
+#' scattered dots, entirely -- see `scale_unit` above.
 #'
 #' @return Invisibly returns the `p x 2` matrix of coordinates plotted, or
 #'   (when `individual` matches more than one specimen) a named list of such
@@ -232,7 +240,7 @@ plot_fishmorph_points <- function(landmarks, specimen = 1, individual = NULL, la
                                    outline = TRUE,
                                    highlight_imputed = TRUE, highlight_corrected = TRUE,
                                    geometry_check = NULL, highlight_geometry = TRUE,
-                                   scale_label = "scale (1 cm)", axis_range = "auto", ...) {
+                                   scale_unit = "cm", axis_range = "auto", ...) {
   A <- .get_coords(landmarks)
   p <- dim(A)[1]
   if (dim(A)[2] != 2) {
@@ -458,8 +466,8 @@ plot_fishmorph_points <- function(landmarks, specimen = 1, individual = NULL, la
 
   dots <- list(...)
   # Landmarks 20/21 (the scale bar) are excluded from the plain scattered
-  # dots here -- they get their own schematic triangle markers instead
-  # (see the scale-bar block below), so they are not drawn twice.
+  # dots here -- they get their own schematic segment instead (see the
+  # scale-bar block below), so they are not drawn twice.
   show_pt <- rep(TRUE, nrow(xy))
   show_pt[intersect(c(20, 21), seq_len(nrow(xy)))] <- FALSE
 
@@ -545,15 +553,22 @@ plot_fishmorph_points <- function(landmarks, specimen = 1, individual = NULL, la
     # no longer sit at a position their index would usefully point to.
     scale_len <- sqrt(sum((xy[20, ] - xy[21, ])^2))
     x0 <- rng[1] + graphics::xinch(0.15)
-    y0 <- rng[1] + graphics::yinch(0.15)
+    y0 <- rng[1] + graphics::yinch(0.08)
     x1 <- x0 + scale_len
-    graphics::points(x0, y0, pch = 17, col = "black")
-    graphics::points(x1, y0, pch = 17, col = "black")
-    graphics::segments(x0, y0, x1, y0, col = "black", lty = 2)
-    if (!is.null(scale_label)) {
+    bar_half_height <- graphics::yinch(0.035)
+    # A solid, filled bar with its own border -- rather than a thin open
+    # line -- so its physical extent (and hence the real-world size it
+    # calibrates) reads clearly at a glance, the way a scale bar on a map
+    # or photograph would.
+    graphics::rect(
+      x0, y0 - bar_half_height, x1, y0 + bar_half_height,
+      col = "black", border = "black", lwd = 1
+    )
+    if (!is.null(scale_unit)) {
       graphics::text(
-        (x0 + x1) / 2, y0 + graphics::yinch(0.14),
-        labels = scale_label, cex = 0.75, font = 3
+        (x0 + x1) / 2, y0 - bar_half_height - graphics::yinch(0.12),
+        labels = sprintf("1 %s = %s", scale_unit, formatC(scale_len, format = "f", digits = 3)),
+        cex = 0.75, font = 3
       )
     }
   }

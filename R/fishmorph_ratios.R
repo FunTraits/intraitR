@@ -44,17 +44,43 @@
 #'   `"impute_group_mean"` uses the within-group (e.g. within-species)
 #'   mean instead, falling back to the column mean, with a warning, for a
 #'   group entirely missing a ratio; `"missforest"` uses random-forest-
-#'   based iterative imputation (`missForest::missForest()`). Same
-#'   convention, options, and messages as [trait_space()]'s `na_action`
-#'   -- see there for details -- except that here imputation operates on
-#'   the derived *ratios* directly; imputing at the landmark level with
-#'   [impute_landmarks()], or at the [fishmorph_segments()] stage instead
-#'   (before computing ratios), is usually preferable when both are
-#'   missing for the same specimen.
+#'   based iterative imputation (`missForest::missForest()`);
+#'   `"missforest_phylo"` does the same but additionally augments the
+#'   predictor matrix with phylogenetic PCoA axes (see [phylo_pcoa()],
+#'   `tree`) for the species in `groups`, falling back to plain
+#'   `"missforest"` (with a warning) if phylogenetic axes cannot be used.
+#'   Same convention, options, and messages as [trait_space()]'s
+#'   `na_action` -- see there for details -- except that here imputation
+#'   operates on the derived *ratios* directly; imputing at the landmark
+#'   level with [impute_landmarks()], or at the [fishmorph_segments()]
+#'   stage instead (before computing ratios), is usually preferable when
+#'   both are missing for the same specimen.
 #' @param missforest_ntree,missforest_maxiter Number of trees per forest
 #'   and maximum number of iterations passed to `missForest::missForest()`
-#'   when `na_action = "missforest"`; ignored otherwise. Default to
-#'   `missForest`'s own defaults (`100` and `10`).
+#'   when `na_action` is `"missforest"`/`"missforest_phylo"`; ignored
+#'   otherwise. Default to `missForest`'s own defaults (`100` and `10`).
+#' @param tree Used only by `na_action = "missforest_phylo"`: an object of
+#'   class `"phylo"`, or `NULL` (default) to use the bundled
+#'   [load_fishmorph_phylogeny()] tree.
+#' @param missforest_phylo_k Used only by `na_action = "missforest_phylo"`:
+#'   maximum number of phylogenetic PCoA axes to add as predictors.
+#'   Defaults to `10`.
+#' @param landmarks Optional: the same `"intrait_landmarks"` object or raw
+#'   `p x k x n` array originally passed to [fishmorph_segments()] to
+#'   produce `segments`. When supplied, rescues the nine ratios (not the
+#'   absolute segment values, nor `MBl`) for specimens whose scale bar
+#'   (landmarks 20-21) was missing or invalid -- i.e. whose row in
+#'   `segments` is entirely `NA`, [fishmorph_segments()]'s signature for
+#'   this case. Because every ratio here divides two measurements from the
+#'   very same specimen, an unknown/missing scale factor cancels out
+#'   algebraically, so these ratios can be recomputed directly from the raw
+#'   pixel-space landmark distances, without ever needing a valid scale bar.
+#'   Matched to `segments` by row name/specimen id; only rescues rows that
+#'   are entirely `NA` (a specimen with just one missing anatomical
+#'   landmark, or a single `geometry_check`-flagged segment, is left
+#'   untouched, since mixing pixel-space and calibrated values for the same
+#'   specimen would defeat that quality control). Ignored, with no effect,
+#'   if `NULL` (default).
 #'
 #' @return A `data.frame` (class `"intrait_fishmorph"`) with one row per
 #'   specimen (fewer, if `na_action = "omit"` dropped any), an `MBl`
@@ -84,6 +110,17 @@
 #' fact and must instead be applied when digitizing landmarks 3-4
 #' (see [fishmorph_segments()]).
 #'
+#' A missing or zero-length scale bar makes every one of
+#' [fishmorph_segments()]'s 11 measurements `NA` for that specimen (the
+#' pixel-to-centimetre conversion factor is a single, per-specimen scalar
+#' applied to all of them), which would normally also make all nine ratios
+#' `NA`. Passing the original `landmarks` here recovers them anyway:
+#' because a ratio is always (segment / segment) *for that same specimen*,
+#' the shared, unknown scale factor cancels out of the division exactly,
+#' so the ratio is identical whether computed from calibrated (cm) or raw
+#' (pixel) segment values. This cannot recover the absolute segments
+#' themselves (`Bl`, `Bd`, ...) or `MBl`, only the nine unitless ratios.
+#'
 #' @references
 #' Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
 #' Tedesco, P. A., & Villéger, S. (2021). FISHMORPH: A global database on
@@ -107,13 +144,20 @@
 #' # within-species mean instead of carrying NA forward:
 #' fishmorph_ratios(segments, groups = segments$species, na_action = "impute_group_mean")
 #'
+#' # rescue ratios (only) for specimens with a missing/invalid scale bar,
+#' # directly from pixel-space landmark distances:
+#' fishmorph_ratios(segments, landmarks = fish)
+#'
 #' @export
 fishmorph_ratios <- function(segments, MBl = NULL, no_caudal_fin = FALSE,
                               ventral_mouth = FALSE, no_pectoral_fin = FALSE,
                               digits = 4, groups = NULL,
                               na_action = c("keep", "omit", "impute_mean",
-                                            "impute_group_mean", "missforest"),
-                              missforest_ntree = 100, missforest_maxiter = 10) {
+                                            "impute_group_mean", "missforest",
+                                            "missforest_phylo"),
+                              missforest_ntree = 100, missforest_maxiter = 10,
+                              tree = NULL, missforest_phylo_k = 10,
+                              landmarks = NULL) {
   na_action <- match.arg(na_action)
   required <- c("Bl", "Bd", "Hd", "Eh", "Mo", "PFi", "PFl", "Ed", "Jl", "CPd", "CFd")
   missing_cols <- setdiff(required, names(segments))
@@ -140,6 +184,43 @@ fishmorph_ratios <- function(segments, MBl = NULL, no_caudal_fin = FALSE,
   no_pectoral_fin <- recycle(no_pectoral_fin, "no_pectoral_fin")
   if (!is.null(MBl) && length(MBl) != n) {
     stop("`MBl` must have length nrow(segments) (", n, ").", call. = FALSE)
+  }
+
+  if (!is.null(landmarks)) {
+    all_na <- apply(segments[required], 1, function(x) all(is.na(x)))
+    if (any(all_na)) {
+      A_lm <- tryCatch(.get_coords(landmarks), error = function(e) e)
+      if (inherits(A_lm, "error") || length(dim(A_lm)) != 3 ||
+          dim(A_lm)[2] != 2 || dim(A_lm)[1] < 21) {
+        warning(
+          "`landmarks` could not be used to rescue ratios for specimen(s) ",
+          "with a missing/invalid scale bar (expected the same ",
+          "\"intrait_landmarks\" object/array originally passed to ",
+          "fishmorph_segments(), with at least 21 two-dimensional ",
+          "landmarks); ignoring it.",
+          call. = FALSE
+        )
+      } else {
+        lm_names <- dimnames(A_lm)[[3]]
+        target_ids <- rownames(segments)[all_na]
+        matched_ids <- intersect(target_ids, lm_names)
+        if (length(matched_ids) > 0) {
+          lm_idx <- match(matched_ids, lm_names)
+          px_seg <- .fishmorph_pixel_segments(A_lm[, , lm_idx, drop = FALSE])
+          out_idx <- match(matched_ids, rownames(segments))
+          segments[out_idx, required] <- px_seg[, required]
+          message(sprintf(
+            paste(
+              "fishmorph_ratios(): rescued ratios for %d specimen(s) with a",
+              "missing/invalid scale bar directly from pixel-space landmark",
+              "distances (the unknown scale factor cancels out in every",
+              "ratio); their absolute segment values remain unrecoverable."
+            ),
+            length(matched_ids)
+          ))
+        }
+      }
+    }
   }
 
   Bl <- segments$Bl; Bd <- segments$Bd; Hd <- segments$Hd; Eh <- segments$Eh
@@ -177,7 +258,7 @@ fishmorph_ratios <- function(segments, MBl = NULL, no_caudal_fin = FALSE,
 
   res <- .apply_na_action(
     ratio_mat, groups, na_action, missforest_ntree, missforest_maxiter,
-    context = "ratios"
+    context = "ratios", tree = tree, missforest_phylo_k = missforest_phylo_k
   )
   ratio_mat <- res$X
   if (!all(res$keep)) {

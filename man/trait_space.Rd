@@ -12,9 +12,12 @@ trait_space(
   log_transform = TRUE,
   scale = TRUE,
   axes = c(1, 2),
-  na_action = c("fail", "omit", "impute_mean", "impute_group_mean", "missforest"),
+  na_action = c("fail", "omit", "impute_mean", "impute_group_mean", "missforest",
+    "missforest_phylo"),
   missforest_ntree = 100,
   missforest_maxiter = 10,
+  tree = NULL,
+  missforest_phylo_k = 10,
   flag_outliers = TRUE,
   outlier_threshold = 3,
   outlier_min_n = 5,
@@ -33,7 +36,10 @@ warning, since they carry no information for an ordination and
 cannot be rescaled to unit variance; this commonly happens when
 incidental numeric metadata (e.g. a digitization replicate counter)
 is carried over from \code{\link[=fishmorph_segments]{fishmorph_segments()}}/\code{\link[=fishmorph_ratios]{fishmorph_ratios()}} and
-passed to \code{trait_space()} unfiltered.}
+passed to \code{trait_space()} unfiltered. A non-finite value (\code{Inf}/
+\code{-Inf}, as from a ratio with a zero-length denominator segment) is
+always an error regardless of \code{na_action} (it is not treated as an
+ordinary missing value -- see Details).}
 
 \item{groups}{Optional factor (or character vector), one value per row
 of \code{traits}, used to colour/group observations when plotting. If
@@ -77,15 +83,34 @@ back to the column mean, with a warning, for a group entirely missing
 a trait; \code{"missforest"} uses random-forest-based iterative imputation
 (\code{missForest::missForest()}, Stekhoven & Bühlmann, 2012) on the
 numeric trait matrix, using \code{groups} (when available) as an
-additional predictor. \code{"omit"} and every imputation option print a
-\code{message()} reporting the number of rows removed or values imputed
-(plus, for \code{"missforest"}, the out-of-bag normalised RMSE of the
-imputation), so this is never a silent operation.}
+additional predictor; \code{"missforest_phylo"} does the same but also
+augments the predictor matrix with phylogenetic PCoA axes (see
+\code{\link[=phylo_pcoa]{phylo_pcoa()}}, \code{tree}/\code{missforest_phylo_k}) for the species in
+\code{groups}, so that phylogenetically related species can inform each
+other's imputed values in addition to shared species identity --
+falling back to plain \code{"missforest"}, with a warning explaining why,
+if phylogenetic axes cannot be used (no \code{groups}, fewer than 3 species
+matched to \code{tree}, "ape" not installed, etc.). \code{"omit"} and every
+imputation option print a \code{message()} reporting the number of rows
+removed or values imputed (plus, for \code{"missforest"}/
+\code{"missforest_phylo"}, the out-of-bag normalised RMSE of the
+imputation, and, for \code{"missforest_phylo"}, how many phylogenetic axes
+and matched species were actually used), so this is never a silent
+operation.}
 
 \item{missforest_ntree, missforest_maxiter}{Number of trees per forest
 and maximum number of iterations passed to
-\code{missForest::missForest()} when \code{na_action = "missforest"}; ignored
-otherwise. Default to \code{missForest}'s own defaults (\code{100} and \code{10}).}
+\code{missForest::missForest()} when \code{na_action} is \code{"missforest"}/
+\code{"missforest_phylo"}; ignored otherwise. Default to \code{missForest}'s
+own defaults (\code{100} and \code{10}).}
+
+\item{tree}{Used only by \code{na_action = "missforest_phylo"}: an object of
+class \code{"phylo"} (e.g. from \code{ape::read.tree()}), or \code{NULL} (default) to
+use the bundled \code{\link[=load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}} tree.}
+
+\item{missforest_phylo_k}{Used only by \code{na_action = "missforest_phylo"}:
+maximum number of phylogenetic PCoA axes to add as predictors.
+Defaults to \code{10}.}
 
 \item{flag_outliers}{Logical, screen for potential within-group (e.g.
 within-species) outliers -- specimens unusually far from other members
@@ -162,6 +187,19 @@ standard approaches used to build functional trait spaces in
 comparative ecology (e.g. Villéger et al., 2017).
 }
 \details{
+A non-finite trait value (\code{Inf}/\code{-Inf}) is rejected with an error
+regardless of \code{na_action}, before any missing-value handling: unlike
+\code{NA}, \code{is.na()}/\code{anyNA()} do not detect \code{Inf}/\code{-Inf}, so such a value
+would otherwise silently pass through every \code{na_action} unimputed and
+corrupt the ordination (and, specifically for \code{na_action = "missforest"}, can crash \code{missForest::missForest()} itself with a
+cryptic "missing value where TRUE/FALSE needed" error, because its
+internal convergence check computes \code{Inf - Inf = NaN}). This most
+commonly arises from a ratio with a zero-length denominator segment,
+e.g. from a degenerate or duplicated landmark (see
+\code{\link[=fishmorph_segments]{fishmorph_segments()}}/\code{\link[=fishmorph_ratios]{fishmorph_ratios()}}); investigate and correct
+the underlying measurement, or replace it with \code{NA} yourself first if
+you want it handled like any other missing value.
+
 By default (\code{na_action = "fail"}), rows with \code{NA} in any numeric trait
 cause an error; set \code{na_action} to \code{"omit"} or one of the imputation
 options to handle missing values automatically (see \code{na_action}). Mean
@@ -177,7 +215,14 @@ predictor) to predict each missing value, and is generally preferred
 over mean imputation once more than a few values are missing;
 it requires the \code{missForest} package (not installed by default; see
 \code{Suggests}) and is stochastic, so results vary run to run unless
-\code{set.seed()} is called beforehand. If a very large fraction of values
+\code{set.seed()} is called beforehand. \code{na_action = "missforest_phylo"}
+extends this further with phylogenetic PCoA axes (see \code{\link[=phylo_pcoa]{phylo_pcoa()}})
+as additional predictors, so species can also borrow information from
+their close relatives, not only from shared species identity; this can
+help when a species has very few (or zero) complete specimens of its
+own for \code{missForest} to learn from, but adds a phylogenetic assumption
+(trait similarity correlates with relatedness) that should be
+reasonable for the trait in question. If a very large fraction of values
 is missing, no automated imputation method is a substitute for
 reviewing the missing-data mechanism directly. This function does not
 implement Gower distance for mixed (numeric and categorical) trait

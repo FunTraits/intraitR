@@ -12,9 +12,13 @@ fishmorph_ratios(
   no_pectoral_fin = FALSE,
   digits = 4,
   groups = NULL,
-  na_action = c("keep", "omit", "impute_mean", "impute_group_mean", "missforest"),
+  na_action = c("keep", "omit", "impute_mean", "impute_group_mean", "missforest",
+    "missforest_phylo"),
   missforest_ntree = 100,
-  missforest_maxiter = 10
+  missforest_maxiter = 10,
+  tree = NULL,
+  missforest_phylo_k = 10,
+  landmarks = NULL
 )
 }
 \arguments{
@@ -62,18 +66,47 @@ versions; \code{"omit"} removes affected specimens and reports how many;
 \code{"impute_group_mean"} uses the within-group (e.g. within-species)
 mean instead, falling back to the column mean, with a warning, for a
 group entirely missing a ratio; \code{"missforest"} uses random-forest-
-based iterative imputation (\code{missForest::missForest()}). Same
-convention, options, and messages as \code{\link[=trait_space]{trait_space()}}'s \code{na_action}
--- see there for details -- except that here imputation operates on
-the derived \emph{ratios} directly; imputing at the landmark level with
-\code{\link[=impute_landmarks]{impute_landmarks()}}, or at the \code{\link[=fishmorph_segments]{fishmorph_segments()}} stage instead
-(before computing ratios), is usually preferable when both are
-missing for the same specimen.}
+based iterative imputation (\code{missForest::missForest()});
+\code{"missforest_phylo"} does the same but additionally augments the
+predictor matrix with phylogenetic PCoA axes (see \code{\link[=phylo_pcoa]{phylo_pcoa()}},
+\code{tree}) for the species in \code{groups}, falling back to plain
+\code{"missforest"} (with a warning) if phylogenetic axes cannot be used.
+Same convention, options, and messages as \code{\link[=trait_space]{trait_space()}}'s
+\code{na_action} -- see there for details -- except that here imputation
+operates on the derived \emph{ratios} directly; imputing at the landmark
+level with \code{\link[=impute_landmarks]{impute_landmarks()}}, or at the \code{\link[=fishmorph_segments]{fishmorph_segments()}}
+stage instead (before computing ratios), is usually preferable when
+both are missing for the same specimen.}
 
 \item{missforest_ntree, missforest_maxiter}{Number of trees per forest
 and maximum number of iterations passed to \code{missForest::missForest()}
-when \code{na_action = "missforest"}; ignored otherwise. Default to
-\code{missForest}'s own defaults (\code{100} and \code{10}).}
+when \code{na_action} is \code{"missforest"}/\code{"missforest_phylo"}; ignored
+otherwise. Default to \code{missForest}'s own defaults (\code{100} and \code{10}).}
+
+\item{tree}{Used only by \code{na_action = "missforest_phylo"}: an object of
+class \code{"phylo"}, or \code{NULL} (default) to use the bundled
+\code{\link[=load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}} tree.}
+
+\item{missforest_phylo_k}{Used only by \code{na_action = "missforest_phylo"}:
+maximum number of phylogenetic PCoA axes to add as predictors.
+Defaults to \code{10}.}
+
+\item{landmarks}{Optional: the same \code{"intrait_landmarks"} object or raw
+\verb{p x k x n} array originally passed to \code{\link[=fishmorph_segments]{fishmorph_segments()}} to
+produce \code{segments}. When supplied, rescues the nine ratios (not the
+absolute segment values, nor \code{MBl}) for specimens whose scale bar
+(landmarks 20-21) was missing or invalid -- i.e. whose row in
+\code{segments} is entirely \code{NA}, \code{\link[=fishmorph_segments]{fishmorph_segments()}}'s signature for
+this case. Because every ratio here divides two measurements from the
+very same specimen, an unknown/missing scale factor cancels out
+algebraically, so these ratios can be recomputed directly from the raw
+pixel-space landmark distances, without ever needing a valid scale bar.
+Matched to \code{segments} by row name/specimen id; only rescues rows that
+are entirely \code{NA} (a specimen with just one missing anatomical
+landmark, or a single \code{geometry_check}-flagged segment, is left
+untouched, since mixing pixel-space and calibrated values for the same
+specimen would defeat that quality control). Ignored, with no effect,
+if \code{NULL} (default).}
 }
 \value{
 A \code{data.frame} (class \code{"intrait_fishmorph"}) with one row per
@@ -111,6 +144,17 @@ body \emph{width} rather than body depth, because the fish lies on one side
 of its body in lateral-view pictures — cannot be corrected after the
 fact and must instead be applied when digitizing landmarks 3-4
 (see \code{\link[=fishmorph_segments]{fishmorph_segments()}}).
+
+A missing or zero-length scale bar makes every one of
+\code{\link[=fishmorph_segments]{fishmorph_segments()}}'s 11 measurements \code{NA} for that specimen (the
+pixel-to-centimetre conversion factor is a single, per-specimen scalar
+applied to all of them), which would normally also make all nine ratios
+\code{NA}. Passing the original \code{landmarks} here recovers them anyway:
+because a ratio is always (segment / segment) \emph{for that same specimen},
+the shared, unknown scale factor cancels out of the division exactly,
+so the ratio is identical whether computed from calibrated (cm) or raw
+(pixel) segment values. This cannot recover the absolute segments
+themselves (\code{Bl}, \code{Bd}, ...) or \code{MBl}, only the nine unitless ratios.
 }
 \examples{
 fish <- load_t26_saudrune_landmarks()
@@ -120,6 +164,10 @@ fishmorph_ratios(segments)
 # impute missing ratios (na_action defaults to "keep") using the
 # within-species mean instead of carrying NA forward:
 fishmorph_ratios(segments, groups = segments$species, na_action = "impute_group_mean")
+
+# rescue ratios (only) for specimens with a missing/invalid scale bar,
+# directly from pixel-space landmark distances:
+fishmorph_ratios(segments, landmarks = fish)
 
 }
 \references{

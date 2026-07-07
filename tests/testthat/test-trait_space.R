@@ -103,6 +103,44 @@ test_that("trait_space() na_action = 'fail' (default) still errors on missing va
   expect_error(trait_space(df, na_action = "fail"), "missing values")
 })
 
+test_that("trait_space() rejects non-finite (Inf/-Inf) trait values regardless of na_action", {
+  # Regression test: Inf is not caught by anyNA()/is.na(), so a ratio with a
+  # zero-length denominator (e.g. a degenerate/duplicate landmark) used to
+  # sail straight through every na_action -- and, for na_action =
+  # "missforest" specifically, crashed missForest::missForest() itself
+  # with a cryptic "missing value where TRUE/FALSE needed" error (its
+  # internal convergence check computes Inf - Inf = NaN).
+  df <- data.frame(a = c(1, Inf, 3, 4), b = c(1, 2, 3, 4))
+  expect_error(trait_space(df, na_action = "fail"), "non-finite")
+  expect_error(trait_space(df, na_action = "omit"), "non-finite")
+  expect_error(trait_space(df, na_action = "impute_mean"), "non-finite")
+
+  df_neg_inf <- data.frame(a = c(1, -Inf, 3, 4), b = c(1, 2, 3, 4))
+  expect_error(trait_space(df_neg_inf, na_action = "fail"), "non-finite")
+})
+
+test_that("trait_space() non-finite check reports the offending row and column", {
+  df <- data.frame(
+    row.names = c("s1", "s2", "s3", "s4"),
+    BEl_ratio = c(1, Inf, 3, 4), VEp_ratio = c(1, 2, 3, 4)
+  )
+  err <- tryCatch(trait_space(df), error = function(e) e)
+  expect_true(grepl("BEl_ratio", conditionMessage(err), fixed = TRUE))
+  expect_true(grepl("s2", conditionMessage(err), fixed = TRUE))
+  expect_false(grepl("VEp_ratio", conditionMessage(err), fixed = TRUE))
+})
+
+test_that("trait_space() still passes a genuinely NA-only trait matrix through to na_action", {
+  # NaN is caught by is.na() (unlike Inf) and should still be handled by
+  # na_action exactly like an ordinary NA, not rejected as non-finite.
+  df <- data.frame(a = c(1, NaN, 3, 4), b = c(1, 2, 3, 4))
+  expect_message(
+    ts <- trait_space(df, na_action = "omit", log_transform = FALSE),
+    "removing 1 row"
+  )
+  expect_equal(nrow(ts$scores), 3)
+})
+
 test_that("trait_space() na_action = 'omit' drops incomplete rows and messages", {
   df <- data.frame(a = c(1, NA, 3, 4), b = c(1, 2, 3, 4))
   expect_message(
@@ -229,6 +267,50 @@ test_that("trait_space() na_action = 'missforest' errors informatively without t
   )
   df <- data.frame(a = c(1, NA, 3), b = c(1, 2, 3))
   expect_error(trait_space(df, na_action = "missforest"), "missForest")
+})
+
+test_that("trait_space() na_action = 'missforest_phylo' imputes using phylogenetic axes from a supplied tree", {
+  testthat::skip_if_not_installed("missForest")
+  testthat::skip_if_not_installed("ape")
+
+  set.seed(200)
+  fish <- simulate_fishmorph_points(n_per_species = 20, n_replicates = 1)
+  seg <- fishmorph_segments(fish)
+  ratios <- fishmorph_ratios(seg)
+  ratios$BEl[sample(seq_len(nrow(ratios)), 5)] <- NA
+
+  tree <- ape::rcoal(3, tip.label = c("Species_A", "Species_B", "Species_C"))
+
+  expect_message(
+    ts <- trait_space(
+      ratios, groups = fish$metadata$species, na_action = "missforest_phylo",
+      tree = tree, log_transform = FALSE, missforest_ntree = 20, missforest_maxiter = 2
+    ),
+    "phylogenetic PCoA axis"
+  )
+  expect_false(anyNA(ts$scores))
+})
+
+test_that("trait_space() na_action = 'missforest_phylo' falls back to plain missforest, with a warning, when the tree doesn't match", {
+  testthat::skip_if_not_installed("missForest")
+  testthat::skip_if_not_installed("ape")
+
+  set.seed(201)
+  fish <- simulate_fishmorph_points(n_per_species = 20, n_replicates = 1)
+  seg <- fishmorph_segments(fish)
+  ratios <- fishmorph_ratios(seg)
+  ratios$BEl[1:3] <- NA
+
+  tree <- ape::rcoal(3, tip.label = c("Unrelated_1", "Unrelated_2", "Unrelated_3"))
+
+  expect_warning(
+    ts <- suppressMessages(trait_space(
+      ratios, groups = fish$metadata$species, na_action = "missforest_phylo",
+      tree = tree, log_transform = FALSE, missforest_ntree = 20, missforest_maxiter = 2
+    )),
+    "phylogenetic axes could not be used"
+  )
+  expect_false(anyNA(ts$scores))
 })
 
 test_that("trait_space() flags a planted within-group outlier", {

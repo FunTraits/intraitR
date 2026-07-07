@@ -18,7 +18,8 @@ bootstrap_functional_space(
   tpd_bw_factor = 0.5,
   tpd_n_divisions = NULL,
   hv_bw_method = "silverman",
-  hv_samples_per_point = 500
+  hv_samples_per_point = 500,
+  composition = NULL
 )
 }
 \arguments{
@@ -127,6 +128,23 @@ Defaults to \code{"silverman"}.}
 (rather than that function's own dimensionality-scaled default),
 since this value is paid \code{n_boot} times over; increase it for a more
 precise (but slower) estimate.}
+
+\item{composition}{Optional numeric matrix or data.frame giving the
+species composition of one or more communities/sites: one row per
+community, one column per species, with column names matching the
+species labels used in \code{groups} (i.e. \code{levels(factor(groups))}).
+Entries can be presence/absence (\code{0}/\code{1}) or abundance -- either way,
+only whether an entry is greater than \code{0} is used (abundance values
+themselves do not otherwise weight the computation; see Details).
+Row names, if present, are used as community identifiers (otherwise
+\code{"community_1"}, \code{"community_2"}, ...). Columns not matching any
+species in \code{groups} are dropped with a warning. When supplied, the
+exact same reference-vs-bootstrap principle described above is
+repeated independently for each community, restricted to that
+community's own species (see Details); the results are returned in
+\verb{$communities} (see Return) in addition to, not instead of, the
+whole-species-pool \code{fd_ref}/\code{fd_boot} above. Defaults to \code{NULL} (no
+per-community computation).}
 }
 \value{
 An object of class \code{"intrait_bootstrap_fspace"}, a list with
@@ -137,7 +155,29 @@ elements \code{fd_ref} (centroid-based reference richness), \code{fd_boot}
 bootstrap p-value, see Details), \code{method}, \code{n_axes} (actual number of
 PCA axes used), \code{var_explained} (cumulative proportion of variance
 captured by those \code{n_axes} axes), \code{n_boot}, and \code{groups}. Has
-dedicated \code{\link[=print]{print()}} and \code{\link[=plot]{plot()}} methods.
+dedicated \code{\link[=print]{print()}} and \code{\link[=plot]{plot()}} methods. If \code{composition} was
+supplied, also includes:
+\describe{
+\item{\code{communities}}{A \code{data.frame}, one row per community (in
+\code{composition}'s row order), with columns \code{community}, \code{n_species}
+(species matched between that community and \code{groups}), \code{fd_obs}
+(that community's own centroid-based richness -- the direct,
+per-community analogue of the whole-pool \code{fd_ref} above),
+\code{fd_expected} (that community's own bootstrap mean, the analogue
+of \code{fd_boot_mean}), \code{fd_sd} (that community's own bootstrap SD),
+\code{ses} (Standardized Effect Size, \code{(fd_obs - fd_expected) / fd_sd}), and \code{p_value} (one-sided, same convention as the
+whole-pool \code{p_value}). A community matched to fewer than 2
+species has every one of these set to \code{NA} (nothing to compute a
+richness from), with a warning.}
+\item{\code{community_boot}}{A named list (by community identifier), the
+raw per-community bootstrap richness vectors (length \code{n_boot},
+or length \code{0} for a community left \code{NA} above) \code{fd_expected}/
+\code{fd_sd}/\code{ses}/\code{p_value} were summarised from -- kept for custom
+downstream inspection or plotting.}
+\item{\code{composition}}{The \code{composition} matrix actually used, i.e.
+after dropping any column that did not match a species in
+\code{groups} (see \code{composition} above).}
+}
 }
 \description{
 Compares the functional richness obtained when species are represented
@@ -218,6 +258,45 @@ Species represented by a single individual necessarily contribute the
 same point to every bootstrap draw (there is nothing to resample for
 that species); this is expected behaviour, not an error.
 
+\strong{Per-community results (\code{composition}).} When \code{composition} is
+supplied, the exact same \code{fd_ref}/\code{fd_boot} machinery above is repeated
+once per community, restricted to that community's own species subset:
+the shared, whole-pool PCA space, and the shared \code{method}-specific
+auxiliary quantities (kernel bandwidth/grid for \code{"tpd"}/\code{"hypervolume"},
+computed once from the full individual-level data, see above) are
+reused unchanged for every community, so richness values stay
+comparable \emph{across} communities as well as within one -- only the set
+of species (and their individuals) entering the centroid/bootstrap
+computation changes from community to community. For community \code{c}:
+\code{fd_obs} is the centroid-based richness of exactly the species present
+in \code{c} (the direct analogue of \code{fd_ref}), \code{fd_expected}/\code{fd_sd} are the
+mean/SD of \code{n_boot} draws of one random individual per species present
+in \code{c} (the analogue of \code{fd_boot}), and the Standardized Effect Size
+\code{ses = (fd_obs - fd_expected) / fd_sd} expresses how far \code{fd_obs} sits
+from its own community-specific bootstrap expectation, in units of that
+expectation's own bootstrap SD -- the standard way to make effect sizes
+comparable across communities that differ in species richness and
+composition (e.g. Gotelli & McCabe, 2002), unlike comparing raw
+\code{fd_obs} values directly. \code{p_value} follows the same one-sided,
+resampling-based convention as the whole-pool \code{p_value} above (the
+proportion of that community's own \code{fd_boot} draws at or below its own
+\code{fd_obs}, \code{+ 1} corrected). Only presence (\code{composition > 0}) is used to
+decide which species enter a community's computation; an abundance
+matrix is accepted for convenience but abundance values themselves do
+not otherwise weight the centroid or the bootstrap draws (every present
+species contributes exactly one point to \code{fd_obs}, and exactly one
+randomly drawn individual to each bootstrap draw, regardless of its
+abundance) -- a deliberate choice for comparability with \code{fd_ref}/
+\code{fd_boot} above, which make the same assumption for the whole pool.
+Every community's \code{n_boot} draws are combined with every other's into a
+single flattened task list before being dispatched (via the same
+\code{future.apply}-based mechanism described above), for the same reason
+individual replacements are flattened in \code{\link[=species_sensitivity]{species_sensitivity()}} rather
+than run as nested loops: each (community, draw) pair is entirely
+independent of every other, so distributing them all at once lets a
+parallel \code{future::plan()} (see above) balance the full workload across
+its workers in one pass.
+
 The \code{n_boot} bootstrap draws are independent of one another (each is
 just one random individual per species plus a functional-richness
 recomputation), so they parallelise trivially. If the \code{future.apply}
@@ -256,6 +335,26 @@ if (requireNamespace("hypervolume", quietly = TRUE)) {
   bf_hv <- bootstrap_functional_space(ts, method = "hypervolume", n_axes = 2, n_boot = 20)
   bf_hv
 }
+
+# Per-community results: a communities x species composition matrix
+# (here, three toy communities over the species in `ts`) gives obs/
+# expected/SES/p-value per community, restricted to each community's
+# own species subset (see Details).
+# levels(), not on the raw character column: fish$metadata$species is a
+# plain character vector (not a factor), so levels(fish$metadata$species)
+# would silently return NULL rather than erroring.
+sp <- levels(factor(fish$metadata$species))
+composition <- rbind(
+  site_A = as.integer(sp \%in\% sp[1:3]),
+  site_B = as.integer(sp \%in\% sp[2:4]),
+  site_C = as.integer(sp \%in\% sp)
+)
+colnames(composition) <- sp
+bf_comm <- bootstrap_functional_space(
+  ts, method = "dendrogram", n_axes = 2, n_boot = 200, composition = composition
+)
+bf_comm$communities
+plot(bf_comm, type = "communities")
 }
 }
 \references{
@@ -290,6 +389,9 @@ n-dimensional hypervolumes. Methods in Ecology and Evolution, 9(2),
 
 Davison AC, Hinkley DV (1997). Bootstrap Methods and their Application.
 Cambridge University Press.
+
+Gotelli NJ, McCabe DJ (2002). Species co-occurrence: a meta-analysis of
+J. M. Diamond's assembly rules model. Ecology, 83(8), 2091-2096.
 }
 \seealso{
 \code{\link[=trait_space]{trait_space()}}, \code{\link[=trait_disparity]{trait_disparity()}}

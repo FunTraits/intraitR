@@ -7,24 +7,44 @@
 \usage{
 \method{print}{intrait_bootstrap_fspace}(x, ...)
 
-\method{plot}{intrait_bootstrap_fspace}(x, ...)
+\method{plot}{intrait_bootstrap_fspace}(x, type = c("pool", "communities"), alpha = 0.05, order = TRUE, ...)
 }
 \arguments{
 \item{x}{An object of class \code{"intrait_bootstrap_fspace"}, as returned by
 \code{\link[=bootstrap_functional_space]{bootstrap_functional_space()}}.}
 
-\item{...}{For \code{plot()}, further arguments passed to \code{\link[graphics:hist]{graphics::hist()}};
+\item{...}{For \code{plot()}, further arguments passed to \code{\link[graphics:hist]{graphics::hist()}}
+(\code{type = "pool"}) or \code{\link[graphics:plot]{graphics::plot()}} (\code{type = "communities"});
 currently unused by \code{print()}.}
+
+\item{type}{Character, \code{"pool"} (default) for the whole-species-pool
+histogram, or \code{"communities"} for the per-community SES dot plot
+(requires \code{x$communities}, i.e. \code{composition} was supplied to
+\code{\link[=bootstrap_functional_space]{bootstrap_functional_space()}}).}
+
+\item{alpha}{Numeric, the significance threshold used only by \code{type = "communities"} to colour communities by \code{p_value < alpha}. Defaults
+to \code{0.05}.}
+
+\item{order}{Logical, for \code{type = "communities"} only: sort communities
+by increasing \code{ses} (\code{TRUE}, default) rather than keeping
+\code{composition}'s original row order.}
 }
 \value{
-Invisibly returns \code{x}.
+Invisibly returns \code{x} (\code{type = "pool"}), or the (possibly
+reordered, NA-dropped) \code{x$communities} data.frame actually plotted
+(\code{type = "communities"}).
 
 Invisibly returns \code{x}.
 }
 \description{
-\code{plot()} draws a histogram of the bootstrap distribution (\code{fd_boot}),
-with \code{fd_ref} (centroid-based reference) marked by a dashed red line and
+\code{plot(type = "pool")} (the default) draws a histogram of the
+whole-species-pool bootstrap distribution (\code{fd_boot}), with \code{fd_ref}
+(centroid-based reference) marked by a dashed red line and
 \code{fd_boot_mean} (the bootstrap mean) by a dashed blue line; both values
 are printed directly on the x-axis, in matching colour, rather than in
-a separate text annotation.
+a separate text annotation. \code{plot(type = "communities")} instead draws
+a dot ("forest") plot of the per-community Standardized Effect Size
+(\code{x$communities$ses}), one row per community, coloured by whether that
+community's \code{p_value} falls below \code{alpha} -- only available when \code{x}
+was built with a \code{composition} matrix (see \code{\link[=bootstrap_functional_space]{bootstrap_functional_space()}}).
 }

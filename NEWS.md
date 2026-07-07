@@ -1,5 +1,209 @@
 # intraitR 1.1.0
 
+* `fishmorph_ratios()` gains a `landmarks` argument: the same
+  `"intrait_landmarks"` object/array originally passed to
+  `fishmorph_segments()`. A missing or zero-length scale bar (landmarks
+  20-21) makes every one of `fishmorph_segments()`'s 11 measurements `NA`
+  for that specimen, since the pixel-to-centimetre conversion factor is a
+  single per-specimen scalar applied to all of them -- which previously
+  also made all nine ratios `NA` for that specimen, even when every
+  anatomical landmark (1-19) was perfectly digitized. Because a ratio is
+  always (segment / segment) computed *within* the same specimen, the
+  unknown/missing scale factor cancels out of the division exactly, so
+  `landmarks` lets these nine ratios (only -- not the absolute segments,
+  nor `MBl`) be recomputed directly from raw pixel-space landmark
+  distances instead. Only applied to specimens whose `segments` row is
+  entirely `NA` (the missing-scale-bar signature); a specimen with just
+  one missing anatomical landmark, or a single `geometry_check`-flagged
+  segment, is left untouched, since mixing pixel-space and calibrated
+  values for the same specimen would defeat that quality control. New
+  internal helper `.fishmorph_pixel_segments()` (`R/utils-internal.R`)
+  extracts the shared pixel-distance geometry engine out of
+  `fishmorph_segments()` (a pure refactor, no behaviour change there) so
+  both functions compute the same 11 raw measurements identically.
+
+* Fixed a bug where the `expect_equal()` reference value in two
+  `impute_landmarks()` regression tests (`method = "impute_mean"` and
+  `"impute_group_mean"`) was computed from the column/group mean
+  *including* the very point about to be deleted and imputed, rather than
+  excluding it as `impute_landmarks()` itself does (`mean(x, na.rm =
+  TRUE)` computed *after* the value is set to `NA`). This was a test-only
+  defect, caught by a real `devtools::test()` run; `impute_landmarks()`'s
+  own imputation logic was unaffected.
+
+* Fixed a bug where `trait_space()` could crash with a cryptic
+  `Error in while (stopCriterion(...)) : missing value where TRUE/FALSE
+  needed` under `na_action = "missforest"` (and could otherwise silently
+  corrupt the ordination under any `na_action`) if a trait column
+  contained a non-finite value (`Inf`/`-Inf`), typically from a ratio
+  with a zero-length denominator segment (e.g. a degenerate or
+  duplicated landmark; see `fishmorph_segments()`/`fishmorph_ratios()`).
+  `Inf`/`-Inf` are not detected by `is.na()`/`anyNA()`, so such a value
+  used to pass straight through every `na_action` unimputed;
+  `missForest::missForest()`'s internal convergence check then computed
+  `Inf - Inf = NaN`, crashing its `while()` loop. `trait_space()` now
+  checks for non-finite trait values unconditionally, before any
+  missing-value handling, and stops with an informative error naming the
+  offending column(s) and row(s), regardless of `na_action`.
+
+* `bootstrap_functional_space()` gains a `composition` argument: a
+  communities x species matrix (presence/absence or abundance; only
+  presence is used) giving the species composition of one or more
+  communities/sites. When supplied, the same centroid-based-reference-vs-
+  bootstrap-distribution principle used for the whole species pool is
+  repeated independently for each community, restricted to that
+  community's own species, using the same shared PCA space and
+  method-specific auxiliary quantities (kernel bandwidth/grid) so results
+  stay comparable across communities. Results are returned in a new
+  `$communities` data.frame (`community`, `n_species`, `fd_obs`,
+  `fd_expected`, `fd_sd`, `ses` -- Standardized Effect Size, `(fd_obs -
+  fd_expected) / fd_sd` -- and `p_value`) and a new `$community_boot` list
+  of the raw per-community bootstrap vectors, in addition to the unchanged
+  whole-pool `fd_ref`/`fd_boot` outputs. `print()` now reports a
+  per-community summary when present, and `plot()` gains a `type =
+  c("pool", "communities")` argument: `"communities"` draws a dot ("forest")
+  plot of `ses` per community, coloured by significance -- chosen over a
+  per-community histogram grid (impractical for more than a handful of
+  communities) or a raw obs-vs-expected scatter (not directly comparable
+  across communities with different species richness, unlike `ses`).
+  Species-column matching is defensive against a mismatch between
+  `composition`'s column names and `groups`'s species labels: duplicated
+  column names now error immediately (rather than silently using the
+  first match), and unmatched columns are reported by name, not just by
+  count, to make a spelling/case/whitespace mismatch easy to spot. Fixed
+  a bug where a genuine `""` species label (e.g. an unresolved/
+  unidentified specimen, as can occur in real field data) caused
+  `composition[, matched_sp]` to fail with "subscript out of bounds" --
+  `[`-indexing never matches a `""`-named column even when one exists
+  (see `?Extract`); column selection now goes through `match()` instead
+  (the same fix already used in `group_colors()`'s own `""`-label
+  handling). `plot(type = "communities")` now always keeps `SES = 0` (the
+  dashed reference line and every point's connecting segment) inside the
+  plotted x-range, even when every community's `ses` sits far from 0
+  relative to their own spread -- previously the x-axis limits were
+  computed only from `range(ses)`, which could push 0 off-screen and
+  silently truncate the reference line/segments at the plot edge.
+
+* `impute_landmarks()` gains three statistical imputation methods
+  alongside the existing geometric-morphometric `"tps"`/`"regression"`:
+  `"impute_mean"`, `"impute_group_mean"`, and `"missforest"`, mirroring
+  `trait_space()`'s `na_action` options but applied directly to raw
+  landmark coordinates rather than derived traits. `"impute_mean"`
+  replaces a missing coordinate with its column mean across all
+  specimens; `"impute_group_mean"` uses the within-group mean instead
+  (new `groups` argument, auto-detected from `landmarks$metadata$species`
+  when available; falls back to the overall mean, with a warning, for a
+  group entirely missing that coordinate); `"missforest"` uses
+  `missForest::missForest()` across all landmark coordinates jointly, with
+  `groups` as an optional auxiliary predictor (new `missforest_ntree`/
+  `missforest_maxiter` arguments). These treat each coordinate as an
+  ordinary numeric variable and ignore shape covariation, so
+  `"tps"`/`"regression"` remain preferable whenever enough complete
+  specimens are available; the statistical options are meant for
+  exploratory use or when too few complete configurations remain for
+  `geomorph::estimate.missing()` to work reliably.
+
+* New function `phylo_pcoa()`: derives phylogenetic ordination axes from a
+  tree (`ape::drop.tip()` + `ape::cophenetic.phylo()` + `ape::pcoa()`, with
+  optional `phytools::force.ultrametric()` coercion and Cailliez/Lingoes
+  negative-eigenvalue correction), returning a `species` + `PCoA1..k`
+  `data.frame` deliberately shaped to be passed directly as `traits` to
+  [trait_space()]. This lets a phylogenetic space be built with the exact
+  same ordination/bootstrap machinery already used for morphological trait
+  spaces ([bootstrap_functional_space()], [species_sensitivity()]), so
+  functional and phylogenetic diversity loss can be compared using the same
+  statistics. Deliberately scoped to the generic tree-to-axes step only:
+  taxonomic name resolution, tree sourcing, and external trait/occurrence
+  data assembly are considered out of scope and are left to the user's own
+  data-preparation code. Adds `ape` and `phytools` to `Suggests`.
+
+* New `na_action`/`method` option, `"missforest_phylo"`, added everywhere
+  `"missforest"` was already available -- `trait_space()`,
+  `fishmorph_segments()`, `fishmorph_ratios()`, and
+  `impute_landmarks()` -- augmenting `missForest::missForest()`'s
+  predictors with phylogenetic PCoA axes ([phylo_pcoa()]) computed from a
+  `tree` (a user-supplied `ape::phylo` object, or, by default, the
+  package's own newly bundled `load_fishmorph_phylogeny()` tree), matched
+  to each row's `groups` (species) label. This lets imputation borrow
+  information from phylogenetically related species, not just from
+  correlations among traits/coordinates and the raw species factor, as in
+  plain `"missforest"`. Matching is robust to whether species labels use a
+  space, underscore, or dot as the genus/species separator (new internal
+  `.canon_species_name()` helper), since the bundled tree's tip labels use
+  the `"Genus.species"` convention. Phylogenetic augmentation is designed
+  to never turn a working `"missforest"` call into a hard error: if no
+  `groups`/`tree` is available, fewer than 3 species can be matched to the
+  tree, or the `ape` package is missing, `"missforest_phylo"` falls back
+  to plain `"missforest"` (no phylogenetic predictors) with an explanatory
+  `warning()` rather than stopping. New shared arguments `tree` (default
+  `NULL`, meaning "use the bundled phylogeny") and `missforest_phylo_k`
+  (default `10`, the number of phylogenetic PCoA axes used as auxiliary
+  predictors) added alongside the existing `missforest_ntree`/
+  `missforest_maxiter`.
+
+* New function `load_fishmorph_phylogeny()` and bundled data file
+  `inst/extdata/Phylogeny/FishMORPH_Phylogeny.rds`: loads the package's
+  default phylogenetic tree (an `ape::phylo` object, 10,705 tips) used as
+  the default `tree` for `"missforest_phylo"` (above) and available
+  directly as input to `phylo_pcoa()`. **Provenance note**: the exact
+  source/citation of this tree has not been independently verified in
+  this package's documentation; users relying on it for publication
+  should confirm and cite its original source themselves (e.g. the
+  phylogeny associated with the FISHMORPH trait database, Brosse et al.
+  2021) rather than citing `?load_fishmorph_phylogeny`.
+
+* `phylo_pcoa()` bug fix: species-name matching between `species`/`tree`
+  only normalised spaces and underscores (`gsub(" ", "_", ...)`), so it
+  silently failed to match any species against a tree using dot-separated
+  tip labels (`"Genus.species"`), as the newly bundled
+  `load_fishmorph_phylogeny()` tree does. Matching now goes through the
+  same `.canon_species_name()` helper used by `"missforest_phylo"`
+  (above), collapsing runs of spaces, dots, and underscores to a single
+  underscore before comparison; matched species are consequently returned
+  in this canonical underscore form.
+
+* `correct_geometry()` bug fix: step 1's isotropic rescale to `[0, 1]` left
+  an `intrait_landmarks` object's `$scale` element (real-world units per
+  digitization pixel, see `read_tps()`) uncorrected, silently making
+  `linear_distances()`/`morpho_ratios()` return wrong real-world distances
+  from the rescaled coordinates afterwards (the visual, on-screen size of
+  every specimen is intentionally equalized by this step, but each
+  specimen's true, individual real-world size must still be recoverable
+  downstream). `$scale` is now divided by the same per-specimen
+  `scale_factor` applied to the coordinates, so real-world distances
+  computed before and after `correct_geometry()` are now identical;
+  `fishmorph_segments()` was never affected, since it always re-derives its
+  own pixel-to-real-world factor fresh from the scale bar's current length
+  rather than trusting a stored value. A new `message()` reports how many
+  specimens' `$scale` was updated this way.
+
+* `plot_fishmorph_points()`: the digitization scale bar (landmarks 20-21)
+  is now drawn as a solid, filled bar with its own border (not two
+  triangle point markers, nor a thin open line), placed lower down near
+  the plot's origin, with its caption placed directly below it rather
+  than above. The caption is now built automatically as `"1 <unit> =
+  <length>"` (e.g. `"1 cm = 3.2"`), where `<length>` is that specimen's own
+  digitized scale-bar length, rather than the previous fixed `"scale (1
+  cm)"` text. The `scale_label` argument is replaced by `scale_unit`
+  (default `"cm"`, matching the FISHMORPH protocol's standard 1 cm
+  calibration segment), letting users specify the real-world unit a data
+  set was actually digitized against (e.g. `"mm"`, `"dm"`, `"m"`, or any
+  other label); set `scale_unit = NULL` to omit the caption entirely (the
+  bar itself is still drawn). This is a breaking change for any code
+  calling `plot_fishmorph_points(..., scale_label = ...)`.
+
+* New `plot_correlation_circle()`: draws the classical correlation circle
+  (variable factor map) of a `trait_space()` ordination -- each trait as
+  an arrow to its Pearson correlation with the two plotted axes, inside a
+  unit circle, with an optional inner circle at radius `sqrt(0.5)`
+  marking the conventional "well represented" threshold. Unlike a plot of
+  raw `loadings`, arrow length is directly comparable across traits and
+  meaningful regardless of `method` (`"pca"`/`"pcoa"`) or `scale`. Drawn
+  without a surrounding box: tick values run along the `y = 0`/`x = 0`
+  reference lines through the origin, each labelled with its axis name
+  only (e.g. `"PC1"`), in a small italic font, just outside the circle
+  and centred on its own reference line.
+
 * `bootstrap_functional_space()` gains a `method` argument for the
   functional-richness measure computed in the PCA-based trait space:
   `"convexhull"` (default, unchanged behaviour: n-dimensional convex-hull

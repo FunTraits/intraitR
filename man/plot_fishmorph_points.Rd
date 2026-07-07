@@ -18,7 +18,7 @@ plot_fishmorph_points(
   highlight_corrected = TRUE,
   geometry_check = NULL,
   highlight_geometry = TRUE,
-  scale_label = "scale (1 cm)",
+  scale_unit = "cm",
   axis_range = "auto",
   ...
 )
@@ -122,18 +122,26 @@ specimen.}
 highlighting described above. Only relevant when \code{geometry_check} is
 supplied. Defaults to \code{TRUE}.}
 
-\item{scale_label}{Character text drawn just above the digitization
-scale bar (landmarks 20-21), or \code{NULL} to omit it. Defaults to
-\code{"scale (1 cm)"}, the FISHMORPH protocol's standard calibration
-segment; change it (e.g. \code{"scale (2 cm)"}) if a data set was
-digitized against a different calibration length. Only drawn when
-both landmarks 20 and 21 are present (non-\code{NA}) for this specimen.
-The bar itself is drawn schematically near the plot's own origin
-(bottom-left corner) rather than at landmarks 20/21's true digitized
-coordinates -- which can otherwise land anywhere in the frame, even
-on the fish -- while still being drawn to the real digitized length
-between them (i.e. still true to scale); neither landmark is
-individually number-labelled.}
+\item{scale_unit}{Character, the real-world unit the digitization scale
+bar (landmarks 20-21) represents one of (e.g. \code{"mm"}, \code{"cm"}, \code{"dm"},
+\code{"m"}, or any other unit label) -- the FISHMORPH protocol's standard
+calibration segment is 1 cm, hence the default \code{"cm"}; change it if a
+data set was digitized against a different real-world unit. Set to
+\code{NULL} to omit the bar's text label entirely (the bar itself is still
+drawn). The label is built automatically as \code{"1 <scale_unit> = <length>"},
+where \verb{<length>} is that specimen's own digitized distance between
+landmarks 20 and 21, so it always reflects the actual calibration
+length used for that specimen rather than a fixed, possibly
+inaccurate, caption. Only drawn when both landmarks 20 and 21 are
+present (non-\code{NA}) for this specimen. The bar itself is drawn as a
+solid, filled bar with its own border (not a thin open line), low
+down, schematically near the plot's own origin (bottom-left corner)
+rather than at landmarks 20/21's true digitized coordinates -- which
+can otherwise land anywhere in the frame, even on the fish -- while
+still being drawn to the real digitized length between them (i.e.
+still true to scale); its caption is placed directly below it.
+Neither landmark is individually number-labelled or marked with its
+own point symbol.}
 
 \item{axis_range}{Either \code{"auto"} (default) or a numeric vector of
 length 2, \code{c(min, max)}, shared by both \code{x} and \code{y}. \code{"auto"} uses
@@ -212,7 +220,7 @@ units, so this layout looks the same regardless of whether coordinates
 are already normalised to \verb{[0, 1]} or are raw, not-yet-corrected
 digitization pixels in the hundreds or thousands. Landmarks 20 and 21
 (the scale bar) are excluded from this numbering, and from the plain
-scattered dots, entirely -- see \code{scale_label} above.
+scattered dots, entirely -- see \code{scale_unit} above.
 }
 \examples{
 fish <- load_t26_saudrune_landmarks()

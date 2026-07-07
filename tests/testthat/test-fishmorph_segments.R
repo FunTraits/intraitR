@@ -173,6 +173,22 @@ test_that("fishmorph_segments() na_action = 'missforest' imputes missing values"
   expect_false(anyNA(seg$Hd))
 })
 
+test_that("fishmorph_segments() na_action = 'missforest_phylo' imputes using phylogenetic axes from a supplied tree", {
+  testthat::skip_if_not_installed("missForest")
+  testthat::skip_if_not_installed("ape")
+  set.seed(322)
+  fish <- make_fish_with_missing_landmark()
+  tree <- ape::rcoal(3, tip.label = c("Species_A", "Species_B", "Species_C"))
+  expect_message(
+    seg <- suppressWarnings(fishmorph_segments(
+      fish, na_action = "missforest_phylo", tree = tree,
+      missforest_ntree = 20, missforest_maxiter = 2
+    )),
+    "missforest_phylo"
+  )
+  expect_false(anyNA(seg$Hd))
+})
+
 # --- geometry_check -----------------------------------------------------
 
 make_conforming_fishmorph_array <- function(specimen_names = "s1") {

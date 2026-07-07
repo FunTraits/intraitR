@@ -29,18 +29,28 @@
 #'   the column mean; `"impute_group_mean"` uses the within-group (e.g.
 #'   within-species) mean instead, falling back to the column mean, with a
 #'   warning, for a group entirely missing a segment; `"missforest"` uses
-#'   random-forest-based iterative imputation
-#'   (`missForest::missForest()`). Same convention, options, and messages
-#'   as [trait_space()]'s `na_action` -- see there for details -- except
-#'   that here imputation operates on the derived linear *measurements*,
-#'   not on landmark coordinates: this is not a substitute for a proper
+#'   random-forest-based iterative imputation (`missForest::missForest()`);
+#'   `"missforest_phylo"` does the same but additionally augments the
+#'   predictor matrix with phylogenetic PCoA axes (see [phylo_pcoa()],
+#'   `tree`) for the species in `groups`, falling back to plain
+#'   `"missforest"` (with a warning) if phylogenetic axes cannot be used.
+#'   Same convention, options, and messages as [trait_space()]'s
+#'   `na_action` -- see there for details -- except that here imputation
+#'   operates on the derived linear *measurements*, not on landmark
+#'   coordinates: this is not a substitute for a proper
 #'   geometric-morphometric estimate of a missing landmark's position (see
 #'   [impute_landmarks()], run on `landmarks` *before* calling this
 #'   function), and is best reserved for a small number of missing values.
 #' @param missforest_ntree,missforest_maxiter Number of trees per forest
 #'   and maximum number of iterations passed to `missForest::missForest()`
-#'   when `na_action = "missforest"`; ignored otherwise. Default to
-#'   `missForest`'s own defaults (`100` and `10`).
+#'   when `na_action` is `"missforest"`/`"missforest_phylo"`; ignored
+#'   otherwise. Default to `missForest`'s own defaults (`100` and `10`).
+#' @param tree Used only by `na_action = "missforest_phylo"`: an object of
+#'   class `"phylo"`, or `NULL` (default) to use the bundled
+#'   [load_fishmorph_phylogeny()] tree.
+#' @param missforest_phylo_k Used only by `na_action = "missforest_phylo"`:
+#'   maximum number of phylogenetic PCoA axes to add as predictors.
+#'   Defaults to `10`.
 #' @param geometry_check Optional object of class `"intrait_geometry_check"`,
 #'   as returned by `correct_landmarks(landmarks, rule = "check_geometry")`
 #'   -- typically computed once beforehand and passed in here, rather than
@@ -146,9 +156,11 @@
 #' @export
 fishmorph_segments <- function(landmarks, scale_cm = 1, groups = NULL,
                                 na_action = c("keep", "omit", "impute_mean",
-                                              "impute_group_mean", "missforest"),
+                                              "impute_group_mean", "missforest",
+                                              "missforest_phylo"),
                                 missforest_ntree = 100, missforest_maxiter = 10,
-                                geometry_check = NULL) {
+                                geometry_check = NULL, tree = NULL,
+                                missforest_phylo_k = 10) {
   na_action <- match.arg(na_action)
   if (!is.null(geometry_check) && !inherits(geometry_check, "intrait_geometry_check")) {
     stop(
@@ -169,7 +181,6 @@ fishmorph_segments <- function(landmarks, scale_cm = 1, groups = NULL,
       call. = FALSE
     )
   }
-  has_curvature_point <- p >= 22
   n <- dim(A)[3]
   specimen_names <- dimnames(A)[[3]]
 
@@ -179,47 +190,24 @@ fishmorph_segments <- function(landmarks, scale_cm = 1, groups = NULL,
     sqrt(colSums(diff_mat^2))
   }
 
-  segments_def <- list(
-    Bd  = c(3, 4),
-    Hd  = c(5, 6),
-    Eh  = c(7, 8),
-    Mo  = c(1, 9),
-    PFi = c(10, 11),
-    PFl = c(10, 12),
-    Ed  = c(13, 14),
-    Jl  = c(1, 15),
-    CPd = c(16, 17),
-    CFd = c(18, 19)
-  )
-
   scale_px <- dist_lm(20, 21)
   bad_scale <- is.na(scale_px) | scale_px <= 0
   if (any(bad_scale)) {
     warning(
       sum(bad_scale), " specimen(s) have a zero-length or missing scale bar ",
-      "(points 20-21); their segments will be NA.", call. = FALSE
+      "(points 20-21); their segments will be NA. See fishmorph_ratios()'s ",
+      "`landmarks` argument to still recover the 9 unitless ratios for these ",
+      "specimens directly from pixel-space distances.", call. = FALSE
     )
   }
   px_to_cm <- ifelse(bad_scale, NA_real_, scale_cm / scale_px)
 
-  if (has_curvature_point) {
-    pt22 <- A[22, , ]
-    if (is.null(dim(pt22))) pt22 <- matrix(pt22, ncol = n)
-    used_curvature <- colSums(abs(pt22), na.rm = TRUE) > 0 & !apply(pt22, 2, function(x) any(is.na(x)))
-    bl_straight <- dist_lm(1, 2)
-    bl_curved <- dist_lm(1, 22) + dist_lm(22, 2)
-    Bl <- ifelse(used_curvature, bl_curved, bl_straight)
-  } else {
-    Bl <- dist_lm(1, 2)
-  }
-
-  out <- list(Bl = Bl)
-  for (nm in names(segments_def)) {
-    pr <- segments_def[[nm]]
-    out[[nm]] <- dist_lm(pr[1], pr[2])
-  }
-  out <- lapply(out, function(x) x * px_to_cm)
-  out <- as.data.frame(out)
+  # Bl/Bd/Hd/Eh/Mo/PFi/PFl/Ed/Jl/CPd/CFd, in raw pixel (digitization) units,
+  # including the landmark-22 body-curvature correction to Bl when present;
+  # shared with fishmorph_ratios()'s `landmarks`-based rescue (see
+  # .fishmorph_pixel_segments()).
+  out <- .fishmorph_pixel_segments(A)
+  out <- as.data.frame(lapply(out, function(x) x * px_to_cm))
   rownames(out) <- specimen_names
 
   if (!is.null(geometry_check)) {
@@ -270,7 +258,7 @@ fishmorph_segments <- function(landmarks, scale_cm = 1, groups = NULL,
 
   res <- .apply_na_action(
     as.matrix(out), groups, na_action, missforest_ntree, missforest_maxiter,
-    context = "segments"
+    context = "segments", tree = tree, missforest_phylo_k = missforest_phylo_k
   )
   out <- as.data.frame(res$X)
   if (!all(res$keep)) {

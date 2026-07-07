@@ -45,8 +45,12 @@ instead of correcting them.}
 }
 \value{
 An object of the same class as \code{landmarks}, with every
-specimen's coordinates replaced by their standardized version. The
-returned \code{coords} array carries three attributes:
+specimen's coordinates replaced by their standardized version, and,
+if \code{landmarks} is an \code{intrait_landmarks} object with a \verb{$scale}
+element, that element rescaled to match (see Details, step 1) so
+that no specimen's true real-world size is lost even though every
+specimen is now drawn at the same visual size. The returned \code{coords}
+array carries three attributes:
 \describe{
 \item{\code{standardization_log}}{a \code{data.frame}, one row per specimen
 processed, with columns \code{specimen}, \code{scale_factor} (the isotropic
@@ -99,7 +103,21 @@ every FISHMORPH ratio and any shape-based analysis (GPA, shape PCA)
 computed afterwards. Consequently, only the longer of the two axes ends
 up spanning the full \verb{[0, 1]} range exactly; if X is the shorter axis it
 is centered within \verb{[0, 1]} at this stage (Y does not need centering
-here, since step 3 re-anchors it to \code{Y = 0.5} regardless).
+here, since step 3 re-anchors it to \code{Y = 0.5} regardless). This step
+changes the \emph{visual} size every specimen is drawn at (every body now
+spans the same \verb{[0, 1]} box, regardless of how large the real fish
+was), but never the \emph{information} about each specimen's true
+real-world size: if \code{landmarks} is an \code{intrait_landmarks} object with a
+\verb{$scale} element (real-world units per pixel; see \code{\link[=read_tps]{read_tps()}}), that
+element is itself divided by the same per-specimen \code{scale_factor}, so
+\code{\link[=linear_distances]{linear_distances()}}/\code{\link[=morpho_ratios]{morpho_ratios()}} (which use \verb{$scale} directly)
+keep returning correct, specimen-specific real-world distances from the
+now-normalized coordinates; \code{\link[=fishmorph_segments]{fishmorph_segments()}} needs no such
+adjustment, since it always re-derives its own pixel-to-real-world
+factor from the scale bar's own current length (step 2 below) rather
+than from a stored value. Two different specimens rescaled to the same
+\verb{[0, 1]} box therefore still yield different, individually correct
+real-world sizes downstream -- only their on-screen size is equalized.
 
 \strong{Step 2 -- reposition the scale bar.} Landmarks 20 and 21 (missing for
 a given specimen, this step is skipped for it, with a warning) are

@@ -64,6 +64,7 @@ reference:
     contents:
       - trait_space
       - plot.intrait_traitspace
+      - plot_correlation_circle
       - morpho_space
       - plot.intrait_morphospace
       - trait_disparity

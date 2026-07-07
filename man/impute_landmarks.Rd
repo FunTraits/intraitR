@@ -2,9 +2,18 @@
 % Please edit documentation in R/impute_landmarks.R
 \name{impute_landmarks}
 \alias{impute_landmarks}
-\title{Impute missing (NA) landmark coordinates using geometric morphometric methods}
+\title{Impute missing (NA) landmark coordinates}
 \usage{
-impute_landmarks(landmarks, method = c("tps", "regression"))
+impute_landmarks(
+  landmarks,
+  method = c("tps", "regression", "impute_mean", "impute_group_mean", "missforest",
+    "missforest_phylo"),
+  groups = NULL,
+  missforest_ntree = 100,
+  missforest_maxiter = 10,
+  tree = NULL,
+  missforest_phylo_k = 10
+)
 }
 \arguments{
 \item{landmarks}{An object of class \code{"intrait_landmarks"} (from
@@ -23,29 +32,77 @@ relationships to the nearest complete landmarks and is the more
 commonly used default; \code{"regression"} can perform better when a
 missing landmark is strongly correlated with overall shape (e.g. a
 near-symmetric point) but needs a reasonably large, complete-enough
-sample to estimate that relationship reliably.}
+sample to estimate that relationship reliably. \code{"impute_mean"} replaces
+a missing coordinate with the mean of that same coordinate (landmark x
+dimension) across all specimens; \code{"impute_group_mean"} uses the mean
+within the specimen's own \code{groups} instead (falling back to the overall
+mean, with a warning, for a group entirely missing that coordinate);
+\code{"missforest"} uses random-forest-based iterative imputation
+(\code{missForest::missForest()}, Stekhoven & Buhlmann, 2012) across all
+landmark coordinates jointly, using \code{groups} (when available) as an
+additional predictor; \code{"missforest_phylo"} does the same but also
+augments the predictor matrix with phylogenetic PCoA axes (see
+\code{\link[=phylo_pcoa]{phylo_pcoa()}}, \code{tree}/\code{missforest_phylo_k}) for the species in
+\code{groups}, falling back to plain \code{"missforest"} (with a warning) if
+phylogenetic axes cannot be used. Unlike \code{"tps"}/\code{"regression"}, these
+four options ignore the geometric/shape covariation among landmarks
+altogether and treat each coordinate independently (or, for
+\code{"missforest"}/\code{"missforest_phylo"}, via generic non-linear
+association) -- they are simpler and match \code{\link[=trait_space]{trait_space()}}'s own
+\code{na_action} behaviour, but are not a geometric-morphometric estimate
+of the missing point's true position, so prefer \code{"tps"}/\code{"regression"}
+for actual shape landmarks when enough complete specimens are
+available, and reserve the statistical options for exploratory use or
+when too few complete configurations remain for
+\code{geomorph::estimate.missing()} to work reliably.}
+
+\item{groups}{Optional factor (or character vector), one value per
+specimen in the same order as \code{dimnames(A)[[3]]}, used by
+\code{method = "impute_group_mean"} (required) and, optionally, by
+\code{method = "missforest"}/\code{"missforest_phylo"} (as an auxiliary
+predictor; required by \code{"missforest_phylo"} for phylogenetic matching
+specifically -- without it, \code{"missforest_phylo"} falls back to plain
+\code{"missforest"}). If \code{NULL} and \code{landmarks} is an
+\code{"intrait_landmarks"}/\code{"intrait_gpa"} object whose \code{metadata} contains
+a \code{species} column, it is used automatically. Ignored by \code{"tps"},
+\code{"regression"}, and \code{"impute_mean"}.}
+
+\item{missforest_ntree, missforest_maxiter}{Number of trees per forest and
+maximum number of iterations passed to \code{missForest::missForest()} when
+\code{method} is \code{"missforest"}/\code{"missforest_phylo"}; ignored otherwise.
+Default to \code{missForest}'s own defaults (\code{100} and \code{10}).}
+
+\item{tree}{Used only by \code{method = "missforest_phylo"}: an object of
+class \code{"phylo"}, or \code{NULL} (default) to use the bundled
+\code{\link[=load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}} tree.}
+
+\item{missforest_phylo_k}{Used only by \code{method = "missforest_phylo"}:
+maximum number of phylogenetic PCoA axes to add as predictors.
+Defaults to \code{10}.}
 }
 \value{
 An object of the same class as \code{landmarks} (\code{"intrait_landmarks"}
 or a raw array), with \code{NA} coordinates in landmarks 1-19 replaced by
-their geometric morphometric estimate. Everything else (\code{scale},
-\code{metadata}, landmarks 20 and up) is left unchanged. The returned
-\code{coords} array also carries an \code{"imputed"} attribute (a \verb{p x n}
-logical matrix, one row per landmark and one column per specimen,
-\code{TRUE} where that point was estimated rather than digitized), which
-\code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}} uses to highlight imputed points in red.
+their estimated value. Everything else (\code{scale}, \code{metadata}, landmarks
+20 and up) is left unchanged. The returned \code{coords} array also carries
+an \code{"imputed"} attribute (a \verb{p x n} logical matrix, one row per
+landmark and one column per specimen, \code{TRUE} where that point was
+estimated rather than digitized), which \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}} uses
+to highlight imputed points in red.
 }
 \description{
 Estimates missing 2D coordinates directly in \code{landmarks$coords} (or a raw
 \verb{p x k x n} array), rather than leaving gaps in individual specimens'
-digitized configurations or discarding them. Unlike the \code{na_action}
-options of \code{\link[=fishmorph_segments]{fishmorph_segments()}}/\code{\link[=fishmorph_ratios]{fishmorph_ratios()}} -- which impute
-the \emph{derived} linear measurements/ratios after the fact, as a simple
-fallback -- this operates on the landmark geometry itself, using
-\code{\link[geomorph:estimate.missing]{geomorph::estimate.missing()}}, so the estimate reflects the covariation
-among landmark positions across the sample (thin-plate spline warping or
-multivariate regression), the standard approach for missing landmark data
-in geometric morphometrics.
+digitized configurations or discarding them. Two families of method are
+available: \code{"tps"}/\code{"regression"} use
+\code{\link[geomorph:estimate.missing]{geomorph::estimate.missing()}} to exploit the geometric covariation among
+landmark positions across the sample (thin-plate spline warping or
+multivariate regression) -- the standard approach for missing landmark
+data in geometric morphometrics; \code{"impute_mean"}, \code{"impute_group_mean"},
+\code{"missforest"}, and \code{"missforest_phylo"} instead treat each landmark
+coordinate as an ordinary numeric variable and impute it statistically,
+mirroring the equivalent \code{na_action} options of \code{\link[=trait_space]{trait_space()}} (applied
+there to the \emph{derived} trait matrix rather than to raw coordinates).
 }
 \details{
 Only landmarks 1-19 (the anatomical/shape landmarks used for Generalised
@@ -54,8 +111,8 @@ eligible for imputation here. Landmarks 20-21 (the scale bar) are \emph{not}
 homologous shape landmarks -- their position simply reflects wherever a
 ruler was placed in the picture -- so their covariation with the rest of
 the configuration is meaningless, and a missing scale bar point cannot be
-geometrically estimated; if either is missing for a specimen, a warning
-is issued and that specimen's scale bar is left as \code{NA} (matching
+estimated by any of these methods; if either is missing for a specimen, a
+warning is issued and that specimen's scale bar is left as \code{NA} (matching
 \code{\link[=fishmorph_segments]{fishmorph_segments()}}'s own "zero-length or missing scale bar" warning
 -- that specimen's segments/ratios will still be \code{NA} downstream unless
 the scale bar is fixed some other way). Landmark 22 (optional body-
@@ -66,10 +123,12 @@ left untouched.
 As with any imputation, this is not a substitute for re-digitizing a
 specimen from its original photograph when that is possible, and results
 should be treated with more caution as the fraction of missing landmarks
-grows, or when very few specimens have a complete configuration to learn
-the covariation structure from. Always compare an imputed specimen
-against its non-imputed neighbours (e.g. with \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}},
-which highlights imputed landmarks directly, or the more generic
+grows, or when very few specimens are available to learn the imputation
+model from (be it the covariation structure used by \code{"tps"}/
+\code{"regression"}, or the column/group means and random forests used by the
+statistical options). Always compare an imputed specimen against its
+non-imputed neighbours (e.g. with \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}, which
+highlights imputed landmarks directly, or the more generic
 \code{\link[=plot_landmarks]{plot_landmarks()}}) before relying on it in an analysis.
 }
 \examples{
@@ -81,10 +140,32 @@ anyNA(fish_imputed$coords[1:19, , ]) # anatomical landmarks now complete
 
 # plot_fishmorph_points() highlights the imputed point(s) in red:
 plot_fishmorph_points(fish_imputed, specimen = 1)
+
+# statistical alternatives, mirroring trait_space()'s na_action options;
+# `groups` is auto-detected here from fish$metadata$species
+fish_mean <- impute_landmarks(fish, method = "impute_mean")
+fish_gmean <- impute_landmarks(fish, method = "impute_group_mean")
+if (requireNamespace("missForest", quietly = TRUE)) {
+  fish_rf <- impute_landmarks(fish, method = "missforest")
+
+  # phylogenetically-augmented missForest: adds phylogenetic PCoA axes
+  # (from the bundled FISHMORPH tree, see load_fishmorph_phylogeny()) as
+  # extra predictors, so close relatives can inform each other's
+  # imputed coordinates in addition to shared species identity
+  if (requireNamespace("ape", quietly = TRUE)) {
+    fish_rf_phylo <- impute_landmarks(fish, method = "missforest_phylo")
+  }
+}
 }
 
 }
+\references{
+Stekhoven, D. J., & Buhlmann, P. (2012). MissForest --
+non-parametric missing value imputation for mixed-type data.
+Bioinformatics, 28(1), 112-118. \doi{10.1093/bioinformatics/btr597}
+}
 \seealso{
 \code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=gpa_fish]{gpa_fish()}},
-\code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}, \code{\link[=plot_landmarks]{plot_landmarks()}}
+\code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}, \code{\link[=plot_landmarks]{plot_landmarks()}}, \code{\link[=trait_space]{trait_space()}},
+\code{\link[=phylo_pcoa]{phylo_pcoa()}}, \code{\link[=load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}}
 }

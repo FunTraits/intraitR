@@ -45,8 +45,12 @@
 #'   instead of correcting them.
 #'
 #' @return An object of the same class as `landmarks`, with every
-#'   specimen's coordinates replaced by their standardized version. The
-#'   returned `coords` array carries three attributes:
+#'   specimen's coordinates replaced by their standardized version, and,
+#'   if `landmarks` is an `intrait_landmarks` object with a `$scale`
+#'   element, that element rescaled to match (see Details, step 1) so
+#'   that no specimen's true real-world size is lost even though every
+#'   specimen is now drawn at the same visual size. The returned `coords`
+#'   array carries three attributes:
 #'   \describe{
 #'     \item{`standardization_log`}{a `data.frame`, one row per specimen
 #'       processed, with columns `specimen`, `scale_factor` (the isotropic
@@ -83,7 +87,21 @@
 #' computed afterwards. Consequently, only the longer of the two axes ends
 #' up spanning the full `[0, 1]` range exactly; if X is the shorter axis it
 #' is centered within `[0, 1]` at this stage (Y does not need centering
-#' here, since step 3 re-anchors it to `Y = 0.5` regardless).
+#' here, since step 3 re-anchors it to `Y = 0.5` regardless). This step
+#' changes the *visual* size every specimen is drawn at (every body now
+#' spans the same `[0, 1]` box, regardless of how large the real fish
+#' was), but never the *information* about each specimen's true
+#' real-world size: if `landmarks` is an `intrait_landmarks` object with a
+#' `$scale` element (real-world units per pixel; see [read_tps()]), that
+#' element is itself divided by the same per-specimen `scale_factor`, so
+#' [linear_distances()]/[morpho_ratios()] (which use `$scale` directly)
+#' keep returning correct, specimen-specific real-world distances from the
+#' now-normalized coordinates; [fishmorph_segments()] needs no such
+#' adjustment, since it always re-derives its own pixel-to-real-world
+#' factor from the scale bar's own current length (step 2 below) rather
+#' than from a stored value. Two different specimens rescaled to the same
+#' `[0, 1]` box therefore still yield different, individually correct
+#' real-world sizes downstream -- only their on-screen size is equalized.
 #'
 #' **Step 2 -- reposition the scale bar.** Landmarks 20 and 21 (missing for
 #' a given specimen, this step is skipped for it, with a warning) are
@@ -195,6 +213,21 @@ correct_geometry <- function(landmarks, specimen = NULL, scale_bar_pos = c(0.1, 
   n_skipped_scale <- 0L
   n_skipped_rotate <- 0L
 
+  # `landmarks$scale` (real-world units per raw digitization pixel; see
+  # read_tps()) is calibrated for the ORIGINAL coordinates. Step 1 below
+  # rescales those coordinates per specimen by `scale_factor`, so a raw
+  # distance measured after this function equals `scale_factor` times the
+  # same raw distance before it; left untouched, `landmarks$scale` would
+  # then silently give wrong real-world distances to anything that uses it
+  # directly (linear_distances(), and morpho_ratios() through it) -- unlike
+  # fishmorph_segments(), which is unaffected because it always re-derives
+  # its own pixel-to-real-world factor from the scale bar's (proportionally
+  # transformed, see step 2) current length rather than trusting a stored
+  # value. Dividing each rescaled specimen's `scale` by its own
+  # `scale_factor` keeps both routes consistent and correct.
+  has_scale_attr <- inherits(landmarks, "intrait_landmarks") && !is.null(landmarks$scale)
+  n_scale_attr_updated <- 0L
+
   for (i in seq_along(idx_all)) {
     idx <- idx_all[i]
     sname <- specimen_names_all[idx]
@@ -220,6 +253,10 @@ correct_geometry <- function(landmarks, specimen = NULL, scale_bar_pos = c(0.1, 
       # specimen regardless of whatever offset this step leaves it at.
       if (span_x < span_y) {
         xy[, 1] <- xy[, 1] + (1 - span_x * scale_factor) / 2
+      }
+      if (has_scale_attr && !is.na(landmarks$scale[[sname]])) {
+        landmarks$scale[[sname]] <- landmarks$scale[[sname]] / scale_factor
+        n_scale_attr_updated <- n_scale_attr_updated + 1L
       }
     } else {
       n_skipped_scale <- n_skipped_scale + 1L
@@ -307,6 +344,18 @@ correct_geometry <- function(landmarks, specimen = NULL, scale_bar_pos = c(0.1, 
       "correct_geometry(): could not rotate/correct %d specimen(s) missing landmark 1 or 2.",
       n_skipped_rotate
     ), call. = FALSE)
+  }
+  if (n_scale_attr_updated > 0) {
+    message(sprintf(
+      paste(
+        "correct_geometry(): rescaled `landmarks$scale` for %d specimen(s) to stay",
+        "consistent with their rescaled coordinates (so linear_distances()/",
+        "morpho_ratios() keep returning correct real-world distances; unaffected:",
+        "fishmorph_segments(), which always re-derives its own scale from the scale",
+        "bar's current length instead)."
+      ),
+      n_scale_attr_updated
+    ))
   }
 
   new_std <- do.call(rbind, std_rows)

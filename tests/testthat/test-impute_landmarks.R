@@ -90,3 +90,141 @@ test_that("impute_landmarks() works on a raw p x k x n array and returns a raw a
   expect_false(inherits(out, "intrait_landmarks"))
   expect_false(anyNA(out[1:19, , ]))
 })
+
+test_that("impute_landmarks(method = 'impute_mean') fills missing coordinates with column means", {
+  set.seed(47)
+  fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+  A <- fish$coords
+  A[5, 1, 1] <- NA_real_
+  # computed *after* inserting the NA, matching impute_landmarks()'s own
+  # mean(M[, j], na.rm = TRUE): the mean of the *other*, non-missing
+  # specimens, not one that also includes the value about to be imputed.
+  col_mean <- mean(A[5, 1, ], na.rm = TRUE)
+  fish$coords <- A
+
+  expect_message(fish_imputed <- impute_landmarks(fish, method = "impute_mean"), "column means")
+  expect_false(anyNA(fish_imputed$coords[1:19, , ]))
+  expect_equal(fish_imputed$coords[5, 1, 1], col_mean)
+  # scale bar and metadata untouched
+  expect_equal(fish_imputed$coords[20:21, , ], fish$coords[20:21, , ])
+  expect_identical(fish_imputed$metadata, fish$metadata)
+})
+
+test_that("impute_landmarks(method = 'impute_group_mean') uses the specimen's own group, auto-detected from metadata$species", {
+  set.seed(48)
+  fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+  A <- fish$coords
+  sp1 <- fish$metadata$species[1]
+  same_sp <- which(fish$metadata$species == sp1)
+  A[5, 1, same_sp[1]] <- NA_real_
+  # computed *after* inserting the NA, matching impute_landmarks()'s own
+  # mean(col[groups == g], na.rm = TRUE): the within-group mean of the
+  # *other*, non-missing specimens in that group.
+  g_mean <- mean(A[5, 1, same_sp], na.rm = TRUE)
+  fish$coords <- A
+
+  expect_message(fish_imputed <- impute_landmarks(fish, method = "impute_group_mean"), "within-group means")
+  expect_equal(fish_imputed$coords[5, 1, same_sp[1]], g_mean)
+})
+
+test_that("impute_landmarks(method = 'impute_group_mean') errors without groups and no metadata$species", {
+  set.seed(49)
+  fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+  A <- fish$coords
+  A[5, , 1] <- NA_real_
+  expect_error(impute_landmarks(A, method = "impute_group_mean"), "requires `groups`")
+})
+
+test_that("impute_landmarks(method = 'impute_group_mean') falls back to the overall mean, with a warning, for a group entirely missing that coordinate", {
+  set.seed(50)
+  fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+  A <- fish$coords
+  sp1 <- fish$metadata$species[1]
+  same_sp <- which(fish$metadata$species == sp1)
+  A[5, 1, same_sp] <- NA_real_ # entire group missing this coordinate
+  fish$coords <- A
+
+  expect_warning(
+    suppressMessages(fish_imputed <- impute_landmarks(fish, method = "impute_group_mean")),
+    "no non-missing values"
+  )
+  expect_false(anyNA(fish_imputed$coords[5, 1, same_sp]))
+})
+
+test_that("impute_landmarks(method = 'impute_group_mean') accepts an explicit `groups` argument on a raw array", {
+  set.seed(51)
+  fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+  A <- fish$coords
+  A[5, , 1] <- NA_real_
+  out <- suppressMessages(impute_landmarks(A, method = "impute_group_mean", groups = fish$metadata$species))
+  expect_false(anyNA(out[1:19, , ]))
+})
+
+test_that("impute_landmarks(method = 'missforest') imputes using random-forest imputation", {
+  testthat::skip_if_not_installed("missForest")
+  set.seed(52)
+  fish <- simulate_fishmorph_points(n_per_species = 20, n_replicates = 1)
+  A <- fish$coords
+  A[5, , 1] <- NA_real_
+  fish$coords <- A
+
+  expect_message(fish_imputed <- impute_landmarks(fish, method = "missforest"), "missForest")
+  expect_false(anyNA(fish_imputed$coords[1:19, , ]))
+  expect_equal(fish_imputed$coords[20:21, , ], fish$coords[20:21, , ])
+})
+
+test_that("impute_landmarks(method = 'missforest_phylo') imputes using phylogenetic axes from a supplied tree", {
+  testthat::skip_if_not_installed("missForest")
+  testthat::skip_if_not_installed("ape")
+  set.seed(55)
+  fish <- simulate_fishmorph_points(n_per_species = 20, n_replicates = 1)
+  A <- fish$coords
+  A[5, , 1] <- NA_real_
+  fish$coords <- A
+  tree <- ape::rcoal(3, tip.label = c("Species_A", "Species_B", "Species_C"))
+
+  expect_message(
+    fish_imputed <- impute_landmarks(fish, method = "missforest_phylo", tree = tree),
+    "missForest"
+  )
+  expect_false(anyNA(fish_imputed$coords[1:19, , ]))
+  expect_equal(fish_imputed$coords[20:21, , ], fish$coords[20:21, , ])
+})
+
+test_that("impute_landmarks(method = 'missforest_phylo') falls back to plain missforest, with a warning, when the tree doesn't match", {
+  testthat::skip_if_not_installed("missForest")
+  testthat::skip_if_not_installed("ape")
+  set.seed(56)
+  fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+  A <- fish$coords
+  A[5, , 1] <- NA_real_
+  fish$coords <- A
+  tree <- ape::rcoal(3, tip.label = c("Unrelated_1", "Unrelated_2", "Unrelated_3"))
+
+  expect_warning(
+    fish_imputed <- suppressMessages(impute_landmarks(fish, method = "missforest_phylo", tree = tree)),
+    "phylogenetic axes could not be used"
+  )
+  expect_false(anyNA(fish_imputed$coords[1:19, , ]))
+})
+
+test_that("impute_landmarks(method = 'missforest') errors informatively without the missForest package", {
+  testthat::skip_if(requireNamespace("missForest", quietly = TRUE), "missForest is installed")
+  set.seed(53)
+  fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+  A <- fish$coords
+  A[5, , 1] <- NA_real_
+  fish$coords <- A
+  expect_error(impute_landmarks(fish, method = "missforest"), "requires the .missForest. package")
+})
+
+test_that("impute_landmarks() validates `groups` length", {
+  set.seed(54)
+  fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+  A <- fish$coords
+  A[5, , 1] <- NA_real_
+  expect_error(
+    impute_landmarks(A, method = "impute_group_mean", groups = c("a", "b")),
+    "one entry per specimen"
+  )
+})

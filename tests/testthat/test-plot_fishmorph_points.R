@@ -314,12 +314,23 @@ test_that("plot_fishmorph_points()'s scale bar label is built as '1 <unit> = <le
   # The label text itself cannot be read back from a base-R graphics device
   # (drawing calls have no return value), so this pins down the exact
   # formula used internally -- sprintf("1 %s = %s", scale_unit,
-  # formatC(scale_len, format = "f", digits = 1)) -- against a hand-picked
+  # formatC(scale_len, format = "f", digits = 3)) -- against a hand-picked
   # length, guarding against a silent drift back to the old, fixed
-  # "scale (1 cm)" caption or to a different rounding.
+  # "scale (1 cm)" caption or to a different rounding. `digits = 3` (not 1)
+  # matches R/plot_fishmorph_points.R exactly: `scale_len` is measured in
+  # the same [0, 1]-normalised coordinate space as the rest of the plot
+  # (see `xy <- A[, , idx]`), so it is typically a small fraction, and a
+  # single decimal digit would round away nearly all of its precision.
+  # A value not near a decimal rounding boundary is used deliberately:
+  # formatC()'s "round half to even" behaviour for a value exactly at a
+  # rounding boundary (e.g. 0.05 at 1 decimal place) depends on that
+  # value's exact binary floating-point representation, which is not
+  # guaranteed identical across platforms -- this previously made the test
+  # fail on some CI runners (and, independently of that, used the wrong
+  # `digits` altogether).
   scale_len <- 0.05
   expect_equal(
-    sprintf("1 %s = %s", "cm", formatC(scale_len, format = "f", digits = 1)),
-    "1 cm = 0.1"
+    sprintf("1 %s = %s", "cm", formatC(scale_len, format = "f", digits = 3)),
+    "1 cm = 0.050"
   )
 })

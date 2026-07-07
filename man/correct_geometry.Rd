@@ -171,6 +171,18 @@ Because it only ever rescales, translates, and rigidly rotates
 coordinates -- and only ever corrects a coordinate onto another point's
 already-present value -- running it twice on already-standardized data
 is harmless (idempotent up to floating-point precision).
+
+Steps 1-3 (never change any FISHMORPH segment/ratio value: rescaling,
+translation, and rigid rotation all preserve Euclidean distances and
+therefore every ratio computed from them) and step 4 (which does change
+values) are also available as two separate functions,
+\code{\link[=standardize_geometry]{standardize_geometry()}} and \code{\link[=correct_geometry_conventions]{correct_geometry_conventions()}}, for
+workflows that want to inspect or use the value-preserving
+standardization on its own -- e.g. before deciding, from
+\code{correct_landmarks(rule = "check_geometry")}'s audit, whether step 4's
+automatic correction is appropriate for a given data set or species.
+\code{correct_geometry()} itself is unaffected and remains the same one-call
+pipeline as before (equivalent to \code{standardize_geometry(landmarks, ..., orient = FALSE)} followed by \code{correct_geometry_conventions()}).
 }
 \examples{
 fish <- load_t26_saudrune_landmarks()
@@ -186,6 +198,7 @@ plot_fishmorph_points(fish_std, specimen = "T-26-0010_Operator_1")
 
 }
 \seealso{
+\code{\link[=standardize_geometry]{standardize_geometry()}}, \code{\link[=correct_geometry_conventions]{correct_geometry_conventions()}},
 \code{\link[=correct_landmarks]{correct_landmarks()}}, \code{\link[=standardize_orientation]{standardize_orientation()}},
 \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}, \code{\link[=impute_landmarks]{impute_landmarks()}}
 }

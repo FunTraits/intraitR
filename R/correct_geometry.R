@@ -156,7 +156,21 @@
 #' already-present value -- running it twice on already-standardized data
 #' is harmless (idempotent up to floating-point precision).
 #'
-#' @seealso [correct_landmarks()], [standardize_orientation()],
+#' Steps 1-3 (never change any FISHMORPH segment/ratio value: rescaling,
+#' translation, and rigid rotation all preserve Euclidean distances and
+#' therefore every ratio computed from them) and step 4 (which does change
+#' values) are also available as two separate functions,
+#' [standardize_geometry()] and [correct_geometry_conventions()], for
+#' workflows that want to inspect or use the value-preserving
+#' standardization on its own -- e.g. before deciding, from
+#' `correct_landmarks(rule = "check_geometry")`'s audit, whether step 4's
+#' automatic correction is appropriate for a given data set or species.
+#' `correct_geometry()` itself is unaffected and remains the same one-call
+#' pipeline as before (equivalent to `standardize_geometry(landmarks, ...,
+#' orient = FALSE)` followed by `correct_geometry_conventions()`).
+#'
+#' @seealso [standardize_geometry()], [correct_geometry_conventions()],
+#'   [correct_landmarks()], [standardize_orientation()],
 #'   [plot_fishmorph_points()], [impute_landmarks()]
 #'
 #' @examples
@@ -232,104 +246,47 @@ correct_geometry <- function(landmarks, specimen = NULL, scale_bar_pos = c(0.1, 
     idx <- idx_all[i]
     sname <- specimen_names_all[idx]
     xy_orig <- A[, , idx]
-    xy <- xy_orig
-    scale_factor <- NA_real_
-    rotation_deg <- NA_real_
-    y_shift <- NA_real_
-    scale_bar_placed <- FALSE
 
-    # --- Step 1: isotropic rescale of the body to [0, 1] -----------------
-    bbox_x <- range(xy_orig[body_idx, 1], na.rm = TRUE)
-    bbox_y <- range(xy_orig[body_idx, 2], na.rm = TRUE)
-    span_x <- diff(bbox_x)
-    span_y <- diff(bbox_y)
-    span <- suppressWarnings(max(span_x, span_y))
-    if (is.finite(span) && span > 0) {
-      scale_factor <- 1 / span
-      xy[, 1] <- (xy_orig[, 1] - bbox_x[1]) * scale_factor
-      xy[, 2] <- (xy_orig[, 2] - bbox_y[1]) * scale_factor
-      # Center X within [0, 1] if it is the shorter axis; Y is not centered
-      # here since step 3 re-anchors the main axis to Y = 0.5 for every
-      # specimen regardless of whatever offset this step leaves it at.
-      if (span_x < span_y) {
-        xy[, 1] <- xy[, 1] + (1 - span_x * scale_factor) / 2
-      }
-      if (has_scale_attr && !is.na(landmarks$scale[[sname]])) {
-        landmarks$scale[[sname]] <- landmarks$scale[[sname]] / scale_factor
-        n_scale_attr_updated <- n_scale_attr_updated + 1L
-      }
-    } else {
+    # Steps 1-3 (value-preserving: rescale + scale bar + rotation) and step
+    # 4 (value-changing: geometric-convention correction) are factored into
+    # shared internal helpers -- also used standalone by the newer
+    # standardize_geometry()/correct_geometry_conventions() functions -- so
+    # this loop only orchestrates warnings/messages/logging around them;
+    # the geometry math itself is unchanged from earlier package versions.
+    std <- .geometry_standardize_one(xy_orig, body_idx, scale_bar_pos)
+    xy <- std$xy
+
+    if (is.na(std$scale_factor)) {
       n_skipped_scale <- n_skipped_scale + 1L
+    } else if (has_scale_attr && !is.na(landmarks$scale[[sname]])) {
+      landmarks$scale[[sname]] <- landmarks$scale[[sname]] / std$scale_factor
+      n_scale_attr_updated <- n_scale_attr_updated + 1L
     }
+    if (!std$rotated) n_skipped_rotate <- n_skipped_rotate + 1L
 
-    # --- Step 2: reposition the scale bar (20, 21) ------------------------
-    if (is.finite(scale_factor) && all(is.finite(xy_orig[c(20, 21), ]))) {
-      orig_len <- sqrt(sum((xy_orig[21, ] - xy_orig[20, ])^2))
-      new_len <- orig_len * scale_factor
-      xy[20, ] <- scale_bar_pos
-      xy[21, ] <- scale_bar_pos + c(new_len, 0)
-      scale_bar_placed <- TRUE
-    }
-
-    # --- Step 3: rotate the body so axis (1, 2) is horizontal ------------
-    do_rotate <- is.finite(scale_factor) && all(is.finite(xy[c(1, 2), ]))
-    if (do_rotate) {
-      v <- xy[2, ] - xy[1, ]
-      if (!all(v == 0)) {
-        angle <- atan2(v[2], v[1])
-        Rmat <- matrix(c(cos(angle), -sin(angle), sin(angle), cos(angle)), nrow = 2)
-        pivot <- xy[1, ]
-        for (li in body_idx) {
-          if (all(is.finite(xy[li, ]))) {
-            xy[li, ] <- as.numeric(pivot + Rmat %*% (xy[li, ] - pivot))
-          }
-        }
-        rotation_deg <- -angle * 180 / pi
-
-        # Anchor the now-horizontal axis at Y = 0.5 for every specimen, so
-        # standardized configurations line up/compare at a common height --
-        # shifts only the body (landmarks in body_idx), never the
-        # already-placed, fixed-position scale bar.
-        y_shift <- 0.5 - xy[1, 2]
-        for (li in body_idx) {
-          if (is.finite(xy[li, 2])) xy[li, 2] <- xy[li, 2] + y_shift
-        }
-      } else {
-        do_rotate <- FALSE
-      }
-    }
-    if (!do_rotate) n_skipped_rotate <- n_skipped_rotate + 1L
-
-    # --- Step 4: correct remaining coordinate-scatter conventions --------
     # Every point beyond `tolerance_coord` in a given group is corrected
     # (not only the single worst one), so a group with more than one
     # misplaced point is fully resolved in this one pass.
-    if (do_rotate) {
-      bl_new <- .body_length(xy)
-      if (!is.na(bl_new) && bl_new > 0) {
-        for (step in plan) {
-          axis_col <- if (step$axis_dim == "x") 1 else 2
-          deviants <- .geometry_group_deviants(xy, step, tolerance_coord, bl_new)
-          for (dv in deviants) {
-            if (isTRUE(all.equal(dv$old_value, dv$reference_value))) next
-            xy[dv$correct_pt, axis_col] <- dv$reference_value
-            corrected_full[dv$correct_pt, idx] <- TRUE
-            log_rows[[length(log_rows) + 1]] <- data.frame(
-              specimen = sname, check = step$check, landmark = dv$correct_pt,
-              axis = step$axis_dim, old_value = dv$old_value, new_value = dv$reference_value,
-              reference_points = paste(sort(dv$reference_pts), collapse = ","),
-              reference_value = dv$reference_value,
-              stringsAsFactors = FALSE
-            )
-          }
+    if (std$rotated) {
+      corr <- .geometry_correct_one(xy, tolerance_coord, plan)
+      xy <- corr$xy
+      if (length(corr$log_rows) > 0) {
+        for (lr in corr$log_rows) {
+          lr$specimen <- sname
+          lr <- lr[c(
+            "specimen", "check", "landmark", "axis", "old_value",
+            "new_value", "reference_points", "reference_value"
+          )]
+          log_rows[[length(log_rows) + 1]] <- lr
         }
+        corrected_full[corr$corrected_pts, idx] <- TRUE
       }
     }
 
     A[, , idx] <- xy
     std_rows[[i]] <- data.frame(
-      specimen = sname, scale_factor = scale_factor, rotation_deg = rotation_deg,
-      y_shift = y_shift, scale_bar_placed = scale_bar_placed, stringsAsFactors = FALSE
+      specimen = sname, scale_factor = std$scale_factor, rotation_deg = std$rotation_deg,
+      y_shift = std$y_shift, scale_bar_placed = std$scale_bar_placed, stringsAsFactors = FALSE
     )
   }
 

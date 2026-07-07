@@ -39,6 +39,8 @@ reference:
       - standardize_orientation
       - correct_landmarks
       - correct_geometry
+      - standardize_geometry
+      - correct_geometry_conventions
       - fishmorph_shape_landmarks
       - gpa_fish
       - correct_allometry

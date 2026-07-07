@@ -1472,6 +1472,153 @@
   out
 }
 
+#' Steps 1-3 of the geometric standardization pipeline, for one specimen
+#'
+#' The value-preserving core shared by [correct_geometry()] and
+#' [standardize_geometry()]: isotropic rescale of the body to `[0, 1]`,
+#' repositioning of the scale bar (20-21), and rotation of the main axis
+#' (1, 2) to horizontal, anchored at `Y = 0.5`. Only rescales, translates,
+#' and rigidly rotates coordinates, so it never changes any FISHMORPH
+#' segment/ratio value (Euclidean distances, and therefore their ratios,
+#' are invariant under these operations) -- see both functions' Details for
+#' the full rationale. Pure: never warns/messages (the caller decides what
+#' to report, from the `NA`/`FALSE` values returned here) and never touches
+#' `landmarks$scale` (also the caller's responsibility, since only it knows
+#' whether `landmarks` is an `"intrait_landmarks"` object with a `$scale`
+#' element to keep consistent).
+#'
+#' @param xy_orig A `p x 2` matrix, one specimen's original landmark
+#'   coordinates.
+#' @param body_idx Integer vector, the body landmark indices (1-19, plus 22
+#'   if present) used to compute the isotropic rescaling factor and rotated
+#'   by step 3; excludes the scale bar (20-21), repositioned separately by
+#'   step 2.
+#' @param scale_bar_pos Numeric length-2 vector, as in [correct_geometry()].
+#' @return A `list` with `xy` (the standardized `p x 2` matrix),
+#'   `scale_factor` (`NA_real_` if step 1 could not be computed, e.g.
+#'   degenerate/missing body landmarks), `rotation_deg`, `y_shift` (both
+#'   `NA_real_` if step 3 was skipped), `scale_bar_placed` (logical), and
+#'   `rotated` (logical, whether step 3 actually ran -- used by the caller
+#'   to decide whether step 4 is meaningful to attempt afterwards).
+#' @noRd
+.geometry_standardize_one <- function(xy_orig, body_idx, scale_bar_pos) {
+  xy <- xy_orig
+  scale_factor <- NA_real_
+  rotation_deg <- NA_real_
+  y_shift <- NA_real_
+  scale_bar_placed <- FALSE
+
+  # --- Step 1: isotropic rescale of the body to [0, 1] -------------------
+  bbox_x <- range(xy_orig[body_idx, 1], na.rm = TRUE)
+  bbox_y <- range(xy_orig[body_idx, 2], na.rm = TRUE)
+  span_x <- diff(bbox_x)
+  span_y <- diff(bbox_y)
+  span <- suppressWarnings(max(span_x, span_y))
+  if (is.finite(span) && span > 0) {
+    scale_factor <- 1 / span
+    xy[, 1] <- (xy_orig[, 1] - bbox_x[1]) * scale_factor
+    xy[, 2] <- (xy_orig[, 2] - bbox_y[1]) * scale_factor
+    # Center X within [0, 1] if it is the shorter axis; Y is not centered
+    # here since step 3 re-anchors the main axis to Y = 0.5 regardless.
+    if (span_x < span_y) {
+      xy[, 1] <- xy[, 1] + (1 - span_x * scale_factor) / 2
+    }
+  }
+
+  # --- Step 2: reposition the scale bar (20, 21) --------------------------
+  if (is.finite(scale_factor) && all(is.finite(xy_orig[c(20, 21), ]))) {
+    orig_len <- sqrt(sum((xy_orig[21, ] - xy_orig[20, ])^2))
+    new_len <- orig_len * scale_factor
+    xy[20, ] <- scale_bar_pos
+    xy[21, ] <- scale_bar_pos + c(new_len, 0)
+    scale_bar_placed <- TRUE
+  }
+
+  # --- Step 3: rotate the body so axis (1, 2) is horizontal ---------------
+  do_rotate <- is.finite(scale_factor) && all(is.finite(xy[c(1, 2), ]))
+  if (do_rotate) {
+    v <- xy[2, ] - xy[1, ]
+    if (!all(v == 0)) {
+      angle <- atan2(v[2], v[1])
+      Rmat <- matrix(c(cos(angle), -sin(angle), sin(angle), cos(angle)), nrow = 2)
+      pivot <- xy[1, ]
+      for (li in body_idx) {
+        if (all(is.finite(xy[li, ]))) {
+          xy[li, ] <- as.numeric(pivot + Rmat %*% (xy[li, ] - pivot))
+        }
+      }
+      rotation_deg <- -angle * 180 / pi
+
+      # Anchor the now-horizontal axis at Y = 0.5 for every specimen, so
+      # standardized configurations line up/compare at a common height --
+      # shifts only the body, never the already-placed, fixed scale bar.
+      y_shift <- 0.5 - xy[1, 2]
+      for (li in body_idx) {
+        if (is.finite(xy[li, 2])) xy[li, 2] <- xy[li, 2] + y_shift
+      }
+    } else {
+      do_rotate <- FALSE
+    }
+  }
+
+  list(
+    xy = xy, scale_factor = scale_factor, rotation_deg = rotation_deg,
+    y_shift = y_shift, scale_bar_placed = scale_bar_placed, rotated = do_rotate
+  )
+}
+
+#' Step 4 of the geometric standardization pipeline, for one specimen
+#'
+#' The value-*changing* core shared by [correct_geometry()] and
+#' [correct_geometry_conventions()]: corrects every landmark beyond
+#' `tolerance_coord` in any of `.geometry_coord_plan()`'s five groups, onto
+#' that group's shared reference. Meaningful only once the axis (1, 2) is
+#' already horizontal (see `rotated` in [.geometry_standardize_one()]'s
+#' Return) -- callers are expected to gate on that themselves, since
+#' "vertical"/"horizontal" here are evaluated directly on raw X/Y. Pure:
+#' never warns/messages, and does not know about, or update, any `corrected`/
+#' `correction_log` attribute -- assembling and attaching those (including
+#' the `specimen` column, unknown to this per-specimen helper) is the
+#' caller's job.
+#'
+#' @param xy A `p x 2` matrix, one specimen's *already-standardized* (steps
+#'   1-3 done) landmark coordinates.
+#' @param tolerance_coord Numeric, as in [correct_geometry()].
+#' @param plan The fixed plan from [.geometry_coord_plan()] (passed in
+#'   rather than recomputed per specimen).
+#' @return A `list` with `xy` (the corrected `p x 2` matrix), `log_rows` (a
+#'   list of `data.frame`s, one per corrected point, columns `check`,
+#'   `landmark`, `axis`, `old_value`, `new_value`, `reference_points`,
+#'   `reference_value` -- everything in [correct_geometry()]'s
+#'   `correction_log` except `specimen`), and `corrected_pts` (integer
+#'   vector of landmark indices corrected, possibly with duplicates if the
+#'   same index somehow appears in more than one plan step).
+#' @noRd
+.geometry_correct_one <- function(xy, tolerance_coord, plan) {
+  log_rows <- list()
+  corrected_pts <- integer(0)
+  bl <- .body_length(xy)
+  if (!is.na(bl) && bl > 0) {
+    for (step in plan) {
+      axis_col <- if (step$axis_dim == "x") 1 else 2
+      deviants <- .geometry_group_deviants(xy, step, tolerance_coord, bl)
+      for (dv in deviants) {
+        if (isTRUE(all.equal(dv$old_value, dv$reference_value))) next
+        xy[dv$correct_pt, axis_col] <- dv$reference_value
+        corrected_pts <- c(corrected_pts, dv$correct_pt)
+        log_rows[[length(log_rows) + 1]] <- data.frame(
+          check = step$check, landmark = dv$correct_pt,
+          axis = step$axis_dim, old_value = dv$old_value, new_value = dv$reference_value,
+          reference_points = paste(sort(dv$reference_pts), collapse = ","),
+          reference_value = dv$reference_value,
+          stringsAsFactors = FALSE
+        )
+      }
+    }
+  }
+  list(xy = xy, log_rows = log_rows, corrected_pts = corrected_pts)
+}
+
 #' Draw text with a white halo behind it, for readability over busy plots
 #'
 #' Draws `labels` several times, offset by a small amount in every

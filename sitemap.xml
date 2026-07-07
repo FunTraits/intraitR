@@ -12,6 +12,7 @@
 <url><loc>https://funtraits.github.io/intraitR/reference/compare_functional_richness.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/correct_allometry.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/correct_geometry.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/correct_geometry_conventions.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/correct_landmarks.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/detect_outliers.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/digitization_error.html</loc></url>
@@ -54,6 +55,7 @@
 <url><loc>https://funtraits.github.io/intraitR/reference/simulate_fish_landmarks.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/species_sensitivity.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/standardize_geometry.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/standardize_orientation.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/summary_traits.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/trait_disparity.html</loc></url>

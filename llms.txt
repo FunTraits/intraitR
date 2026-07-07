@@ -520,6 +520,12 @@ correction, and digitization/outlier quality control.
 - [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md)
   : Standardize landmark configurations to a common scale, orientation,
   and geometric convention
+- [`standardize_geometry()`](https://funtraits.github.io/intraitR/reference/standardize_geometry.md)
+  : Standardize landmark scale, scale-bar position, and rotation,
+  without changing any measurement value
+- [`correct_geometry_conventions()`](https://funtraits.github.io/intraitR/reference/correct_geometry_conventions.md)
+  : Actively correct landmarks that violate the FISHMORPH geometric
+  conventions, once the axis is horizontal
 - [`fishmorph_shape_landmarks()`](https://funtraits.github.io/intraitR/reference/fishmorph_shape_landmarks.md)
   : Extract complete-case body-shape landmarks from a FISHMORPH
   configuration

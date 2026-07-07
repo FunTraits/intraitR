@@ -2,6 +2,42 @@
 
 ## intraitR 1.1.0
 
+- [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md)’s
+  pipeline is now also available as two separate functions, for
+  workflows that want to inspect or use its value-preserving
+  standardization on its own before deciding whether its value-changing
+  correction is appropriate:
+  [`standardize_geometry()`](https://funtraits.github.io/intraitR/reference/standardize_geometry.md)
+  performs steps 1-3 only (isotropic rescale, scale-bar repositioning,
+  rotation to a horizontal axis anchored at `Y = 0.5`) and, because
+  these are all rigid/ isotropic transforms, never changes any FISHMORPH
+  segment or ratio value;
+  [`correct_geometry_conventions()`](https://funtraits.github.io/intraitR/reference/correct_geometry_conventions.md)
+  performs step 4 only (active correction of landmarks still violating
+  the five geometric-scatter conventions once the axis is horizontal),
+  and does change values, so it requires already-standardized input (the
+  output of
+  [`standardize_geometry()`](https://funtraits.github.io/intraitR/reference/standardize_geometry.md)
+  or
+  [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md)).
+  [`standardize_geometry()`](https://funtraits.github.io/intraitR/reference/standardize_geometry.md)
+  gains an `orient` argument (default `TRUE`) that calls
+  [`standardize_orientation()`](https://funtraits.github.io/intraitR/reference/standardize_orientation.md)
+  first, internalizing the manual chaining earlier versions of this
+  package’s documentation already recommended
+  (`fish %>% standardize_orientation() %>% standardize_geometry(orient = FALSE)`
+  is equivalent to the default `standardize_geometry(fish)`).
+  [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md)
+  itself is unaffected and remains the same one-call pipeline as before,
+  with identical messages, warnings, and numerical output (implemented
+  by extracting the shared per-specimen geometry math into internal
+  helpers, `.geometry_standardize_one()`/ `.geometry_correct_one()`,
+  reused by all three functions, so its orchestration/messaging code is
+  untouched) – confirmed equivalent to
+  `standardize_geometry(landmarks, ..., orient = FALSE)` followed by
+  [`correct_geometry_conventions()`](https://funtraits.github.io/intraitR/reference/correct_geometry_conventions.md)
+  (see `test-standardize_geometry.R`’s reproduction test).
+
 - [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
   gains a `landmarks` argument: the same `"intrait_landmarks"`
   object/array originally passed to

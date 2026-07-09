@@ -206,8 +206,15 @@ lm_shape <- structure(
   class = "intrait_landmarks"
 )
 gpa <- gpa_fish(lm_shape, remove_outliers = TRUE)   # reused again in section 7
+## `gpa$metadata` (not `lm_shape$metadata`) from here on: remove_outliers =
+## TRUE may drop further specimens beyond `lm_shape`'s own "complete" filter,
+## and gpa_fish() keeps `$metadata` filtered in step with the cleaned
+## `$coords` -- using `lm_shape$metadata` instead would silently misalign
+## (or, for intraspecific_variability()'s stricter check, outright error
+## with "Inputs have different numbers of observations") if any outlier was
+## actually removed.
 
-ms <- morpho_space(gpa, groups = lm_shape$metadata$species)
+ms <- morpho_space(gpa, groups = gpa$metadata$species)
 print(ms)
 plot(ms, style = "spider", legend_title = "Species", legend_italic = TRUE,
      abbreviate_species = TRUE)
@@ -244,8 +251,9 @@ par(op)
 ## 7. intraspecific_variability() and itv_index() -- variability within
 ##    vs among species
 ## ----------------------------------------------------------------------
-## From Procrustes shape (the `gpa`/`lm_shape` built in section 5) ...
-iv_shape <- intraspecific_variability(gpa = gpa, groups = lm_shape$metadata$species, iter = 999)
+## From Procrustes shape (the `gpa` built in section 5) -- `gpa$metadata`,
+## not `lm_shape$metadata` (see the note in section 5) ...
+iv_shape <- intraspecific_variability(gpa = gpa, groups = gpa$metadata$species, iter = 999)
 print(iv_shape)
 ## ... or from any numeric trait matrix (the ratios):
 iv_traits <- intraspecific_variability(traits = ratios[complete_r, ratio_cols],

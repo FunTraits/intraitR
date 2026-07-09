@@ -287,7 +287,6 @@ derr <- digitization_error(lm_rep, individual = indiv_rep, species = species_rep
                            exclude_landmarks = c(20, 21))
 print(derr)
 print(derr$by_landmark)   # landmarks ranked most -> least precise
-plot(derr)                # built-in view
 
 ## A more detailed, publication-style version of the same information,
 ## built directly from digitization_error()'s output (one row per landmark

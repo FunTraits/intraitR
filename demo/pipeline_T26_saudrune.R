@@ -1,240 +1,366 @@
-## -----------------------------------------------------------------------
-## pipeline_T26_saudrune.R
-##
-## Complete intraitR pipeline applied to the T-26 La Saudrune electrofishing
-## survey (Adour-Garonne basin, France, 21 April 2026): the first REAL
-## (non-simulated) worked example shipped with the package. Every stage of
-## the intraitR workflow is exercised in turn: import -> Generalised
-## Procrustes Analysis -> digitization quality control -> FISHMORPH linear
-## measurements and ratios (Brosse et al., 2021) -> functional trait space
-## -> interspecific/intraspecific trait variability -> measurement error
-## and digitization error from replicated digitizations -> trait disparity
-## among species.
-##
-## Run with: demo("pipeline_T26_saudrune", package = "intraitR")
-## Data documentation: ?load_t26_saudrune
-## -----------------------------------------------------------------------
 
 library(intraitR)
 
-## =========================================================================
-## 0. Load the data
-## =========================================================================
-ops    <- load_t26_saudrune("operators")        # 279 fish x 2 operators x 21 landmarks
-rep_df <- load_t26_saudrune("repeatability")     # 25 fish x 9-10 replicates x 21 landmarks
-ident  <- load_t26_saudrune("identifications")   # species / id_status, one row per fish
+## A single seed covers every stochastic step below (missForest imputation,
+## trait_space()'s bootstrap, itv_index()/trait_disparity()'s permutations,
+## bootstrap_functional_space()), since they are all run in this same fixed
+## order every time the script is sourced -- no need to reset it repeatedly.
+set.seed(2026)
+
+## ----------------------------------------------------------------------
+## 1. The survey tables (raw data.frames), and the two ways to load them
+## ----------------------------------------------------------------------
+## Four related tables ship with the package; each is one call.
+ops    <- load_t26_saudrune("operators")        # long landmark table, 2 operators
+rep_df <- load_t26_saudrune("repeatability")    # replicate-digitization trial
+ident  <- load_t26_saudrune("identifications")  # species / id_status, one row / fish
+qc     <- load_t26_saudrune("qc_log")           # specimens excluded during data prep
+
+## optional arguments: subset to one operator, and/or join species on import
+op1    <- load_t26_saudrune("operators", operator = "Operator_1")
+ops_sp <- load_t26_saudrune("operators", species = TRUE)   # adds species/id_status
+stopifnot(identical(ops_sp$code, ops$code))                 # same rows, in order
 
 cat(sprintf(
-  "%d fish digitized by %d operators; %d fish used for the intra-operator repeatability trial\n",
-  length(unique(ops$code)), length(unique(ops$operator)), length(unique(rep_df$code))
+  "operators: %d rows | repeatability: %d rows | %d identified species | %d specimen(s) pre-excluded (see qc$reason)\n",
+  nrow(ops), nrow(rep_df), length(unique(ident$species)), nrow(qc)
 ))
 print(table(ident$species, ident$id_status, useNA = "ifany"))
 
-## =========================================================================
-## 1. Import + build a per-fish consensus configuration
-## =========================================================================
-lm_operators <- read_landmarks_csv(ops)   # -> intrait_landmarks, 21 x 2 x 558
-cat("Operator-level landmarks:", paste(dim(lm_operators$coords), collapse = " x "), "\n")
+## read_landmarks_csv() reshapes a long (specimen, landmark, X, Y) table into
+## the p x k x n array the rest of the package expects; only carries the
+## metadata you hand it explicitly via `metadata =` (no auto-detection), so
+## build a one-row-per-specimen table first and pass species/id_status
+## through that way -- everything downstream (fishmorph_segments(),
+## fishmorph_ratios(), plot_fishmorph_shapes(), ...) then finds them
+## automatically in `lm$metadata`.
+sp_meta <- unique(ops_sp[c("specimen", "code", "species", "id_status")])
+lm      <- read_landmarks_csv(ops_sp, metadata = sp_meta)   # 21 x 2 x 558
+lm_rep  <- read_landmarks_csv(rep_df)                       # the repeatability trial
+cat("read_landmarks_csv ->", paste(dim(lm$coords), collapse = " x "), "\n")
 
-# Average the two operators' digitizations per fish into a single
-# 'consensus' configuration. intraitR does not yet ship a dedicated
-# multi-operator averaging helper, so the consensus array is built here
-# directly on the p x k x n geomorph-style array used throughout the
-# package (see ?read_landmarks_csv, ?gpa_fish).
-codes <- unique(ops$code)
-A <- lm_operators$coords
-code_of <- sub("_[^_]+$", "", dimnames(A)[[3]])
+## load_t26_saudrune_landmarks() is a convenience wrapper doing both steps
+## (load the table AND build the intrait_landmarks object) in one call:
+lm_op1 <- load_t26_saudrune_landmarks("operators", operator = "Operator_1")
+cat("load_t26_saudrune_landmarks ->", paste(dim(lm_op1$coords), collapse = " x "), "\n")
 
-A_consensus <- array(
-  NA_real_, dim = c(dim(A)[1], dim(A)[2], length(codes)),
-  dimnames = list(dimnames(A)[[1]], dimnames(A)[[2]], codes)
-)
-for (code in codes) {
-  A_consensus[, , code] <- apply(A[, , code_of == code, drop = FALSE], c(1, 2), mean, na.rm = TRUE)
+## ----------------------------------------------------------------------
+## 2. Landmark quality control: standardize_geometry(), impute_landmarks(),
+##    correct_geometry(), and the two visual-check plots
+## ----------------------------------------------------------------------
+spec <- "T-26-0051_Operator_1"          # same specimen shown at every step
+
+## Successive corrections, each building on the previous:
+lm_geom <- standardize_geometry(lm)     # orient + rescale + scale-bar + rotate
+lm_imp  <- impute_landmarks(lm_geom)    # fill missing landmarks
+lm_corr <- correct_geometry(lm_imp)     # enforce the FISHMORPH conventions
+
+step_label <- function(txt) {
+  mtext(txt, side = 3, line = 0.3, adj = 0, font = 2, cex = 1.05, col = "grey20")
 }
 
-fish_meta <- merge(data.frame(code = codes), ident, by = "code", all.x = TRUE, sort = FALSE)
-rownames(fish_meta) <- fish_meta$code
-fish_meta <- fish_meta[codes, ]
+op <- par(no.readonly = TRUE)
+par(mfrow = c(2, 2), mar = c(4, 2, 2, 1), oma = c(0, 0, 1, 0), mgp = c(2, 1.2, 0),
+    col.main = "transparent")   # hides each panel's specimen title; step_label() replaces it
 
-lm_consensus <- structure(
-  list(coords = A_consensus, scale = NULL, metadata = fish_meta),
-  class = "intrait_landmarks"
-)
-cat("Consensus (per-fish) landmarks:", paste(dim(lm_consensus$coords), collapse = " x "), "\n")
+cc <- lm$coords[, , spec]
+axis_range <- function(v) {
+  r  <- range(v, na.rm = TRUE)
+  pad <- 0.12 * diff(r)
+  lo <- floor(r[1] - pad)
+  c(lo, lo + ceiling((diff(r) + 2 * pad) / 4) * 4)
+}
+plot_fishmorph_points(lm, specimen = spec, labels = FALSE, legend = FALSE,
+                      asp = NA, xlim = axis_range(cc[, 1]), ylim = axis_range(cc[, 2]),
+                      flip_y = FALSE)
+step_label("1 - Raw (as digitized)")
+plot_fishmorph_points(lm_geom, specimen = spec, labels = FALSE, legend = FALSE)
+step_label("2 - standardize_geometry()")
+plot_fishmorph_points(lm_imp, specimen = spec, labels = FALSE, legend = FALSE)
+step_label("3 - impute_landmarks()")
+plot_fishmorph_points(lm_corr, specimen = spec, labels = TRUE, legend = FALSE)
+step_label("4 - correct_geometry()")
 
-## =========================================================================
-## 2. FISHMORPH linear measurements and ratios (Brosse et al., 2021)
-## =========================================================================
-# Landmarks 20-21 are the ends of a 1 cm calibration segment digitized
-# next to each fish, so scale_cm = 1 (the default) converts pixels to cm.
-# Because lm_consensus carries fish_meta as its `metadata`, both
-# fishmorph_segments() and fishmorph_ratios() automatically prepend
-# `species`/`id_status`/etc. to their output.
-segments <- fishmorph_segments(lm_operators)
-ratios <- fishmorph_ratios(segments)
+par(mfrow = c(1, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 1, 0), mgp = c(2, 1.2, 0),
+    col.main = "transparent")
+## align = TRUE for both panels: `lm`/`lm_corr` are not Procrustes-aligned,
+## so overlaying raw (unaligned) coordinates would show each specimen's own
+## position/scale in its photograph rather than genuine shape differences
+## (see plot_fishmorph_shapes()'s `align` argument) -- aligning both lets
+## the comparison isolate exactly what correct_geometry()/impute_landmarks()
+## changed.
+plot_fishmorph_shapes(lm, species = "Gobio occitaniae", align = TRUE)
+mtext("a) Uncorrected specimens", side = 3, adj = 0)
+plot_fishmorph_shapes(lm_corr, species = "Gobio occitaniae", align = TRUE)
+mtext("b) Corrected specimens", side = 3, adj = 0)
+par(op)
 
-cat("\nFISHMORPH linear measurements (cm), summary:\n")
+## ----------------------------------------------------------------------
+## 3. Linear measurements and the FISHMORPH ratios
+## ----------------------------------------------------------------------
+## linear_distances() is the general engine: `pairs` is a named list of
+## length-2 landmark indices, in raw digitization units unless a
+## per-specimen `scale` is supplied. Here: standard length (1-2), body
+## depth (3-4), eye diameter (13-14).
+dists <- linear_distances(lm, pairs = list(SL = c(1, 2), BD = c(3, 4), ED = c(13, 14)))
+cat("linear_distances (first rows):\n"); print(utils::head(dists))
+
+## fishmorph_segments(): the 11 standard measurements, in cm, using the
+## scale bar (landmarks 20-21). "missforest_phylo" imputes any measurement
+## still missing after digitization (falls back to plain "missforest" with
+## a warning if the `ape`/phylogeny data aren't usable), so every
+## downstream step in this script works from a complete data set; because
+## `lm` carries species metadata, it is used automatically as `groups` and
+## carried over into the output.
+segments <- fishmorph_segments(lm, scale_cm = 1, na_action = "missforest_phylo")
+cat("\nFISHMORPH measurements (cm):\n")
 print(summary(segments[c("Bl", "Bd", "Hd", "Eh", "Mo", "PFi", "PFl", "Ed", "Jl", "CPd", "CFd")]))
-cat("\nMissing values per ratio (%):\n")
+
+## Optional: NA-out measurements whose geometry failed a convention check
+## before imputing, rather than trusting a geometrically inconsistent value:
+if (FALSE) {
+  gc_check  <- correct_landmarks(lm, rule = "check_geometry")
+  segments2 <- fishmorph_segments(lm, geometry_check = gc_check, na_action = "missforest_phylo")
+}
+
+## fishmorph_ratios(): the 9 dimensionless ecomorphological ratios, each
+## mapping to a functional axis (feeding, locomotion, habitat use). No
+## further na_action needed: `segments` is already complete.
+ratios     <- fishmorph_ratios(segments)
 ratio_cols <- c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")
+cat("\nMissing values per ratio (%) -- expect (near) 0 after missforest_phylo imputation above:\n")
 print(round(colMeans(is.na(ratios[ratio_cols])) * 100, 1))
 
-## =========================================================================
-## 3. Generalised Procrustes Analysis + digitization quality control
-## =========================================================================
-# Shape analysis uses the 19 anatomical landmarks only (20-21 are the
-# scale bar, not shape) and requires a complete configuration.
-shape_coords <- lm_consensus$coords[1:19, , ]
-complete <- apply(shape_coords, 3, function(x) !anyNA(x))
+## Safety net: missForest-based imputation fills in almost everything, but
+## is not guaranteed to resolve every possible missingness pattern (e.g. a
+## column missing for an entire species with no informative predictors); a
+## single `complete_r` computed once here, and reused below, keeps every
+## trait-based analysis in this script restricted to fully complete rows
+## without silently propagating any leftover NA.
+complete_r <- stats::complete.cases(ratios[ratio_cols])
+if (!all(complete_r)) {
+  message(sprintf(
+    paste(
+      "Note: %d specimen(s) still have a missing ratio after missforest_phylo",
+      "imputation; excluding them from the trait-based analyses below",
+      "(shape-based ones are unaffected)."
+    ),
+    sum(!complete_r)
+  ))
+}
+
+## morpho_ratios(): roll your own ratio scheme for anything outside the
+## FISHMORPH set -- give the landmark pairs and which one normalises the
+## rest (here standard length, "SL"). Ratios are dimensionless, so no scale
+## bar is needed.
+my_ratios <- morpho_ratios(
+  lm,
+  distances = list(SL = c(1, 2), BD = c(3, 4), HD = c(5, 6), ED = c(13, 14)),
+  norm_by = "SL"
+)
+cat("\nCustom morpho_ratios (first rows):\n"); print(utils::head(my_ratios))
+
+## fishmorph_shape_landmarks(): a convenience shortcut for a *per-digitization*
+## shape-only subset (scale bar dropped, incomplete configs dropped). Section
+## 4 below instead builds one *consensus* configuration per fish (averaged
+## across operators) for the actual GPA/morphospace analysis, but this is
+## the function to reach for when per-digitization shape data is enough.
+lm_shape_quick <- fishmorph_shape_landmarks(lm, drop_incomplete = TRUE)
+cat("\nfishmorph_shape_landmarks() ->", paste(dim(lm_shape_quick$coords), collapse = " x "), "\n")
+
+## summary_traits(): a per-species trait table, ready to drop into a
+## results table.
+trait_tab <- summary_traits(ratios[ratio_cols], groups = ratios$species)
+cat("\nPer-species trait summary:\n"); print(trait_tab)
+
+## ----------------------------------------------------------------------
+## 4. One consensus configuration per fish, averaged across operators
+## ----------------------------------------------------------------------
+## Every fish (`code`) was digitized once per operator; morphological space
+## (section 5) and intraspecific variability (section 7) both need one
+## configuration per *fish*, not per *digitization*, so this consensus is
+## built once here and reused by both.
+codes   <- unique(ops_sp$code)
+A       <- lm$coords
+code_of <- ops_sp$code[match(dimnames(A)[[3]], ops_sp$specimen)]  # config -> fish code
+A_cons  <- array(NA_real_, dim = c(dim(A)[1], dim(A)[2], length(codes)),
+                 dimnames = list(dimnames(A)[[1]], dimnames(A)[[2]], codes))
+for (code in codes) {
+  A_cons[, , code] <- apply(A[, , code_of == code, drop = FALSE], c(1, 2), mean, na.rm = TRUE)
+}
+meta_cons <- unique(ops_sp[c("code", "species", "id_status")])
+rownames(meta_cons) <- meta_cons$code
+meta_cons <- meta_cons[codes, ]
+lm_consensus <- structure(list(coords = A_cons, scale = NULL, metadata = meta_cons),
+                          class = "intrait_landmarks")
+cat("Per-fish consensus configurations ->", paste(dim(lm_consensus$coords), collapse = " x "), "\n")
+
+## ----------------------------------------------------------------------
+## 5. morpho_space() -- MORPHOLOGICAL (shape) space from GPA
+## ----------------------------------------------------------------------
+lm_consensus_imp <- impute_landmarks(standardize_orientation(lm_consensus), method = "missforest_phylo")
+shape_coords <- lm_consensus_imp$coords[1:19, , ]           # drop the scale bar (20-21)
+complete     <- apply(shape_coords, 3, function(x) !anyNA(x))
 lm_shape <- structure(
-  list(coords = shape_coords[, , complete], scale = NULL, metadata = fish_meta[complete, ]),
+  list(coords = shape_coords[, , complete], scale = NULL, metadata = meta_cons[complete, ]),
   class = "intrait_landmarks"
 )
-cat(sprintf(
-  "\n%d / %d fish have a complete 19-landmark configuration (%.1f%%)\n",
-  sum(complete), length(complete), 100 * mean(complete)
-))
+gpa <- gpa_fish(lm_shape, remove_outliers = TRUE)   # reused again in section 7
 
-gpa <- gpa_fish(lm_shape)
-print(gpa)
-
-# Naive pooled outlier screen -- kept here deliberately as a cautionary
-# example: with 8 taxonomically distinct species pooled together, a
-# global median + 3*MAD Procrustes-distance threshold mostly flags
-# genuine interspecific shape diversity, not digitization errors (see
-# the manuscript's Discussion for the full argument).
-out_pooled <- detect_outliers(gpa, plot = FALSE)
-cat(sprintf(
-  "\nPooled (multi-species) detect_outliers(): %d / %d flagged -- interpret with caution,\n"
-  , length(out_pooled$outliers), length(out_pooled$procrustes_distance)
-))
-cat("see ?detect_outliers and the manuscript Discussion: run within a single species instead.\n")
-
-# Correct usage: run detect_outliers() *within* a single, well-sampled
-# species (Gobio occitaniae, the dominant species in this sample).
-gobio_idx <- which(lm_shape$metadata$species == "Gobio occitaniae")
-lm_gobio <- structure(
-  list(coords = lm_shape$coords[, , gobio_idx], scale = NULL,
-       metadata = lm_shape$metadata[gobio_idx, ]),
-  class = "intrait_landmarks"
-)
-gpa_gobio <- gpa_fish(lm_gobio)
-out_gobio <- detect_outliers(gpa_gobio, plot = TRUE)
-print(out_gobio)
-
-## =========================================================================
-## 4. Functional trait space on the FISHMORPH ratios
-## =========================================================================
-# Built here on the FULL cleaned data set (all 279 fish, no manual removal
-# of individuals): trait_space()'s default flag_outliers = TRUE screens for
-# potential within-species errors automatically (see ?trait_space) instead,
-# so that any specimen distorting the ordination is flagged, inspected, and
-# excluded (or not) transparently -- rather than removed ad hoc beforehand.
-ts <- trait_space(ratios[ratio_cols], groups = ratios$species, na_action = "omit",remove_outliers = F)
-print(ts)   # lists any flagged within-species outlier(s), if present
-
-# Inspect the full outlier screen (one row per specimen): every species with
-# >= outlier_min_n (default 5) specimens gets a group-specific median/MAD
-# threshold; specimens in smaller species get a distance but are not
-# flagged (too few points for a reliable threshold).
-print(utils::head(ts$outlier_screen[order(-ts$outlier_screen$distance), ], 10))
-
-plot(ts, style = "hull", legend_title = "Species", legend_italic = TRUE,
-     abbreviate_species = TRUE)
-
-# If any specimen was flagged above, visually inspect it before deciding
-# whether to exclude it (never drop a flagged specimen purely because
-# trait_space() flagged it -- confirm the issue first, e.g. a genuinely
-# misplaced landmark or a likely misidentification):
-flagged_codes <- rownames(ts$outlier_screen)[which(ts$outlier_screen$flagged)]
-if (length(flagged_codes) > 0) {
-  cat("\nFlagged specimen(s) to inspect visually:", paste(flagged_codes, collapse = ", "), "\n")
-  # e.g. plot_fishmorph_points(lm_consensus, specimen = flagged_codes[1])
-}
-
-# na_action = "missforest" imputes the ~25-38% of REs/RMl/BLs values that
-# are missing (rather than dropping ~26% of specimens outright) using
-# random-forest imputation; compare with the "omit" ordination above.
-if (requireNamespace("missForest", quietly = TRUE)) {
-  set.seed(2026)
-  ts_imputed <- trait_space(ratios[ratio_cols], groups = ratios$species,
-                             na_action = "missforest")
-  print(ts_imputed)
-}
-
-## =========================================================================
-## 5. Interspecific vs. intraspecific trait variability (itv_index)
-## =========================================================================
-complete_ratios <- stats::complete.cases(ratios[ratio_cols])
-itv <- itv_index(ratios[complete_ratios, ratio_cols], groups = ratios$species[complete_ratios])
-print(itv)
-plot(itv)
-
-## =========================================================================
-## 6. Measurement error (Bailey & Byrnes, 1990) from the repeatability
-##    trial: 25 individuals x 9-10 independent replicate digitizations
-## =========================================================================
-lm_rep <- read_landmarks_csv(rep_df)
-segments_rep <- fishmorph_segments(lm_rep)
-rep_meta <- unique(rep_df[c("specimen", "code")])
-individual_rep <- rep_meta$code[match(rownames(segments_rep), rep_meta$specimen)]
-
-me_bl <- measurement_error(
-  data.frame(individual = individual_rep, value = segments_rep$Bl),
-  individual = "individual", method = "anova"
-)
-print(me_bl)   # body length (Bl): percent measurement error and repeatability R
-
-## =========================================================================
-## 7. Digitization (operator) error, landmark by landmark (Boutic, 2026
-##    protocol), on the same repeatability trial
-##    Landmarks 20-21 are the embedded 1 cm scale-bar calibration segment
-##    (fishmorph_segments()'s scale_cm conversion), not a biological
-##    landmark: they are excluded here so that the bias decomposition only
-##    reflects anatomical landmark placement.
-## =========================================================================
-species_rep <- ident$species[match(individual_rep, ident$code)]
-derr <- digitization_error(
-  lm_rep, individual = individual_rep, species = species_rep,
-  exclude_landmarks = c(20, 21)
-)
-print(derr)
-print(derr$by_landmark)   # landmarks ranked from most (top) to least precise
-plot(derr)
-
-## =========================================================================
-## 8. Trait disparity: do species differ in overall trait dispersion?
-## =========================================================================
-td <- trait_disparity(ts, iter = 999)
-print(td)
-
-## =========================================================================
-## 9. Morphological (shape) space
-## =========================================================================
 ms <- morpho_space(gpa, groups = lm_shape$metadata$species)
+print(ms)
 plot(ms, style = "spider", legend_title = "Species", legend_italic = TRUE,
      abbreviate_species = TRUE)
 
-## =========================================================================
-## 10. Bootstrap-based functional space estimate (Bertrand, 2026): does
-##     representing species by individuals (rather than by their centroid)
-##     inflate the estimated functional space?
-## =========================================================================
-if (requireNamespace("geometry", quietly = TRUE)) {
-  # n_axes = 2 keeps this demo fast and matches the PC1-PC2 plots above;
-  # Bertrand (2026) used 8 axes (98% of variance) for the full comparison.
-  bf <- bootstrap_functional_space(ts, n_axes = 2, n_boot = 100)
-  print(bf)
-  plot(bf)
+## ----------------------------------------------------------------------
+## 6. trait_space() -- FUNCTIONAL space from the ratios
+## ----------------------------------------------------------------------
+## `ratios[complete_r, ]` is already complete (section 3), so only
+## `remove_outliers` (a functional-space-level screen, unrelated to
+## missing-value handling) is needed here. `ts` is reused in sections 8
+## and 9 below.
+ts <- trait_space(ratios[complete_r, c("species", ratio_cols)], remove_outliers = TRUE)
+
+reset_group_colors()   # start colour assignment from scratch for this figure
+species_cols <- group_colors(ts)   # data.frame(group, color)
+
+op <- par(no.readonly = TRUE)
+layout(matrix(c(0, 1, 1, 0, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6), nrow = 4, byrow = TRUE),
+       heights = c(0.9, 1, 1, 0.4))
+par(mar = c(0, 0, 0, 0))
+plot_correlation_circle(ts, inner_circle = FALSE)
+par(mar = c(4, 4, 3, 1))
+plot(ts, style = "none", legend = FALSE)
+plot(ts, style = "hull", legend = FALSE)
+plot(ts, style = "density", legend = FALSE)
+plot(ts, style = "spider", legend = FALSE)
+par(mar = c(0, 0, 0, 0))
+plot.new()
+legend("center", legend = species_cols$group, col = species_cols$color, pch = 19,
+       ncol = 4, bty = "n", cex = 1.5, xpd = NA)
+par(op)
+
+## ----------------------------------------------------------------------
+## 7. intraspecific_variability() and itv_index() -- variability within
+##    vs among species
+## ----------------------------------------------------------------------
+## From Procrustes shape (the `gpa`/`lm_shape` built in section 5) ...
+iv_shape <- intraspecific_variability(gpa = gpa, groups = lm_shape$metadata$species, iter = 999)
+print(iv_shape)
+## ... or from any numeric trait matrix (the ratios):
+iv_traits <- intraspecific_variability(traits = ratios[complete_r, ratio_cols],
+                                       groups = ratios$species[complete_r], iter = 999)
+print(iv_traits)
+
+itv <- itv_index(ratios[complete_r, ratio_cols], groups = ratios$species[complete_r])
+print(itv)
+plot(itv, col.main = "transparent")
+
+## ----------------------------------------------------------------------
+## 8. measurement_error() and digitization_error() -- on the repeat trial
+## ----------------------------------------------------------------------
+## Percent measurement error and repeatability R (Bailey & Byrnes, 1990)
+## for a single measurement (body length, Bl) from replicated digitizations
+## of the same 25 fish.
+segments_rep <- fishmorph_segments(lm_rep)
+rep_meta     <- unique(rep_df[c("specimen", "code")])
+indiv_rep    <- rep_meta$code[match(rownames(segments_rep), rep_meta$specimen)]
+
+me_bl <- measurement_error(
+  data.frame(individual = indiv_rep, value = segments_rep$Bl),
+  individual = "individual", method = "anova"
+)
+print(me_bl)
+
+## digitization_error(): decomposes placement error landmark by landmark;
+## scale bar (20-21) excluded so only anatomical landmarks are assessed.
+species_rep <- ident$species[match(indiv_rep, ident$code)]
+derr <- digitization_error(lm_rep, individual = indiv_rep, species = species_rep,
+                           exclude_landmarks = c(20, 21))
+print(derr)
+print(derr$by_landmark)   # landmarks ranked most -> least precise
+plot(derr)                # built-in view
+
+## A more detailed, publication-style version of the same information,
+## built directly from digitization_error()'s output (one row per landmark
+## in `$by_landmark`, one row per individual x landmark in
+## `$landmark_individual`): a boxplot of per-landmark placement error,
+## ordered by increasing median bias and colour-graded to match.
+bl_err <- derr$by_landmark
+li_err <- derr$landmark_individual
+ord <- bl_err$landmark[order(bl_err$median_bias_pct)]
+li_err$landmark <- factor(li_err$landmark, levels = ord)
+
+b   <- boxplot(sd_dist_pct ~ landmark, data = li_err, plot = FALSE)   # stats only, no plot yet
+med <- bl_err$median_bias_pct[match(ord, bl_err$landmark)]
+col_idx <- 1 + round(99 * (med - min(med)) / (max(med) - min(med)))
+cols <- colorRampPalette(c("#dcecc9", "#fdbb84", "#b30000"))(100)[col_idx]
+
+op <- par(no.readonly = TRUE)
+par(mar = c(4.5, 4.5, 3, 1), mgp = c(2.6, 0.7, 0), las = 1)
+n    <- length(ord)
+ymax <- max(c(b$stats, b$out), na.rm = TRUE)
+plot(NA, xlim = c(0.5, n + 0.5), ylim = c(0, ymax * 1.03),
+     xlab = "", ylab = "Digitization bias (%)", axes = FALSE)
+abline(h = axTicks(2), col = "grey92", lwd = 0.8)
+bxp(b, add = TRUE, axes = FALSE, show.names = FALSE,
+    boxfill = cols, boxwex = 0.62, boxcol = "grey40",
+    staplewex = 0.5, outwex = 0.5,
+    whisklty = 1, whiskcol = "grey45", staplecol = "grey45",
+    medlwd = 2.6, medcol = "grey10",
+    outpch = 21, outbg = "white", outcol = "grey50", outcex = 0.75)
+axis(2, col = "grey40")
+axis(1, at = 1:n, labels = ord, tick = FALSE)
+mtext("Landmark (ordered by increasing median bias)", side = 1, line = 2.6)
+par(op)
+
+## ----------------------------------------------------------------------
+## 9. trait_disparity() -- do species differ in overall dispersion?
+## ----------------------------------------------------------------------
+## Directly on the trait space built in section 6 ...
+td <- trait_disparity(ts, iter = 999)
+print(td)
+## ... or on a raw trait matrix + groups:
+td2 <- trait_disparity(ratios[complete_r, ratio_cols], groups = ratios$species[complete_r], iter = 999)
+print(td2)
+
+## ----------------------------------------------------------------------
+## 10. Phylogeny and functional-richness sensitivity analyses
+## ----------------------------------------------------------------------
+if (requireNamespace("ape", quietly = TRUE)) {
+  tree <- load_fishmorph_phylogeny()
+  cat(sprintf("FISHMORPH phylogeny: %d tips\n", length(tree$tip.label)))
+
+  ## phylo_pcoa(): phylogenetic axes for the species in this study --
+  ## principal-coordinates decomposition of the patristic distances; the
+  ## axes can be added as predictors to missForest imputation
+  ## (na_action = "missforest_phylo", used throughout this script) or used
+  ## as phylogenetic covariates.
+  ppc <- phylo_pcoa(tree, species = unique(ratios$species), k = 5)
+  print(ppc)
 }
 
-## =========================================================================
-## 11. Species-level sensitivity index (Bertrand, 2026): which species
-##     drive the individual-vs-centroid difference in functional richness?
-## =========================================================================
 if (requireNamespace("geometry", quietly = TRUE)) {
-  ss <- species_sensitivity(ts, n_axes = 2)
-  print(ss)   # top species by |mean % change in functional richness|
+  ## bootstrap_functional_space(): does representing species by individuals
+  ## (not centroids) inflate functional richness? n_axes = 2 keeps the demo
+  ## fast and matches the PC1-PC2 plots above.
+  bf <- bootstrap_functional_space(ts, method = "convexhull", n_axes = 2, n_boot = 100)
+  print(bf)
+  plot(bf)
+
+  ## compare_functional_richness(): across estimation methods. Convex hull
+  ## is always available; dendrogram/TPD/hypervolume are added only if
+  ## their optional packages are installed.
+  methods <- "convexhull"
+  if (requireNamespace("TPD", quietly = TRUE))         methods <- c(methods, "tpd")
+  if (requireNamespace("hypervolume", quietly = TRUE)) methods <- c(methods, "hypervolume")
+  fr <- compare_functional_richness(ts, methods = methods, n_axes = 2)
+  print(fr)
+
+  ## species_sensitivity(): who drives the individual-vs-centroid gap.
+  ss <- species_sensitivity(ts, method = "convexhull", n_axes = 2)
+  print(ss)   # species ranked by |mean % change in functional richness|
   plot(ss)
 }
+
+## End of pipeline_T26_saudrune.R

@@ -8,7 +8,7 @@ group_colors(x)
 }
 \arguments{
 \item{x}{Either an object with a \verb{$groups} element (e.g. one returned by
-\code{\link[=morpho_space]{morpho_space()}}/\code{\link[=trait_space]{trait_space()}}), or a factor/character vector of
+\code{\link[=shape_space]{shape_space()}}/\code{\link[=trait_space]{trait_space()}}), or a factor/character vector of
 group labels directly (e.g. \code{fish$metadata$species}), one per
 observation -- duplicates are fine, only the distinct values matter.}
 }
@@ -18,7 +18,7 @@ order used by the plot methods' own legend), and columns \code{group}
 (character) and \code{color} (hex character).
 }
 \description{
-Returns the exact colour \code{\link[=plot.intrait_morphospace]{plot.intrait_morphospace()}}/
+Returns the exact colour \code{\link[=plot.intrait_shapespace]{plot.intrait_shapespace()}}/
 \code{\link[=plot.intrait_traitspace]{plot.intrait_traitspace()}} draw (or would draw) for each group, in the
 same order as their own legend -- so a shared legend built separately
 (e.g. one common legend below several panels laid out with
@@ -38,13 +38,13 @@ plot calls will use.
 \examples{
 fish <- simulate_fish_landmarks(n_per_species = 5, n_replicates = 1)
 gpa <- gpa_fish(fish)
-ms <- morpho_space(gpa, groups = fish$metadata$species)
+ms <- shape_space(gpa, groups = fish$metadata$species)
 group_colors(ms)
 
 # or directly from a label vector:
 group_colors(fish$metadata$species)
 }
 \seealso{
-\code{\link[=reset_group_colors]{reset_group_colors()}}, \code{\link[=plot.intrait_morphospace]{plot.intrait_morphospace()}},
+\code{\link[=reset_group_colors]{reset_group_colors()}}, \code{\link[=plot.intrait_shapespace]{plot.intrait_shapespace()}},
 \code{\link[=plot.intrait_traitspace]{plot.intrait_traitspace()}}
 }

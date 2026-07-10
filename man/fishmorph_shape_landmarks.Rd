@@ -13,7 +13,7 @@ the 21 FISHMORPH landmarks (see \code{\link[=fishmorph_segments]{fishmorph_segme
 \item{species}{Optional character vector (or factor), one value per
 specimen, used only to additionally drop specimens with a missing
 (\code{NA}) value -- e.g. an unresolved identification -- so that a
-downstream grouped analysis (\code{\link[=morpho_space]{morpho_space()}},
+downstream grouped analysis (\code{\link[=shape_space]{shape_space()}},
 \code{\link[=intraspecific_variability]{intraspecific_variability()}}, \code{\link[=detect_outliers]{detect_outliers()}}) never encounters
 an \code{NA} group. Defaults to \code{landmarks$metadata$species} if present,
 otherwise \code{NULL} (no filtering on species).}

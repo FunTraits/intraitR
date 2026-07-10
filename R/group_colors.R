@@ -1,6 +1,6 @@
 #' Reset the session-level group/species colour cache
 #'
-#' `plot.intrait_morphospace()` and `plot.intrait_traitspace()` assign
+#' `plot.intrait_shapespace()` and `plot.intrait_traitspace()` assign
 #' group colours from a small cache that persists for the duration of the
 #' R session (see Details), so that the same species is always drawn in
 #' the same colour across separate plot calls -- e.g. a morphological
@@ -33,7 +33,7 @@ reset_group_colors <- function() {
 
 #' Look up the group/species colours used by the ordination plot methods
 #'
-#' Returns the exact colour [plot.intrait_morphospace()]/
+#' Returns the exact colour [plot.intrait_shapespace()]/
 #' [plot.intrait_traitspace()] draw (or would draw) for each group, in the
 #' same order as their own legend -- so a shared legend built separately
 #' (e.g. one common legend below several panels laid out with
@@ -42,7 +42,7 @@ reset_group_colors <- function() {
 #' or guessing at the underlying colour assignment.
 #'
 #' @param x Either an object with a `$groups` element (e.g. one returned by
-#'   [morpho_space()]/[trait_space()]), or a factor/character vector of
+#'   [shape_space()]/[trait_space()]), or a factor/character vector of
 #'   group labels directly (e.g. `fish$metadata$species`), one per
 #'   observation -- duplicates are fine, only the distinct values matter.
 #'
@@ -59,14 +59,14 @@ reset_group_colors <- function() {
 #' therefore entirely safe and produces the same colours the subsequent
 #' plot calls will use.
 #'
-#' @seealso [reset_group_colors()], [plot.intrait_morphospace()],
+#' @seealso [reset_group_colors()], [plot.intrait_shapespace()],
 #'   [plot.intrait_traitspace()]
 #'
 #' @export
 #' @examples
 #' fish <- simulate_fish_landmarks(n_per_species = 5, n_replicates = 1)
 #' gpa <- gpa_fish(fish)
-#' ms <- morpho_space(gpa, groups = fish$metadata$species)
+#' ms <- shape_space(gpa, groups = fish$metadata$species)
 #' group_colors(ms)
 #'
 #' # or directly from a label vector:

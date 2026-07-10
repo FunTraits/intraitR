@@ -229,7 +229,7 @@
 #' probability mass (the highest-density-region, HDR, approach of Hyndman,
 #' 1996), so that groups with skewed or multimodal point clouds (as can
 #' occur, e.g., with real digitization data; see the T-26 Saudrune
-#' morphospace, where a couple of strongly deviating specimens skew one
+#' shape space, where a couple of strongly deviating specimens skew one
 #' species' distribution) are not forced into a symmetric ellipse.
 #'
 #' @param x,y Numeric vectors of coordinates.
@@ -352,7 +352,7 @@
 #' different object whose own row-filtering (missing traits, outlier
 #' removal, etc.) happens to retain a different subset of species than the
 #' object plotted before it. This is what keeps a species' colour
-#' consistent between, say, [plot.intrait_morphospace()] and
+#' consistent between, say, [plot.intrait_shapespace()] and
 #' [plot.intrait_traitspace()] built from the same underlying dataset.
 #' Already-cached labels never change colour as new, previously-unseen
 #' labels are added; only the newly seen ones are appended using
@@ -1959,7 +1959,7 @@
 
 #' Scatterplot of a 2D ordination, by group
 #'
-#' Shared plotting logic used by plot.intrait_morphospace() and
+#' Shared plotting logic used by plot.intrait_shapespace() and
 #' plot.intrait_traitspace() so that both ordination types are displayed
 #' consistently: each group is shown as its individual points, plus one
 #' of: a "spider" of dashed segments linking each point to its group mean
@@ -2061,7 +2061,7 @@
   # Colours are looked up by *label*, from a session-persistent cache
   # (.stable_group_colors()), rather than derived from this call's own
   # `nlevels(groups)`/`as.integer(groups)` position -- otherwise the same
-  # species would get a different colour in, say, plot.intrait_morphospace()
+  # species would get a different colour in, say, plot.intrait_shapespace()
   # vs plot.intrait_traitspace() whenever those two objects happen to
   # retain a different subset of species after their own upstream
   # NA/outlier filtering (which shifts positional indices even though the

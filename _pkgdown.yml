@@ -59,7 +59,7 @@ reference:
       - plot_fishmorph_points
       - plot_fishmorph_shapes
 
-  - title: Functional and morphological space
+  - title: Functional and shape space
     desc: >
       Build, visualise, and test ordinations of shape or trait data, and
       quantify how intraspecific variability (ITV) affects estimated
@@ -68,8 +68,8 @@ reference:
       - trait_space
       - plot.intrait_traitspace
       - plot_correlation_circle
-      - morpho_space
-      - plot.intrait_morphospace
+      - shape_space
+      - plot.intrait_shapespace
       - trait_disparity
       - print.intrait_disparity
       - bootstrap_functional_space

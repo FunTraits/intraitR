@@ -29,7 +29,7 @@ Removes the component of shape variation linearly associated with size
 size and retaining the residuals, re-expressed as shape coordinates at
 the sample's mean size. This is useful when comparing shape among
 specimens or species that differ substantially in body size, so that
-subsequent morphospace or disparity analyses are not simply driven by
+subsequent shape space or disparity analyses are not simply driven by
 size-related shape change.
 }
 \details{
@@ -61,5 +61,5 @@ foot morphology in European cave salamanders. BMC Evolutionary
 Biology, 10, 216.
 }
 \seealso{
-\code{\link[=gpa_fish]{gpa_fish()}}, \code{\link[=morpho_space]{morpho_space()}}
+\code{\link[=gpa_fish]{gpa_fish()}}, \code{\link[=shape_space]{shape_space()}}
 }

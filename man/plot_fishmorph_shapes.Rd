@@ -116,6 +116,6 @@ Applications in R (2nd ed). Wiley.
 anatomical detail), \code{\link[=standardize_orientation]{standardize_orientation()}} (fix orientation
 before overlaying many specimens), \code{\link[=gpa_fish]{gpa_fish()}} (full Procrustes
 alignment, including rotation, across a whole data set),
-\code{\link[=morpho_space]{morpho_space()}}/\code{\link[=trait_space]{trait_space()}} (ordination-based, rather than
+\code{\link[=shape_space]{shape_space()}}/\code{\link[=trait_space]{trait_space()}} (ordination-based, rather than
 shape-outline-based, view of group-level variability)
 }

@@ -83,7 +83,7 @@
 #'   anatomical detail), [standardize_orientation()] (fix orientation
 #'   before overlaying many specimens), [gpa_fish()] (full Procrustes
 #'   alignment, including rotation, across a whole data set),
-#'   [morpho_space()]/[trait_space()] (ordination-based, rather than
+#'   [shape_space()]/[trait_space()] (ordination-based, rather than
 #'   shape-outline-based, view of group-level variability)
 #'
 #' @examples

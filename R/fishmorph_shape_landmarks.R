@@ -18,7 +18,7 @@
 #' @param species Optional character vector (or factor), one value per
 #'   specimen, used only to additionally drop specimens with a missing
 #'   (`NA`) value -- e.g. an unresolved identification -- so that a
-#'   downstream grouped analysis ([morpho_space()],
+#'   downstream grouped analysis ([shape_space()],
 #'   [intraspecific_variability()], [detect_outliers()]) never encounters
 #'   an `NA` group. Defaults to `landmarks$metadata$species` if present,
 #'   otherwise `NULL` (no filtering on species).

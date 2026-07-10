@@ -1,12 +1,12 @@
 Package: intraitR
 Title: Morphological Trait Analysis Toolkit for Freshwater Fish
 Version: 1.1.0
-Date: 2026-07-04
+Date: 2026-07-10
 Authors@R:
     person("Aurele", "Toussaint", , "aurele.toussaint@cnrs.fr", role = c("aut", "cre"))
 Description: A toolkit for the analysis of morphological traits in freshwater
     fish, from raw two-dimensional landmark digitization to derived
-    morphological ratios, morphological space, and functional trait space.
+    morphological ratios, shape space, and functional trait space.
     Building on the geometric morphometric framework implemented in
     'geomorph' (Adams, Collyer and Kaliontzopoulou, 2024), the package
     provides convenience functions to import landmark data from 'tpsDig'

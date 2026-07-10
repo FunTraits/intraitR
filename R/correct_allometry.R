@@ -5,7 +5,7 @@
 #' size and retaining the residuals, re-expressed as shape coordinates at
 #' the sample's mean size. This is useful when comparing shape among
 #' specimens or species that differ substantially in body size, so that
-#' subsequent morphospace or disparity analyses are not simply driven by
+#' subsequent shape space or disparity analyses are not simply driven by
 #' size-related shape change.
 #'
 #' @param gpa An object of class `"intrait_gpa"`, as returned by
@@ -40,7 +40,7 @@
 #' foot morphology in European cave salamanders. BMC Evolutionary
 #' Biology, 10, 216.
 #'
-#' @seealso [gpa_fish()], [morpho_space()]
+#' @seealso [gpa_fish()], [shape_space()]
 #'
 #' @examples
 #' # real T-26 Saudrune data (see ?fishmorph_shape_landmarks for why the

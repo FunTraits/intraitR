@@ -24,7 +24,7 @@ library(intraitR)
 
 `intraitR` supports a complete workflow for the analysis of morphological
 traits in freshwater fish, from digitized landmark coordinates to
-morphological ratios, morphological space, intraspecific variability, and
+morphological ratios, shape space, intraspecific variability, and
 measurement error. This vignette walks through the workflow end to end
 using a simulated data set, so that it runs without any real specimen
 data.
@@ -113,9 +113,9 @@ distances <- list(SL = c(1, 7), BD = c(3, 10), HL = c(1, 4))
 morpho_ratios(fish, distances, norm_by = "SL")[1:5, ]
 ```
 
-## 4. Morphological space
+## 4. Shape space
 
-A morphospace is built from a Principal Component Analysis of the
+A shape space is built from a Principal Component Analysis of the
 Procrustes shape coordinates. By default, `plot()` displays each group as
 its individual points, a "spider" of dashed segments linking every point
 to its group mean, the group mean itself, and a 95% dispersion ellipse
@@ -134,7 +134,7 @@ represents species identity, `legend_title`, `legend_italic`, and
 (e.g. `"Barbatula barbatula"` displayed as italic *B. barbatula*):
 
 ```{r}
-ms <- morpho_space(gpa, groups = fish$metadata$species)
+ms <- shape_space(gpa, groups = fish$metadata$species)
 ms
 plot(ms, legend_title = "Species", legend_italic = TRUE, abbreviate_species = TRUE)
 plot(ms, style = "hull", legend_title = "Species", legend_italic = TRUE,
@@ -273,7 +273,7 @@ default, traits are `log10(x + 1)`-transformed (the `+ 1` accommodating
 ratios that can legitimately equal 0 under the Villéger et al., 2010,
 exception rules) and then centred and scaled to unit variance before the
 ordination (`log_transform = TRUE`, `scale = TRUE`); set either to
-`FALSE` to skip that step. As with `morpho_space()`, `plot()` defaults to
+`FALSE` to skip that step. As with `shape_space()`, `plot()` defaults to
 a spider/ellipse display per group:
 
 ```{r}

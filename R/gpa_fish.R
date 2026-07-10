@@ -26,7 +26,7 @@
 #'   `flag_outliers = TRUE` (an error is raised otherwise, since there
 #'   would be nothing to remove). Defaults to `FALSE`: removing specimens
 #'   changes the consensus shape and every downstream statistic (e.g.
-#'   [morpho_space()], [intraspecific_variability()]), so this is opt-in
+#'   [shape_space()], [intraspecific_variability()]), so this is opt-in
 #'   rather than automatic, and every removal is still recorded in
 #'   `$removed_outliers` (see Return) for transparency and reproducibility
 #'   -- always confirm flagged specimens genuinely reflect a digitization
@@ -98,7 +98,7 @@
 #' Rohlf FJ, Slice D (1990). Extensions of the Procrustes method for the
 #' optimal superimposition of landmarks. Systematic Zoology, 39(1), 40-59.
 #'
-#' @seealso [morpho_space()], [correct_allometry()], [detect_outliers()],
+#' @seealso [shape_space()], [correct_allometry()], [detect_outliers()],
 #'   [intraspecific_variability()], [fishmorph_shape_landmarks()]
 #'
 #' @examples

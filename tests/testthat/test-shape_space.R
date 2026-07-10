@@ -1,39 +1,39 @@
-test_that("morpho_space() builds a PCA-based morphospace", {
+test_that("shape_space() builds a PCA-based shape space", {
   testthat::skip_if_not_installed("geomorph")
 
   fish <- simulate_fish_landmarks(n_per_species = 8, n_replicates = 1)
   gpa <- gpa_fish(fish)
-  ms <- morpho_space(gpa, groups = fish$metadata$species)
+  ms <- shape_space(gpa, groups = fish$metadata$species)
 
-  expect_s3_class(ms, "intrait_morphospace")
+  expect_s3_class(ms, "intrait_shapespace")
   expect_equal(nrow(ms$scores), dim(gpa$coords)[3])
   expect_equal(ncol(ms$scores), 2)
   expect_length(ms$var_explained, 2)
   expect_true(all(ms$var_explained >= 0 & ms$var_explained <= 100))
 })
 
-test_that("morpho_space() auto-detects species from metadata", {
+test_that("shape_space() auto-detects species from metadata", {
   testthat::skip_if_not_installed("geomorph")
 
   fish <- simulate_fish_landmarks(n_per_species = 5, n_replicates = 1)
   gpa <- gpa_fish(fish)
   gpa$metadata <- fish$metadata
-  ms <- morpho_space(gpa)
+  ms <- shape_space(gpa)
 
   expect_false(is.null(ms$groups))
   expect_equal(nlevels(ms$groups), 3)
 })
 
-test_that("morpho_space() errors on invalid input", {
-  expect_error(morpho_space(list()), "must be an object returned by gpa_fish")
+test_that("shape_space() errors on invalid input", {
+  expect_error(shape_space(list()), "must be an object returned by gpa_fish")
 })
 
-test_that("plot.intrait_morphospace() does not error, in any style", {
+test_that("plot.intrait_shapespace() does not error, in any style", {
   testthat::skip_if_not_installed("geomorph")
 
   fish <- simulate_fish_landmarks(n_per_species = 5, n_replicates = 1)
   gpa <- gpa_fish(fish)
-  ms <- morpho_space(gpa, groups = fish$metadata$species)
+  ms <- shape_space(gpa, groups = fish$metadata$species)
 
   tmp <- tempfile(fileext = ".png")
   grDevices::png(tmp)
@@ -51,12 +51,12 @@ test_that("plot.intrait_morphospace() does not error, in any style", {
   unlink(tmp)
 })
 
-test_that("plot.intrait_morphospace()'s automatic axis limits fully contain the group ellipses", {
+test_that("plot.intrait_shapespace()'s automatic axis limits fully contain the group ellipses", {
   testthat::skip_if_not_installed("geomorph")
 
   fish <- simulate_fish_landmarks(n_per_species = 8, n_replicates = 1)
   gpa <- gpa_fish(fish)
-  ms <- morpho_space(gpa, groups = fish$metadata$species)
+  ms <- shape_space(gpa, groups = fish$metadata$species)
 
   tmp <- tempfile(fileext = ".png")
   grDevices::png(tmp)

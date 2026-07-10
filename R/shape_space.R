@@ -1,7 +1,7 @@
-#' Build a morphological space from Procrustes shape coordinates
+#' Build a shape space from Procrustes shape coordinates
 #'
 #' Performs a Principal Component Analysis of Procrustes-aligned shape
-#' coordinates to construct a morphological space ("morphospace"), the
+#' coordinates to construct a shape space, the
 #' standard ordination used to visualise and compare shape variation among
 #' specimens, populations or species in geometric morphometrics.
 #'
@@ -14,7 +14,7 @@
 #' @param axes Integer vector of length 2, the principal components to
 #'   retain for plotting (defaults to `c(1, 2)`).
 #'
-#' @return An object of class `"intrait_morphospace"`, a list with
+#' @return An object of class `"intrait_shapespace"`, a list with
 #'   elements `scores` (data.frame of PC scores), `sdev` (standard
 #'   deviations of all PCs), `var_explained` (percent variance explained by
 #'   the two selected axes), `rotation` (PCA loadings), `groups`, and
@@ -28,7 +28,7 @@
 #' fish <- load_t26_saudrune_landmarks()
 #' fish_shape <- fishmorph_shape_landmarks(fish)
 #' gpa <- gpa_fish(fish_shape)
-#' ms <- morpho_space(gpa, groups = fish_shape$metadata$species)
+#' ms <- shape_space(gpa, groups = fish_shape$metadata$species)
 #' ms
 #' \donttest{
 #' plot(ms)
@@ -36,7 +36,7 @@
 #'
 #' @export
 #' @importFrom geomorph gm.prcomp
-morpho_space <- function(gpa, groups = NULL, axes = c(1, 2)) {
+shape_space <- function(gpa, groups = NULL, axes = c(1, 2)) {
   if (!inherits(gpa, "intrait_gpa")) {
     stop("`gpa` must be an object returned by gpa_fish().", call. = FALSE)
   }
@@ -67,18 +67,18 @@ morpho_space <- function(gpa, groups = NULL, axes = c(1, 2)) {
       groups = groups,
       axes = axes
     ),
-    class = "intrait_morphospace"
+    class = "intrait_shapespace"
   )
 }
 
 #' @return Invisibly returns `x`.
 #' @export
-#' @rdname morpho_space
-#' @param x An object of class `"intrait_morphospace"`, as returned by
-#'   [morpho_space()].
+#' @rdname shape_space
+#' @param x An object of class `"intrait_shapespace"`, as returned by
+#'   [shape_space()].
 #' @param ... Currently unused.
-print.intrait_morphospace <- function(x, ...) {
-  cat("<intrait_morphospace>\n")
+print.intrait_shapespace <- function(x, ...) {
+  cat("<intrait_shapespace>\n")
   cat(sprintf(
     "  Axes PC%d/PC%d, variance explained: %.1f%% / %.1f%%\n",
     x$axes[1], x$axes[2], x$var_explained[1], x$var_explained[2]
@@ -89,14 +89,14 @@ print.intrait_morphospace <- function(x, ...) {
   invisible(x)
 }
 
-#' Plot a morphological space
+#' Plot a shape space
 #'
-#' @param x An object of class `"intrait_morphospace"`, from
-#'   [morpho_space()].
+#' @param x An object of class `"intrait_shapespace"`, from
+#'   [shape_space()].
 #' @param style Character, one of `"spider"` (default), `"hull"`,
 #'   `"density"`, or `"none"`, controlling how groups are displayed (see
 #'   Details). Ignored if `x$groups` is `NULL`. Also named in the plot's
-#'   title (e.g. `"Morphological space (spider)"`), so the display style
+#'   title (e.g. `"Shape space (spider)"`), so the display style
 #'   used is always legible from the figure itself, not just from the
 #'   call that produced it; pass `main = ` via `...` to override with a
 #'   custom title instead.
@@ -150,7 +150,7 @@ print.intrait_morphospace <- function(x, ...) {
 #'
 #' Group colours are assigned per label (e.g. per species) and cached for
 #' the rest of the R session, so the same species keeps the same colour
-#' across separate calls to `plot.intrait_morphospace()` and
+#' across separate calls to `plot.intrait_shapespace()` and
 #' [plot.intrait_traitspace()] -- including when built from the same
 #' dataset but retaining different subsets of specimens (and so,
 #' potentially, different subsets of species) after each function's own
@@ -162,7 +162,7 @@ print.intrait_morphospace <- function(x, ...) {
 #' American Statistician, 50(2), 120-126.
 #'
 #' @export
-plot.intrait_morphospace <- function(x, style = c("spider", "hull", "density", "none"),
+plot.intrait_shapespace <- function(x, style = c("spider", "hull", "density", "none"),
                                       ellipse_level = 0.95, density_level = 0.95,
                                       legend = !is.null(x$groups),
                                       legend_position = "outside",
@@ -175,6 +175,6 @@ plot.intrait_morphospace <- function(x, style = c("spider", "hull", "density", "
                     ellipse_level = ellipse_level, density_level = density_level,
                     legend = legend, legend_position = legend_position,
                     legend_title = legend_title, legend_italic = legend_italic,
-                    abbreviate_species = abbreviate_species, space_name = "Morphological space", ...)
+                    abbreviate_species = abbreviate_species, space_name = "Shape space", ...)
   invisible(x)
 }

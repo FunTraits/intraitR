@@ -59,7 +59,7 @@ Procrustes-aligned (\code{"intrait_gpa"}), or simulated configurations (e.g.
 the \code{n_landmarks}-only shapes from \code{\link[=simulate_fish_landmarks]{simulate_fish_landmarks()}}) -- the
 natural companion to the package's scheme-agnostic functions
 (\code{\link[=gpa_fish]{gpa_fish()}}, \code{\link[=detect_outliers]{detect_outliers()}}, \code{\link[=correct_allometry]{correct_allometry()}},
-\code{\link[=intraspecific_variability]{intraspecific_variability()}}, \code{\link[=morpho_space]{morpho_space()}}). For data digitized
+\code{\link[=intraspecific_variability]{intraspecific_variability()}}, \code{\link[=shape_space]{shape_space()}}). For data digitized
 following the FISHMORPH scheme specifically (Brosse et al. 2021, at
 least 21 points), \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}} is usually more
 informative -- it colours the 11 measurement segments, draws the body
@@ -81,6 +81,6 @@ plot_landmarks(fish, specimen = 1, background_image = "specimen1.jpg")
 
 }
 \seealso{
-\code{\link[=gpa_fish]{gpa_fish()}}, \code{\link[=morpho_space]{morpho_space()}}, \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}} (richer
+\code{\link[=gpa_fish]{gpa_fish()}}, \code{\link[=shape_space]{shape_space()}}, \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}} (richer
 viewer for FISHMORPH-scheme data specifically)
 }

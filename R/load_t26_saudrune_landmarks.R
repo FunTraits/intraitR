@@ -79,7 +79,7 @@
 #' dim(gobio_squalius$coords)
 #'
 #' # build two separate functional trait spaces, one per operator, to check
-#' # whether the two digitizers' morphospaces agree:
+#' # whether the two digitizers' shape spaces agree:
 #' fish_op1 <- load_t26_saudrune_landmarks(operator = "Operator_1")
 #' fish_op2 <- load_t26_saudrune_landmarks(operator = "Operator_2")
 #' ratios_op1 <- fishmorph_ratios(fishmorph_segments(fish_op1))

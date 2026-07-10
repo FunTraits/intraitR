@@ -1,5 +1,15 @@
 # intraitR 1.1.0
 
+* **Breaking rename**: `morpho_space()` is now `shape_space()`, and its
+  output class `"intrait_morphospace"` is now `"intrait_shapespace"` (with
+  the corresponding `print()`/`plot()` methods renamed accordingly). The
+  term "morphological space" was ambiguous for what is, specifically, the
+  ordination of Procrustes (GPA) shape coordinates; "shape space" names it
+  unambiguously. Figure titles now read "Shape space" instead of
+  "Morphological space". The linear-ratio function `morpho_ratios()` is
+  unchanged, as it concerns classical morphometric ratios rather than the
+  shape space.
+
 * New function `exclude_specimens()`: removes one or more known-bad (e.g.
   mismeasured/mis-digitized) specimens from an `"intrait_landmarks"` object
   (as returned by `read_tps()`, `read_landmarks_csv()`,
@@ -299,7 +309,7 @@
   (dot-and-whisker comparison, one row per method) methods.
 
 * Fixed group/species colours not staying consistent between
-  `plot.intrait_morphospace()` and `plot.intrait_traitspace()` built from
+  `plot.intrait_shapespace()` and `plot.intrait_traitspace()` built from
   the same dataset: colours were previously derived from each call's own
   `nlevels(groups)`/position within its *observed* factor levels, so the
   same species could get a different colour whenever the two objects
@@ -329,7 +339,7 @@
   `[0, 1]` convention, whose quarter increments are round by construction.
 
 * Fixed a crash ("attempt to use zero-length variable name") in
-  `plot.intrait_morphospace()`/`plot.intrait_traitspace()` whenever a
+  `plot.intrait_shapespace()`/`plot.intrait_traitspace()` whenever a
   group level was an empty string `""` (e.g. an unresolved species
   identification stored as `""` rather than `NA` in the source data): the
   session-level colour cache previously stored one colour per group by
@@ -348,17 +358,17 @@
   now uses `match()`, which has no such exception.
 
 * New `group_colors()`: returns the exact group/species colours
-  `plot.intrait_morphospace()`/`plot.intrait_traitspace()` use (or would
+  `plot.intrait_shapespace()`/`plot.intrait_traitspace()` use (or would
   use), as a `group`/`color` `data.frame`, in the same order as their own
   legend -- for building a single shared legend across several panels
   (e.g. `par(mfrow = c(2, 2))`, each plotted with `legend = FALSE`)
   without reimplementing or guessing at the underlying colour
   assignment. Accepts either an object with a `$groups` element (e.g.
-  `morpho_space()`/`trait_space()` output) or a raw label vector.
+  `shape_space()`/`trait_space()` output) or a raw label vector.
 
 * Fixed a bug in `group_colors()` where passing a list without a
   `$groups` element (anything other than the intended
-  `morpho_space()`/`trait_space()` output or a raw label vector) silently
+  `shape_space()`/`trait_space()` output or a raw label vector) silently
   used the list itself as if it were the label vector instead of raising
   the documented "no `groups` element" error.
 
@@ -436,7 +446,7 @@ values relative to 0.13.0.
   (an `R CMD check --as-cran` NOTE), spanning
   `bootstrap_functional_space()`, `detect_outliers()`,
   `digitization_error()`, `gpa_fish()`, `intraspecific_variability()`,
-  `itv_index()`, `measurement_error()`, `morpho_space()`, `read_tps()`,
+  `itv_index()`, `measurement_error()`, `shape_space()`, `read_tps()`,
   `species_sensitivity()`, `trait_disparity()`, and `trait_space()`.
   Fixed `plot.intrait_digitization_error()`, which — unlike every other
   `plot()` method in the package — did not explicitly return
@@ -528,7 +538,7 @@ values relative to 0.13.0.
   for the full reasoning). Has `print()` and `plot()` methods; demonstrated
   in `demo(pipeline_T26_saudrune)`, Section 10.
 * **Ordination plot improvements** (`plot.intrait_traitspace()`,
-  `plot.intrait_morphospace()`, via the shared internal
+  `plot.intrait_shapespace()`, via the shared internal
   `.plot_ordination()`): new `legend_title`, `legend_italic`, and
   `abbreviate_species` arguments (e.g. `legend_title = "Species",
   legend_italic = TRUE, abbreviate_species = TRUE` renders
@@ -589,7 +599,7 @@ values relative to 0.13.0.
   with no `operator` column, `operator` is ignored with a warning and all
   rows are returned, rather than raising an error.
 * **`style = "density"`** added to `plot.intrait_traitspace()` and
-  `plot.intrait_morphospace()`: a non-parametric kernel-density contour
+  `plot.intrait_shapespace()`: a non-parametric kernel-density contour
   (highest-density-region construction, Hyndman 1996) per group, as an
   alternative to the parametric bivariate-normal "spider" ellipse — useful
   when a group's points are visibly skewed or multimodal (as can happen
@@ -597,7 +607,7 @@ values relative to 0.13.0.
   bivariate Gaussian kernel density estimator (the same formula underlying
   `MASS::kde2d()`), so no new package dependency is introduced.
 * **Legend placement overhauled.** `plot.intrait_traitspace()`,
-  `plot.intrait_morphospace()`, `plot.intrait_itv()`, and
+  `plot.intrait_shapespace()`, `plot.intrait_itv()`, and
   `plot_fishmorph_points()` all gained a `legend_position` argument,
   defaulting to `"outside"`: the group/measurement legend is now drawn
   just outside the plot box (in the margin) by default, so it no longer
@@ -916,9 +926,9 @@ values relative to 0.13.0.
   traits that legitimately equal 0 under the Villéger et al., 2010,
   exception rules implemented in `fishmorph_ratios()`). Set
   `log_transform = FALSE` to disable. This does not apply to, and is not
-  used by, `morpho_space()`, which ordinates Procrustes shape coordinates
+  used by, `shape_space()`, which ordinates Procrustes shape coordinates
   rather than trait ratios.
-* `plot.intrait_morphospace()` and `plot.intrait_traitspace()` gain a
+* `plot.intrait_shapespace()` and `plot.intrait_traitspace()` gain a
   `style` argument (`"spider"`, `"hull"`, or `"none"`), replacing the
   previous `convex_hull` logical. The new default, `style = "spider"`,
   displays each group as its individual points, dashed segments linking
@@ -980,7 +990,7 @@ Bug fixes found by `devtools::test()` on a real R installation:
   visible caudal fin, with a ventrally positioned mouth, or without
   pectoral fins.
 * `trait_space()` builds a generic functional trait space (PCA or PCoA) from
-  any numeric trait table, with group convex-hull plotting; `morpho_space()`
+  any numeric trait table, with group convex-hull plotting; `shape_space()`
   now shares its plotting code with `trait_space()`.
 * `plot_fishmorph_points()` visualises the 21/22-point digitization scheme
   on a specimen, following the colour scheme of the original protocol
@@ -998,7 +1008,7 @@ Bug fixes found by `devtools::test()` on a real R installation:
   `geomorph::gpagen()`.
 * Linear inter-landmark distances (`linear_distances()`) and classical
   fish morphometric ratios (`morpho_ratios()`).
-* Morphological space construction and plotting (`morpho_space()`).
+* Shape space construction and plotting (`shape_space()`).
 * Allometry correction (`correct_allometry()`).
 * Intraspecific morphological variability, combining shape disparity
   (`geomorph::morphol.disparity()`) and coefficients of variation of linear

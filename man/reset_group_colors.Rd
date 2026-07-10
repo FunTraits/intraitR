@@ -10,7 +10,7 @@ reset_group_colors()
 Invisibly returns \code{NULL}.
 }
 \description{
-\code{plot.intrait_morphospace()} and \code{plot.intrait_traitspace()} assign
+\code{plot.intrait_shapespace()} and \code{plot.intrait_traitspace()} assign
 group colours from a small cache that persists for the duration of the
 R session (see Details), so that the same species is always drawn in
 the same colour across separate plot calls -- e.g. a morphological

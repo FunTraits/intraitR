@@ -46,7 +46,7 @@ only flagging them for review, the default). Requires
 \code{flag_outliers = TRUE} (an error is raised otherwise, since there
 would be nothing to remove). Defaults to \code{FALSE}: removing specimens
 changes the consensus shape and every downstream statistic (e.g.
-\code{\link[=morpho_space]{morpho_space()}}, \code{\link[=intraspecific_variability]{intraspecific_variability()}}), so this is opt-in
+\code{\link[=shape_space]{shape_space()}}, \code{\link[=intraspecific_variability]{intraspecific_variability()}}), so this is opt-in
 rather than automatic, and every removal is still recorded in
 \verb{$removed_outliers} (see Return) for transparency and reproducibility
 -- always confirm flagged specimens genuinely reflect a digitization
@@ -156,6 +156,6 @@ Rohlf FJ, Slice D (1990). Extensions of the Procrustes method for the
 optimal superimposition of landmarks. Systematic Zoology, 39(1), 40-59.
 }
 \seealso{
-\code{\link[=morpho_space]{morpho_space()}}, \code{\link[=correct_allometry]{correct_allometry()}}, \code{\link[=detect_outliers]{detect_outliers()}},
+\code{\link[=shape_space]{shape_space()}}, \code{\link[=correct_allometry]{correct_allometry()}}, \code{\link[=detect_outliers]{detect_outliers()}},
 \code{\link[=intraspecific_variability]{intraspecific_variability()}}, \code{\link[=fishmorph_shape_landmarks]{fishmorph_shape_landmarks()}}
 }

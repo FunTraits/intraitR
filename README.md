@@ -9,7 +9,7 @@
 
 `intraitR` is an R package for the analysis of morphological traits in
 freshwater fish: from raw landmark digitization to morphological ratios,
-morphological space, intraspecific variability, and measurement error. It
+shape space, intraspecific variability, and measurement error. It
 builds on the geometric morphometric framework implemented in
 [`geomorph`](https://cran.r-project.org/package=geomorph) and adds
 fish-specific conveniences for ecomorphological analyses.
@@ -43,8 +43,8 @@ install.packages("geomorph")
 3. **Derive traits**: inter-landmark linear distances
    (`linear_distances()`) and normalised ecomorphological ratios
    (`morpho_ratios()`); correct for allometry with `correct_allometry()`.
-4. **Explore shape**: build and plot a morphological space with
-   `morpho_space()`. By default, `plot()` shows each group as its
+4. **Explore shape**: build and plot a shape space with
+   `shape_space()`. By default, `plot()` shows each group as its
    individual points, dashed segments linking them to the group mean, the
    group mean itself, and a 95% dispersion ellipse (`style = "spider"`);
    `style = "hull"` recovers the classical convex-hull display, and
@@ -234,7 +234,7 @@ specimen:
   applying a `log10(x + 1)` transformation followed by centring/scaling
   to unit variance before the ordination (`log_transform = TRUE`,
   `scale = TRUE`); `plot()` uses the same spider/ellipse display as
-  `morpho_space()`.
+  `shape_space()`.
 * `trait_disparity()` tests whether groups differ in the multivariate
   dispersion of their functional traits (trait variance, i.e. the trace
   of each group's trait covariance matrix), by permutation of group
@@ -321,7 +321,7 @@ gpa  <- gpa_fish(fish)
 distances <- list(SL = c(1, 7), BD = c(3, 10))
 ratios    <- morpho_ratios(fish, distances, norm_by = "SL")
 
-ms <- morpho_space(gpa, groups = fish$metadata$species)
+ms <- shape_space(gpa, groups = fish$metadata$species)
 plot(ms)
 
 intraspecific_variability(

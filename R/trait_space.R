@@ -183,7 +183,7 @@
 #'
 #' Note that this log-transform-then-standardise treatment applies to
 #' *trait* data (ratios, linear measurements, etc.) only. It is not applied
-#' by, and should not be applied to, [morpho_space()], which ordinates
+#' by, and should not be applied to, [shape_space()], which ordinates
 #' Procrustes shape coordinates: those are already a homogeneous,
 #' size-free coordinate system in which log-transforming or rescaling
 #' individual columns would distort shape geometry.
@@ -237,7 +237,7 @@
 #' (2017). Functional ecology of fish: current approaches and future
 #' challenges. Aquatic Sciences, 79(4), 783-801.
 #'
-#' @seealso [fishmorph_ratios()], [morpho_ratios()], [morpho_space()],
+#' @seealso [fishmorph_ratios()], [morpho_ratios()], [shape_space()],
 #'   [detect_outliers()], [load_t26_saudrune_landmarks()]
 #'
 #' @examples
@@ -652,7 +652,7 @@ print.intrait_traitspace <- function(x, ...) {
 #'   [trait_space()].
 #' @param style Character, one of `"spider"` (default), `"hull"`,
 #'   `"density"`, or `"none"`, controlling how groups are displayed; see
-#'   the Details section of [plot.intrait_morphospace()]. Ignored if
+#'   the Details section of [plot.intrait_shapespace()]. Ignored if
 #'   `x$groups` is `NULL`. Also named in the plot's title (e.g. `"Trait
 #'   space (spider)"`), so the display style used is always legible from
 #'   the figure itself, not just from the call that produced it; pass
@@ -662,7 +662,7 @@ print.intrait_traitspace <- function(x, ...) {
 #'   approximation. Defaults to `0.95`.
 #' @param density_level Coverage probability of the per-group
 #'   kernel-density contour drawn when `style = "density"` (see Details of
-#'   [plot.intrait_morphospace()]); groups with fewer than 5 points are
+#'   [plot.intrait_shapespace()]); groups with fewer than 5 points are
 #'   silently skipped. Defaults to `0.95`.
 #' @param legend Logical, draw a legend of group colors. Defaults to
 #'   `TRUE` when `x$groups` is available.

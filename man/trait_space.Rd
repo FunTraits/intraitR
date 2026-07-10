@@ -231,7 +231,7 @@ tables; for mixed-trait functional spaces, standard tools such as the
 
 Note that this log-transform-then-standardise treatment applies to
 \emph{trait} data (ratios, linear measurements, etc.) only. It is not applied
-by, and should not be applied to, \code{\link[=morpho_space]{morpho_space()}}, which ordinates
+by, and should not be applied to, \code{\link[=shape_space]{shape_space()}}, which ordinates
 Procrustes shape coordinates: those are already a homogeneous,
 size-free coordinate system in which log-transforming or rescaling
 individual columns would distort shape geometry.
@@ -308,6 +308,6 @@ Villéger, S., Brosse, S., Mouchet, M., Mouillot, D., & Vanni, M. J.
 challenges. Aquatic Sciences, 79(4), 783-801.
 }
 \seealso{
-\code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=morpho_ratios]{morpho_ratios()}}, \code{\link[=morpho_space]{morpho_space()}},
+\code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=morpho_ratios]{morpho_ratios()}}, \code{\link[=shape_space]{shape_space()}},
 \code{\link[=detect_outliers]{detect_outliers()}}, \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}
 }

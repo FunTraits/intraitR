@@ -9,12 +9,12 @@ test_that(".stable_group_colors() assigns the same colour to the same label acro
   expect_identical(unname(second["C"]), unname(first["C"]))
 })
 
-test_that(".stable_group_colors() keeps earlier labels' colours when a subset differs (the T-26 morpho_space/trait_space scenario)", {
+test_that(".stable_group_colors() keeps earlier labels' colours when a subset differs (the T-26 shape_space/trait_space scenario)", {
   reset_group_colors()
   on.exit(reset_group_colors(), add = TRUE)
 
   # Two calls that each observe a *different* subset of the same underlying
-  # species set (e.g. because morpho_space()/trait_space() drop a different
+  # species set (e.g. because shape_space()/trait_space() drop a different
   # set of specimens/species after their own NA handling) must still agree
   # on the colour of every species they have in common.
   call_1 <- intraitR:::.stable_group_colors(c("Barbatula barbatula", "Gobio occitaniae", "Salaria fluviatilis"))
@@ -58,7 +58,7 @@ test_that(".stable_group_colors() does not error on an empty-string label", {
   expect_identical(unname(cols2[""]), unname(cols[""]))
 })
 
-test_that("plot.intrait_morphospace() does not error when a group level is an empty string", {
+test_that("plot.intrait_shapespace() does not error when a group level is an empty string", {
   testthat::skip_if_not_installed("geomorph")
   reset_group_colors()
   on.exit(reset_group_colors(), add = TRUE)
@@ -67,7 +67,7 @@ test_that("plot.intrait_morphospace() does not error when a group level is an em
   gpa <- gpa_fish(fish)
   groups <- as.character(fish$metadata$species)
   groups[1] <- ""  # simulate an unresolved identification stored as ""
-  ms <- morpho_space(gpa, groups = groups)
+  ms <- shape_space(gpa, groups = groups)
 
   tmp <- tempfile(fileext = ".png")
   grDevices::png(tmp)
@@ -91,7 +91,7 @@ test_that("reset_group_colors() clears the cache so labels can be reassigned fro
   reset_group_colors()
 })
 
-test_that("plot.intrait_morphospace() and plot.intrait_traitspace() use the same colour for a shared species", {
+test_that("plot.intrait_shapespace() and plot.intrait_traitspace() use the same colour for a shared species", {
   testthat::skip_if_not_installed("geomorph")
   reset_group_colors()
   on.exit(reset_group_colors(), add = TRUE)
@@ -99,7 +99,7 @@ test_that("plot.intrait_morphospace() and plot.intrait_traitspace() use the same
   fish <- simulate_fishmorph_points(n_per_species = 8, n_replicates = 1)
   fish_shape <- fishmorph_shape_landmarks(fish)
   gpa <- gpa_fish(fish_shape)
-  ms <- morpho_space(gpa, groups = fish_shape$metadata$species)
+  ms <- shape_space(gpa, groups = fish_shape$metadata$species)
 
   segments <- fishmorph_segments(fish)
   ratios <- fishmorph_ratios(segments)
@@ -125,7 +125,7 @@ test_that("group_colors() returns a data.frame matching the plot methods' own co
 
   fish <- simulate_fish_landmarks(n_per_species = 5, n_replicates = 1)
   gpa <- gpa_fish(fish)
-  ms <- morpho_space(gpa, groups = fish$metadata$species)
+  ms <- shape_space(gpa, groups = fish$metadata$species)
 
   df <- group_colors(ms)
   expect_s3_class(df, "data.frame")
@@ -146,14 +146,14 @@ test_that("group_colors() accepts a raw label vector, not just an object with $g
   expect_setequal(df$group, unique(species))
 })
 
-test_that("group_colors() matches plot.intrait_morphospace()'s legend colours exactly", {
+test_that("group_colors() matches plot.intrait_shapespace()'s legend colours exactly", {
   testthat::skip_if_not_installed("geomorph")
   reset_group_colors()
   on.exit(reset_group_colors(), add = TRUE)
 
   fish <- simulate_fish_landmarks(n_per_species = 5, n_replicates = 1)
   gpa <- gpa_fish(fish)
-  ms <- morpho_space(gpa, groups = fish$metadata$species)
+  ms <- shape_space(gpa, groups = fish$metadata$species)
 
   before <- group_colors(ms)  # looked up before ever plotting
 

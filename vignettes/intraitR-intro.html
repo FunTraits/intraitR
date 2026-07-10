@@ -346,7 +346,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h2>Overview</h2>
 <p><code>intraitR</code> supports a complete workflow for the analysis
 of morphological traits in freshwater fish, from digitized landmark
-coordinates to morphological ratios, morphological space, intraspecific
+coordinates to morphological ratios, shape space, intraspecific
 variability, and measurement error. This vignette walks through the
 workflow end to end using a simulated data set, so that it runs without
 any real specimen data.</p>
@@ -445,17 +445,17 @@ superimposition removes size:</p>
 <span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt; Species_A_ind02_rep2               95.3         2   0.3926   0.5158</span></span></code></pre></div>
 </div>
 <div id="morphological-space" class="section level2">
-<h2>4. Morphological space</h2>
-<p>A morphospace is built from a Principal Component Analysis of the
+<h2>4. Shape space</h2>
+<p>A shape space is built from a Principal Component Analysis of the
 Procrustes shape coordinates. By default, <code>plot()</code> displays
 each group as its individual points, a “spider” of dashed segments
 linking every point to its group mean, the group mean itself, and a 95%
 dispersion ellipse (<code>style = &quot;spider&quot;</code>); pass
 <code>style = &quot;hull&quot;</code> for a classical convex-hull display, or
 <code>style = &quot;none&quot;</code> for plain points:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>ms <span class="ot">&lt;-</span> <span class="fu">morpho_space</span>(gpa, <span class="at">groups =</span> fish<span class="sc">$</span>metadata<span class="sc">$</span>species)</span>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>ms <span class="ot">&lt;-</span> <span class="fu">shape_space</span>(gpa, <span class="at">groups =</span> fish<span class="sc">$</span>metadata<span class="sc">$</span>species)</span>
 <span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>ms</span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; &lt;intrait_morphospace&gt;</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; &lt;intrait_shapespace&gt;</span></span>
 <span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt;   Axes PC1/PC2, variance explained: 37.1% / 7.7%</span></span>
 <span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt;   135 specimens, 3 groups</span></span>
 <span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="fu">plot</span>(ms)</span></code></pre></div>
@@ -696,7 +696,7 @@ accommodating ratios that can legitimately equal 0 under the Villéger et
 al., 2010, exception rules) and then centred and scaled to unit variance
 before the ordination (<code>log_transform = TRUE</code>,
 <code>scale = TRUE</code>); set either to <code>FALSE</code> to skip
-that step. As with <code>morpho_space()</code>, <code>plot()</code>
+that step. As with <code>shape_space()</code>, <code>plot()</code>
 defaults to a spider/ellipse display per group:</p>
 <div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>fts <span class="ot">&lt;-</span> <span class="fu">trait_space</span>(fishmorph_traits, <span class="at">groups =</span> fishmorph_fish<span class="sc">$</span>metadata<span class="sc">$</span>species)</span>
 <span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="co">#&gt; Warning: Dropping non-numeric column(s) from the ordination: specimen,</span></span>

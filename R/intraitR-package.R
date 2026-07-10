@@ -2,7 +2,7 @@
 #'
 #' `intraitR` provides a coherent workflow for the analysis of morphological
 #' traits in freshwater fish, from raw two-dimensional landmark digitization
-#' to derived linear ratios and morphological space, together with tools to
+#' to derived linear ratios and shape space, together with tools to
 #' quantify intraspecific morphological variability and measurement error.
 #'
 #' @section Workflow:
@@ -18,8 +18,8 @@
 #'     ([linear_distances()]) and normalised morphological ratios
 #'     ([morpho_ratios()]); correct for allometry with
 #'     [correct_allometry()] if required.
-#'   \item **Explore shape**: build and plot a morphological space with
-#'     [morpho_space()].
+#'   \item **Explore shape**: build and plot a shape space with
+#'     [shape_space()].
 #'   \item **Assess variability and error**: quantify intraspecific
 #'     morphological variability with [intraspecific_variability()] and
 #'     [itv_index()], measurement error / repeatability from replicated

@@ -163,7 +163,7 @@ cat("\nCustom morpho_ratios (first rows):\n"); print(utils::head(my_ratios))
 ## fishmorph_shape_landmarks(): a convenience shortcut for a *per-digitization*
 ## shape-only subset (scale bar dropped, incomplete configs dropped). Section
 ## 4 below instead builds one *consensus* configuration per fish (averaged
-## across operators) for the actual GPA/morphospace analysis, but this is
+## across operators) for the actual GPA/shape space analysis, but this is
 ## the function to reach for when per-digitization shape data is enough.
 lm_shape_quick <- fishmorph_shape_landmarks(lm, drop_incomplete = TRUE)
 cat("\nfishmorph_shape_landmarks() ->", paste(dim(lm_shape_quick$coords), collapse = " x "), "\n")
@@ -176,7 +176,7 @@ cat("\nPer-species trait summary:\n"); print(trait_tab)
 ## ----------------------------------------------------------------------
 ## 4. One consensus configuration per fish, averaged across operators
 ## ----------------------------------------------------------------------
-## Every fish (`code`) was digitized once per operator; morphological space
+## Every fish (`code`) was digitized once per operator; shape space
 ## (section 5) and intraspecific variability (section 7) both need one
 ## configuration per *fish*, not per *digitization*, so this consensus is
 ## built once here and reused by both.
@@ -196,7 +196,7 @@ lm_consensus <- structure(list(coords = A_cons, scale = NULL, metadata = meta_co
 cat("Per-fish consensus configurations ->", paste(dim(lm_consensus$coords), collapse = " x "), "\n")
 
 ## ----------------------------------------------------------------------
-## 5. morpho_space() -- MORPHOLOGICAL (shape) space from GPA
+## 5. shape_space() -- MORPHOLOGICAL (shape) space from GPA
 ## ----------------------------------------------------------------------
 lm_consensus_imp <- impute_landmarks(standardize_orientation(lm_consensus), method = "missforest_phylo")
 shape_coords <- lm_consensus_imp$coords[1:19, , ]           # drop the scale bar (20-21)
@@ -214,7 +214,7 @@ gpa <- gpa_fish(lm_shape, remove_outliers = TRUE)   # reused again in section 7
 ## with "Inputs have different numbers of observations") if any outlier was
 ## actually removed.
 
-ms <- morpho_space(gpa, groups = gpa$metadata$species)
+ms <- shape_space(gpa, groups = gpa$metadata$species)
 print(ms)
 plot(ms, style = "spider", legend_title = "Species", legend_italic = TRUE,
      abbreviate_species = TRUE)

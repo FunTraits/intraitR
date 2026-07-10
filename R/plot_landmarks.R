@@ -11,7 +11,7 @@
 #' the `n_landmarks`-only shapes from [simulate_fish_landmarks()]) -- the
 #' natural companion to the package's scheme-agnostic functions
 #' ([gpa_fish()], [detect_outliers()], [correct_allometry()],
-#' [intraspecific_variability()], [morpho_space()]). For data digitized
+#' [intraspecific_variability()], [shape_space()]). For data digitized
 #' following the FISHMORPH scheme specifically (Brosse et al. 2021, at
 #' least 21 points), [plot_fishmorph_points()] is usually more
 #' informative -- it colours the 11 measurement segments, draws the body
@@ -47,7 +47,7 @@
 #'
 #' @return Invisibly returns the `p x 2` matrix of coordinates plotted.
 #'
-#' @seealso [gpa_fish()], [morpho_space()], [plot_fishmorph_points()] (richer
+#' @seealso [gpa_fish()], [shape_space()], [plot_fishmorph_points()] (richer
 #'   viewer for FISHMORPH-scheme data specifically)
 #'
 #' @examples

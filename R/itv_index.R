@@ -288,6 +288,8 @@ print.intrait_itv <- function(x, ...) {
 #' strongly species-differentiated trait at the bottom. The left margin is
 #' sized automatically to fit whatever trait labels end up being used
 #' (short codes or full descriptive names), so long labels are not cut off.
+#' A bold coloured dashed reference line marks the mean (multivariate) %ITV
+#' across all traits, labelled with its value.
 #'
 #' @param x An object of class `"intrait_itv"`, from [itv_index()].
 #' @param trait_labels How to label each trait's bar. `"auto"` (default)
@@ -403,7 +405,18 @@ plot.intrait_itv <- function(x, trait_labels = "auto", sort = TRUE, legend_posit
     ...
   )
 
-  graphics::abline(v = x$multivariate$pct_itv, lty = 3, col = "grey40")
+  # Mean (multivariate) %ITV reference line: drawn bold and in a colour that
+  # stands out from the bar palette, and annotated with its value, so the
+  # overall interspecific/intraspecific balance is legible at a glance.
+  mean_itv <- x$multivariate$pct_itv
+  mean_col <- "#762a83"
+  graphics::abline(v = mean_itv, lty = 2, lwd = 2.5, col = mean_col)
+  bar_pitch <- if (length(bp) >= 2) bp[2] - bp[1] else 1.2
+  graphics::text(
+    mean_itv, max(bp) + bar_pitch * 0.75,
+    labels = sprintf("Mean ITV: %.1f%%", mean_itv),
+    col = mean_col, font = 2, cex = 0.8, adj = c(0.5, 0), xpd = TRUE
+  )
   graphics::text(
     102, bp, labels = sprintf("%.0f%% ITV", itv_total),
     adj = 0, cex = 0.75, xpd = TRUE

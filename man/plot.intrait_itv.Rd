@@ -38,4 +38,6 @@ variability (ITV): the trait with the highest \%ITV at the top, the most
 strongly species-differentiated trait at the bottom. The left margin is
 sized automatically to fit whatever trait labels end up being used
 (short codes or full descriptive names), so long labels are not cut off.
+A bold coloured dashed reference line marks the mean (multivariate) \%ITV
+across all traits, labelled with its value.
 }

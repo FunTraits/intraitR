@@ -2,8 +2,8 @@
 
 `intraitR` is an R package for the analysis of morphological traits in
 freshwater fish: from raw landmark digitization to morphological ratios,
-morphological space, intraspecific variability, and measurement error.
-It builds on the geometric morphometric framework implemented in
+shape space, intraspecific variability, and measurement error. It builds
+on the geometric morphometric framework implemented in
 [`geomorph`](https://cran.r-project.org/package=geomorph) and adds
 fish-specific conveniences for ecomorphological analyses.
 
@@ -48,8 +48,8 @@ install.packages("geomorph")
     ([`morpho_ratios()`](https://funtraits.github.io/intraitR/reference/morpho_ratios.md));
     correct for allometry with
     [`correct_allometry()`](https://funtraits.github.io/intraitR/reference/correct_allometry.md).
-4.  **Explore shape**: build and plot a morphological space with
-    [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md).
+4.  **Explore shape**: build and plot a shape space with
+    [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md).
     By default, [`plot()`](https://rdrr.io/r/graphics/plot.default.html)
     shows each group as its individual points, dashed segments linking
     them to the group mean, the group mean itself, and a 95% dispersion
@@ -285,7 +285,7 @@ per specimen:
   the ordination (`log_transform = TRUE`, `scale = TRUE`);
   [`plot()`](https://rdrr.io/r/graphics/plot.default.html) uses the same
   spider/ellipse display as
-  [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md).
+  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md).
 - [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
   tests whether groups differ in the multivariate dispersion of their
   functional traits (trait variance, i.e. the trace of each group’s
@@ -384,7 +384,7 @@ gpa  <- gpa_fish(fish)
 distances <- list(SL = c(1, 7), BD = c(3, 10))
 ratios    <- morpho_ratios(fish, distances, norm_by = "SL")
 
-ms <- morpho_space(gpa, groups = fish$metadata$species)
+ms <- shape_space(gpa, groups = fish$metadata$species)
 plot(ms)
 
 intraspecific_variability(

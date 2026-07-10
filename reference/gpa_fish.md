@@ -67,7 +67,7 @@ print(x, ...)
   raised otherwise, since there would be nothing to remove). Defaults to
   `FALSE`: removing specimens changes the consensus shape and every
   downstream statistic (e.g.
-  [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md),
+  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
   [`intraspecific_variability()`](https://funtraits.github.io/intraitR/reference/intraspecific_variability.md)),
   so this is opt-in rather than automatic, and every removal is still
   recorded in `$removed_outliers` (see Return) for transparency and
@@ -187,7 +187,7 @@ optimal superimposition of landmarks. Systematic Zoology, 39(1), 40-59.
 
 ## See also
 
-[`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md),
+[`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
 [`correct_allometry()`](https://funtraits.github.io/intraitR/reference/correct_allometry.md),
 [`detect_outliers()`](https://funtraits.github.io/intraitR/reference/detect_outliers.md),
 [`intraspecific_variability()`](https://funtraits.github.io/intraitR/reference/intraspecific_variability.md),

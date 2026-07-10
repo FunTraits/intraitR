@@ -1,6 +1,6 @@
 # Reset the session-level group/species colour cache
 
-[`plot.intrait_morphospace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md)
+[`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)
 and
 [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
 assign group colours from a small cache that persists for the duration

@@ -9,7 +9,7 @@ valider automatiquement le paquet. Une relecture statique (équilibrage
 des parenthèses/accolades sur l’ensemble des fichiers R, cohérence entre
 les tags `@export`/`@importFrom` et le fichier `NAMESPACE`) a été
 effectuée, et une incohérence trouvée lors de cette relecture
-(`print.intrait_morphospace` manquant du `NAMESPACE`) a été corrigée.
+(`print.intrait_shapespace` manquant du `NAMESPACE`) a été corrigée.
 Mais **une vérification complète sous R reste nécessaire avant toute
 soumission**.
 

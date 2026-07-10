@@ -35,7 +35,7 @@ fishmorph_shape_landmarks(landmarks, species = NULL, drop_incomplete = TRUE)
   Optional character vector (or factor), one value per specimen, used
   only to additionally drop specimens with a missing (`NA`) value – e.g.
   an unresolved identification – so that a downstream grouped analysis
-  ([`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md),
+  ([`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
   [`intraspecific_variability()`](https://funtraits.github.io/intraitR/reference/intraspecific_variability.md),
   [`detect_outliers()`](https://funtraits.github.io/intraitR/reference/detect_outliers.md))
   never encounters an `NA` group. Defaults to

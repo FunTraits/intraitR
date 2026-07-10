@@ -87,7 +87,7 @@ et al., 2021) 11-measurement/9-ratio protocol.
   : Overlay the body shape of every specimen in a species or a set of
   individuals
 
-## Functional and morphological space
+## Functional and shape space
 
 Build, visualise, and test ordinations of shape or trait data, and
 quantify how intraspecific variability (ITV) affects estimated
@@ -103,12 +103,12 @@ functional richness.
 - [`plot_correlation_circle()`](https://funtraits.github.io/intraitR/reference/plot_correlation_circle.md)
   : Plot the correlation circle of a functional trait space
 
-- [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md)
-  [`print(`*`<intrait_morphospace>`*`)`](https://funtraits.github.io/intraitR/reference/morpho_space.md)
-  : Build a morphological space from Procrustes shape coordinates
+- [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)
+  [`print(`*`<intrait_shapespace>`*`)`](https://funtraits.github.io/intraitR/reference/shape_space.md)
+  : Build a shape space from Procrustes shape coordinates
 
-- [`plot(`*`<intrait_morphospace>`*`)`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md)
-  : Plot a morphological space
+- [`plot(`*`<intrait_shapespace>`*`)`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)
+  : Plot a shape space
 
 - [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
   : Test differences in functional trait dispersion between groups

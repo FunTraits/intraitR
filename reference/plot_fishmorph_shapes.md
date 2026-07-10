@@ -133,7 +133,7 @@ Applications in R (2nd ed). Wiley.
 [`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md)
 (full Procrustes alignment, including rotation, across a whole data
 set),
-[`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
+[`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
 (ordination-based, rather than shape-outline-based, view of group-level
 variability)
 

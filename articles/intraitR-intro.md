@@ -9,7 +9,7 @@ library(intraitR)
 
 `intraitR` supports a complete workflow for the analysis of
 morphological traits in freshwater fish, from digitized landmark
-coordinates to morphological ratios, morphological space, intraspecific
+coordinates to morphological ratios, shape space, intraspecific
 variability, and measurement error. This vignette walks through the
 workflow end to end using a simulated data set, so that it runs without
 any real specimen data.
@@ -144,9 +144,9 @@ morpho_ratios(fish, distances, norm_by = "SL")[1:5, ]
 #> Species_A_ind02_rep2               95.3         2   0.3926   0.5158
 ```
 
-## 4. Morphological space
+## 4. Shape space
 
-A morphospace is built from a Principal Component Analysis of the
+A shape space is built from a Principal Component Analysis of the
 Procrustes shape coordinates. By default,
 [`plot()`](https://rdrr.io/r/graphics/plot.default.html) displays each
 group as its individual points, a “spider” of dashed segments linking
@@ -169,9 +169,9 @@ displayed as italic *B. barbatula*):
 
 ``` r
 
-ms <- morpho_space(gpa, groups = fish$metadata$species)
+ms <- shape_space(gpa, groups = fish$metadata$species)
 ms
-#> <intrait_morphospace>
+#> <intrait_shapespace>
 #>   Axes PC1/PC2, variance explained: 37.1% / 7.7%
 #>   135 specimens, 3 groups
 plot(ms, legend_title = "Species", legend_italic = TRUE, abbreviate_species = TRUE)
@@ -471,7 +471,7 @@ Component Analysis (or Principal Coordinate Analysis,
 Villéger et al., 2010, exception rules) and then centred and scaled to
 unit variance before the ordination (`log_transform = TRUE`,
 `scale = TRUE`); set either to `FALSE` to skip that step. As with
-[`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md),
+[`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
 [`plot()`](https://rdrr.io/r/graphics/plot.default.html) defaults to a
 spider/ellipse display per group:
 

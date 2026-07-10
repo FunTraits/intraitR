@@ -67,7 +67,7 @@
 </h2>
 <p><code>intraitR</code> supports a complete workflow for the analysis
 of morphological traits in freshwater fish, from digitized landmark
-coordinates to morphological ratios, morphological space, intraspecific
+coordinates to morphological ratios, shape space, intraspecific
 variability, and measurement error. This vignette walks through the
 workflow end to end using a simulated data set, so that it runs without
 any real specimen data.</p>
@@ -182,9 +182,9 @@ superimposition removes size:</p>
 <span><span class="co">#&gt; Species_A_ind02_rep2               95.3         2   0.3926   0.5158</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="morphological-space">4. Morphological space<a class="anchor" aria-label="anchor" href="#morphological-space"></a>
+<h2 id="shape-space">4. Shape space<a class="anchor" aria-label="anchor" href="#shape-space"></a>
 </h2>
-<p>A morphospace is built from a Principal Component Analysis of the
+<p>A shape space is built from a Principal Component Analysis of the
 Procrustes shape coordinates. By default, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> displays
 each group as its individual points, a “spider” of dashed segments
 linking every point to its group mean, the group mean itself, and a 95%
@@ -206,9 +206,9 @@ and <code>abbreviate_species</code> produce a properly typeset “Species”
 legend (e.g. <code>"Barbatula barbatula"</code> displayed as italic
 <em>B. barbatula</em>):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/morpho_space.html">morpho_space</a></span><span class="op">(</span><span class="va">gpa</span>, groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/shape_space.html">shape_space</a></span><span class="op">(</span><span class="va">gpa</span>, groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span><span class="op">)</span></span>
 <span><span class="va">ms</span></span>
-<span><span class="co">#&gt; &lt;intrait_morphospace&gt;</span></span>
+<span><span class="co">#&gt; &lt;intrait_shapespace&gt;</span></span>
 <span><span class="co">#&gt;   Axes PC1/PC2, variance explained: 37.1% / 7.7%</span></span>
 <span><span class="co">#&gt;   135 specimens, 3 groups</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ms</span>, legend_title <span class="op">=</span> <span class="st">"Species"</span>, legend_italic <span class="op">=</span> <span class="cn">TRUE</span>, abbreviate_species <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
@@ -468,7 +468,7 @@ accommodating ratios that can legitimately equal 0 under the Villéger et
 al., 2010, exception rules) and then centred and scaled to unit variance
 before the ordination (<code>log_transform = TRUE</code>,
 <code>scale = TRUE</code>); set either to <code>FALSE</code> to skip
-that step. As with <code><a href="../reference/morpho_space.html">morpho_space()</a></code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>
+that step. As with <code><a href="../reference/shape_space.html">shape_space()</a></code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>
 defaults to a spider/ellipse display per group:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/trait_space.html">trait_space</a></span><span class="op">(</span><span class="va">fishmorph_traits</span>, groups <span class="op">=</span> <span class="va">fishmorph_fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span><span class="op">)</span></span>

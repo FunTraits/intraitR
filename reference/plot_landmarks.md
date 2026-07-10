@@ -77,7 +77,7 @@ the `n_landmarks`-only shapes from
 [`detect_outliers()`](https://funtraits.github.io/intraitR/reference/detect_outliers.md),
 [`correct_allometry()`](https://funtraits.github.io/intraitR/reference/correct_allometry.md),
 [`intraspecific_variability()`](https://funtraits.github.io/intraitR/reference/intraspecific_variability.md),
-[`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md)).
+[`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)).
 For data digitized following the FISHMORPH scheme specifically (Brosse
 et al. 2021, at least 21 points),
 [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
@@ -91,7 +91,7 @@ lighter-weight look at FISHMORPH data without that added detail.
 ## See also
 
 [`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md),
-[`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md),
+[`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
 [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
 (richer viewer for FISHMORPH-scheme data specifically)
 

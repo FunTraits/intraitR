@@ -34,10 +34,9 @@
 <url><loc>https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/measurement_error.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/morpho_ratios.html</loc></url>
-<url><loc>https://funtraits.github.io/intraitR/reference/morpho_space.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/phylo_pcoa.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/plot.intrait_itv.html</loc></url>
-<url><loc>https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/plot_correlation_circle.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.html</loc></url>
@@ -53,6 +52,7 @@
 <url><loc>https://funtraits.github.io/intraitR/reference/read_landmarks_xlsx.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/read_tps.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/reset_group_colors.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/shape_space.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/simulate_fish_landmarks.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/species_sensitivity.html</loc></url>

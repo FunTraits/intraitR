@@ -2,6 +2,20 @@
 
 ## intraitR 1.1.0
 
+- **Breaking rename**: `morpho_space()` is now
+  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
+  and its output class `"intrait_morphospace"` is now
+  `"intrait_shapespace"` (with the corresponding
+  [`print()`](https://rdrr.io/r/base/print.html)/[`plot()`](https://rdrr.io/r/graphics/plot.default.html)
+  methods renamed accordingly). The term “morphological space” was
+  ambiguous for what is, specifically, the ordination of Procrustes
+  (GPA) shape coordinates; “shape space” names it unambiguously. Figure
+  titles now read “Shape space” instead of “Morphological space”. The
+  linear-ratio function
+  [`morpho_ratios()`](https://funtraits.github.io/intraitR/reference/morpho_ratios.md)
+  is unchanged, as it concerns classical morphometric ratios rather than
+  the shape space.
+
 - New function
   [`exclude_specimens()`](https://funtraits.github.io/intraitR/reference/exclude_specimens.md):
   removes one or more known-bad (e.g. mismeasured/mis-digitized)
@@ -393,7 +407,7 @@
   (dot-and-whisker comparison, one row per method) methods.
 
 - Fixed group/species colours not staying consistent between
-  [`plot.intrait_morphospace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md)
+  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)
   and
   [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
   built from the same dataset: colours were previously derived from each
@@ -433,7 +447,7 @@
   construction.
 
 - Fixed a crash (“attempt to use zero-length variable name”) in
-  [`plot.intrait_morphospace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md)/[`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
+  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)/[`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
   whenever a group level was an empty string `""` (e.g. an unresolved
   species identification stored as `""` rather than `NA` in the source
   data): the session-level colour cache previously stored one colour per
@@ -457,21 +471,21 @@
 - New
   [`group_colors()`](https://funtraits.github.io/intraitR/reference/group_colors.md):
   returns the exact group/species colours
-  [`plot.intrait_morphospace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md)/[`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
+  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)/[`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
   use (or would use), as a `group`/`color` `data.frame`, in the same
   order as their own legend – for building a single shared legend across
   several panels (e.g. `par(mfrow = c(2, 2))`, each plotted with
   `legend = FALSE`) without reimplementing or guessing at the underlying
   colour assignment. Accepts either an object with a `$groups` element
   (e.g.
-  [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
+  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
   output) or a raw label vector.
 
 - Fixed a bug in
   [`group_colors()`](https://funtraits.github.io/intraitR/reference/group_colors.md)
   where passing a list without a `$groups` element (anything other than
   the intended
-  [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
+  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
   output or a raw label vector) silently used the list itself as if it
   were the label vector instead of raising the documented “no `groups`
   element” error.
@@ -572,7 +586,7 @@ values relative to 0.13.0.
   [`intraspecific_variability()`](https://funtraits.github.io/intraitR/reference/intraspecific_variability.md),
   [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md),
   [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md),
-  [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md),
+  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
   [`read_tps()`](https://funtraits.github.io/intraitR/reference/read_tps.md),
   [`species_sensitivity()`](https://funtraits.github.io/intraitR/reference/species_sensitivity.md),
   [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md),
@@ -689,7 +703,7 @@ values relative to 0.13.0.
   demonstrated in `demo(pipeline_T26_saudrune)`, Section 10.
 - **Ordination plot improvements**
   ([`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md),
-  [`plot.intrait_morphospace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md),
+  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md),
   via the shared internal `.plot_ordination()`): new `legend_title`,
   `legend_italic`, and `abbreviate_species` arguments
   (e.g. `legend_title = "Species", legend_italic = TRUE, abbreviate_species = TRUE`
@@ -763,7 +777,7 @@ values relative to 0.13.0.
 - **`style = "density"`** added to
   [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
   and
-  [`plot.intrait_morphospace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md):
+  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md):
   a non-parametric kernel-density contour (highest-density-region
   construction, Hyndman 1996) per group, as an alternative to the
   parametric bivariate-normal “spider” ellipse — useful when a group’s
@@ -775,7 +789,7 @@ values relative to 0.13.0.
   package dependency is introduced.
 - **Legend placement overhauled.**
   [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md),
-  [`plot.intrait_morphospace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md),
+  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md),
   [`plot.intrait_itv()`](https://funtraits.github.io/intraitR/reference/plot.intrait_itv.md),
   and
   [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
@@ -1175,9 +1189,9 @@ values relative to 0.13.0.
   [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)).
   Set `log_transform = FALSE` to disable. This does not apply to, and is
   not used by,
-  [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md),
+  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
   which ordinates Procrustes shape coordinates rather than trait ratios.
-- [`plot.intrait_morphospace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md)
+- [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)
   and
   [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
   gain a `style` argument (`"spider"`, `"hull"`, or `"none"`), replacing
@@ -1255,7 +1269,7 @@ Bug fixes found by `devtools::test()` on a real R installation:
 - [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
   builds a generic functional trait space (PCA or PCoA) from any numeric
   trait table, with group convex-hull plotting;
-  [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md)
+  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)
   now shares its plotting code with
   [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md).
 - [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
@@ -1281,8 +1295,8 @@ Bug fixes found by `devtools::test()` on a real R installation:
   ([`linear_distances()`](https://funtraits.github.io/intraitR/reference/linear_distances.md))
   and classical fish morphometric ratios
   ([`morpho_ratios()`](https://funtraits.github.io/intraitR/reference/morpho_ratios.md)).
-- Morphological space construction and plotting
-  ([`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md)).
+- Shape space construction and plotting
+  ([`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)).
 - Allometry correction
   ([`correct_allometry()`](https://funtraits.github.io/intraitR/reference/correct_allometry.md)).
 - Intraspecific morphological variability, combining shape disparity

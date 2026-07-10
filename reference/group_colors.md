@@ -1,7 +1,7 @@
 # Look up the group/species colours used by the ordination plot methods
 
 Returns the exact colour
-[`plot.intrait_morphospace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md)/
+[`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)/
 [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
 draw (or would draw) for each group, in the same order as their own
 legend – so a shared legend built separately (e.g. one common legend
@@ -22,7 +22,7 @@ group_colors(x)
 - x:
 
   Either an object with a `$groups` element (e.g. one returned by
-  [`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)),
+  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)),
   or a factor/character vector of group labels directly (e.g.
   `fish$metadata$species`), one per observation – duplicates are fine,
   only the distinct values matter.
@@ -46,7 +46,7 @@ and produces the same colours the subsequent plot calls will use.
 ## See also
 
 [`reset_group_colors()`](https://funtraits.github.io/intraitR/reference/reset_group_colors.md),
-[`plot.intrait_morphospace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md),
+[`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md),
 [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
 
 ## Examples
@@ -54,7 +54,7 @@ and produces the same colours the subsequent plot calls will use.
 ``` r
 fish <- simulate_fish_landmarks(n_per_species = 5, n_replicates = 1)
 gpa <- gpa_fish(fish)
-ms <- morpho_space(gpa, groups = fish$metadata$species)
+ms <- shape_space(gpa, groups = fish$metadata$species)
 group_colors(ms)
 #>       group   color
 #> 1 Species_A #4E79A7

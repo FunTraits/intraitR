@@ -32,7 +32,7 @@ plot(
   Character, one of `"spider"` (default), `"hull"`, `"density"`, or
   `"none"`, controlling how groups are displayed; see the Details
   section of
-  [`plot.intrait_morphospace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md).
+  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md).
   Ignored if `x$groups` is `NULL`. Also named in the plot's title (e.g.
   `"Trait space (spider)"`), so the display style used is always legible
   from the figure itself, not just from the call that produced it; pass
@@ -48,7 +48,7 @@ plot(
 
   Coverage probability of the per-group kernel-density contour drawn
   when `style = "density"` (see Details of
-  [`plot.intrait_morphospace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_morphospace.md));
+  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md));
   groups with fewer than 5 points are silently skipped. Defaults to
   `0.95`.
 

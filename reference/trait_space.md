@@ -285,7 +285,7 @@ packages should be used instead.
 Note that this log-transform-then-standardise treatment applies to
 *trait* data (ratios, linear measurements, etc.) only. It is not applied
 by, and should not be applied to,
-[`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md),
+[`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
 which ordinates Procrustes shape coordinates: those are already a
 homogeneous, size-free coordinate system in which log-transforming or
 rescaling individual columns would distort shape geometry.
@@ -348,7 +348,7 @@ challenges. Aquatic Sciences, 79(4), 783-801.
 
 [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md),
 [`morpho_ratios()`](https://funtraits.github.io/intraitR/reference/morpho_ratios.md),
-[`morpho_space()`](https://funtraits.github.io/intraitR/reference/morpho_space.md),
+[`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
 [`detect_outliers()`](https://funtraits.github.io/intraitR/reference/detect_outliers.md),
 [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
 

@@ -11,6 +11,11 @@ plot_fishmorph_shapes(
   align = TRUE,
   color = "steelblue4",
   alpha = 0.15,
+  color_by = NULL,
+  operator = FALSE,
+  palette = NULL,
+  max_colors = 10,
+  legend = TRUE,
   ...
 )
 }
@@ -41,12 +46,42 @@ aligning them first would mix genuine shape differences with
 differences in each specimen's position/scale within its own
 photograph, which are not informative about shape.}
 
-\item{color}{Colour used for every specimen's points and outline.
-Defaults to \code{"steelblue4"}.}
+\item{color}{Colour used for every specimen's points and outline when no
+per-group colouring is requested (\code{color_by}/\code{operator}), and the
+colour every shape reverts to when the number of colour groups exceeds
+\code{max_colors}. Defaults to \code{"steelblue4"}.}
 
-\item{alpha}{Transparency (\code{0}-\code{1}) applied to \code{color}, so that
-overlapping specimens read as a denser cloud rather than a solid
-mass. Defaults to \code{0.15}.}
+\item{alpha}{Transparency (\code{0}-\code{1}) applied to the drawing colour(s), so
+that overlapping specimens read as a denser cloud rather than a solid
+mass. Defaults to \code{0.15}; raise it when using \code{color_by}/\code{operator} so
+the individual group colours remain distinguishable.}
+
+\item{color_by}{Optional, controls per-specimen colouring. \code{NULL}
+(default) draws every shape in \code{color}. Otherwise one of: a metadata
+column name (e.g. \code{"operator"}, \code{"species"}), colouring each shape by
+that column's value; the special value \code{"specimen"}, giving every
+plotted shape its own colour; or a vector with one value per plotted
+specimen (in the plotted order). See \code{max_colors} for the automatic
+fallback to a single colour.}
+
+\item{operator}{Logical shortcut for \code{color_by = "operator"}: colour each
+shape by the operator who digitized it (requires an \code{operator} column
+in \code{landmarks$metadata}, as produced by
+\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}} with \code{source = "operators"}). Cannot be
+combined with an explicit \code{color_by}. Defaults to \code{FALSE}.}
+
+\item{palette}{Optional vector of colours to use for the groups defined
+by \code{color_by}/\code{operator}, at least as many as there are groups. \code{NULL}
+(default) generates evenly spaced, equally saturated HCL hues.}
+
+\item{max_colors}{Integer. When \code{color_by}/\code{operator} yields more than
+\code{max_colors} distinct colour groups, per-group colouring is dropped and
+every shape reverts to the single \code{color} (with a message), so an
+overcrowded overlay -- e.g. colouring each of dozens of individuals --
+never becomes an illegible rainbow. Defaults to \code{10}.}
+
+\item{legend}{Logical, draw a legend mapping groups to colours when
+per-group colouring is in effect. Defaults to \code{TRUE}.}
 
 \item{...}{Further arguments passed to \code{\link[graphics:plot]{graphics::plot()}}.}
 }
@@ -99,9 +134,15 @@ hand, or pass already Procrustes-aligned coordinates with
 fish <- load_t26_saudrune_landmarks()
 plot_fishmorph_shapes(fish, species = "Gobio occitaniae")
 
-# or by an explicit list of individuals:
+# colour each outline by the operator who digitized it (raise alpha so
+# the two operators' colours stay legible through the overlap):
+plot_fishmorph_shapes(fish, species = "Gobio occitaniae",
+                      operator = TRUE, alpha = 0.4)
+
+# or by an explicit list of individuals, one colour each:
 some_fish <- fish$metadata$individual[1:5]
-plot_fishmorph_shapes(fish, individuals = some_fish)
+plot_fishmorph_shapes(fish, individuals = some_fish,
+                      color_by = "specimen", alpha = 0.6)
 
 }
 \references{

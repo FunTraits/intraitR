@@ -1,4 +1,73 @@
+# intraitR 1.3.0
+
+* New `fd_accumulation()`: rarefies community **functional diversity
+  indices** against intraspecific sampling effort -- the community-level
+  companion to `itv_accumulation()`. It draws balanced sub-samples of `n`
+  individuals per species, pools them into one assemblage in a fixed trait
+  space built exactly as in `trait_space()` (shared PCA machinery, with
+  `n_axes`/`var_threshold` axis selection), and recomputes each requested
+  index, estimating the effort
+  `n*` at which the index stabilises. Functional dispersion (FDis), Rao's
+  quadratic entropy and functional richness (FRic) are computed directly;
+  functional evenness (FEve) and divergence (FDiv) are delegated to
+  `FD::dbFD()` when the Suggested `FD` package is installed. Functional
+  richness honours a `method` argument (`"convexhull"`, `"dendrogram"`,
+  `"tpd"`, `"hypervolume"`), reusing the same richness engines and tuning
+  arguments as `bootstrap_functional_space()`. As in `itv_accumulation()`,
+  richness uses the accumulation/asymptote framing (with a guard that
+  rejects an implausible extrapolated asymptote) while the
+  dispersion/regularity indices use the convergence/precision framing.
+  Dedicated `print()` and `plot()` methods; parallelised via `future.apply`.
+
+* New `tpd_dissimilarity()`: intraspecific-variability-aware functional
+  dissimilarity between species, computed as `1 - overlap` of their Trait
+  Probability Density kernels (Carmona et al., 2016, 2019) via the Suggested
+  `TPD` package. Unlike a Euclidean distance between species means, it lets
+  within-species spread shape the distances (species whose individuals
+  overlap in trait space are treated as functionally closer). Returns a
+  species-by-species dissimilarity matrix (with its shared/non-shared
+  decomposition) as an `"intrait_tpd_dissim"` object with `print()`,
+  `plot()` (a heat map) and `as.dist()` methods, usable directly for
+  ordination, clustering, or distance-based diversity indices.
+
+# intraitR 1.2.0
+
+* New `itv_accumulation()`: builds a rarefaction/accumulation curve of
+  intraspecific trait variability against the number of individuals
+  sampled, and estimates the sample size `n*` at which that variability
+  stabilises -- the trait-based analogue of a species accumulation curve.
+  For each sub-sample size `n`, `n_perm` sub-samples of `n` individuals are
+  drawn without replacement per group and the metric is recomputed. The
+  meaning of "stabilises" adapts to the metric: for *dispersion* metrics
+  (`"variance"`, the multivariate trace of the trait covariance; `"sd"`;
+  `"cv"`) the sample estimator is unbiased, so the expected curve is flat
+  and `n*` is a *precision* threshold (smallest `n` at which the resampling
+  band's relative half-width stays below `conv_tol`); for the *accumulation*
+  metric (`"range"`) the curve genuinely saturates and `n*` is taken at a
+  fraction (`asymptote_prop`) of a fitted Michaelis-Menten or negative-
+  exponential asymptote. Parallelised via `future.apply` like
+  `bootstrap_functional_space()`/`trait_disparity()`, with dedicated
+  `print()` and `plot()` methods. For accumulation metrics the `plot()`
+  method draws a rarefaction/extrapolation curve: the observed portion
+  solid, the fitted saturating model extended in a dashed line beyond the
+  sampled range up to `n*` (controllable via `extrapolate`/`xmax`), and the
+  fitted asymptote as a horizontal reference. The fitted half-saturation/
+  rate parameter is returned as a new `k` column of `$summary`.
+
 # intraitR 1.1.0
+
+* `plot_fishmorph_shapes()` gains per-specimen colouring: `color_by`
+  (a metadata column name such as `"operator"`/`"species"`, the special
+  value `"specimen"` for one colour per shape, or a grouping vector), the
+  `operator = TRUE` shortcut for `color_by = "operator"`, a custom
+  `palette`, and a `legend`. To keep overcrowded overlays legible,
+  `max_colors` (default `10`) reverts to the single `color` -- with a
+  message -- when the requested colouring would need more than that many
+  distinct colours.
+
+* `plot()` for `itv_index()` results now draws the mean (multivariate)
+  %ITV reference line bold and in colour, and labels it with its value,
+  instead of the previous faint dotted grey line.
 
 * **Breaking rename**: `morpho_space()` is now `shape_space()`, and its
   output class `"intrait_morphospace"` is now `"intrait_shapespace"` (with

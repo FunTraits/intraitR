@@ -94,3 +94,51 @@ test_that("plot_fishmorph_shapes(align = FALSE) leaves coordinates untouched", {
   idx <- which(as.character(fish$metadata$species) == "Species_A")
   expect_equal(unname(result[[1]]), unname(A[, , idx[1]]))
 })
+
+test_that("plot_fishmorph_shapes() colours by a metadata column and by specimen without error", {
+  fish <- simulate_fishmorph_points(n_per_species = 4, n_replicates = 1)
+
+  tmp <- tempfile(fileext = ".png")
+  grDevices::png(tmp)
+  by_pop <- plot_fishmorph_shapes(fish, species = "Species_A", color_by = "population")
+  by_spec <- plot_fishmorph_shapes(fish, species = "Species_A", color_by = "specimen")
+  grDevices::dev.off()
+  unlink(tmp)
+
+  # colouring is purely cosmetic: the returned coordinates are unchanged
+  expect_length(by_pop, 4)
+  expect_length(by_spec, 4)
+})
+
+test_that("plot_fishmorph_shapes() reverts to a single colour past max_colors, with a message", {
+  fish <- simulate_fishmorph_points(n_per_species = 4, n_replicates = 1)
+
+  tmp <- tempfile(fileext = ".png")
+  grDevices::png(tmp)
+  expect_message(
+    plot_fishmorph_shapes(fish, species = "Species_A", color_by = "specimen", max_colors = 3),
+    "reverting to a single colour"
+  )
+  grDevices::dev.off()
+  unlink(tmp)
+})
+
+test_that("plot_fishmorph_shapes() validates the colouring arguments", {
+  fish <- simulate_fishmorph_points(n_per_species = 4, n_replicates = 1)
+
+  # operator = TRUE and color_by are mutually exclusive
+  expect_error(
+    plot_fishmorph_shapes(fish, species = "Species_A", operator = TRUE, color_by = "population"),
+    "not both"
+  )
+  # a colouring vector must have one value per plotted specimen (4 here)
+  expect_error(
+    plot_fishmorph_shapes(fish, species = "Species_A", color_by = c("a", "b")),
+    "one value per plotted specimen"
+  )
+  # an unknown column name is rejected with an informative message
+  expect_error(
+    plot_fishmorph_shapes(fish, species = "Species_A", color_by = "not_a_column"),
+    "neither .* nor a column"
+  )
+})

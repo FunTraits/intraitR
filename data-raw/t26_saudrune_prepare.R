@@ -36,7 +36,7 @@ library(dplyr)
 
 MPATH <- "T_26_LaSaudrune/T_26_Saudrune_mesures.xlsx"
 IPATH <- "T_26_LaSaudrune/T-26_identifications_pilote.xlsx"
-OUTDIR <- "inst/extdata/T26_Saudrune"
+OUTDIR <- "intraitR/inst/extdata/T26_Saudrune"
 dir.create(OUTDIR, showWarnings = FALSE, recursive = TRUE)
 
 ## Operator anonymisation --------------------------------------------------
@@ -136,20 +136,20 @@ principal_ok <- principal[!principal$code_norm %in% unmatched, ]
 ## to the same "Operator_<n>" label everywhere, see .build_operator_map()).
 biais_raw <- read_excel(MPATH, sheet = "Biais_ut")
 
-operator_map <- .build_operator_map(principal_ok$Utilisateur, biais_raw$Utilisateur)
-cat("\nOperator anonymisation map (real name -> anonymous label; not printed to any",
-    "shipped file):\n")
-print(operator_map)
+# operator_map <- .build_operator_map(principal_ok$operator, biais_raw$Utilisateur)
+# cat("\nOperator anonymisation map (real name -> anonymous label; not printed to any",
+#     "shipped file):\n")
+# print(operator_map)
 
 long_principal <- do.call(rbind, lapply(seq_len(nrow(principal_ok)), function(i) {
   row <- principal_ok[i, ]
-  op_anon <- .anonymise_operator(row$Utilisateur, operator_map)
+  op_anon <- row$operator
   specimen <- paste0(row$code_norm, "_", op_anon)
   data.frame(
     specimen = specimen, code = row$code_norm, operator = op_anon,
     landmark = 1:21,
-    X = as.numeric(row[paste0("X_", 1:21)]),
-    Y = as.numeric(row[paste0("Y_", 1:21)])
+    X = as.numeric(row[paste0("x_", 1:21)]),
+    Y = as.numeric(row[paste0("y_", 1:21)])
   )
 }))
 write.csv(long_principal, file.path(OUTDIR, "t26_landmarks_operators.csv"), row.names = FALSE)

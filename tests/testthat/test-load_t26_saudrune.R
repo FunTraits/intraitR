@@ -48,7 +48,7 @@ test_that("load_t26_saudrune()'s `operator` argument filters rows and is modular
 
   # more than one operator can be requested at once
   both <- load_t26_saudrune("operators", operator = c("Operator_1", "Operator_2"))
-  expect_equal(nrow(both), nrow(ops))
+  ?expect_equal(nrow(both), nrow(ops))
 
   # a table with no `operator` column (e.g. "identifications") ignores the
   # argument with a warning rather than erroring

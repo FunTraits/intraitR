@@ -17,7 +17,7 @@ ident  <- load_t26_saudrune("identifications")  # species / id_status, one row /
 qc     <- load_t26_saudrune("qc_log")           # specimens excluded during data prep
 
 ## optional arguments: subset to one operator, and/or join species on import
-op1    <- load_t26_saudrune("operators", operator = "Operator_1")
+op1    <- load_t26_saudrune("operators", operator = "Operator_4")
 ops_sp <- load_t26_saudrune("operators", species = TRUE)   # adds species/id_status
 stopifnot(identical(ops_sp$code, ops$code))                 # same rows, in order
 
@@ -48,7 +48,7 @@ cat("load_t26_saudrune_landmarks ->", paste(dim(lm_op1$coords), collapse = " x "
 ## 2. Landmark quality control: standardize_geometry(), impute_landmarks(),
 ##    correct_geometry(), and the two visual-check plots
 ## ----------------------------------------------------------------------
-spec <- "T-26-0051_Operator_1"          # same specimen shown at every step
+spec <- "T-26-0051_Operator_4"          # same specimen shown at every step
 
 ## Successive corrections, each building on the previous:
 lm_geom <- standardize_geometry(lm)     # orient + rescale + scale-bar + rotate
@@ -226,7 +226,8 @@ plot(ms, style = "spider", legend_title = "Species", legend_italic = TRUE,
 ## `remove_outliers` (a functional-space-level screen, unrelated to
 ## missing-value handling) is needed here. `ts` is reused in sections 8
 ## and 9 below.
-ts <- trait_space(ratios[complete_r, c("species", ratio_cols)], remove_outliers = TRUE)
+sel = unique(ops[which(ops$operator %in% "Operator_4"),]$specimen)
+ts <- trait_space(ratios[sel, c("species", ratio_cols)], remove_outliers = TRUE)
 
 reset_group_colors()   # start colour assignment from scratch for this figure
 species_cols <- group_colors(ts)   # data.frame(group, color)

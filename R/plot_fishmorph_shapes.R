@@ -29,11 +29,36 @@
 #'   aligning them first would mix genuine shape differences with
 #'   differences in each specimen's position/scale within its own
 #'   photograph, which are not informative about shape.
-#' @param color Colour used for every specimen's points and outline.
-#'   Defaults to `"steelblue4"`.
-#' @param alpha Transparency (`0`-`1`) applied to `color`, so that
-#'   overlapping specimens read as a denser cloud rather than a solid
-#'   mass. Defaults to `0.15`.
+#' @param color Colour used for every specimen's points and outline when no
+#'   per-group colouring is requested (`color_by`/`operator`), and the
+#'   colour every shape reverts to when the number of colour groups exceeds
+#'   `max_colors`. Defaults to `"steelblue4"`.
+#' @param alpha Transparency (`0`-`1`) applied to the drawing colour(s), so
+#'   that overlapping specimens read as a denser cloud rather than a solid
+#'   mass. Defaults to `0.15`; raise it when using `color_by`/`operator` so
+#'   the individual group colours remain distinguishable.
+#' @param color_by Optional, controls per-specimen colouring. `NULL`
+#'   (default) draws every shape in `color`. Otherwise one of: a metadata
+#'   column name (e.g. `"operator"`, `"species"`), colouring each shape by
+#'   that column's value; the special value `"specimen"`, giving every
+#'   plotted shape its own colour; or a vector with one value per plotted
+#'   specimen (in the plotted order). See `max_colors` for the automatic
+#'   fallback to a single colour.
+#' @param operator Logical shortcut for `color_by = "operator"`: colour each
+#'   shape by the operator who digitized it (requires an `operator` column
+#'   in `landmarks$metadata`, as produced by
+#'   [load_t26_saudrune_landmarks()] with `source = "operators"`). Cannot be
+#'   combined with an explicit `color_by`. Defaults to `FALSE`.
+#' @param palette Optional vector of colours to use for the groups defined
+#'   by `color_by`/`operator`, at least as many as there are groups. `NULL`
+#'   (default) generates evenly spaced, equally saturated HCL hues.
+#' @param max_colors Integer. When `color_by`/`operator` yields more than
+#'   `max_colors` distinct colour groups, per-group colouring is dropped and
+#'   every shape reverts to the single `color` (with a message), so an
+#'   overcrowded overlay -- e.g. colouring each of dozens of individuals --
+#'   never becomes an illegible rainbow. Defaults to `10`.
+#' @param legend Logical, draw a legend mapping groups to colours when
+#'   per-group colouring is in effect. Defaults to `TRUE`.
 #' @param ... Further arguments passed to [graphics::plot()].
 #'
 #' @return Invisibly returns a named list of the (aligned, if
@@ -90,13 +115,21 @@
 #' fish <- load_t26_saudrune_landmarks()
 #' plot_fishmorph_shapes(fish, species = "Gobio occitaniae")
 #'
-#' # or by an explicit list of individuals:
+#' # colour each outline by the operator who digitized it (raise alpha so
+#' # the two operators' colours stay legible through the overlap):
+#' plot_fishmorph_shapes(fish, species = "Gobio occitaniae",
+#'                       operator = TRUE, alpha = 0.4)
+#'
+#' # or by an explicit list of individuals, one colour each:
 #' some_fish <- fish$metadata$individual[1:5]
-#' plot_fishmorph_shapes(fish, individuals = some_fish)
+#' plot_fishmorph_shapes(fish, individuals = some_fish,
+#'                       color_by = "specimen", alpha = 0.6)
 #'
 #' @export
 plot_fishmorph_shapes <- function(landmarks, species = NULL, individuals = NULL,
-                                   align = TRUE, color = "steelblue4", alpha = 0.15, ...) {
+                                   align = TRUE, color = "steelblue4", alpha = 0.15,
+                                   color_by = NULL, operator = FALSE, palette = NULL,
+                                   max_colors = 10, legend = TRUE, ...) {
   A <- .get_coords(landmarks)
   p <- dim(A)[1]
   if (dim(A)[2] != 2) {
@@ -222,19 +255,98 @@ plot_fishmorph_shapes <- function(landmarks, species = NULL, individuals = NULL,
   # ticks at nice, easy-to-read positions (e.g. 0.25, 0.5) instead.
   .draw_coord_axes(xlim = tick_xlim, ylim = tick_ylim, pretty_ticks = TRUE)
 
-  draw_col <- grDevices::adjustcolor(color, alpha.f = alpha)
-
-  draw_ref_path <- function(xy, pts) {
-    pts <- pts[stats::complete.cases(xy[pts, , drop = FALSE])]
-    if (length(pts) > 1) graphics::lines(xy[pts, 1], xy[pts, 2], col = draw_col, lwd = 1)
+  # ---- Per-specimen colouring -------------------------------------------
+  # `color_by` (or the `operator = TRUE` shortcut) maps each plotted shape to
+  # a colour: by a metadata column (e.g. operator, species), one colour per
+  # specimen ("specimen"), or a user-supplied grouping vector. When the number
+  # of distinct groups exceeds `max_colors`, colouring is dropped and every
+  # shape reverts to the single `color`, so an overcrowded figure never
+  # becomes an illegible rainbow.
+  if (isTRUE(operator)) {
+    if (!is.null(color_by)) {
+      stop("Supply either `operator = TRUE` or `color_by`, not both.", call. = FALSE)
+    }
+    color_by <- "operator"
   }
 
-  for (xy in shapes) {
+  group_vec <- NULL
+  legend_title <- NULL
+  if (!is.null(color_by)) {
+    if (is.character(color_by) && length(color_by) == 1L) {
+      if (identical(color_by, "specimen")) {
+        group_vec <- factor(names(shapes), levels = names(shapes))
+        legend_title <- "Specimen"
+      } else if (!is.null(meta) && color_by %in% names(meta)) {
+        group_vec <- factor(as.character(meta[[color_by]][matched]))
+        legend_title <- color_by
+      } else {
+        stop(
+          "`color_by = \"", color_by, "\"` is neither \"specimen\" nor a column of ",
+          "`landmarks$metadata`. Supply \"specimen\", a metadata column name ",
+          "(e.g. \"operator\"), or a vector with one value per plotted specimen.",
+          call. = FALSE
+        )
+      }
+    } else {
+      if (length(color_by) != length(matched)) {
+        stop(
+          "`color_by` vector must have one value per plotted specimen (",
+          length(matched), ").", call. = FALSE
+        )
+      }
+      group_vec <- factor(as.character(color_by))
+      legend_title <- "Group"
+    }
+  }
+
+  use_groups <- !is.null(group_vec)
+  if (use_groups && nlevels(group_vec) > max_colors) {
+    message(sprintf(
+      "color_by produces %d colour groups (> max_colors = %d): reverting to a single colour. Raise `max_colors` to keep per-group colours.",
+      nlevels(group_vec), max_colors
+    ))
+    use_groups <- FALSE
+  }
+
+  if (use_groups) {
+    k <- nlevels(group_vec)
+    if (!is.null(palette)) {
+      if (length(palette) < k) {
+        stop("`palette` supplies ", length(palette), " colour(s) but ", k,
+             " are needed for the requested groups.", call. = FALSE)
+      }
+      level_solid <- palette[seq_len(k)]
+    } else {
+      # Evenly spaced, equally saturated HCL hues -- distinct for any k.
+      level_solid <- grDevices::hcl(
+        h = seq(15, 375, length.out = k + 1)[seq_len(k)], c = 100, l = 60
+      )
+    }
+    names(level_solid) <- levels(group_vec)
+    spec_col <- grDevices::adjustcolor(level_solid[as.character(group_vec)], alpha.f = alpha)
+  } else {
+    spec_col <- rep(grDevices::adjustcolor(color, alpha.f = alpha), length(shapes))
+  }
+
+  draw_ref_path <- function(xy, pts, col) {
+    pts <- pts[stats::complete.cases(xy[pts, , drop = FALSE])]
+    if (length(pts) > 1) graphics::lines(xy[pts, 1], xy[pts, 2], col = col, lwd = 1)
+  }
+
+  for (j in seq_along(shapes)) {
+    xy <- shapes[[j]]
     show_pt <- rep(TRUE, nrow(xy))
     show_pt[intersect(c(20, 21), seq_len(nrow(xy)))] <- FALSE
     complete_pt <- stats::complete.cases(xy) & show_pt
-    graphics::points(xy[complete_pt, , drop = FALSE], pch = 19, cex = 0.6, col = draw_col)
-    draw_ref_path(xy, outline_pts)
+    graphics::points(xy[complete_pt, , drop = FALSE], pch = 19, cex = 0.6, col = spec_col[j])
+    draw_ref_path(xy, outline_pts, spec_col[j])
+  }
+
+  if (isTRUE(legend) && use_groups) {
+    graphics::legend(
+      "topright", legend = levels(group_vec), col = level_solid,
+      pch = 19, pt.cex = 1, cex = 0.7, bty = "n", title = legend_title, xpd = NA
+    )
   }
 
   invisible(shapes)

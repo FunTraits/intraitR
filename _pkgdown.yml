@@ -72,6 +72,7 @@ reference:
       - plot.intrait_shapespace
       - trait_disparity
       - print.intrait_disparity
+      - tpd_dissimilarity
       - bootstrap_functional_space
       - print.intrait_bootstrap_fspace
       - species_sensitivity
@@ -99,6 +100,8 @@ reference:
       - itv_index
       - plot.intrait_itv
       - intraspecific_variability
+      - itv_accumulation
+      - fd_accumulation
       - measurement_error
       - print.intrait_measurement_error
       - digitization_error

@@ -13,11 +13,11 @@
 #' [fishmorph_ratios()], [trait_space()], [itv_index()],
 #' [trait_disparity()], and [plot_fishmorph_points()].
 #'
-#' @param source Character, one of `"operators"` (default: 279 fish, one
-#'   digitization per operator, from the two independent operators of the
-#'   T-26 survey) or `"repeatability"` (25 individuals, 9-10 replicate
-#'   digitizations by a single operator; see [digitization_error()] and
-#'   [measurement_error()]).
+#' @param source Character, one of `"operators"` (default: 826 digitizations
+#'   of the T-26 fish across four operators -- Operator_1 and Operator_2 each
+#'   digitized the full set of 279 fish once, Operator_3 and Operator_4 a
+#'   subset) or `"repeatability"` (25 individuals, each digitized 9-10 times,
+#'   by two operators; see [digitization_error()] and [measurement_error()]).
 #' @param species Optional character vector of species names: if supplied,
 #'   only specimens identified (curated or preliminary) as one of these
 #'   species are kept. Defaults to `NULL` (every fish is kept, including
@@ -29,7 +29,7 @@
 #'   for the labels available for a given `source`) to restrict to. This
 #'   is the natural way to build **two separate functional trait spaces**,
 #'   one per operator, from `source = "operators"` (each fish was
-#'   digitized once by each of two operators) — e.g. to check whether
+#'   digitized once by each operator) — e.g. to check whether
 #'   [trait_space()] or [fishmorph_ratios()] results are sensitive to who
 #'   did the digitizing, complementing the landmark-level view of
 #'   [digitization_error()]. Modular by design: if the requested `source`
@@ -93,6 +93,16 @@ load_t26_saudrune_landmarks <- function(source = c("operators", "repeatability")
   source <- match.arg(source)
   long <- load_t26_saudrune(source, operator = operator)
   ident <- load_t26_saudrune("identifications")
+
+  # In the "operators" table each `specimen` id already embeds the operator
+  # (e.g. "T-26-0173_Operator_4"), so it is unique. The "repeatability" table
+  # instead reuses `specimen` ids (e.g. "T-26-0004_rep1") across the operators
+  # that redigitised the same replicate, so append the operator to keep every
+  # digitisation uniquely identified -- otherwise the coordinate array and the
+  # metadata row names would collide.
+  if (source == "repeatability") {
+    long$specimen <- paste(long$specimen, long$operator, sep = "_")
+  }
 
   if (source == "operators") {
     key <- unique(long[c("specimen", "code", "operator")])

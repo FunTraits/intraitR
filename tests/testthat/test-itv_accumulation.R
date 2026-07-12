@@ -94,7 +94,11 @@ test_that("itv_accumulation() 'range' uses the accumulation framing and fits an 
   # a fitted asymptote must come with a finite half-saturation/rate k, and
   # evaluating the fitted curve at n* must reach ~asymptote_prop of Vmax
   expect_true(all(is.finite(finite_fits$k)))
-  vn <- with(finite_fits, intraitR:::.itv_fitted_curve(n_star, acc$model, asymptote, k))
+  # .itv_fitted_curve() takes scalar Vmax/k (one series), so evaluate per row
+  vn <- mapply(
+    function(ns, vm, kk) intraitR:::.itv_fitted_curve(ns, acc$model, vm, kk),
+    finite_fits$n_star, finite_fits$asymptote, finite_fits$k
+  )
   expect_true(all(vn / finite_fits$asymptote >= acc$asymptote_prop - 1e-6))
 })
 

@@ -11,8 +11,8 @@ test_that("load_t26_saudrune_landmarks() returns an intrait_landmarks object sha
   expect_true(all(c("specimen", "individual", "species", "population", "replicate") %in% names(fish$metadata)))
   # T-26 sampled a single electrofishing point: no fabricated population structure.
   expect_true(all(is.na(fish$metadata$population)))
-  # two operators -> replicate takes exactly two values
-  expect_setequal(unique(fish$metadata$replicate), c(1L, 2L))
+  # four operators digitised these fish -> replicate takes values 1..4
+  expect_setequal(unique(fish$metadata$replicate), c(1L, 2L, 3L, 4L))
 })
 
 test_that("load_t26_saudrune_landmarks() works as a drop-in for simulate_fishmorph_points() in the FISHMORPH pipeline", {
@@ -45,10 +45,11 @@ test_that("load_t26_saudrune_landmarks()'s `operator` argument builds separate, 
 
   expect_true(all(fish_op1$metadata$operator == "Operator_1"))
   expect_true(all(fish_op2$metadata$operator == "Operator_2"))
-  # each fish was digitized once by each operator: filtering to one operator
-  # halves the number of specimens, and every fish appears exactly once
-  expect_equal(dim(fish_op1$coords)[3], dim(fish_all$coords)[3] / 2)
-  expect_equal(dim(fish_op2$coords)[3], dim(fish_all$coords)[3] / 2)
+  # Operator_1 and Operator_2 each digitised the same set of fish exactly once,
+  # so a single-operator subset is smaller than the full (multi-operator) set,
+  # holds one configuration per fish, and covers the same fish for both
+  expect_lt(dim(fish_op1$coords)[3], dim(fish_all$coords)[3])
+  expect_equal(dim(fish_op1$coords)[3], dim(fish_op2$coords)[3])
   expect_equal(length(unique(fish_op1$metadata$individual)), dim(fish_op1$coords)[3])
   expect_setequal(fish_op1$metadata$individual, fish_op2$metadata$individual)
 
@@ -58,15 +59,18 @@ test_that("load_t26_saudrune_landmarks()'s `operator` argument builds separate, 
   expect_equal(nrow(ratios_op1), dim(fish_op1$coords)[3])
   expect_equal(nrow(ratios_op2), dim(fish_op2$coords)[3])
 
-  # modular: `source = "repeatability"` has a single (anonymised) operator,
-  # so requesting it explicitly is a no-op, not an error
+  # modular: `source = "repeatability"` was digitised by two operators
+  # (Operator_1 and Operator_6); requesting one subsets it (and, crucially,
+  # the reused per-replicate specimen ids stay unique once the operator is
+  # appended, so this no longer collides on row names)
   rep_all <- load_t26_saudrune_landmarks(source = "repeatability")
-  rep_op2 <- load_t26_saudrune_landmarks(source = "repeatability", operator = "Operator_2")
-  expect_equal(dim(rep_op2$coords)[3], dim(rep_all$coords)[3])
+  rep_op1 <- load_t26_saudrune_landmarks(source = "repeatability", operator = "Operator_1")
+  expect_true(all(rep_op1$metadata$operator == "Operator_1"))
+  expect_lt(dim(rep_op1$coords)[3], dim(rep_all$coords)[3])
 
-  # an operator with no digitizations in this source is an informative error
+  # an operator absent from this source is an informative error
   expect_error(
-    load_t26_saudrune_landmarks(source = "repeatability", operator = "Operator_1"),
+    load_t26_saudrune_landmarks(source = "repeatability", operator = "Operator_2"),
     "does not match"
   )
 })

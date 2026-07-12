@@ -195,9 +195,20 @@ fd_accumulation <- function(x, groups = NULL,
   # for bootstrap_functional_space(), where each species is one point) but is
   # inappropriate here, where the hull is over pooled *individuals*; per-effort
   # FRic feasibility is instead handled by the richness engine's own NA guard.
-  fs <- .fspace_pca_scores(
-    x, groups, n_axes = n_axes, var_threshold = var_threshold,
-    log_transform = log_transform, scale = scale, method = "dendrogram"
+  # The helper's "n_axes not smaller than the number of species" caution is
+  # about few *species* as hull vertices; here the hull/indices are built from
+  # pooled *individuals* (n x S points), so that caution does not apply --
+  # muffle just that one warning while letting every other warning through.
+  fs <- withCallingHandlers(
+    .fspace_pca_scores(
+      x, groups, n_axes = n_axes, var_threshold = var_threshold,
+      log_transform = log_transform, scale = scale, method = "dendrogram"
+    ),
+    warning = function(w) {
+      if (grepl("not smaller than the number of species", conditionMessage(w), fixed = TRUE)) {
+        invokeRestart("muffleWarning")
+      }
+    }
   )
   scores <- fs$scores
   groups <- fs$groups

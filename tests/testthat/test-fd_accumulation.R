@@ -3,7 +3,8 @@ test_that(".fd_index_fun() computes FDis and Rao to hand-verified values", {
   # FDis = sqrt(2). Rao (equal weights) = sum(D)/m^2 = (16 + 8*sqrt(2))/16.
   P <- matrix(c(0, 0, 2, 0, 0, 2, 2, 2), ncol = 2, byrow = TRUE)
   rownames(P) <- paste0("ind_", 1:4)
-  f <- intraitR:::.fd_index_fun(c("fdis", "rao"), need_fd = FALSE)
+  f <- intraitR:::.fd_index_fun(c("fdis", "rao"), need_fd = FALSE,
+                                method = "convexhull", aux = NULL)
   v <- f(P, factor(c("A", "A", "B", "B")))
 
   expect_equal(unname(v["fdis"]), sqrt(2), tolerance = 1e-8)
@@ -14,7 +15,7 @@ test_that(".fd_index_fun() FRic equals the convex-hull volume", {
   skip_if_not_installed("geometry")
   P <- matrix(c(0, 0, 2, 0, 0, 2, 2, 2), ncol = 2, byrow = TRUE)
   rownames(P) <- paste0("ind_", 1:4)
-  f <- intraitR:::.fd_index_fun("fric", need_fd = FALSE)
+  f <- intraitR:::.fd_index_fun("fric", need_fd = FALSE, method = "convexhull", aux = NULL)
   expect_equal(unname(f(P, factor(letters[1:4]))["fric"]), 4, tolerance = 1e-8)
 
   # too few points for the hull (m <= d) must yield NA, not an error

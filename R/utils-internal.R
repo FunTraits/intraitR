@@ -824,7 +824,7 @@
 #' [impute_landmarks()] implement the same options inline (they operate on
 #' a different shape of input -- a full ordination input / raw landmark
 #' coordinates, respectively -- rather than a plain specimen x trait
-#' matrix), calling the shared [.phylo_axes_for_groups()] helper for the
+#' matrix), calling the shared `.phylo_axes_for_groups()` helper for the
 #' phylogenetic-augmentation step specifically, so that step at least is
 #' not duplicated three times over.
 #'
@@ -847,7 +847,7 @@
 #'   `"traits"`, `"segments"`, `"ratios"`).
 #' @param tree Used only by `na_action = "missforest_phylo"`: an object of
 #'   class `"phylo"`, or `NULL` (default) to use the bundled
-#'   [load_fishmorph_phylogeny()] tree; see [.phylo_axes_for_groups()].
+#'   [load_fishmorph_phylogeny()] tree; see `.phylo_axes_for_groups()`.
 #' @param missforest_phylo_k Used only by `na_action = "missforest_phylo"`:
 #'   maximum number of phylogenetic PCoA axes to add as predictors.
 #' @return A list with `X` (the possibly modified/row-reduced matrix) and
@@ -994,7 +994,7 @@
 #'
 #' Used internally by every `na_action`/`method = "missforest_phylo"`
 #' option ([trait_space()], [fishmorph_segments()]/[fishmorph_ratios()] via
-#' [.apply_na_action()], [impute_landmarks()]) to compute phylogenetic
+#' `.apply_na_action()`, [impute_landmarks()]) to compute phylogenetic
 #' PCoA axes (see [phylo_pcoa()]) for the species actually present in
 #' `groups`, and broadcast them out to one row per element of `groups` so
 #' they can be column-bound onto a missForest predictor matrix. Never
@@ -1573,7 +1573,7 @@
 #' [correct_geometry_conventions()]: corrects every landmark beyond
 #' `tolerance_coord` in any of `.geometry_coord_plan()`'s five groups, onto
 #' that group's shared reference. Meaningful only once the axis (1, 2) is
-#' already horizontal (see `rotated` in [.geometry_standardize_one()]'s
+#' already horizontal (see `rotated` in `.geometry_standardize_one()`'s
 #' Return) -- callers are expected to gate on that themselves, since
 #' "vertical"/"horizontal" here are evaluated directly on raw X/Y. Pure:
 #' never warns/messages, and does not know about, or update, any `corrected`/
@@ -1584,7 +1584,7 @@
 #' @param xy A `p x 2` matrix, one specimen's *already-standardized* (steps
 #'   1-3 done) landmark coordinates.
 #' @param tolerance_coord Numeric, as in [correct_geometry()].
-#' @param plan The fixed plan from [.geometry_coord_plan()] (passed in
+#' @param plan The fixed plan from `.geometry_coord_plan()` (passed in
 #'   rather than recomputed per specimen).
 #' @return A `list` with `xy` (the corrected `p x 2` matrix), `log_rows` (a
 #'   list of `data.frame`s, one per corrected point, columns `check`,

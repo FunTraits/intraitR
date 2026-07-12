@@ -12,11 +12,11 @@ load_t26_saudrune_landmarks(
 )
 }
 \arguments{
-\item{source}{Character, one of \code{"operators"} (default: 279 fish, one
-digitization per operator, from the two independent operators of the
-T-26 survey) or \code{"repeatability"} (25 individuals, 9-10 replicate
-digitizations by a single operator; see \code{\link[=digitization_error]{digitization_error()}} and
-\code{\link[=measurement_error]{measurement_error()}}).}
+\item{source}{Character, one of \code{"operators"} (default: 826 digitizations
+of the T-26 fish across four operators -- Operator_1 and Operator_2 each
+digitized the full set of 279 fish once, Operator_3 and Operator_4 a
+subset) or \code{"repeatability"} (25 individuals, each digitized 9-10 times,
+by two operators; see \code{\link[=digitization_error]{digitization_error()}} and \code{\link[=measurement_error]{measurement_error()}}).}
 
 \item{species}{Optional character vector of species names: if supplied,
 only specimens identified (curated or preliminary) as one of these
@@ -30,7 +30,7 @@ labels (e.g. \code{"Operator_1"}; see \code{unique(load_t26_saudrune(source)$ope
 for the labels available for a given \code{source}) to restrict to. This
 is the natural way to build \strong{two separate functional trait spaces},
 one per operator, from \code{source = "operators"} (each fish was
-digitized once by each of two operators) — e.g. to check whether
+digitized once by each operator) — e.g. to check whether
 \code{\link[=trait_space]{trait_space()}} or \code{\link[=fishmorph_ratios]{fishmorph_ratios()}} results are sensitive to who
 did the digitizing, complementing the landmark-level view of
 \code{\link[=digitization_error]{digitization_error()}}. Modular by design: if the requested \code{source}

@@ -3,7 +3,7 @@ test_that("load_t26_saudrune() reads all four bundled tables with the expected s
   expect_s3_class(ops, "data.frame")
   expect_true(all(c("specimen", "code", "operator", "landmark", "X", "Y") %in% names(ops)))
   expect_equal(length(unique(ops$landmark)), 21)
-  expect_equal(length(unique(ops$operator)), 2)
+  expect_equal(length(unique(ops$operator)), 4)
 
   rep_df <- load_t26_saudrune("repeatability")
   expect_s3_class(rep_df, "data.frame")
@@ -28,7 +28,8 @@ test_that("load_t26_saudrune() validates its `dataset` argument", {
 test_that("load_t26_saudrune() operator identities are anonymised", {
   ops <- load_t26_saudrune("operators")
   rep_df <- load_t26_saudrune("repeatability")
-  expect_setequal(unique(ops$operator), c("Operator_1", "Operator_2"))
+  expect_setequal(unique(ops$operator),
+                  c("Operator_1", "Operator_2", "Operator_3", "Operator_4"))
   expect_true(all(grepl("^Operator_[0-9]+$", unique(rep_df$operator))))
   # the real names must not survive anywhere in the shipped tables
   all_text <- c(unlist(ops, use.names = FALSE), unlist(rep_df, use.names = FALSE))
@@ -48,7 +49,7 @@ test_that("load_t26_saudrune()'s `operator` argument filters rows and is modular
 
   # more than one operator can be requested at once
   both <- load_t26_saudrune("operators", operator = c("Operator_1", "Operator_2"))
-  ?expect_equal(nrow(both), nrow(ops))
+  expect_equal(nrow(both), sum(ops$operator %in% c("Operator_1", "Operator_2")))
 
   # a table with no `operator` column (e.g. "identifications") ignores the
   # argument with a warning rather than erroring

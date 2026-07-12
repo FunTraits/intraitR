@@ -19,6 +19,14 @@
   dispersion/regularity indices use the convergence/precision framing.
   Dedicated `print()` and `plot()` methods; parallelised via `future.apply`.
 
+* `load_t26_saudrune_landmarks(source = "repeatability")` no longer errors
+  with "duplicate 'row.names'": the repeatability table reuses per-replicate
+  `specimen` ids (e.g. `"T-26-0004_rep1"`) across the two operators that
+  redigitised it, so the operator label is now appended to keep every
+  digitisation uniquely identified. Dataset documentation updated to the
+  current T-26 data (four operators in `"operators"`; two in
+  `"repeatability"`).
+
 * New `tpd_dissimilarity()`: intraspecific-variability-aware functional
   dissimilarity between species, computed as `1 - overlap` of their Trait
   Probability Density kernels (Carmona et al., 2016, 2019) via the Suggested

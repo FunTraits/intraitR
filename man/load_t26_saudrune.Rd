@@ -6,7 +6,7 @@
 (T-26, La Saudrune)}
 \source{
 T-26 electrofishing campaign, Saudrune (Adour-Garonne basin,
-France), 21 April 2026. Landmarks digitized by two independent
+France), 21 April 2026. Landmarks digitized by several independent
 operators; identifications curated with AI-vision assistance by A.
 Toussaint (CNRS). Raw spreadsheets are not distributed with the
 package (only the cleaned, analysis-ready tables are); see
@@ -61,17 +61,22 @@ A \code{data.frame}:
 \describe{
 \item{\code{"operators"}}{Long-format landmark coordinates (columns
 \code{specimen}, \code{code}, \code{operator}, \code{landmark}, \code{X}, \code{Y}), one row per
-specimen x landmark combination. 279 fish, each digitized once by
-each of two independent operators (558 specimen-level
-digitizations, 21 landmarks each). Use \code{\link[=read_landmarks_csv]{read_landmarks_csv()}} to
-import this table as an \code{"intrait_landmarks"} object; see
-\code{demo(pipeline_T26_saudrune)}.}
+specimen x landmark combination. The T-26 fish digitized by four
+operators (826 specimen-level digitizations, 21 landmarks each):
+Operator_1 and Operator_2 each digitized the full set of 279 fish
+once, Operator_3 and Operator_4 a subset. The \code{specimen} id embeds
+the operator (e.g. \code{"T-26-0173_Operator_4"}), so it is unique. Use
+\code{\link[=read_landmarks_csv]{read_landmarks_csv()}} to import this table as an
+\code{"intrait_landmarks"} object; see \code{demo(pipeline_T26_saudrune)}.}
 \item{\code{"repeatability"}}{Long-format landmark coordinates (columns
 \code{specimen}, \code{code}, \code{replicate}, \code{operator}, \code{site}, \code{landmark},
-\code{X}, \code{Y}) for the intra-operator repeatability trial: 25
-individuals, each digitized 9-10 times independently by the same
-operator. Intended for \code{\link[=measurement_error]{measurement_error()}} and
-\code{\link[=digitization_error]{digitization_error()}}.}
+\code{X}, \code{Y}) for the repeatability trial: 25 individuals, each
+digitized 9-10 times, by two operators (\code{Operator_1} and
+\code{Operator_6}). Here \code{specimen} (e.g. \code{"T-26-0004_rep1"}) encodes
+only the fish and replicate, so it is shared across the two
+operators in this table; \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}} appends
+the operator to keep each digitization uniquely identified.
+Intended for \code{\link[=measurement_error]{measurement_error()}} and \code{\link[=digitization_error]{digitization_error()}}.}
 \item{\code{"identifications"}}{One row per fish (\code{code}), with
 \code{species} (binomial), \code{id_status} (\code{"curated"}, \code{"preliminary"} --
 from AI-vision-assisted identification not yet manually confirmed,

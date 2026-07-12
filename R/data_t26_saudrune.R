@@ -40,17 +40,22 @@
 #'   \describe{
 #'     \item{`"operators"`}{Long-format landmark coordinates (columns
 #'       `specimen`, `code`, `operator`, `landmark`, `X`, `Y`), one row per
-#'       specimen x landmark combination. 279 fish, each digitized once by
-#'       each of two independent operators (558 specimen-level
-#'       digitizations, 21 landmarks each). Use [read_landmarks_csv()] to
-#'       import this table as an `"intrait_landmarks"` object; see
-#'       `demo(pipeline_T26_saudrune)`.}
+#'       specimen x landmark combination. The T-26 fish digitized by four
+#'       operators (826 specimen-level digitizations, 21 landmarks each):
+#'       Operator_1 and Operator_2 each digitized the full set of 279 fish
+#'       once, Operator_3 and Operator_4 a subset. The `specimen` id embeds
+#'       the operator (e.g. `"T-26-0173_Operator_4"`), so it is unique. Use
+#'       [read_landmarks_csv()] to import this table as an
+#'       `"intrait_landmarks"` object; see `demo(pipeline_T26_saudrune)`.}
 #'     \item{`"repeatability"`}{Long-format landmark coordinates (columns
 #'       `specimen`, `code`, `replicate`, `operator`, `site`, `landmark`,
-#'       `X`, `Y`) for the intra-operator repeatability trial: 25
-#'       individuals, each digitized 9-10 times independently by the same
-#'       operator. Intended for [measurement_error()] and
-#'       [digitization_error()].}
+#'       `X`, `Y`) for the repeatability trial: 25 individuals, each
+#'       digitized 9-10 times, by two operators (`Operator_1` and
+#'       `Operator_6`). Here `specimen` (e.g. `"T-26-0004_rep1"`) encodes
+#'       only the fish and replicate, so it is shared across the two
+#'       operators in this table; [load_t26_saudrune_landmarks()] appends
+#'       the operator to keep each digitization uniquely identified.
+#'       Intended for [measurement_error()] and [digitization_error()].}
 #'     \item{`"identifications"`}{One row per fish (`code`), with
 #'       `species` (binomial), `id_status` (`"curated"`, `"preliminary"` --
 #'       from AI-vision-assisted identification not yet manually confirmed,
@@ -84,7 +89,7 @@
 #' `id_status` for exactly that reason.
 #'
 #' @source T-26 electrofishing campaign, Saudrune (Adour-Garonne basin,
-#'   France), 21 April 2026. Landmarks digitized by two independent
+#'   France), 21 April 2026. Landmarks digitized by several independent
 #'   operators; identifications curated with AI-vision assistance by A.
 #'   Toussaint (CNRS). Raw spreadsheets are not distributed with the
 #'   package (only the cleaned, analysis-ready tables are); see

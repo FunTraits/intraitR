@@ -29,7 +29,7 @@ there to the derived trait matrix rather than to raw coordinates)."></head><body
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,7 +81,9 @@ there to the <em>derived</em> trait matrix rather than to raw coordinates).</p>
 <span>  missforest_ntree <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  missforest_maxiter <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  tree <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  missforest_phylo_k <span class="op">=</span> <span class="fl">10</span></span>
+<span>  missforest_phylo_k <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  species <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  phylo_axes <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -164,6 +166,22 @@ class <code>"phylo"</code>, or <code>NULL</code> (default) to use the bundled
 maximum number of phylogenetic PCoA axes to add as predictors.
 Defaults to <code>10</code>.</p></dd>
 
+
+<dt id="arg-species">species<a class="anchor" aria-label="anchor" href="#arg-species"></a></dt>
+<dd><p>Species identifier for <strong>each row / specimen</strong>, used only to
+look up the phylogenetic axes of <code>"missforest_phylo"</code>. <code>NULL</code> (default)
+auto-detects it (a <code>species</code> / <code>Species</code> / <code>Genus.species</code> column, the
+metadata, or the specimen names). Deliberately <strong>separate from <code>groups</code></strong>:
+the phylogeny needs to know which species a row belongs to, not a
+categorical predictor for the forest.</p></dd>
+
+
+<dt id="arg-phylo-axes">phylo_axes<a class="anchor" aria-label="anchor" href="#arg-phylo-axes"></a></dt>
+<dd><p>Used only by <code>"missforest_phylo"</code>. <code>NULL</code> (default) uses the
+<strong>precomputed</strong> axes of <code><a href="load_fishmorph_phylo_axes.html">load_fishmorph_phylo_axes()</a></code>, so that every call
+shares one and the same phylogenetic coordinate system. Supply a data frame
+(a <code>species</code> column plus one column per axis) to use your own.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -223,8 +241,8 @@ Bioinformatics, 28(1), 112-118. <a href="https://doi.org/10.1093/bioinformatics/
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">anyNA</a></span><span class="op">(</span><span class="va">fish</span><span class="op">$</span><span class="va">coords</span><span class="op">)</span> <span class="co"># some real specimens are missing landmark 5</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
 <span class="r-in"><span><span class="va">fish_imputed</span> <span class="op">&lt;-</span> <span class="fu">impute_landmarks</span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): estimated 260 missing anatomical landmark coordinate(s) using method = "tps".</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): estimated 304 missing anatomical landmark coordinate(s) using method = "tps".</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">anyNA</a></span><span class="op">(</span><span class="va">fish_imputed</span><span class="op">$</span><span class="va">coords</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">19</span>, , <span class="op">]</span><span class="op">)</span> <span class="co"># anatomical landmarks now complete</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
 <span class="r-in"><span></span></span>
@@ -235,11 +253,11 @@ Bioinformatics, 28(1), 112-118. <a href="https://doi.org/10.1093/bioinformatics/
 <span class="r-in"><span><span class="co"># statistical alternatives, mirroring trait_space()'s na_action options;</span></span></span>
 <span class="r-in"><span><span class="co"># `groups` is auto-detected here from fish$metadata$species</span></span></span>
 <span class="r-in"><span><span class="va">fish_mean</span> <span class="op">&lt;-</span> <span class="fu">impute_landmarks</span><span class="op">(</span><span class="va">fish</span>, method <span class="op">=</span> <span class="st">"impute_mean"</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): imputed 505 missing landmark coordinate value(s) using column means (method = "impute_mean").</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): imputed 593 missing landmark coordinate value(s) using column means (method = "impute_mean").</span>
 <span class="r-in"><span><span class="va">fish_gmean</span> <span class="op">&lt;-</span> <span class="fu">impute_landmarks</span><span class="op">(</span><span class="va">fish</span>, method <span class="op">=</span> <span class="st">"impute_group_mean"</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): imputed 505 missing landmark coordinate value(s) using within-group means (method = "impute_group_mean").</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): imputed 593 missing landmark coordinate value(s) using within-group means (method = "impute_group_mean").</span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"missForest"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="va">fish_rf</span> <span class="op">&lt;-</span> <span class="fu">impute_landmarks</span><span class="op">(</span><span class="va">fish</span>, method <span class="op">=</span> <span class="st">"missforest"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
@@ -251,11 +269,10 @@ Bioinformatics, 28(1), 112-118. <a href="https://doi.org/10.1093/bioinformatics/
 <span class="r-in"><span>    <span class="va">fish_rf_phylo</span> <span class="op">&lt;-</span> <span class="fu">impute_landmarks</span><span class="op">(</span><span class="va">fish</span>, method <span class="op">=</span> <span class="st">"missforest_phylo"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">}</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): imputed 505 missing landmark coordinate value(s) using random-forest imputation (missForest), using `groups` as an auxiliary predictor (out-of-bag NRMSE = 0.061).</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 species not found in `tree$tip.label` and dropped: Gobio_occitaniae, Phoxinus_phoxinus/bigerri, </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): imputed 505 missing landmark coordinate value(s) using random-forest imputation (missForest), using `groups` as an auxiliary predictor, augmented with 6 phylogenetic PCoA axis/axes (7 species matched to the tree) (out-of-bag NRMSE = 0.051).</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): imputed 593 missing landmark coordinate value(s) using random-forest imputation (missForest) (out-of-bag NRMSE = 0.037).</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): imputed 593 missing landmark coordinate value(s) using random-forest imputation (missForest), augmented with 10 phylogenetic PCoA axis/axes from the precomputed axis table (6 species matched) (out-of-bag NRMSE = 0.031).</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

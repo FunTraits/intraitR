@@ -480,25 +480,25 @@ derr_fm <- digitization_error(
 #> Warning: Unequal numbers of digitization replicates across individuals; bias estimates for individuals with fewer replicates will be noisier.
 derr_fm$by_landmark
 #>    landmark n_individuals mean_bias_pct median_bias_pct sd_bias_pct
-#> 1         5            25        0.0826          0.0740      0.0340
-#> 2        13            25        0.0865          0.0763      0.0387
-#> 3        14            25        0.0835          0.0776      0.0327
-#> 4         7            25        0.1045          0.0978      0.0370
-#> 5        18            25        0.1293          0.1141      0.0710
-#> 6         6            25        0.1262          0.1207      0.0480
-#> 7        10            25        0.1618          0.1218      0.1077
-#> 8        11            25        0.1697          0.1313      0.1051
-#> 9        19            25        0.1555          0.1388      0.0794
-#> 10        9            25        0.1556          0.1514      0.0397
-#> 11       15            25        0.1987          0.1690      0.1212
-#> 12        1            25        0.1884          0.1710      0.0902
-#> 13        8            25        0.1786          0.1751      0.0489
-#> 14       12            25        0.3624          0.2065      0.3330
-#> 15       17            25        0.2384          0.2167      0.0983
-#> 16        2            25        0.2639          0.2339      0.1404
-#> 17       16            25        0.2746          0.2391      0.1322
-#> 18        3            25        0.8600          0.8178      0.4349
-#> 19        4            25        0.8778          0.8346      0.4815
+#> 1         5            25        0.0927          0.0836      0.0340
+#> 2        13            25        0.0996          0.0903      0.0402
+#> 3        14            25        0.1049          0.0993      0.0344
+#> 4         7            25        0.1246          0.1162      0.0436
+#> 5         6            25        0.1315          0.1178      0.0514
+#> 6         9            25        0.1521          0.1368      0.0546
+#> 7        11            25        0.1663          0.1428      0.1021
+#> 8        18            25        0.1591          0.1439      0.0808
+#> 9        10            25        0.1926          0.1561      0.1499
+#> 10        8            25        0.1799          0.1609      0.0636
+#> 11       19            25        0.2017          0.1849      0.0787
+#> 12        1            25        0.1853          0.1862      0.0644
+#> 13        2            25        0.2733          0.2121      0.1349
+#> 14       15            25        0.2555          0.2270      0.1055
+#> 15       12            25        0.4310          0.2655      0.4559
+#> 16       16            25        0.2943          0.2855      0.1322
+#> 17       17            25        0.2967          0.2953      0.1073
+#> 18        4            25        0.8756          0.7955      0.5148
+#> 19        3            25        0.8799          0.8245      0.5101
 
 # level = "segments": does raw-landmark digitization noise survive into
 # the 11 linear FISHMORPH measurements? (mixes body-landmark placement
@@ -509,17 +509,17 @@ derr_seg <- digitization_error(
 #> Warning: Unequal numbers of digitization replicates across individuals; bias estimates for individuals with fewer replicates will be noisier.
 derr_seg$by_segment
 #>    segment n_individuals mean_bias_pct median_bias_pct sd_bias_pct
-#> 1       Bl            25        0.6268          0.4653      0.4342
-#> 2      CFd            25        0.6325          0.5263      0.3877
-#> 3       Bd            25        0.6577          0.5851      0.4597
-#> 4       Hd            25        0.8750          0.7894      0.3618
-#> 5       Eh            25        1.1976          1.0951      0.5670
-#> 6       Mo            25        1.4501          1.1470      0.7697
-#> 7      CPd            25        1.4488          1.2289      0.9036
-#> 8      PFl            25        2.3623          1.6631      1.8279
-#> 9       Ed            25        1.8135          1.7682      0.6782
-#> 10     PFi            25        2.2991          2.0702      1.0466
-#> 11      Jl            25        4.1454          3.8779      1.7967
+#> 1       Bl            25        0.8227          0.7374      0.4190
+#> 2      CFd            25        0.9518          0.8088      0.4743
+#> 3       Bd            25        0.9995          0.9101      0.4003
+#> 4       Hd            25        1.0817          1.0067      0.3496
+#> 5       Eh            25        1.2951          1.2771      0.5264
+#> 6      CPd            25        1.4863          1.3922      0.5542
+#> 7       Mo            25        1.6123          1.4095      0.7269
+#> 8      PFl            25        2.8275          2.1001      2.1797
+#> 9      PFi            25        2.8269          2.4606      1.4327
+#> 10      Ed            25        2.8284          2.4914      1.3657
+#> 11      Jl            25        4.9409          4.7549      1.9794
 
 # level = "ratios": the 9 dimensionless ratios cancel out any per-
 # replicate scale-bar noise, isolating body-shape digitization error --
@@ -530,13 +530,13 @@ derr_rat <- digitization_error(
 #> Warning: Unequal numbers of digitization replicates across individuals; bias estimates for individuals with fewer replicates will be noisier.
 derr_rat$by_ratio
 #>   ratio n_individuals mean_bias_pct median_bias_pct sd_bias_pct
-#> 1   BEl            25        0.4101          0.3667      0.2175
-#> 2   BLs            25        0.6384          0.6242      0.2483
-#> 3   VEp            25        1.0805          1.0004      0.4479
-#> 4   CPt            25        1.2324          1.0079      0.6369
-#> 5   OGp            25        1.2235          1.0202      0.4735
-#> 6   PFs            25        2.1608          1.5431      1.7467
-#> 7   REs            25        1.7599          1.6705      0.6908
-#> 8   PFv            25        2.1531          1.9937      1.0481
-#> 9   RMl            25        4.0739          3.9581      1.8080
+#> 1   BEl            25        0.4935          0.4988      0.1256
+#> 2   BLs            25        0.8618          0.8081      0.2304
+#> 3   VEp            25        1.0740          1.0086      0.3675
+#> 4   OGp            25        1.3485          1.2575      0.4138
+#> 5   CPt            25        1.3057          1.3167      0.5832
+#> 6   PFs            25        2.6786          1.6868      2.2987
+#> 7   REs            25        2.7127          2.2737      1.4285
+#> 8   PFv            25        2.6025          2.2920      1.3109
+#> 9   RMl            25        4.8902          4.6114      1.8582
 ```

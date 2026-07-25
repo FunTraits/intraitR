@@ -1,6 +1,418 @@
 # Changelog
 
+## intraitR 1.12.0
+
+### Phylogenetic imputation now works on precomputed eigenvalues
+
+- New
+  [`load_fishmorph_phylo_axes()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylo_axes.md):
+  reads `inst/extdata/Phylogeny/pcoaPhylogenyFish.rds`, the
+  **precomputed** PCoA axes of the bundled fish phylogeny (8,970
+  species, 10 axes), cached once per R session. Shipped as a compressed
+  `.rds` (540 kB); the loader also accepts the whitespace-separated text
+  format, dispatching on the file extension.
+- Every `"missforest_phylo"` option — in
+  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
+  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md),
+  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
+  and
+  [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
+  — now uses that table by default instead of eigendecomposing the
+  patristic distance matrix on every call. Beyond the cost (that matrix
+  is *n* × *n*, and the decomposition cubic in *n*), this fixes a
+  **comparability** problem: axes recomputed on whichever species
+  happened to be present defined a different coordinate system for each
+  analysis, so two imputations on two subsets did not live in the same
+  phylogenetic space. A `phylo_axes` argument accepts an alternative
+  table; passing `tree` still recomputes from that tree, as before.
+- The imputation message now names the **source** of the axes, so two
+  runs can be told apart.
+
+### `species` is now separate from `groups`
+
+- [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
+  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md),
+  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
+  and
+  [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
+  gain a `species` argument. The two roles were conflated under
+  `groups`, so `"missforest_phylo"` refused to work without a grouping
+  vector — yet the phylogeny only needs to know which species each row
+  belongs to, not a categorical predictor for the forest.
+- `species` is auto-detected (a `species` / `Species` / `Genus.species`
+  column, the metadata, or the specimen names). **`groups` is no longer
+  auto-filled with species**, except for `"impute_group_mean"`, where
+  the species genuinely is the group.
+- A `groups` factor with more than 53 levels is now dropped from the
+  missForest predictors with a warning instead of failing:
+  `randomForest` cannot handle more than 53 categories, so auto-filling
+  `groups` with thousands of species names would have made the
+  imputation error out.
+- Row subsets (`na_action = "omit"`, dropping rows with an unresolved
+  group) now carry `species` along, so the phylogenetic axes cannot end
+  up attached to the wrong specimens.
+
+## intraitR 1.11.0
+
+- [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  has been re-implemented as a launcher for the bundled ml-morph
+  landmarking Shiny application, replacing the former point-and-click
+  wrapper around
+  [`geomorph::digitize2d()`](https://rdrr.io/pkg/geomorph/man/digitize2d.html).
+  Instead of digitizing every landmark by hand, the user loads a
+  photograph (or a folder of photographs), places a few calibration
+  clicks, and a trained ml-morph shape predictor proposes the 19
+  anatomical FISHMORPH landmarks for review, correction, quality scoring
+  and export to `CSV`/`tpsDig` (import the result with
+  [`read_mlmorph_landmarks()`](https://funtraits.github.io/intraitR/reference/read_mlmorph_landmarks.md)).
+  The Shiny app now ships inside the package
+  (`inst/shiny/landmarking_app/`) together with its Python worker
+  (`inst/mlmorph/`); the heavier ml-morph assets (trained predictor,
+  aligned dataset, `dlib`-enabled Python environment) remain external
+  and are located through the new `mlmorph_dir`, `predictor` and
+  `python` arguments (with auto-detection from the working directory and
+  `INTRAITR_MLMORPH_*` environment variables). The former `images`,
+  `scheme`, `n_landmarks`, `curvature` and `tpsfile` arguments are
+  removed. `shiny` is a new Suggested dependency, and
+  [`geomorph::digitize2d()`](https://rdrr.io/pkg/geomorph/man/digitize2d.html)
+  is no longer imported.
+
+## intraitR 1.10.0
+
+- [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
+  gains an `MBw` argument (`FALSE` by default). When `TRUE`, it adds a
+  maximum body weight (`MBw`) column derived from the supplied `MBl`
+  through the species-level allometric length-weight relationship
+  `W = a * MBl^b`, whose coefficients `a` and `b` are looked up in
+  FishBase with
+  [`rfishbase::length_weight()`](https://docs.ropensci.org/rfishbase/reference/length_weight.html)
+  (per species, the study with the highest coefficient of determination,
+  selected in base R). Species names are taken from `groups` or a
+  `species` column in `segments`; species without usable FishBase
+  coefficients yield `NA`, with a warning. The new `MBw` column is
+  placed immediately after `MBl`, and is subset consistently under
+  `na_action = "omit"`. `rfishbase` is a Suggested dependency, loaded
+  only when `MBw = TRUE`.
+
+## intraitR 1.9.0
+
+- New
+  [`plot_fishmorph_density()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_density.md)
+  draws, for a
+  [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
+  projection, a panel of kernel-density curves per functional axis and
+  per morphological ratio, comparing the whole FISHMORPH reference
+  database (a filled grey curve) with each focal species (a coloured,
+  translucently filled curve, using the same session-stable colours as
+  the ordination). Each curve is rescaled to a percentage of its own
+  maximum (peak = 100%) and drawn on a shared 0-100% axis, so species
+  with very different spreads or sample sizes stay directly comparable
+  in position and width rather than in raw height. Axis panels use the
+  projected PCA scores; ratio panels use the trait values on the
+  analysis (log) scale, so the reference and species curves are always
+  directly comparable. Arguments select which axes/ratios and which
+  species/specimens to show, and control the reference fill, the
+  per-species translucent fill (`species_fill`, `species_fill_alpha`),
+  rug, legend and panel grid. To support the ratio panels,
+  [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
+  now also stores the full reference trait matrix (analysis scale) as
+  `reference_traits` in its returned object (older projections without
+  it are handled by exact reconstruction from the frozen PCA).
+
+- [`plot.intrait_fishmorph_projection()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
+  gains an `arrows` argument (with `arrow_scale` and `arrow_col`) that
+  overlays the PCA trait loadings (`x$loadings`) on the FISHMORPH
+  functional space as biplot arrows – one per trait, drawn from the
+  origin along its loading on the two plotted axes and labelled with the
+  trait name – so a reader can see which morphological ratios drive each
+  axis. The loadings are unit-scaled direction vectors with no natural
+  length in score units, so they are rescaled to the current plot: the
+  longest arrow reaches `arrow_scale` (default `0.8`) of the distance
+  from the origin to the nearest plot edge, all arrows sharing that one
+  factor so their relative lengths and directions are preserved. The
+  overlay is purely visual and does not change the ordination. Works
+  with every `style` and composes with the reference background and
+  `itv_reference` layers.
+
+## intraitR 1.8.0
+
+- [`itv_proportion()`](https://funtraits.github.io/intraitR/reference/itv_proportion.md)
+  gains a `metric` argument selecting how the multivariate
+  functional-volume proportion is measured:
+  - `metric = "hull"` (default, unchanged): the convex-hull volume ratio
+    (Villeger, Mason & Mouillot, 2008) – an *extent*-based richness
+    driven by the outermost specimens.
+  - `metric = "tpd"`: a *density*-based richness, the Trait Probability
+    Density FRichness (Carmona et al. 2016, 2019), via
+    [`TPD::TPDs()`](https://rdrr.io/pkg/TPD/man/TPDs.html)/`TPDc()`/
+    `REND()`. A kernel density is estimated from the individuals and the
+    proportion is the volume of trait space it occupies above a
+    `tpd_alpha` density threshold, so sparse outliers are down-weighted
+    instead of stretching the volume as they do under a convex hull.
+    Every unit (the reference, the pooled focal set, each species) is
+    evaluated on the same fixed grid, keeping the volumes comparable; it
+    typically returns a smaller, more conservative proportion than the
+    hull for a centrally-clustered focal set. New arguments `tpd_alpha`
+    (default `0.99`) and `tpd_n_divisions` (default `NULL`, auto-scaled
+    with `volume_dims`) tune the density threshold and grid resolution.
+    Requires the Suggested ‘TPD’ package.
+- The `"intrait_itv_proportion"` object now records the metric used
+  (`$metric`) and a `$volume_scale` note; its
+  [`print()`](https://rdrr.io/r/base/print.html) method labels the
+  volume as “convex hull” or “TPD FRichness” accordingly. The per-trait
+  (range) proportions are identical under either metric.
+
+## intraitR 1.7.0
+
+- New
+  [`itv_proportion()`](https://funtraits.github.io/intraitR/reference/itv_proportion.md):
+  quantifies how much of the global functional diversity of the
+  reference database a group’s projected intraspecific trait variation
+  (ITV) occupies, from a
+  [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
+  projection, along two decompositions – **per trait** (univariate range
+  ratio: focal ITV range divided by the whole-reference range, on the
+  analysis scale) and **per functional volume** (multivariate
+  convex-hull volume ratio in the `volume_dims` leading principal
+  components, Villeger, Mason & Mouillot, 2008). Both are reported
+  pooled over all focal specimens and per species. Returns an
+  `"intrait_itv_proportion"` object with a dedicated
+  [`print()`](https://rdrr.io/r/base/print.html) method.
+- [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
+  gains a `volume_dims` argument (default `2L`) and now bundles the ITV
+  proportion in its result as `$itv_proportion` (an
+  `"intrait_itv_proportion"` object). The returned projection
+  additionally stores `scores_all`/`global_scores_all` (scores on all
+  components), `specimen_traits` (transformed specimen traits) and
+  `trait_ranges_reference` (per-trait reference envelope) so the
+  proportion can be recomputed on a different number of axes. Its
+  [`print()`](https://rdrr.io/r/base/print.html) method now reports the
+  pooled ITV-to-global volume and trait-range proportions.
+- The convex-hull volume uses the Suggested `geometry` package; when it
+  is not installed the volume proportions degrade to `NA` (never an
+  error), while the per-trait proportions are always available.
+
+## intraitR 1.6.0
+
+- [`plot.intrait_fishmorph_projection()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
+  now renders the FISHMORPH reference database as a **kernel-density
+  heatmap** by default (a white-to-red gradient with nested
+  highest-density-region contour lines), instead of an unreadably dense
+  ~9,000-point cloud. New arguments control the background and overlays:
+  - `reference_density` (default `TRUE`): draw the reference
+    distribution as the density heatmap. `density_probs` and
+    `density_palette` tune its contour probabilities and colour ramp.
+  - `reference_points` (default `FALSE`): draw the reference species as
+    the previous light point cloud (can be combined with the heatmap).
+    This is the explicit yes/no toggle for the reference species points;
+    the old `background = TRUE` default cloud is now off unless
+    requested.
+  - `itv_reference` (default `FALSE`): mark each focal species’ *own*
+    entry in the FISHMORPH database as a filled circle coloured to match
+    its species, so the single database morphotype can be compared with
+    the spread of the projected intraspecific trait variation. Matching
+    is case-insensitive and treats spaces/underscores as equivalent.
+  - `background` remains a master off-switch (`FALSE` suppresses every
+    reference layer).
+- [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
+  now stores `global_species`, the reference species labels aligned
+  row-for-row to `global_scores` (from a `"Species"` column when
+  present, else the reference row names), used by `itv_reference` above.
+- New internal helper `.density_field()` (kernel-density grid + HDR
+  contour levels) backing the reference heatmap; `.plot_ordination()`
+  gains `background_density`/`background_points`/`highlight` support,
+  shared with any ordination that supplies a background cloud.
+
+## intraitR 1.5.0
+
+- New
+  [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md):
+  builds a **fixed** functional trait space by PCA of a reference
+  FISHMORPH database (e.g. the ~9,000-species `fishmorph_data.csv`) and
+  projects new specimens – typically the individuals of a few focal
+  species from
+  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
+  – into that *same, frozen* space with
+  [`stats::predict()`](https://rdrr.io/r/stats/predict.html), without
+  re-fitting the ordination. This shows how much of the global
+  morphospace a group’s intraspecific trait variation (ITV) occupies
+  relative to the whole diversity of fishes, on axes defined once by the
+  reference alone. Arguments `select_species`/`select_specimens`
+  restrict which specimens are projected. The published FISHMORPH
+  database ships already `log10(x + 1)`-transformed while
+  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
+  returns raw ratios; the
+  `reference_prelogged`/`specimens_prelogged`/`log_transform` defaults
+  encode the correct combination so the two never end up on incompatible
+  scales (which would otherwise displace the projected points by a
+  large, spurious offset). A
+  [`print()`](https://rdrr.io/r/base/print.html) method summarises the
+  space, and a [`plot()`](https://rdrr.io/r/graphics/plot.default.html)
+  method draws the reference database as a light background cloud with
+  the projected specimens on top, in `style = "hull"` (per-species ITV
+  footprint), `"spider"`, `"density"`, or `"points"`.
+
+- [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)/[`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)’s
+  shared internal plotting engine gained an optional background point
+  cloud (used by
+  [`plot.intrait_fishmorph_projection()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md));
+  existing plots are unchanged.
+
+## intraitR 1.4.0
+
+- New
+  [`operator_disagreement()`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md):
+  screens a landmark data set in which the **same individuals were
+  digitized by several independent operators** (as produced by
+  `load_t26_saudrune_landmarks(source = "operators")`) and returns, for
+  every individual, a single inter-operator disagreement index, an
+  automatic robust “at-risk” flag (median + `threshold`\*MAD, the same
+  rule as
+  [`detect_outliers()`](https://funtraits.github.io/intraitR/reference/detect_outliers.md)),
+  and – where identifiable – the operator responsible for the
+  disagreement. It is the population-level, one-number-per-individual
+  companion to the by-eye overlay of
+  `plot_fishmorph_shapes(..., operator = TRUE)`: instead of paging
+  through each fish to spot the ones whose operators drew visibly
+  different shapes, it ranks all individuals and names the outlier
+  operator. The magnitude is the mean across landmarks of the
+  root-mean-square across-operator displacement from the per-landmark
+  consensus, normalised (per individual) by centroid size, an
+  inter-landmark reference distance, or standard length – the
+  inter-operator analogue of the intra-operator
+  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md).
+  Operator attribution uses a leave-one-out consensus of the other
+  operators (identifiable for three or more operators); a
+  `reference_operator` argument (e.g. a trusted expert) makes
+  attribution identifiable for two-operator individuals as well. Returns
+  `by_individual`, `by_operator` (which operator is systematically
+  discordant), and `by_landmark` (which anatomical points operators
+  disagree on most) tables, with dedicated
+  [`print()`](https://rdrr.io/r/base/print.html) and
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods
+  (`type = "individual"`/`"operator"`/`"landmark"`).
+
+## intraitR 1.3.0
+
+- New
+  [`read_mlmorph_landmarks()`](https://funtraits.github.io/intraitR/reference/read_mlmorph_landmarks.md):
+  imports the long-format measure table exported by the **ml-morph**
+  shape predictor or by the interactive landmarking Shiny app (columns
+  `specimen`, `landmark`, `X`, `Y`, optional `mm_per_px`) directly into
+  an `"intrait_landmarks"` object. It carries the per-specimen
+  calibration scale into `metadata$mm_per_px`, flags uncalibrated
+  individuals via `metadata$has_scalebar`, and optionally joins a
+  specimen-level metadata table (e.g. species identifications) by a key
+  column. Wraps
+  [`read_landmarks_csv()`](https://funtraits.github.io/intraitR/reference/read_landmarks_csv.md).
+
+- [`plot()`](https://rdrr.io/r/graphics/plot.default.html) for
+  [`itv_accumulation()`](https://funtraits.github.io/intraitR/reference/itv_accumulation.md)
+  objects gains a `legend` argument. With many groups or trait panels
+  the per-panel colour/line-type keys overplotted the curves; the
+  default is now `legend = "panel"`, which draws a single shared legend
+  in a dedicated cell of the panel grid. `legend = "each"` restores the
+  previous per-panel keys and `legend = "none"` suppresses them.
+
+- New
+  [`fd_accumulation()`](https://funtraits.github.io/intraitR/reference/fd_accumulation.md):
+  rarefies community **functional diversity indices** against
+  intraspecific sampling effort – the community-level companion to
+  [`itv_accumulation()`](https://funtraits.github.io/intraitR/reference/itv_accumulation.md).
+  It draws balanced sub-samples of `n` individuals per species, pools
+  them into one assemblage in a fixed trait space built exactly as in
+  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
+  (shared PCA machinery, with `n_axes`/`var_threshold` axis selection),
+  and recomputes each requested index, estimating the effort `n*` at
+  which the index stabilises. Functional dispersion (FDis), Rao’s
+  quadratic entropy and functional richness (FRic) are computed
+  directly; functional evenness (FEve) and divergence (FDiv) are
+  delegated to [`FD::dbFD()`](https://rdrr.io/pkg/FD/man/dbFD.html) when
+  the Suggested `FD` package is installed. Functional richness honours a
+  `method` argument (`"convexhull"`, `"dendrogram"`, `"tpd"`,
+  `"hypervolume"`), reusing the same richness engines and tuning
+  arguments as
+  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md).
+  As in
+  [`itv_accumulation()`](https://funtraits.github.io/intraitR/reference/itv_accumulation.md),
+  richness uses the accumulation/asymptote framing (with a guard that
+  rejects an implausible extrapolated asymptote) while the
+  dispersion/regularity indices use the convergence/precision framing.
+  Dedicated [`print()`](https://rdrr.io/r/base/print.html) and
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods;
+  parallelised via `future.apply`.
+
+- `load_t26_saudrune_landmarks(source = "repeatability")` no longer
+  errors with “duplicate ‘row.names’”: the repeatability table reuses
+  per-replicate `specimen` ids (e.g. `"T-26-0004_rep1"`) across the two
+  operators that redigitised it, so the operator label is now appended
+  to keep every digitisation uniquely identified. Dataset documentation
+  updated to the current T-26 data (four operators in `"operators"`; two
+  in `"repeatability"`).
+
+- New
+  [`tpd_dissimilarity()`](https://funtraits.github.io/intraitR/reference/tpd_dissimilarity.md):
+  intraspecific-variability-aware functional dissimilarity between
+  species, computed as `1 - overlap` of their Trait Probability Density
+  kernels (Carmona et al., 2016, 2019) via the Suggested `TPD` package.
+  Unlike a Euclidean distance between species means, it lets
+  within-species spread shape the distances (species whose individuals
+  overlap in trait space are treated as functionally closer). Returns a
+  species-by-species dissimilarity matrix (with its shared/non-shared
+  decomposition) as an `"intrait_tpd_dissim"` object with
+  [`print()`](https://rdrr.io/r/base/print.html),
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) (a heat map)
+  and [`as.dist()`](https://rdrr.io/r/stats/dist.html) methods, usable
+  directly for ordination, clustering, or distance-based diversity
+  indices.
+
+## intraitR 1.2.0
+
+- New
+  [`itv_accumulation()`](https://funtraits.github.io/intraitR/reference/itv_accumulation.md):
+  builds a rarefaction/accumulation curve of intraspecific trait
+  variability against the number of individuals sampled, and estimates
+  the sample size `n*` at which that variability stabilises – the
+  trait-based analogue of a species accumulation curve. For each
+  sub-sample size `n`, `n_perm` sub-samples of `n` individuals are drawn
+  without replacement per group and the metric is recomputed. The
+  meaning of “stabilises” adapts to the metric: for *dispersion* metrics
+  (`"variance"`, the multivariate trace of the trait covariance; `"sd"`;
+  `"cv"`) the sample estimator is unbiased, so the expected curve is
+  flat and `n*` is a *precision* threshold (smallest `n` at which the
+  resampling band’s relative half-width stays below `conv_tol`); for the
+  *accumulation* metric (`"range"`) the curve genuinely saturates and
+  `n*` is taken at a fraction (`asymptote_prop`) of a fitted
+  Michaelis-Menten or negative- exponential asymptote. Parallelised via
+  `future.apply` like
+  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)/[`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md),
+  with dedicated [`print()`](https://rdrr.io/r/base/print.html) and
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods. For
+  accumulation metrics the
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) method draws
+  a rarefaction/extrapolation curve: the observed portion solid, the
+  fitted saturating model extended in a dashed line beyond the sampled
+  range up to `n*` (controllable via `extrapolate`/`xmax`), and the
+  fitted asymptote as a horizontal reference. The fitted
+  half-saturation/ rate parameter is returned as a new `k` column of
+  `$summary`.
+
 ## intraitR 1.1.0
+
+- [`plot_fishmorph_shapes()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_shapes.md)
+  gains per-specimen colouring: `color_by` (a metadata column name such
+  as `"operator"`/`"species"`, the special value `"specimen"` for one
+  colour per shape, or a grouping vector), the `operator = TRUE`
+  shortcut for `color_by = "operator"`, a custom `palette`, and a
+  `legend`. To keep overcrowded overlays legible, `max_colors` (default
+  `10`) reverts to the single `color` – with a message – when the
+  requested colouring would need more than that many distinct colours.
+
+- [`plot()`](https://rdrr.io/r/graphics/plot.default.html) for
+  [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md)
+  results now draws the mean (multivariate) %ITV reference line bold and
+  in colour, and labels it with its value, instead of the previous faint
+  dotted grey line.
 
 - **Breaking rename**: `morpho_space()` is now
   [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
@@ -601,10 +1013,9 @@ values relative to 0.13.0.
   (`_pkgdown.yml`, with a thematic reference index) and two new GitHub
   Actions workflows, `pkgdown.yaml` (builds and deploys the site to
   `gh-pages` on pushes to the default branch) and `test-coverage.yaml`
-  (runs
-  [`covr::package_coverage()`](http://covr.r-lib.org/reference/package_coverage.md)
-  and uploads results to Codecov; requires a `CODECOV_TOKEN` repository
-  secret to actually upload). Status badges added to `README.md`.
+  (runs `covr::package_coverage()` and uploads results to Codecov;
+  requires a `CODECOV_TOKEN` repository secret to actually upload).
+  Status badges added to `README.md`.
 
 ## intraitR 0.12.0
 

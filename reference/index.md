@@ -16,8 +16,12 @@ interactive digitizer; visualise a single configuration.
 - [`read_landmarks_xlsx()`](https://funtraits.github.io/intraitR/reference/read_landmarks_xlsx.md)
   : Import landmark coordinates from a generic "wide"-format Excel sheet
 
+- [`read_mlmorph_landmarks()`](https://funtraits.github.io/intraitR/reference/read_mlmorph_landmarks.md)
+  : Import predicted landmarks from an ml-morph / landmarking-app
+  measure table
+
 - [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-  : Interactively digitize landmarks from specimen photographs
+  : Launch the interactive ml-morph landmarking application
 
 - [`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md)
   : Plot a single landmark configuration
@@ -86,6 +90,9 @@ et al., 2021) 11-measurement/9-ratio protocol.
 - [`plot_fishmorph_shapes()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_shapes.md)
   : Overlay the body shape of every specimen in a species or a set of
   individuals
+- [`plot_fishmorph_density()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_density.md)
+  : Density curves of the FISHMORPH space, per functional axis and per
+  ratio
 
 ## Functional and shape space
 
@@ -103,6 +110,16 @@ functional richness.
 - [`plot_correlation_circle()`](https://funtraits.github.io/intraitR/reference/plot_correlation_circle.md)
   : Plot the correlation circle of a functional trait space
 
+- [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
+  [`print(`*`<intrait_fishmorph_projection>`*`)`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
+  [`plot(`*`<intrait_fishmorph_projection>`*`)`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
+  : Project specimens into the global FISHMORPH functional space
+
+- [`itv_proportion()`](https://funtraits.github.io/intraitR/reference/itv_proportion.md)
+  [`print(`*`<intrait_itv_proportion>`*`)`](https://funtraits.github.io/intraitR/reference/itv_proportion.md)
+  : Proportion of the global functional diversity captured by projected
+  ITV
+
 - [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)
   [`print(`*`<intrait_shapespace>`*`)`](https://funtraits.github.io/intraitR/reference/shape_space.md)
   : Build a shape space from Procrustes shape coordinates
@@ -117,6 +134,15 @@ functional richness.
   :
 
   Print an `"intrait_disparity"` object
+
+- [`tpd_dissimilarity()`](https://funtraits.github.io/intraitR/reference/tpd_dissimilarity.md)
+  [`as.dist(`*`<intrait_tpd_dissim>`*`)`](https://funtraits.github.io/intraitR/reference/tpd_dissimilarity.md)
+  [`print(`*`<intrait_tpd_dissim>`*`)`](https://funtraits.github.io/intraitR/reference/tpd_dissimilarity.md)
+  : Intraspecific-variability-aware functional dissimilarity between
+  species
+
+- [`plot(`*`<intrait_tpd_dissim>`*`)`](https://funtraits.github.io/intraitR/reference/plot.intrait_tpd_dissim.md)
+  : Plot the TPD dissimilarity matrix as a heat map
 
 - [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)
   : Bootstrap-based estimate of functional space volume from individual
@@ -166,6 +192,9 @@ for comparing functional and phylogenetic diversity loss.
   Bundled global fish phylogeny, ready to use with
   [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md)
 
+- [`load_fishmorph_phylo_axes()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylo_axes.md)
+  : Precomputed phylogenetic PCoA axes for the FISHMORPH species pool
+
 - [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md)
   [`print(`*`<intrait_phylopcoa>`*`)`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md)
   : Phylogenetic Principal Coordinates Analysis
@@ -187,6 +216,21 @@ and quantify measurement and digitization error from replicated data.
   [`print(`*`<intrait_variability>`*`)`](https://funtraits.github.io/intraitR/reference/intraspecific_variability.md)
   : Quantify intraspecific morphological variability
 
+- [`itv_accumulation()`](https://funtraits.github.io/intraitR/reference/itv_accumulation.md)
+  [`print(`*`<intrait_itv_accumulation>`*`)`](https://funtraits.github.io/intraitR/reference/itv_accumulation.md)
+  : Rarefaction of intraspecific trait variability against sample size
+
+- [`plot(`*`<intrait_itv_accumulation>`*`)`](https://funtraits.github.io/intraitR/reference/plot.intrait_itv_accumulation.md)
+  : Plot intraspecific-variability rarefaction curves
+
+- [`fd_accumulation()`](https://funtraits.github.io/intraitR/reference/fd_accumulation.md)
+  [`print(`*`<intrait_fd_accumulation>`*`)`](https://funtraits.github.io/intraitR/reference/fd_accumulation.md)
+  : Rarefaction of community functional diversity indices against
+  sampling effort
+
+- [`plot(`*`<intrait_fd_accumulation>`*`)`](https://funtraits.github.io/intraitR/reference/plot.intrait_fd_accumulation.md)
+  : Plot functional-diversity rarefaction curves
+
 - [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
   : Estimate measurement error from replicated digitization
 
@@ -200,6 +244,12 @@ and quantify measurement and digitization error from replicated data.
   [`plot(`*`<intrait_digitization_error>`*`)`](https://funtraits.github.io/intraitR/reference/digitization_error.md)
   : Quantify hierarchical digitization (operator) error from repeated
   landmark placement, linear measurements, or ratios
+
+- [`operator_disagreement()`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md)
+  [`print(`*`<intrait_operator_disagreement>`*`)`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md)
+  [`plot(`*`<intrait_operator_disagreement>`*`)`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md)
+  : Flag individuals whose landmark configuration disagrees across
+  operators, and attribute the disagreement to a specific operator
 
 - [`summary_traits()`](https://funtraits.github.io/intraitR/reference/summary_traits.md)
   : Summarise morphological traits by group

@@ -296,7 +296,7 @@ plot_fishmorph_points(fish_ops, individual = one_code)
 # underlying coordinates (not just the display) for every specimen at
 # once, using landmarks that are always present and in the same role:
 fish_oriented <- standardize_orientation(fish)
-#> standardize_orientation(): 557 of 558 specimen(s) mirrored (165 horizontally, 555 vertically) to a consistent head-left, belly-down orientation.
+#> standardize_orientation(): 1006 of 1036 specimen(s) mirrored (234 horizontally, 1004 vertically) to a consistent head-left, belly-down orientation.
 plot_fishmorph_points(fish_oriented, specimen = 1)
 
 
@@ -308,8 +308,8 @@ plot_fishmorph_points(fish, specimen = 1, outline = FALSE)
 # points estimated by impute_landmarks() are highlighted in red:
 # \donttest{
 fish_imputed <- impute_landmarks(fish)
-#> Warning: 3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
-#> impute_landmarks(): estimated 260 missing anatomical landmark coordinate(s) using method = "tps".
+#> Warning: 23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
+#> impute_landmarks(): estimated 304 missing anatomical landmark coordinate(s) using method = "tps".
 plot_fishmorph_points(fish_imputed, specimen = 1)
 
 # }

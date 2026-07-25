@@ -159,7 +159,7 @@ plant communities. Ecology Letters, 18(12), 1406-1419.
 # trait_space()'s na_action, so incomplete rows are filtered explicitly
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
+#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ratios <- fishmorph_ratios(segments)
 complete <- stats::complete.cases(ratios[, c("BEl", "VEp", "REs")])
 itv <- itv_index(
@@ -168,17 +168,17 @@ itv <- itv_index(
 )
 itv
 #> <intrait_itv> (species-level) 
-#>   3 trait(s), 10 groups
+#>   3 trait(s), 7 groups
 #> 
 #> -- Per trait --
-#>  trait  ss_total ss_between ss_within pct_interspecific pct_itv
-#>    BEl 3396.4163    39.7962 3356.6201            1.1717 98.8283
-#>    VEp    2.7724     1.0303    1.7421           37.1638 62.8362
-#>    REs    2.7233     1.1540    1.5692           42.3766 57.6234
+#>  trait    ss_total ss_between   ss_within pct_interspecific pct_itv
+#>    BEl 141839.8737   230.1186 141609.7552            0.1622 99.8378
+#>    VEp     75.9100     3.5807     72.3293            4.7170 95.2830
+#>    REs      7.0095     2.3236      4.6859           33.1492 66.8508
 #> 
 #> -- Multivariate summary (standardised traits) --
 #>  ss_total ss_between ss_within pct_interspecific pct_itv
-#>      1041   280.0711  760.9289            26.904  73.096
+#>      2286   289.7772  1996.223           12.6762 87.3238
 
 # split ITV into between-/within-population components: the real T-26
 # survey sampled a single site (no population structure to report), so

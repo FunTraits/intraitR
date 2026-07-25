@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -68,7 +68,7 @@
 </h2>
 <ol style="list-style-type: decimal">
 <li>
-<strong>Import</strong> landmark coordinates: <code><a href="reference/read_tps.html">read_tps()</a></code> (tpsDig files), <code><a href="reference/read_landmarks_csv.html">read_landmarks_csv()</a></code> (generic long-format CSV/data.frame), or <code><a href="reference/read_landmarks_xlsx.html">read_landmarks_xlsx()</a></code> (generic wide-format Excel sheet, one row per specimen with one X/Y column pair per landmark – the layout produced directly by most manual digitization spreadsheets); or generate a simulated example data set with <code><a href="reference/simulate_fish_landmarks.html">simulate_fish_landmarks()</a></code>. Alternatively, <code><a href="reference/digitize_landmarks.html">digitize_landmarks()</a></code> digitizes landmarks interactively from specimen photographs (point-and-click) and returns the result directly, following either the FISHMORPH scheme or a generic one.</li>
+<strong>Import</strong> landmark coordinates: <code><a href="reference/read_tps.html">read_tps()</a></code> (tpsDig files), <code><a href="reference/read_landmarks_csv.html">read_landmarks_csv()</a></code> (generic long-format CSV/data.frame), or <code><a href="reference/read_landmarks_xlsx.html">read_landmarks_xlsx()</a></code> (generic wide-format Excel sheet, one row per specimen with one X/Y column pair per landmark – the layout produced directly by most manual digitization spreadsheets); or generate a simulated example data set with <code><a href="reference/simulate_fish_landmarks.html">simulate_fish_landmarks()</a></code>. Alternatively, <code><a href="reference/digitize_landmarks.html">digitize_landmarks()</a></code> opens a bundled Shiny application for predictor-assisted digitization of specimen photographs: a trained ml-morph model proposes the 19 FISHMORPH landmarks from a few calibration clicks, which are then reviewed, corrected and exported; import the exported table with <code><a href="reference/read_mlmorph_landmarks.html">read_mlmorph_landmarks()</a></code>.</li>
 <li>
 <strong>Align</strong> configurations with Generalised Procrustes Analysis: <code><a href="reference/gpa_fish.html">gpa_fish()</a></code>.</li>
 <li>

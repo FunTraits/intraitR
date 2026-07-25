@@ -97,10 +97,10 @@ individual points; dashed segments ("spider" legs) linking every point
 to its group mean; the group mean itself (an asterisk); and a dispersion
 ellipse of coverage `ellipse_level` around the group mean, assuming
 approximate bivariate normality of the group's scores (as in
-`vegan::ordiellipse()`/`car::dataEllipse()`). This mirrors the
-star/spider plots commonly used to display group structure in
-geometric-morphometric and functional-trait ordinations. Use
-`style = "hull"` for the classical convex-hull display,
+[`vegan::ordiellipse()`](https://vegandevs.github.io/vegan/reference/ordihull.html)/`car::dataEllipse()`).
+This mirrors the star/spider plots commonly used to display group
+structure in geometric-morphometric and functional-trait ordinations.
+Use `style = "hull"` for the classical convex-hull display,
 `style = "density"` for a non-parametric kernel-density contour of
 coverage `density_level` around each group's mean (using the same
 lightweight bivariate Gaussian-kernel estimator as

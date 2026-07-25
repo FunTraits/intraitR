@@ -27,7 +27,7 @@ distribution obtained by randomly permuting group labels."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -153,72 +153,49 @@ analysis of variance. Austral Ecology, 26(1), 32-46.
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">segments</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
 <span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="va">segments</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ts</span> <span class="op">&lt;-</span> <span class="fu"><a href="trait_space.html">trait_space</a></span><span class="op">(</span><span class="va">ratios</span>, groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>, na_action <span class="op">=</span> <span class="st">"omit"</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 230 row(s) out of 558 with missing values.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 21 specimen(s) flagged as within-group outlier(s) across 5 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Phoxinus phoxinus/bigerri, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 2 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 293 row(s) out of 1036 with missing values.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">td</span> <span class="op">&lt;-</span> <span class="fu">trait_disparity</span><span class="op">(</span><span class="va">ts</span>, iter <span class="op">=</span> <span class="fl">199</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">td</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_disparity&gt; (199 permutations)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> -- Trait variance (dispersion) by group --</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                 Barbatula barbatula             Barbus barbus </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                        NA                   17.4580                    4.6661 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          Gobio occitaniae          Lepomis gibbosus   Leuciscus burdigalensis </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                    7.5312                    4.5870                    3.9722 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Perca fluviatilis         Phoxinus phoxinus Phoxinus phoxinus/bigerri </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                    6.6001                    5.7698                    5.6101 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Squalius cephalus </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                   10.2752 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Barbatula barbatula        Gobio occitaniae        Lepomis gibbosus </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 12.5272                  9.8045                  3.2810 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis       Perca fluviatilis       Phoxinus phoxinus </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  3.1341                  6.1294                  7.1644 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Squalius cephalus </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  7.9265 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> -- Pairwise absolute differences (lower triangle) / p-values (upper triangle) --</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                              Barbatula barbatula Barbus barbus Gobio occitaniae</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                           NA              0.0050        0.0050           0.0050</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula       NA                  NA        0.2100           0.1550</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbus barbus             NA             12.7918            NA           0.6400</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae          NA              9.9268        2.8650               NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus          NA             12.8709        0.0791           2.9441</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis   NA             13.4857        0.6939           3.5589</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis         NA             10.8579        1.9340           0.9310</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus         NA             11.6881        1.1037           1.7613</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus/bigerri NA             11.8479        0.9440           1.9211</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus         NA              7.1827        5.6091           2.7441</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                           Lepomis gibbosus Leuciscus burdigalensis</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                     0.0050                  0.0050</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                 0.1950                  0.1850</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbus barbus                       1.0000                  0.8450</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae                    0.7750                  0.5000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                        NA                  0.9350</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis             0.6148                      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                   2.0131                  2.6279</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus                   1.1828                  1.7976</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus/bigerri           1.0230                  1.6378</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus                   5.6882                  6.3030</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                           Perca fluviatilis Phoxinus phoxinus</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                      0.0050            0.0050</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                  0.2650            0.2300</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbus barbus                        0.5700            0.7450</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae                     0.8650            0.7550</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                     0.7300            0.8550</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis              0.4450            0.5900</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                        NA            0.7150</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus                    0.8303                NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus/bigerri            0.9900            0.1597</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus                    3.6751            4.5054</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                           Phoxinus phoxinus/bigerri Squalius cephalus</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                              0.0050             0.005</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                          0.2350             0.260</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbus barbus                                0.8150             0.335</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae                             0.7600             0.555</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                             0.8700             0.440</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis                      0.6400             0.260</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                            0.7900             0.475</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus                            0.9700             0.400</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus/bigerri                        NA             0.425</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus                            4.6652                NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                         Barbatula barbatula Gobio occitaniae Lepomis gibbosus</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                      NA           0.6750           0.1450</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae                     2.7227               NA           0.2900</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                     9.2462           6.5235               NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis              9.3932           6.6705           0.1469</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                    6.3978           3.6751           2.8484</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus                    5.3629           2.6402           3.8833</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus                    4.6007           1.8780           4.6455</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                         Leuciscus burdigalensis Perca fluviatilis</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                      0.2000            0.2300</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae                         0.2750            0.5450</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                         0.9700            0.4450</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis                      NA            0.4800</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                        2.9953                NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus                        4.0303            1.0349</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus                        4.7924            1.7971</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                         Phoxinus phoxinus Squalius cephalus</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                0.3600             0.385</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae                   0.6500             0.790</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                   0.4100             0.375</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis            0.4850             0.365</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                  0.7650             0.695</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus                      NA             0.845</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus                  0.7621                NA</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

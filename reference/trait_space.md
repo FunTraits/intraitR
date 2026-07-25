@@ -26,6 +26,8 @@ trait_space(
   missforest_maxiter = 10,
   tree = NULL,
   missforest_phylo_k = 10,
+  species = NULL,
+  phylo_axes = NULL,
   flag_outliers = TRUE,
   outlier_threshold = 3,
   outlier_min_n = 5,
@@ -147,6 +149,24 @@ print(x, ...)
 
   Used only by `na_action = "missforest_phylo"`: maximum number of
   phylogenetic PCoA axes to add as predictors. Defaults to `10`.
+
+- species:
+
+  Species identifier for **each row / specimen**, used only to look up
+  the phylogenetic axes of `"missforest_phylo"`. `NULL` (default)
+  auto-detects it (a `species` / `Species` / `Genus.species` column, the
+  metadata, or the specimen names). Deliberately **separate from
+  `groups`**: the phylogeny needs to know which species a row belongs
+  to, not a categorical predictor for the forest.
+
+- phylo_axes:
+
+  Used only by `"missforest_phylo"`. `NULL` (default) uses the
+  **precomputed** axes of
+  [`load_fishmorph_phylo_axes()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylo_axes.md),
+  so that every call shares one and the same phylogenetic coordinate
+  system. Supply a data frame (a `species` column plus one column per
+  axis) to use your own.
 
 - flag_outliers:
 
@@ -360,24 +380,23 @@ challenges. Aquatic Sciences, 79(4), 783-801.
 # landmarks (see ?load_t26_saudrune_landmarks)
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
+#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ratios <- fishmorph_ratios(segments)
 ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 #> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
-#> na_action = "omit": removing 230 row(s) out of 558 with missing values.
-#> flag_outliers: 21 specimen(s) flagged as within-group outlier(s) across 5 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Phoxinus phoxinus/bigerri, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
-#> flag_outliers: 2 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
+#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
+#> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
 ts   # flags any within-species outliers found, see ts$outlier_screen
 #> <intrait_traitspace> (pca)
-#>   Axes PC1/PC2, variance explained: 28.1% / 21.2%
-#>   328 observations, 10 traits (replicate, BEl, VEp, REs, OGp, RMl, BLs, PFv, PFs, CPt)
-#>   10 groups
-#>   21 potential within-group outlier(s) flagged (see $outlier_screen); most atypical:
-#>     T-26-0052_Operator_1 (Squalius cephalus): distance = 20.889 (group median 2.196)
-#>     T-26-0050_Operator_2 (Gobio occitaniae): distance = 16.687 (group median 1.901)
-#>     T-26-0230-1_Operator_2 (Barbatula barbatula): distance = 14.075 (group median 2.237)
-#>     T-26-0012_Operator_2 (Gobio occitaniae): distance = 8.386 (group median 1.901)
-#>     T-26-0087_Operator_2 (Gobio occitaniae): distance = 7.918 (group median 1.901)
+#>   Axes PC1/PC2, variance explained: 35.7% / 17.8%
+#>   743 observations, 10 traits (replicate, BEl, VEp, REs, OGp, RMl, BLs, PFv, PFs, CPt)
+#>   7 groups
+#>   31 potential within-group outlier(s) flagged (see $outlier_screen); most atypical:
+#>     T-26-0050_Operator_4 (Gobio occitaniae): distance = 41.208 (group median 1.709)
+#>     T-26-0052_Operator_1 (Squalius cephalus): distance = 20.271 (group median 1.963)
+#>     T-26-0050_Operator_2 (Gobio occitaniae): distance = 14.566 (group median 1.709)
+#>     T-26-0230-1_Operator_2 (Barbatula barbatula): distance = 14.515 (group median 2.158)
+#>     T-26-0209_Operator_4 (Gobio occitaniae): distance = 13.519 (group median 1.709)
 # \donttest{
 plot(ts)
 
@@ -390,52 +409,71 @@ ts_clean <- trait_space(
   remove_outliers = TRUE
 )
 #> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
-#> na_action = "omit": removing 230 row(s) out of 558 with missing values.
-#> remove_outliers: removing 21 specimen(s) flagged as within-group outlier(s) across 5 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Phoxinus phoxinus/bigerri, Squalius cephalus) before building the ordination; see $removed_outliers for exactly which ones, and why, before relying on this in a publication -- always confirm each removal corresponds to a real error (e.g. via plot_landmarks()/ plot_fishmorph_points()), not just genuine morphological variation.
-#> flag_outliers: 2 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
+#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
+#> remove_outliers: removing 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus) before building the ordination; see $removed_outliers for exactly which ones, and why, before relying on this in a publication -- always confirm each removal corresponds to a real error (e.g. via plot_landmarks()/ plot_fishmorph_points()), not just genuine morphological variation.
 ts_clean$removed_outliers   # exactly which specimen(s) were excluded, and why
-#>                                            group n_group  distance
-#> T-26-0010_Operator_2            Gobio occitaniae     147  4.921450
-#> T-26-0011_Operator_2           Squalius cephalus      95  4.862514
-#> T-26-0012_Operator_2            Gobio occitaniae     147  8.385553
-#> T-26-0018_Operator_2     Leuciscus burdigalensis      13  3.098036
-#> T-26-0020_Operator_2            Gobio occitaniae     147  4.886399
-#> T-26-0030_Operator_1     Leuciscus burdigalensis      13  2.432703
-#> T-26-0050_Operator_2            Gobio occitaniae     147 16.686651
-#> T-26-0052_Operator_1           Squalius cephalus      95 20.889444
-#> T-26-0087_Operator_2            Gobio occitaniae     147  7.917643
-#> T-26-0099_Operator_2   Phoxinus phoxinus/bigerri       5  3.140377
-#> T-26-0144_Operator_1     Leuciscus burdigalensis      13  2.530585
-#> T-26-0144_Operator_2     Leuciscus burdigalensis      13  2.360030
-#> T-26-0230-1_Operator_2       Barbatula barbatula      19 14.074593
-#> T-26-0261-5_Operator_1          Gobio occitaniae     147  3.422987
-#> T-26-0262-2_Operator_1          Gobio occitaniae     147  3.879094
-#> T-26-0263_Operator_1            Gobio occitaniae     147  4.078501
-#> T-26-0263_Operator_2            Gobio occitaniae     147  4.098610
-#> T-26-0264-4_Operator_1          Gobio occitaniae     147  4.307720
-#> T-26-0264-4_Operator_2          Gobio occitaniae     147  4.352840
-#> T-26-0276_Operator_1           Squalius cephalus      95  4.599041
-#> T-26-0278-1_Operator_1       Barbatula barbatula      19  3.990754
-#>                        median_distance mad_distance threshold_value flagged
-#> T-26-0010_Operator_2          1.900974    0.4985865        3.396734    TRUE
-#> T-26-0011_Operator_2          2.195731    0.5997552        3.994996    TRUE
-#> T-26-0012_Operator_2          1.900974    0.4985865        3.396734    TRUE
-#> T-26-0018_Operator_2          1.549083    0.2521450        2.305518    TRUE
-#> T-26-0020_Operator_2          1.900974    0.4985865        3.396734    TRUE
-#> T-26-0030_Operator_1          1.549083    0.2521450        2.305518    TRUE
-#> T-26-0050_Operator_2          1.900974    0.4985865        3.396734    TRUE
-#> T-26-0052_Operator_1          2.195731    0.5997552        3.994996    TRUE
-#> T-26-0087_Operator_2          1.900974    0.4985865        3.396734    TRUE
-#> T-26-0099_Operator_2          1.901078    0.2606203        2.682939    TRUE
-#> T-26-0144_Operator_1          1.549083    0.2521450        2.305518    TRUE
-#> T-26-0144_Operator_2          1.549083    0.2521450        2.305518    TRUE
-#> T-26-0230-1_Operator_2        2.236905    0.5268630        3.817494    TRUE
-#> T-26-0261-5_Operator_1        1.900974    0.4985865        3.396734    TRUE
-#> T-26-0262-2_Operator_1        1.900974    0.4985865        3.396734    TRUE
-#> T-26-0263_Operator_1          1.900974    0.4985865        3.396734    TRUE
-#> T-26-0263_Operator_2          1.900974    0.4985865        3.396734    TRUE
-#> T-26-0264-4_Operator_1        1.900974    0.4985865        3.396734    TRUE
-#> T-26-0264-4_Operator_2        1.900974    0.4985865        3.396734    TRUE
-#> T-26-0276_Operator_1          2.195731    0.5997552        3.994996    TRUE
-#> T-26-0278-1_Operator_1        2.236905    0.5268630        3.817494    TRUE
+#>                                      group n_group  distance median_distance
+#> T-26-0011_Operator_2     Squalius cephalus     174  3.566762        1.963433
+#> T-26-0011_Operator_4     Squalius cephalus     174 12.393995        1.963433
+#> T-26-0012_Operator_2      Gobio occitaniae     396  4.667991        1.708645
+#> T-26-0050_Operator_2      Gobio occitaniae     396 14.565939        1.708645
+#> T-26-0050_Operator_4      Gobio occitaniae     396 41.208138        1.708645
+#> T-26-0052_Operator_1     Squalius cephalus     174 20.270649        1.963433
+#> T-26-0052_Operator_4     Squalius cephalus     174  3.891057        1.963433
+#> T-26-0056_Operator_4      Gobio occitaniae     396  7.958313        1.708645
+#> T-26-0087_Operator_2      Gobio occitaniae     396  4.583600        1.708645
+#> T-26-0089_Operator_4     Phoxinus phoxinus      71  5.409752        2.061789
+#> T-26-0112_Operator_4     Phoxinus phoxinus      71 10.944601        2.061789
+#> T-26-0115_Operator_4      Gobio occitaniae     396  7.372290        1.708645
+#> T-26-0117_Operator_4      Gobio occitaniae     396  3.527803        1.708645
+#> T-26-0179_Operator_4      Gobio occitaniae     396  5.997112        1.708645
+#> T-26-0190_Operator_4      Gobio occitaniae     396 11.502579        1.708645
+#> T-26-0209_Operator_4      Gobio occitaniae     396 13.518535        1.708645
+#> T-26-0221_Operator_1     Squalius cephalus     174  3.626615        1.963433
+#> T-26-0226_Operator_1      Gobio occitaniae     396  3.571533        1.708645
+#> T-26-0230-1_Operator_2 Barbatula barbatula      38 14.514860        2.157784
+#> T-26-0244_Operator_3     Phoxinus phoxinus      71  3.966291        2.061789
+#> T-26-0252_Operator_3     Squalius cephalus     174  4.526159        1.963433
+#> T-26-0261-5_Operator_1    Gobio occitaniae     396  3.620993        1.708645
+#> T-26-0262-2_Operator_1    Gobio occitaniae     396  4.062232        1.708645
+#> T-26-0264-2_Operator_1    Gobio occitaniae     396  4.809770        1.708645
+#> T-26-0264-4_Operator_1    Gobio occitaniae     396  4.349872        1.708645
+#> T-26-0264-4_Operator_2    Gobio occitaniae     396  4.158950        1.708645
+#> T-26-0272_Operator_4   Barbatula barbatula      38  5.605694        2.157784
+#> T-26-0276_Operator_1     Squalius cephalus     174  5.040183        1.963433
+#> T-26-0276_Operator_2     Squalius cephalus     174  3.961633        1.963433
+#> T-26-0276_Operator_3     Squalius cephalus     174  4.252423        1.963433
+#> T-26-0276_Operator_4     Squalius cephalus     174  3.574918        1.963433
+#>                        mad_distance threshold_value flagged
+#> T-26-0011_Operator_2      0.4982126        3.458071    TRUE
+#> T-26-0011_Operator_4      0.4982126        3.458071    TRUE
+#> T-26-0012_Operator_2      0.5877915        3.472019    TRUE
+#> T-26-0050_Operator_2      0.5877915        3.472019    TRUE
+#> T-26-0050_Operator_4      0.5877915        3.472019    TRUE
+#> T-26-0052_Operator_1      0.4982126        3.458071    TRUE
+#> T-26-0052_Operator_4      0.4982126        3.458071    TRUE
+#> T-26-0056_Operator_4      0.5877915        3.472019    TRUE
+#> T-26-0087_Operator_2      0.5877915        3.472019    TRUE
+#> T-26-0089_Operator_4      0.6258120        3.939225    TRUE
+#> T-26-0112_Operator_4      0.6258120        3.939225    TRUE
+#> T-26-0115_Operator_4      0.5877915        3.472019    TRUE
+#> T-26-0117_Operator_4      0.5877915        3.472019    TRUE
+#> T-26-0179_Operator_4      0.5877915        3.472019    TRUE
+#> T-26-0190_Operator_4      0.5877915        3.472019    TRUE
+#> T-26-0209_Operator_4      0.5877915        3.472019    TRUE
+#> T-26-0221_Operator_1      0.4982126        3.458071    TRUE
+#> T-26-0226_Operator_1      0.5877915        3.472019    TRUE
+#> T-26-0230-1_Operator_2    0.8072921        4.579660    TRUE
+#> T-26-0244_Operator_3      0.6258120        3.939225    TRUE
+#> T-26-0252_Operator_3      0.4982126        3.458071    TRUE
+#> T-26-0261-5_Operator_1    0.5877915        3.472019    TRUE
+#> T-26-0262-2_Operator_1    0.5877915        3.472019    TRUE
+#> T-26-0264-2_Operator_1    0.5877915        3.472019    TRUE
+#> T-26-0264-4_Operator_1    0.5877915        3.472019    TRUE
+#> T-26-0264-4_Operator_2    0.5877915        3.472019    TRUE
+#> T-26-0272_Operator_4      0.8072921        4.579660    TRUE
+#> T-26-0276_Operator_1      0.4982126        3.458071    TRUE
+#> T-26-0276_Operator_2      0.4982126        3.458071    TRUE
+#> T-26-0276_Operator_3      0.4982126        3.458071    TRUE
+#> T-26-0276_Operator_4      0.4982126        3.458071    TRUE
 ```

@@ -18,6 +18,11 @@ plot_fishmorph_shapes(
   align = TRUE,
   color = "steelblue4",
   alpha = 0.15,
+  color_by = NULL,
+  operator = FALSE,
+  palette = NULL,
+  max_colors = 10,
+  legend = TRUE,
   ...
 )
 ```
@@ -61,14 +66,55 @@ plot_fishmorph_shapes(
 
 - color:
 
-  Colour used for every specimen's points and outline. Defaults to
-  `"steelblue4"`.
+  Colour used for every specimen's points and outline when no per-group
+  colouring is requested (`color_by`/`operator`), and the colour every
+  shape reverts to when the number of colour groups exceeds
+  `max_colors`. Defaults to `"steelblue4"`.
 
 - alpha:
 
-  Transparency (`0`-`1`) applied to `color`, so that overlapping
-  specimens read as a denser cloud rather than a solid mass. Defaults to
-  `0.15`.
+  Transparency (`0`-`1`) applied to the drawing colour(s), so that
+  overlapping specimens read as a denser cloud rather than a solid mass.
+  Defaults to `0.15`; raise it when using `color_by`/`operator` so the
+  individual group colours remain distinguishable.
+
+- color_by:
+
+  Optional, controls per-specimen colouring. `NULL` (default) draws
+  every shape in `color`. Otherwise one of: a metadata column name (e.g.
+  `"operator"`, `"species"`), colouring each shape by that column's
+  value; the special value `"specimen"`, giving every plotted shape its
+  own colour; or a vector with one value per plotted specimen (in the
+  plotted order). See `max_colors` for the automatic fallback to a
+  single colour.
+
+- operator:
+
+  Logical shortcut for `color_by = "operator"`: colour each shape by the
+  operator who digitized it (requires an `operator` column in
+  `landmarks$metadata`, as produced by
+  [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
+  with `source = "operators"`). Cannot be combined with an explicit
+  `color_by`. Defaults to `FALSE`.
+
+- palette:
+
+  Optional vector of colours to use for the groups defined by
+  `color_by`/`operator`, at least as many as there are groups. `NULL`
+  (default) generates evenly spaced, equally saturated HCL hues.
+
+- max_colors:
+
+  Integer. When `color_by`/`operator` yields more than `max_colors`
+  distinct colour groups, per-group colouring is dropped and every shape
+  reverts to the single `color` (with a message), so an overcrowded
+  overlay – e.g. colouring each of dozens of individuals – never becomes
+  an illegible rainbow. Defaults to `10`.
+
+- legend:
+
+  Logical, draw a legend mapping groups to colours when per-group
+  colouring is in effect. Defaults to `TRUE`.
 
 - ...:
 
@@ -144,8 +190,15 @@ fish <- load_t26_saudrune_landmarks()
 plot_fishmorph_shapes(fish, species = "Gobio occitaniae")
 
 
-# or by an explicit list of individuals:
+# colour each outline by the operator who digitized it (raise alpha so
+# the two operators' colours stay legible through the overlap):
+plot_fishmorph_shapes(fish, species = "Gobio occitaniae",
+                      operator = TRUE, alpha = 0.4)
+
+
+# or by an explicit list of individuals, one colour each:
 some_fish <- fish$metadata$individual[1:5]
-plot_fishmorph_shapes(fish, individuals = some_fish)
+plot_fishmorph_shapes(fish, individuals = some_fish,
+                      color_by = "specimen", alpha = 0.6)
 
 ```

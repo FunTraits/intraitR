@@ -13,7 +13,7 @@ fish-oriented wrapper around geomorph::gpagen()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -219,112 +219,211 @@ optimal superimposition of landmarks. Systematic Zoology, 39(1), 40-59.</p>
 <span class="r-in"><span><span class="co"># fishmorph_shape_landmarks() does both:</span></span></span>
 <span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fish_shape</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_shape_landmarks.html">fishmorph_shape_landmarks</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> fishmorph_shape_landmarks(): dropping 230 specimen(s) with a missing landmark or unresolved species identification.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> fishmorph_shape_landmarks(): dropping 274 specimen(s) with a missing landmark or unresolved species identification.</span>
 <span class="r-in"><span><span class="va">gpa</span> <span class="op">&lt;-</span> <span class="fu">gpa_fish</span><span class="op">(</span><span class="va">fish_shape</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 84 specimen(s) flagged as potential Procrustes-distance outlier(s) (threshold = median + 3.0 x MAD): T-26-0011_Operator_2, T-26-0052_Operator_1, T-26-0067_Operator_1, T-26-0067_Operator_2, T-26-0068_Operator_1, T-26-0068_Operator_2, T-26-0070_Operator_1, T-26-0070_Operator_2, T-26-0071_Operator_1, T-26-0071_Operator_2, T-26-0072_Operator_2, T-26-0073_Operator_2, T-26-0074_Operator_1, T-26-0074_Operator_2, T-26-0075_Operator_1, T-26-0075_Operator_2, T-26-0076_Operator_1, T-26-0076_Operator_2, T-26-0077_Operator_2, T-26-0078_Operator_2, T-26-0079_Operator_2, T-26-0080_Operator_1, T-26-0080_Operator_2, T-26-0082_Operator_1, T-26-0082_Operator_2, T-26-0085_Operator_1, T-26-0086_Operator_2, T-26-0090_Operator_2, T-26-0091_Operator_1, T-26-0091_Operator_2, T-26-0094_Operator_1, T-26-0096_Operator_1, T-26-0096_Operator_2, T-26-0097_Operator_1, T-26-0097_Operator_2, T-26-0098_Operator_2, T-26-0099_Operator_2, T-26-0103_Operator_1, T-26-0103_Operator_2, T-26-0104_Operator_2, T-26-0112-2_Operator_1, T-26-0112-2_Operator_2, T-26-0113_Operator_1, T-26-0116_Operator_1, T-26-0120_Operator_1, T-26-0120_Operator_2, T-26-0122_Operator_1, T-26-0128_Operator_1, T-26-0128_Operator_2, T-26-0130_Operator_1, T-26-0130_Operator_2, T-26-0230-1_Operator_2, T-26-0261-3_Operator_1, T-26-0261-5_Operator_1, T-26-0263_Operator_1, T-26-0263_Operator_2, T-26-0264-2_Operator_1, T-26-0264-2_Operator_2, T-26-0264-3_Operator_1, T-26-0264-4_Operator_1, T-26-0264-4_Operator_2, T-26-0265_Operator_1, T-26-0265_Operator_2, T-26-0266_Operator_1, T-26-0266_Operator_2, T-26-0268_Operator_1, T-26-0268_Operator_2, T-26-0269_Operator_1, T-26-0269_Operator_2, T-26-0270-1_Operator_1, T-26-0270-1_Operator_2, T-26-0270-2_Operator_1, T-26-0270-2_Operator_2, T-26-0271_Operator_1, T-26-0271_Operator_2, T-26-0272_Operator_1, T-26-0272_Operator_2, T-26-0273_Operator_1, T-26-0273_Operator_2, T-26-0276_Operator_1, T-26-0276_Operator_2, T-26-0277_Operator_1, T-26-0278-1_Operator_1, T-26-0278-2_Operator_2; this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them and re-align, or see $outlier_screen for details.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 183 specimen(s) flagged as potential Procrustes-distance outlier(s) (threshold = median + 3.0 x MAD): T-26-0009_Operator_2, T-26-0009_Operator_3, T-26-0009_Operator_4, T-26-0011_Operator_2, T-26-0011_Operator_3, T-26-0052_Operator_1, T-26-0052_Operator_4, T-26-0056_Operator_4, T-26-0067_Operator_1, T-26-0067_Operator_2, T-26-0067_Operator_3, T-26-0067_Operator_4, T-26-0068_Operator_1, T-26-0068_Operator_2, T-26-0068_Operator_3, T-26-0068_Operator_4, T-26-0070_Operator_1, T-26-0070_Operator_2, T-26-0070_Operator_3, T-26-0070_Operator_4, T-26-0071_Operator_1, T-26-0071_Operator_2, T-26-0071_Operator_4, T-26-0072_Operator_2, T-26-0072_Operator_4, T-26-0073_Operator_2, T-26-0073_Operator_4, T-26-0074_Operator_1, T-26-0074_Operator_2, T-26-0074_Operator_4, T-26-0075_Operator_1, T-26-0075_Operator_2, T-26-0075_Operator_4, T-26-0076_Operator_1, T-26-0076_Operator_2, T-26-0076_Operator_3, T-26-0076_Operator_4, T-26-0077_Operator_2, T-26-0077_Operator_4, T-26-0078_Operator_2, T-26-0078_Operator_4, T-26-0079_Operator_2, T-26-0079_Operator_4, T-26-0080_Operator_1, T-26-0080_Operator_2, T-26-0080_Operator_3, T-26-0080_Operator_4, T-26-0081_Operator_3, T-26-0081_Operator_4, T-26-0082_Operator_1, T-26-0082_Operator_2, T-26-0082_Operator_3, T-26-0082_Operator_4, T-26-0083_Operator_3, T-26-0083_Operator_4, T-26-0084_Operator_3, T-26-0084_Operator_4, T-26-0085_Operator_1, T-26-0085_Operator_3, T-26-0085_Operator_4, T-26-0086_Operator_2, T-26-0086_Operator_3, T-26-0086_Operator_4, T-26-0088_Operator_3, T-26-0088_Operator_4, T-26-0090_Operator_2, T-26-0090_Operator_3, T-26-0090_Operator_4, T-26-0091_Operator_1, T-26-0091_Operator_2, T-26-0091_Operator_3, T-26-0091_Operator_4, T-26-0092_Operator_3, T-26-0092_Operator_4, T-26-0093_Operator_3, T-26-0093_Operator_4, T-26-0094_Operator_1, T-26-0094_Operator_3, T-26-0094_Operator_4, T-26-0095_Operator_4, T-26-0096_Operator_1, T-26-0096_Operator_2, T-26-0096_Operator_4, T-26-0097_Operator_1, T-26-0097_Operator_2, T-26-0097_Operator_4, T-26-0098_Operator_2, T-26-0098_Operator_4, T-26-0099_Operator_2, T-26-0099_Operator_4, T-26-0100_Operator_4, T-26-0101_Operator_4, T-26-0102_Operator_4, T-26-0103_Operator_1, T-26-0103_Operator_2, T-26-0103_Operator_4, T-26-0104_Operator_2, T-26-0104_Operator_4, T-26-0107_Operator_4, T-26-0108_Operator_4, T-26-0109_Operator_4, T-26-0111_Operator_4, T-26-0112-2_Operator_1, T-26-0112-2_Operator_2, T-26-0113_Operator_1, T-26-0113_Operator_4, T-26-0114_Operator_4, T-26-0115_Operator_4, T-26-0116_Operator_1, T-26-0116_Operator_4, T-26-0117_Operator_4, T-26-0118_Operator_4, T-26-0120_Operator_1, T-26-0120_Operator_2, T-26-0120_Operator_4, T-26-0121_Operator_4, T-26-0122_Operator_1, T-26-0122_Operator_4, T-26-0123_Operator_4, T-26-0125_Operator_4, T-26-0126_Operator_4, T-26-0127_Operator_4, T-26-0128_Operator_1, T-26-0128_Operator_2, T-26-0128_Operator_4, T-26-0130_Operator_1, T-26-0130_Operator_2, T-26-0130_Operator_4, T-26-0138_Operator_3, T-26-0140_Operator_3, T-26-0141_Operator_3, T-26-0142_Operator_3, T-26-0167_Operator_3, T-26-0168_Operator_3, T-26-0190_Operator_4, T-26-0209_Operator_4, T-26-0230-1_Operator_2, T-26-0261-3_Operator_1, T-26-0261-5_Operator_1, T-26-0263_Operator_1, T-26-0263_Operator_2, T-26-0263_Operator_4, T-26-0264-2_Operator_1, T-26-0264-2_Operator_2, T-26-0264-3_Operator_1, T-26-0264-4_Operator_1, T-26-0264-4_Operator_2, T-26-0265_Operator_1, T-26-0265_Operator_2, T-26-0265_Operator_4, T-26-0266_Operator_1, T-26-0266_Operator_2, T-26-0266_Operator_4, T-26-0268_Operator_1, T-26-0268_Operator_2, T-26-0268_Operator_4, T-26-0269_Operator_1, T-26-0269_Operator_2, T-26-0269_Operator_4, T-26-0270-1_Operator_1, T-26-0270-1_Operator_2, T-26-0270-2_Operator_1, T-26-0270-2_Operator_2, T-26-0271_Operator_1, T-26-0271_Operator_2, T-26-0271_Operator_4, T-26-0272_Operator_1, T-26-0272_Operator_2, T-26-0272_Operator_4, T-26-0273_Operator_1, T-26-0273_Operator_2, T-26-0273_Operator_4, T-26-0274_Operator_4, T-26-0275_Operator_4, T-26-0276_Operator_1, T-26-0276_Operator_2, T-26-0276_Operator_4, T-26-0277_Operator_1, T-26-0277_Operator_4, T-26-0278-1_Operator_1, T-26-0278-2_Operator_1, T-26-0278-2_Operator_2, T-26-0279_Operator_4; this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them and re-align, or see $outlier_screen for details.</span>
 <span class="r-in"><span><span class="va">gpa</span>   <span class="co"># flags any Procrustes-distance outliers found, see gpa$outlier_screen</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_gpa&gt; Procrustes-aligned landmark configurations</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   328 specimens, 19 landmarks, 2 dimensions</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   762 specimens, 19 landmarks, 2 dimensions</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Converged in 3 iteration(s)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Centroid size: mean = 2755.102, range = [437.284, 7511.212]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   84 potential Procrustes-distance outlier(s) flagged (see $outlier_screen); most atypical:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0230-1_Operator_2: distance = 0.9864 (threshold 0.2325)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0052_Operator_1: distance = 0.3963 (threshold 0.2325)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0075_Operator_1: distance = 0.3631 (threshold 0.2325)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0271_Operator_2: distance = 0.3619 (threshold 0.2325)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0075_Operator_2: distance = 0.3581 (threshold 0.2325)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Centroid size: mean = 2385.123, range = [437.284, 7515.979]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   183 potential Procrustes-distance outlier(s) flagged (see $outlier_screen); most atypical:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0230-1_Operator_2: distance = 0.9854 (threshold 0.2138)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0056_Operator_4: distance = 0.5313 (threshold 0.2138)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0052_Operator_1: distance = 0.4036 (threshold 0.2138)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0075_Operator_1: distance = 0.3740 (threshold 0.2138)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     T-26-0271_Operator_2: distance = 0.3715 (threshold 0.2138)</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Once a flagged specimen has been visually confirmed as a digitization</span></span></span>
 <span class="r-in"><span><span class="co"># error (not just a genuinely extreme morphology), exclude it and</span></span></span>
 <span class="r-in"><span><span class="co"># re-align without it:</span></span></span>
 <span class="r-in"><span><span class="va">gpa_clean</span> <span class="op">&lt;-</span> <span class="fu">gpa_fish</span><span class="op">(</span><span class="va">fish_shape</span>, remove_outliers <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> remove_outliers: removing 84 specimen(s) flagged as Procrustes-distance outlier(s) (threshold = median + 3.0 x MAD): T-26-0011_Operator_2, T-26-0052_Operator_1, T-26-0067_Operator_1, T-26-0067_Operator_2, T-26-0068_Operator_1, T-26-0068_Operator_2, T-26-0070_Operator_1, T-26-0070_Operator_2, T-26-0071_Operator_1, T-26-0071_Operator_2, T-26-0072_Operator_2, T-26-0073_Operator_2, T-26-0074_Operator_1, T-26-0074_Operator_2, T-26-0075_Operator_1, T-26-0075_Operator_2, T-26-0076_Operator_1, T-26-0076_Operator_2, T-26-0077_Operator_2, T-26-0078_Operator_2, T-26-0079_Operator_2, T-26-0080_Operator_1, T-26-0080_Operator_2, T-26-0082_Operator_1, T-26-0082_Operator_2, T-26-0085_Operator_1, T-26-0086_Operator_2, T-26-0090_Operator_2, T-26-0091_Operator_1, T-26-0091_Operator_2, T-26-0094_Operator_1, T-26-0096_Operator_1, T-26-0096_Operator_2, T-26-0097_Operator_1, T-26-0097_Operator_2, T-26-0098_Operator_2, T-26-0099_Operator_2, T-26-0103_Operator_1, T-26-0103_Operator_2, T-26-0104_Operator_2, T-26-0112-2_Operator_1, T-26-0112-2_Operator_2, T-26-0113_Operator_1, T-26-0116_Operator_1, T-26-0120_Operator_1, T-26-0120_Operator_2, T-26-0122_Operator_1, T-26-0128_Operator_1, T-26-0128_Operator_2, T-26-0130_Operator_1, T-26-0130_Operator_2, T-26-0230-1_Operator_2, T-26-0261-3_Operator_1, T-26-0261-5_Operator_1, T-26-0263_Operator_1, T-26-0263_Operator_2, T-26-0264-2_Operator_1, T-26-0264-2_Operator_2, T-26-0264-3_Operator_1, T-26-0264-4_Operator_1, T-26-0264-4_Operator_2, T-26-0265_Operator_1, T-26-0265_Operator_2, T-26-0266_Operator_1, T-26-0266_Operator_2, T-26-0268_Operator_1, T-26-0268_Operator_2, T-26-0269_Operator_1, T-26-0269_Operator_2, T-26-0270-1_Operator_1, T-26-0270-1_Operator_2, T-26-0270-2_Operator_1, T-26-0270-2_Operator_2, T-26-0271_Operator_1, T-26-0271_Operator_2, T-26-0272_Operator_1, T-26-0272_Operator_2, T-26-0273_Operator_1, T-26-0273_Operator_2, T-26-0276_Operator_1, T-26-0276_Operator_2, T-26-0277_Operator_1, T-26-0278-1_Operator_1, T-26-0278-2_Operator_2. Re-running GPA without them; see $removed_outliers for the record, and always confirm each removal corresponds to a real digitization error (e.g. via plot_landmarks()/plot_fishmorph_points()), not just genuine morphological variation, before relying on this in a publication.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> remove_outliers: removing 183 specimen(s) flagged as Procrustes-distance outlier(s) (threshold = median + 3.0 x MAD): T-26-0009_Operator_2, T-26-0009_Operator_3, T-26-0009_Operator_4, T-26-0011_Operator_2, T-26-0011_Operator_3, T-26-0052_Operator_1, T-26-0052_Operator_4, T-26-0056_Operator_4, T-26-0067_Operator_1, T-26-0067_Operator_2, T-26-0067_Operator_3, T-26-0067_Operator_4, T-26-0068_Operator_1, T-26-0068_Operator_2, T-26-0068_Operator_3, T-26-0068_Operator_4, T-26-0070_Operator_1, T-26-0070_Operator_2, T-26-0070_Operator_3, T-26-0070_Operator_4, T-26-0071_Operator_1, T-26-0071_Operator_2, T-26-0071_Operator_4, T-26-0072_Operator_2, T-26-0072_Operator_4, T-26-0073_Operator_2, T-26-0073_Operator_4, T-26-0074_Operator_1, T-26-0074_Operator_2, T-26-0074_Operator_4, T-26-0075_Operator_1, T-26-0075_Operator_2, T-26-0075_Operator_4, T-26-0076_Operator_1, T-26-0076_Operator_2, T-26-0076_Operator_3, T-26-0076_Operator_4, T-26-0077_Operator_2, T-26-0077_Operator_4, T-26-0078_Operator_2, T-26-0078_Operator_4, T-26-0079_Operator_2, T-26-0079_Operator_4, T-26-0080_Operator_1, T-26-0080_Operator_2, T-26-0080_Operator_3, T-26-0080_Operator_4, T-26-0081_Operator_3, T-26-0081_Operator_4, T-26-0082_Operator_1, T-26-0082_Operator_2, T-26-0082_Operator_3, T-26-0082_Operator_4, T-26-0083_Operator_3, T-26-0083_Operator_4, T-26-0084_Operator_3, T-26-0084_Operator_4, T-26-0085_Operator_1, T-26-0085_Operator_3, T-26-0085_Operator_4, T-26-0086_Operator_2, T-26-0086_Operator_3, T-26-0086_Operator_4, T-26-0088_Operator_3, T-26-0088_Operator_4, T-26-0090_Operator_2, T-26-0090_Operator_3, T-26-0090_Operator_4, T-26-0091_Operator_1, T-26-0091_Operator_2, T-26-0091_Operator_3, T-26-0091_Operator_4, T-26-0092_Operator_3, T-26-0092_Operator_4, T-26-0093_Operator_3, T-26-0093_Operator_4, T-26-0094_Operator_1, T-26-0094_Operator_3, T-26-0094_Operator_4, T-26-0095_Operator_4, T-26-0096_Operator_1, T-26-0096_Operator_2, T-26-0096_Operator_4, T-26-0097_Operator_1, T-26-0097_Operator_2, T-26-0097_Operator_4, T-26-0098_Operator_2, T-26-0098_Operator_4, T-26-0099_Operator_2, T-26-0099_Operator_4, T-26-0100_Operator_4, T-26-0101_Operator_4, T-26-0102_Operator_4, T-26-0103_Operator_1, T-26-0103_Operator_2, T-26-0103_Operator_4, T-26-0104_Operator_2, T-26-0104_Operator_4, T-26-0107_Operator_4, T-26-0108_Operator_4, T-26-0109_Operator_4, T-26-0111_Operator_4, T-26-0112-2_Operator_1, T-26-0112-2_Operator_2, T-26-0113_Operator_1, T-26-0113_Operator_4, T-26-0114_Operator_4, T-26-0115_Operator_4, T-26-0116_Operator_1, T-26-0116_Operator_4, T-26-0117_Operator_4, T-26-0118_Operator_4, T-26-0120_Operator_1, T-26-0120_Operator_2, T-26-0120_Operator_4, T-26-0121_Operator_4, T-26-0122_Operator_1, T-26-0122_Operator_4, T-26-0123_Operator_4, T-26-0125_Operator_4, T-26-0126_Operator_4, T-26-0127_Operator_4, T-26-0128_Operator_1, T-26-0128_Operator_2, T-26-0128_Operator_4, T-26-0130_Operator_1, T-26-0130_Operator_2, T-26-0130_Operator_4, T-26-0138_Operator_3, T-26-0140_Operator_3, T-26-0141_Operator_3, T-26-0142_Operator_3, T-26-0167_Operator_3, T-26-0168_Operator_3, T-26-0190_Operator_4, T-26-0209_Operator_4, T-26-0230-1_Operator_2, T-26-0261-3_Operator_1, T-26-0261-5_Operator_1, T-26-0263_Operator_1, T-26-0263_Operator_2, T-26-0263_Operator_4, T-26-0264-2_Operator_1, T-26-0264-2_Operator_2, T-26-0264-3_Operator_1, T-26-0264-4_Operator_1, T-26-0264-4_Operator_2, T-26-0265_Operator_1, T-26-0265_Operator_2, T-26-0265_Operator_4, T-26-0266_Operator_1, T-26-0266_Operator_2, T-26-0266_Operator_4, T-26-0268_Operator_1, T-26-0268_Operator_2, T-26-0268_Operator_4, T-26-0269_Operator_1, T-26-0269_Operator_2, T-26-0269_Operator_4, T-26-0270-1_Operator_1, T-26-0270-1_Operator_2, T-26-0270-2_Operator_1, T-26-0270-2_Operator_2, T-26-0271_Operator_1, T-26-0271_Operator_2, T-26-0271_Operator_4, T-26-0272_Operator_1, T-26-0272_Operator_2, T-26-0272_Operator_4, T-26-0273_Operator_1, T-26-0273_Operator_2, T-26-0273_Operator_4, T-26-0274_Operator_4, T-26-0275_Operator_4, T-26-0276_Operator_1, T-26-0276_Operator_2, T-26-0276_Operator_4, T-26-0277_Operator_1, T-26-0277_Operator_4, T-26-0278-1_Operator_1, T-26-0278-2_Operator_1, T-26-0278-2_Operator_2, T-26-0279_Operator_4. Re-running GPA without them; see $removed_outliers for the record, and always confirm each removal corresponds to a real digitization error (e.g. via plot_landmarks()/plot_fishmorph_points()), not just genuine morphological variation, before relying on this in a publication.</span>
 <span class="r-in"><span><span class="va">gpa_clean</span><span class="op">$</span><span class="va">removed_outliers</span>   <span class="co"># exactly which specimen(s) were excluded, and why</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                   specimen procrustes_distance threshold_value flagged</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9     T-26-0011_Operator_2           0.3463604       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 44    T-26-0052_Operator_1           0.3962557       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 61    T-26-0067_Operator_1           0.3213217       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 62    T-26-0067_Operator_2           0.3190436       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 63    T-26-0068_Operator_1           0.3355137       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 64    T-26-0068_Operator_2           0.3284683       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 67    T-26-0070_Operator_1           0.3257850       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 68    T-26-0070_Operator_2           0.3234939       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 69    T-26-0071_Operator_1           0.3386597       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 70    T-26-0071_Operator_2           0.3394248       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 71    T-26-0072_Operator_2           0.3277817       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 72    T-26-0073_Operator_2           0.3478779       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 73    T-26-0074_Operator_1           0.3258806       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 74    T-26-0074_Operator_2           0.3340780       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 75    T-26-0075_Operator_1           0.3631352       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 76    T-26-0075_Operator_2           0.3580501       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 77    T-26-0076_Operator_1           0.3306104       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 78    T-26-0076_Operator_2           0.3204437       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 79    T-26-0077_Operator_2           0.3094581       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 80    T-26-0078_Operator_2           0.2986210       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 81    T-26-0079_Operator_2           0.3378013       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 82    T-26-0080_Operator_1           0.3167964       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 83    T-26-0080_Operator_2           0.3140570       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 84    T-26-0082_Operator_1           0.3356298       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 85    T-26-0082_Operator_2           0.3278560       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 86    T-26-0085_Operator_1           0.3158206       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 87    T-26-0086_Operator_2           0.3269910       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 90    T-26-0090_Operator_2           0.2899287       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 91    T-26-0091_Operator_1           0.3217769       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 92    T-26-0091_Operator_2           0.3394140       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 93    T-26-0094_Operator_1           0.3183452       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 94    T-26-0096_Operator_1           0.3262419       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 95    T-26-0096_Operator_2           0.3351959       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 96    T-26-0097_Operator_1           0.3114415       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 97    T-26-0097_Operator_2           0.3145106       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 98    T-26-0098_Operator_2           0.3270798       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 99    T-26-0099_Operator_2           0.2961522       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 100   T-26-0103_Operator_1           0.3468157       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 101   T-26-0103_Operator_2           0.3502652       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 102   T-26-0104_Operator_2           0.3386872       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 103 T-26-0112-2_Operator_1           0.3359467       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 104 T-26-0112-2_Operator_2           0.3395459       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 105   T-26-0113_Operator_1           0.2948654       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 106   T-26-0116_Operator_1           0.2994178       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 107   T-26-0120_Operator_1           0.3179663       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 108   T-26-0120_Operator_2           0.3161522       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 109   T-26-0122_Operator_1           0.3337122       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 110   T-26-0128_Operator_1           0.2886520       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 111   T-26-0128_Operator_2           0.2917041       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 112   T-26-0130_Operator_1           0.2802346       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 113   T-26-0130_Operator_2           0.2748848       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 250 T-26-0230-1_Operator_2           0.9864082       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 293 T-26-0261-3_Operator_1           0.3171940       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 294 T-26-0261-5_Operator_1           0.2958014       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 296   T-26-0263_Operator_1           0.2672095       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 297   T-26-0263_Operator_2           0.2630597       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 298 T-26-0264-2_Operator_1           0.2787561       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 299 T-26-0264-2_Operator_2           0.2833448       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 300 T-26-0264-3_Operator_1           0.2977977       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 301 T-26-0264-4_Operator_1           0.2816355       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 302 T-26-0264-4_Operator_2           0.2806622       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 303   T-26-0265_Operator_1           0.3012237       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 304   T-26-0265_Operator_2           0.2999735       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 305   T-26-0266_Operator_1           0.3202343       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 306   T-26-0266_Operator_2           0.3126475       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 309   T-26-0268_Operator_1           0.2975292       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 310   T-26-0268_Operator_2           0.2907089       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 311   T-26-0269_Operator_1           0.3188060       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 312   T-26-0269_Operator_2           0.3135413       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 313 T-26-0270-1_Operator_1           0.3025837       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 314 T-26-0270-1_Operator_2           0.3002619       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 315 T-26-0270-2_Operator_1           0.2849063       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 316 T-26-0270-2_Operator_2           0.2859566       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 317   T-26-0271_Operator_1           0.3477989       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 318   T-26-0271_Operator_2           0.3619167       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 319   T-26-0272_Operator_1           0.2583793       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 320   T-26-0272_Operator_2           0.2624810       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 321   T-26-0273_Operator_1           0.3103109       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 322   T-26-0273_Operator_2           0.3041236       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 323   T-26-0276_Operator_1           0.2806949       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 324   T-26-0276_Operator_2           0.2796489       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 325   T-26-0277_Operator_1           0.2658014       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 326 T-26-0278-1_Operator_1           0.2716006       0.2325364    TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 328 T-26-0278-2_Operator_2           0.2329394       0.2325364    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19    T-26-0009_Operator_2           0.2169184       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20    T-26-0009_Operator_3           0.2152154       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21    T-26-0009_Operator_4           0.2254866       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24    T-26-0011_Operator_2           0.3569473       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25    T-26-0011_Operator_3           0.3398940       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 115   T-26-0052_Operator_1           0.4036186       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 118   T-26-0052_Operator_4           0.2189519       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 129   T-26-0056_Operator_4           0.5312928       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 152   T-26-0067_Operator_1           0.3320415       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 153   T-26-0067_Operator_2           0.3293087       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 154   T-26-0067_Operator_3           0.3263442       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 155   T-26-0067_Operator_4           0.3320286       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 156   T-26-0068_Operator_1           0.3469983       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 157   T-26-0068_Operator_2           0.3390582       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 158   T-26-0068_Operator_3           0.3402494       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 159   T-26-0068_Operator_4           0.3252735       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 164   T-26-0070_Operator_1           0.3373282       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 165   T-26-0070_Operator_2           0.3340424       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 166   T-26-0070_Operator_3           0.3288934       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 167   T-26-0070_Operator_4           0.3275047       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 168   T-26-0071_Operator_1           0.3492358       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 169   T-26-0071_Operator_2           0.3496046       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 170   T-26-0071_Operator_4           0.3440175       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 171   T-26-0072_Operator_2           0.3381967       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 172   T-26-0072_Operator_4           0.3497263       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 173   T-26-0073_Operator_2           0.3584628       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 174   T-26-0073_Operator_4           0.3555241       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 175   T-26-0074_Operator_1           0.3366322       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 176   T-26-0074_Operator_2           0.3446239       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 177   T-26-0074_Operator_4           0.3324899       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 178   T-26-0075_Operator_1           0.3739731       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 179   T-26-0075_Operator_2           0.3685537       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 180   T-26-0075_Operator_4           0.3619471       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 181   T-26-0076_Operator_1           0.3418884       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 182   T-26-0076_Operator_2           0.3313651       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 183   T-26-0076_Operator_3           0.3327416       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 184   T-26-0076_Operator_4           0.3256051       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 185   T-26-0077_Operator_2           0.3202665       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 186   T-26-0077_Operator_4           0.3162419       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 187   T-26-0078_Operator_2           0.3092779       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 188   T-26-0078_Operator_4           0.3079180       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 189   T-26-0079_Operator_2           0.3483585       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 190   T-26-0079_Operator_4           0.3447643       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 191   T-26-0080_Operator_1           0.3283351       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 192   T-26-0080_Operator_2           0.3243482       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 193   T-26-0080_Operator_3           0.3302513       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 194   T-26-0080_Operator_4           0.3203199       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 195   T-26-0081_Operator_3           0.3356972       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 196   T-26-0081_Operator_4           0.3347826       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 197   T-26-0082_Operator_1           0.3467250       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 198   T-26-0082_Operator_2           0.3386781       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 199   T-26-0082_Operator_3           0.3432858       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 200   T-26-0082_Operator_4           0.3401864       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 201   T-26-0083_Operator_3           0.3200580       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 202   T-26-0083_Operator_4           0.3271436       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 203   T-26-0084_Operator_3           0.3369645       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 204   T-26-0084_Operator_4           0.3415566       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 205   T-26-0085_Operator_1           0.3269401       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 206   T-26-0085_Operator_3           0.3317177       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 207   T-26-0085_Operator_4           0.3366750       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 208   T-26-0086_Operator_2           0.3372410       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 209   T-26-0086_Operator_3           0.3285532       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 210   T-26-0086_Operator_4           0.3356652       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 214   T-26-0088_Operator_3           0.3357576       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 215   T-26-0088_Operator_4           0.3414011       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 219   T-26-0090_Operator_2           0.3000025       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 220   T-26-0090_Operator_3           0.3024610       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 221   T-26-0090_Operator_4           0.3130606       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 222   T-26-0091_Operator_1           0.3324700       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 223   T-26-0091_Operator_2           0.3493182       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 224   T-26-0091_Operator_3           0.3416998       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 225   T-26-0091_Operator_4           0.3412928       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 226   T-26-0092_Operator_3           0.3407953       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 227   T-26-0092_Operator_4           0.3484922       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 228   T-26-0093_Operator_3           0.3481229       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 229   T-26-0093_Operator_4           0.3569263       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 230   T-26-0094_Operator_1           0.3294359       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 231   T-26-0094_Operator_3           0.3342638       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 232   T-26-0094_Operator_4           0.3487422       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 234   T-26-0095_Operator_4           0.3393638       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 235   T-26-0096_Operator_1           0.3371026       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 236   T-26-0096_Operator_2           0.3453236       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 238   T-26-0096_Operator_4           0.3449559       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 239   T-26-0097_Operator_1           0.3223430       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 240   T-26-0097_Operator_2           0.3250353       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 242   T-26-0097_Operator_4           0.3299933       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 243   T-26-0098_Operator_2           0.3376108       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 245   T-26-0098_Operator_4           0.3266830       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 246   T-26-0099_Operator_2           0.3069595       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 248   T-26-0099_Operator_4           0.2993052       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 250   T-26-0100_Operator_4           0.3432374       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 252   T-26-0101_Operator_4           0.3700846       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 254   T-26-0102_Operator_4           0.3436770       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 255   T-26-0103_Operator_1           0.3571320       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 256   T-26-0103_Operator_2           0.3607578       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 258   T-26-0103_Operator_4           0.3514299       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 259   T-26-0104_Operator_2           0.3492865       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 261   T-26-0104_Operator_4           0.3455049       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 263   T-26-0107_Operator_4           0.3321683       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 265   T-26-0108_Operator_4           0.3112471       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 267   T-26-0109_Operator_4           0.3276942       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 269   T-26-0111_Operator_4           0.3190915       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 270 T-26-0112-2_Operator_1           0.3470516       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 271 T-26-0112-2_Operator_2           0.3500128       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 273   T-26-0113_Operator_1           0.3060737       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 275   T-26-0113_Operator_4           0.3013028       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 277   T-26-0114_Operator_4           0.3253441       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 279   T-26-0115_Operator_4           0.2204038       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 280   T-26-0116_Operator_1           0.3102436       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 282   T-26-0116_Operator_4           0.2794646       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 283   T-26-0117_Operator_4           0.3372824       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 284   T-26-0118_Operator_4           0.2646654       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 285   T-26-0120_Operator_1           0.3289768       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 286   T-26-0120_Operator_2           0.3266213       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 287   T-26-0120_Operator_4           0.3238899       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 288   T-26-0121_Operator_4           0.2842487       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 289   T-26-0122_Operator_1           0.3446609       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 291   T-26-0122_Operator_4           0.3438073       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 293   T-26-0123_Operator_4           0.3284481       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 295   T-26-0125_Operator_4           0.3154192       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 296   T-26-0126_Operator_4           0.3332062       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 298   T-26-0127_Operator_4           0.3408674       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 299   T-26-0128_Operator_1           0.3001011       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 300   T-26-0128_Operator_2           0.3024759       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 302   T-26-0128_Operator_4           0.2968858       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 303   T-26-0130_Operator_1           0.2916388       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 304   T-26-0130_Operator_2           0.2853287       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 306   T-26-0130_Operator_4           0.2977650       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 331   T-26-0138_Operator_3           0.3180431       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 335   T-26-0140_Operator_3           0.3060372       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 337   T-26-0141_Operator_3           0.2467927       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 339   T-26-0142_Operator_3           0.2576651       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 422   T-26-0167_Operator_3           0.2831355       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 426   T-26-0168_Operator_3           0.2578261       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 506   T-26-0190_Operator_4           0.2369293       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 562   T-26-0209_Operator_4           0.2377763       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 620 T-26-0230-1_Operator_2           0.9853878       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 702 T-26-0261-3_Operator_1           0.3280397       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 703 T-26-0261-5_Operator_1           0.3063541       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 705   T-26-0263_Operator_1           0.2787721       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 706   T-26-0263_Operator_2           0.2737523       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 708   T-26-0263_Operator_4           0.2851316       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 709 T-26-0264-2_Operator_1           0.2899186       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 710 T-26-0264-2_Operator_2           0.2934060       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 711 T-26-0264-3_Operator_1           0.3087629       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 712 T-26-0264-4_Operator_1           0.2929315       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 713 T-26-0264-4_Operator_2           0.2902188       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 714   T-26-0265_Operator_1           0.3128748       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 715   T-26-0265_Operator_2           0.3108411       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 717   T-26-0265_Operator_4           0.3255351       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 718   T-26-0266_Operator_1           0.3319919       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 719   T-26-0266_Operator_2           0.3234671       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 721   T-26-0266_Operator_4           0.3204168       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 726   T-26-0268_Operator_1           0.3089295       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 727   T-26-0268_Operator_2           0.3014394       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 729   T-26-0268_Operator_4           0.3044083       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 730   T-26-0269_Operator_1           0.3302789       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 731   T-26-0269_Operator_2           0.3246287       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 733   T-26-0269_Operator_4           0.3253462       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 734 T-26-0270-1_Operator_1           0.3143527       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 735 T-26-0270-1_Operator_2           0.3111802       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 736 T-26-0270-2_Operator_1           0.2966706       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 737 T-26-0270-2_Operator_2           0.2973876       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 738   T-26-0271_Operator_1           0.3571512       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 739   T-26-0271_Operator_2           0.3714985       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 741   T-26-0271_Operator_4           0.3226998       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 742   T-26-0272_Operator_1           0.2698837       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 743   T-26-0272_Operator_2           0.2735693       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 744   T-26-0272_Operator_4           0.2661221       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 745   T-26-0273_Operator_1           0.3219874       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 746   T-26-0273_Operator_2           0.3154199       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 748   T-26-0273_Operator_4           0.3097351       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 750   T-26-0274_Operator_4           0.2661669       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 752   T-26-0275_Operator_4           0.2753404       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 753   T-26-0276_Operator_1           0.2917111       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 754   T-26-0276_Operator_2           0.2902235       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 756   T-26-0276_Operator_4           0.2978515       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 757   T-26-0277_Operator_1           0.2772476       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 758   T-26-0277_Operator_4           0.2776325       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 759 T-26-0278-1_Operator_1           0.2827326       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 760 T-26-0278-2_Operator_1           0.2419526       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 761 T-26-0278-2_Operator_2           0.2429996       0.2138104    TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 762   T-26-0279_Operator_4           0.2949781       0.2138104    TRUE</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

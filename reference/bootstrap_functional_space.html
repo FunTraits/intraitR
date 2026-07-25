@@ -37,7 +37,7 @@ unusually low relative to the bootstrap distribution (see Details)."></head><bod
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -449,22 +449,21 @@ J. M. Diamond's assembly rules model. Ecology, 83(8), 2091-2096.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">segments</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
 <span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="va">segments</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ts</span> <span class="op">&lt;-</span> <span class="fu"><a href="trait_space.html">trait_space</a></span><span class="op">(</span><span class="va">ratios</span>, groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>, na_action <span class="op">=</span> <span class="st">"omit"</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 230 row(s) out of 558 with missing values.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 21 specimen(s) flagged as within-group outlier(s) across 5 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Phoxinus phoxinus/bigerri, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 2 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 293 row(s) out of 1036 with missing values.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># method = "dendrogram" needs no extra Suggested package</span></span></span>
 <span class="r-in"><span><span class="va">bf_dendro</span> <span class="op">&lt;-</span> <span class="fu">bootstrap_functional_space</span><span class="op">(</span><span class="va">ts</span>, method <span class="op">=</span> <span class="st">"dendrogram"</span>, n_axes <span class="op">=</span> <span class="fl">2</span>, n_boot <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">bf_dendro</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_bootstrap_fspace&gt; (method = "dendrogram")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2 PCA axes retained (49.2% of variance), 10 species</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Centroid-based reference richness (FD_ref): 13.55</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Bootstrap richness (FD_boot, 200 draws): mean = 18.2, SD = 6.372, 5-95% = [12.92, 35.76]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Difference (mean FD_boot - FD_ref): 4.646 (one-sided bootstrap p = 0.1144)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2 PCA axes retained (53.4% of variance), 7 species</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Centroid-based reference richness (FD_ref): 7.234</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Bootstrap richness (FD_boot, 200 draws): mean = 12.5, SD = 8.896, 5-95% = [7.533, 23.74]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Difference (mean FD_boot - FD_ref): 5.263 (one-sided bootstrap p = 0.04478)</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">bf_dendro</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="bootstrap_functional_space-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
@@ -474,10 +473,10 @@ J. M. Diamond's assembly rules model. Ecology, 83(8), 2091-2096.</p>
 <span class="r-in"><span>  <span class="va">bf</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_bootstrap_fspace&gt; (method = "convexhull")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2 PCA axes retained (49.2% of variance), 10 species</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Centroid-based reference richness (FD_ref): 6.104</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Bootstrap richness (FD_boot, 200 draws): mean = 11.19, SD = 9.051, 5-95% = [5.474, 17.99]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Difference (mean FD_boot - FD_ref): 5.086 (one-sided bootstrap p = 0.1194)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2 PCA axes retained (53.4% of variance), 7 species</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Centroid-based reference richness (FD_ref): 2.488</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Bootstrap richness (FD_boot, 200 draws): mean = 4.816, SD = 3.008, 5-95% = [1.78, 8.628]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Difference (mean FD_boot - FD_ref): 2.328 (one-sided bootstrap p = 0.1393)</span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"TPD"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="va">bf_tpd</span> <span class="op">&lt;-</span> <span class="fu">bootstrap_functional_space</span><span class="op">(</span><span class="va">ts</span>, method <span class="op">=</span> <span class="st">"tpd"</span>, n_axes <span class="op">=</span> <span class="fl">2</span>, n_boot <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">bf_tpd</span></span></span>
@@ -687,10 +686,10 @@ J. M. Diamond's assembly rules model. Ecology, 83(8), 2091-2096.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Calculating FEvenness of communities</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Calculating FDivergence of communities</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_bootstrap_fspace&gt; (method = "tpd")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2 PCA axes retained (49.2% of variance), 10 species</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Centroid-based reference richness (FD_ref): 36.67</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Bootstrap richness (FD_boot, 50 draws): mean = 43.29, SD = 5.62, 5-95% = [35.83, 55.67]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Difference (mean FD_boot - FD_ref): 6.615 (one-sided bootstrap p = 0.09804)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2 PCA axes retained (53.4% of variance), 7 species</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Centroid-based reference richness (FD_ref): 26.31</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Bootstrap richness (FD_boot, 50 draws): mean = 33.42, SD = 5.542, 5-95% = [25.56, 42.49]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Difference (mean FD_boot - FD_ref): 7.114 (one-sided bootstrap p = 0.09804)</span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"hypervolume"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="co"># small n_boot: method = "hypervolume" is comparatively slow</span></span></span>
 <span class="r-in"><span>  <span class="va">bf_hv</span> <span class="op">&lt;-</span> <span class="fu">bootstrap_functional_space</span><span class="op">(</span><span class="va">ts</span>, method <span class="op">=</span> <span class="st">"hypervolume"</span>, n_axes <span class="op">=</span> <span class="fl">2</span>, n_boot <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></span>
@@ -699,10 +698,10 @@ J. M. Diamond's assembly rules model. Ecology, 83(8), 2091-2096.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Note that the formula used for the Silverman estimator differs in version 3 compared to prior versions of this package.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Use method='silverman-1d' to replicate prior behavior.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_bootstrap_fspace&gt; (method = "hypervolume")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2 PCA axes retained (49.2% of variance), 10 species</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Centroid-based reference richness (FD_ref): 19.14</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Bootstrap richness (FD_boot, 20 draws): mean = 23.93, SD = 3.291, 5-95% = [19.33, 29.76]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Difference (mean FD_boot - FD_ref): 4.787 (one-sided bootstrap p = 0.09524)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2 PCA axes retained (53.4% of variance), 7 species</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Centroid-based reference richness (FD_ref): 11.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Bootstrap richness (FD_boot, 20 draws): mean = 16.84, SD = 2.83, 5-95% = [12.37, 21.22]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Difference (mean FD_boot - FD_ref): 5.342 (one-sided bootstrap p = 0.04762)</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Per-community results: a communities x species composition matrix</span></span></span>
 <span class="r-in"><span><span class="co"># (here, three toy communities over the species in `ts`) gives obs/</span></span></span>
@@ -722,10 +721,10 @@ J. M. Diamond's assembly rules model. Ecology, 83(8), 2091-2096.</p>
 <span class="r-in"><span>  <span class="va">ts</span>, method <span class="op">=</span> <span class="st">"dendrogram"</span>, n_axes <span class="op">=</span> <span class="fl">2</span>, n_boot <span class="op">=</span> <span class="fl">200</span>, composition <span class="op">=</span> <span class="va">composition</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">bf_comm</span><span class="op">$</span><span class="va">communities</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   community n_species    fd_obs fd_expected    fd_sd        ses   p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1    site_A         3  7.225431    8.191091 5.726199 -0.1686390 0.5671642</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2    site_B         3  4.872859    7.459348 4.120782 -0.6276695 0.1592040</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3    site_C        10 13.551419   17.999694 6.309353 -0.7050288 0.1194030</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   community n_species   fd_obs fd_expected    fd_sd        ses    p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1    site_A         3 3.997189    5.962147 2.640699 -0.7441055 0.18407960</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    site_B         3 4.767717    6.568376 8.110058 -0.2220279 0.28358209</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3    site_C         7 7.234171   11.634389 4.748301 -0.9266934 0.07462687</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">bf_comm</span>, type <span class="op">=</span> <span class="st">"communities"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="bootstrap_functional_space-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -130,16 +130,20 @@ was placed off the body outline:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_landmarks.html">plot_landmarks</a></span><span class="op">(</span><span class="va">fish</span>, specimen <span class="op">=</span> <span class="fl">1</span>, background_image <span class="op">=</span> <span class="st">"specimen1.jpg"</span><span class="op">)</span></span></code></pre></div>
 <p>If landmarks have not yet been digitized, [digitize_landmarks()]
-provides an interactive, point-and-click front end (built on
-[geomorph::digitize2d()]) that digitizes directly from specimen
-photographs and returns a ready-to-use <code>"intrait_landmarks"</code>
-object; it requires a live interactive graphics session and so cannot be
-run inside this vignette, but the intended usage is:</p>
+launches a bundled Shiny application for predictor-assisted
+digitization: a trained ml-morph model proposes the 19 FISHMORPH
+landmarks from a few calibration clicks per specimen, which are then
+reviewed, corrected and exported to
+<code>CSV</code>/<code>tpsDig</code>. It requires a live interactive
+session (and an external ml-morph resource directory holding the trained
+predictor and a <code>dlib</code>-enabled Python environment), so it
+cannot be run inside this vignette, but the intended usage is:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/digitize_landmarks.html">digitize_landmarks</a></span><span class="op">(</span></span>
-<span>  images <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"specimen1.jpg"</span>, <span class="st">"specimen2.jpg"</span>, <span class="st">"specimen3.jpg"</span><span class="op">)</span>,</span>
-<span>  scheme <span class="op">=</span> <span class="st">"fishmorph"</span>, tpsfile <span class="op">=</span> <span class="st">"specimens.tps"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Open the app (auto-detecting an "ml_morph/" resource directory):</span></span>
+<span><span class="fu"><a href="../reference/digitize_landmarks.html">digitize_landmarks</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Import the exported table into an "intrait_landmarks" object:</span></span>
+<span><span class="va">lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_mlmorph_landmarks.html">read_mlmorph_landmarks</a></span><span class="op">(</span><span class="st">"mesures.csv"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="generalised-procrustes-analysis">2. Generalised Procrustes Analysis<a class="anchor" aria-label="anchor" href="#generalised-procrustes-analysis"></a>

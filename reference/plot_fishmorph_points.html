@@ -13,7 +13,7 @@ scale bar, for quality control of digitization."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -326,7 +326,7 @@ the data level, rather than a per-plot display toggle),
 <span class="r-in"><span><span class="co"># underlying coordinates (not just the display) for every specimen at</span></span></span>
 <span class="r-in"><span><span class="co"># once, using landmarks that are always present and in the same role:</span></span></span>
 <span class="r-in"><span><span class="va">fish_oriented</span> <span class="op">&lt;-</span> <span class="fu"><a href="standardize_orientation.html">standardize_orientation</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> standardize_orientation(): 557 of 558 specimen(s) mirrored (165 horizontally, 555 vertically) to a consistent head-left, belly-down orientation.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> standardize_orientation(): 1006 of 1036 specimen(s) mirrored (234 horizontally, 1004 vertically) to a consistent head-left, belly-down orientation.</span>
 <span class="r-in"><span><span class="fu">plot_fishmorph_points</span><span class="op">(</span><span class="va">fish_oriented</span>, specimen <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_fishmorph_points-3.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
@@ -338,8 +338,8 @@ the data level, rather than a per-plot display toggle),
 <span class="r-in"><span><span class="co"># points estimated by impute_landmarks() are highlighted in red:</span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">fish_imputed</span> <span class="op">&lt;-</span> <span class="fu"><a href="impute_landmarks.html">impute_landmarks</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): estimated 260 missing anatomical landmark coordinate(s) using method = "tps".</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): estimated 304 missing anatomical landmark coordinate(s) using method = "tps".</span>
 <span class="r-in"><span><span class="fu">plot_fishmorph_points</span><span class="op">(</span><span class="va">fish_imputed</span>, specimen <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_fishmorph_points-5.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>

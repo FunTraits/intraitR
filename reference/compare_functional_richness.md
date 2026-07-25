@@ -137,13 +137,12 @@ unpublished, supervised by A. Toussaint and S. Brosse.
 # \donttest{
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
+#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ratios <- fishmorph_ratios(segments)
 ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 #> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
-#> na_action = "omit": removing 230 row(s) out of 558 with missing values.
-#> flag_outliers: 21 specimen(s) flagged as within-group outlier(s) across 5 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Phoxinus phoxinus/bigerri, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
-#> flag_outliers: 2 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
+#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
+#> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
 
 # "dendrogram" always runs; "convexhull"/"tpd"/"hypervolume" are
 # skipped gracefully (not fatal) if their package is not installed
@@ -558,12 +557,12 @@ cmp
 #> <intrait_richness_comparison>
 #>   4 method(s) requested, 4 succeeded
 #>       method status fd_ref fd_boot_mean pct_diff p_value significant
-#>   convexhull     ok  6.104        11.71   +91.9% 0.06931       FALSE
-#>   dendrogram     ok  13.55        17.73   +30.8% 0.06931       FALSE
-#>          tpd     ok  36.67        43.12   +17.6%  0.1188       FALSE
-#>  hypervolume     ok  19.25        23.94   +24.4% 0.07921       FALSE
+#>   convexhull     ok  2.488        5.273  +111.9%  0.1881       FALSE
+#>   dendrogram     ok  7.234        11.73   +62.2%  0.0396        TRUE
+#>          tpd     ok  26.31        33.42   +27.1% 0.07921       FALSE
+#>  hypervolume     ok   11.4        15.84   +38.9% 0.05941       FALSE
 #> 
-#>   0/4 method(s) agree that individual-based richness significantly
+#>   1/4 method(s) agree that individual-based richness significantly
 #>   exceeds the centroid-based reference (p < 0.05).
 plot(cmp)
 

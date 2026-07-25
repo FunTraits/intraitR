@@ -21,7 +21,7 @@ load_t26_saudrune(
 ## Source
 
 T-26 electrofishing campaign, Saudrune (Adour-Garonne basin, France), 21
-April 2026. Landmarks digitized by two independent operators;
+April 2026. Landmarks digitized by several independent operators;
 identifications curated with AI-vision assistance by A. Toussaint
 (CNRS). Raw spreadsheets are not distributed with the package (only the
 cleaned, analysis-ready tables are); see
@@ -81,8 +81,11 @@ A `data.frame`:
 
   Long-format landmark coordinates (columns `specimen`, `code`,
   `operator`, `landmark`, `X`, `Y`), one row per specimen x landmark
-  combination. 279 fish, each digitized once by each of two independent
-  operators (558 specimen-level digitizations, 21 landmarks each). Use
+  combination. The T-26 fish digitized by four operators (826
+  specimen-level digitizations, 21 landmarks each): Operator_1 and
+  Operator_2 each digitized the full set of 279 fish once, Operator_3
+  and Operator_4 a subset. The `specimen` id embeds the operator (e.g.
+  `"T-26-0173_Operator_4"`), so it is unique. Use
   [`read_landmarks_csv()`](https://funtraits.github.io/intraitR/reference/read_landmarks_csv.md)
   to import this table as an `"intrait_landmarks"` object; see
   `demo(pipeline_T26_saudrune)`.
@@ -91,8 +94,13 @@ A `data.frame`:
 
   Long-format landmark coordinates (columns `specimen`, `code`,
   `replicate`, `operator`, `site`, `landmark`, `X`, `Y`) for the
-  intra-operator repeatability trial: 25 individuals, each digitized
-  9-10 times independently by the same operator. Intended for
+  repeatability trial: 25 individuals, each digitized 9-10 times, by two
+  operators (`Operator_1` and `Operator_6`). Here `specimen` (e.g.
+  `"T-26-0004_rep1"`) encodes only the fish and replicate, so it is
+  shared across the two operators in this table;
+  [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
+  appends the operator to keep each digitization uniquely identified.
+  Intended for
   [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
   and
   [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md).
@@ -156,33 +164,30 @@ data set using intraitR.
 ``` r
 ops <- load_t26_saudrune("operators")
 str(ops)
-#> 'data.frame':    11718 obs. of  6 variables:
-#>  $ specimen: chr  "T-26-0279_Operator_1" "T-26-0279_Operator_1" "T-26-0279_Operator_1" "T-26-0279_Operator_1" ...
-#>  $ code    : chr  "T-26-0279" "T-26-0279" "T-26-0279" "T-26-0279" ...
+#> 'data.frame':    21756 obs. of  6 variables:
+#>  $ specimen: chr  "T-26-0001_Operator_1" "T-26-0001_Operator_1" "T-26-0001_Operator_1" "T-26-0001_Operator_1" ...
+#>  $ code    : chr  "T-26-0001" "T-26-0001" "T-26-0001" "T-26-0001" ...
 #>  $ operator: chr  "Operator_1" "Operator_1" "Operator_1" "Operator_1" ...
 #>  $ landmark: int  1 2 3 4 5 6 7 8 9 10 ...
-#>  $ X       : num  3457 2086 2724 2732 NA ...
-#>  $ Y       : num  1459 1410 1296 1582 NA ...
+#>  $ X       : num  2462 3487 2946 2932 NA ...
+#>  $ Y       : num  1986 1967 1842 2108 NA ...
 ident <- load_t26_saudrune("identifications")
 table(ident$species, ident$id_status)
-#>                            
-#>                             curated preliminary unresolved
-#>                                   0           0          1
-#>   Barbatula barbatula            13           5          0
-#>   Barbus barbus                   0           5          0
-#>   Gobio occitaniae              167           5          0
-#>   Lepomis gibbosus                2           0          0
-#>   Leuciscus burdigalensis         7           0          0
-#>   Perca fluviatilis               8           0          0
-#>   Phoxinus phoxinus              17           0          0
-#>   Phoxinus phoxinus/bigerri       4           0          0
-#>   Squalius cephalus              47           1          0
+#>                          
+#>                           curated
+#>   Barbatula barbatula          19
+#>   Gobio occitaniae            171
+#>   Lepomis gibbosus              2
+#>   Leuciscus burdigalensis       7
+#>   Perca fluviatilis             9
+#>   Phoxinus phoxinus            26
+#>   Squalius cephalus            48
 
 # restrict to a single operator's digitizations (see `operator`); ignored
 # with a warning, rather than an error, for tables with no operator
 # column, e.g. "identifications":
 unique(ops$operator)
-#> [1] "Operator_1" "Operator_2"
+#> [1] "Operator_1" "Operator_2" "Operator_4" "Operator_3"
 op1 <- load_t26_saudrune("operators", operator = "Operator_1")
 nrow(op1) < nrow(ops)
 #> [1] TRUE

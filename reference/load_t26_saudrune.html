@@ -17,7 +17,7 @@ fishmorph_segments()) directly from the photographs."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,7 +65,7 @@ digitized on the 21-landmark FISHMORPH scheme (Brosse et al., 2021; see
     <div class="section level2">
     <h2 id="source">Source<a class="anchor" aria-label="anchor" href="#source"></a></h2>
     <p>T-26 electrofishing campaign, Saudrune (Adour-Garonne basin,
-France), 21 April 2026. Landmarks digitized by two independent
+France), 21 April 2026. Landmarks digitized by several independent
 operators; identifications curated with AI-vision assistance by A.
 Toussaint (CNRS). Raw spreadsheets are not distributed with the
 package (only the cleaned, analysis-ready tables are); see
@@ -122,19 +122,24 @@ harmless no-op.</p></dd>
     <p>A <code>data.frame</code>:</p><dl><dt><code>"operators"</code></dt>
 <dd><p>Long-format landmark coordinates (columns
 <code>specimen</code>, <code>code</code>, <code>operator</code>, <code>landmark</code>, <code>X</code>, <code>Y</code>), one row per
-specimen x landmark combination. 279 fish, each digitized once by
-each of two independent operators (558 specimen-level
-digitizations, 21 landmarks each). Use <code><a href="read_landmarks_csv.html">read_landmarks_csv()</a></code> to
-import this table as an <code>"intrait_landmarks"</code> object; see
-<code>demo(pipeline_T26_saudrune)</code>.</p></dd>
+specimen x landmark combination. The T-26 fish digitized by four
+operators (826 specimen-level digitizations, 21 landmarks each):
+Operator_1 and Operator_2 each digitized the full set of 279 fish
+once, Operator_3 and Operator_4 a subset. The <code>specimen</code> id embeds
+the operator (e.g. <code>"T-26-0173_Operator_4"</code>), so it is unique. Use
+<code><a href="read_landmarks_csv.html">read_landmarks_csv()</a></code> to import this table as an
+<code>"intrait_landmarks"</code> object; see <code>demo(pipeline_T26_saudrune)</code>.</p></dd>
 
 <dt><code>"repeatability"</code></dt>
 <dd><p>Long-format landmark coordinates (columns
 <code>specimen</code>, <code>code</code>, <code>replicate</code>, <code>operator</code>, <code>site</code>, <code>landmark</code>,
-<code>X</code>, <code>Y</code>) for the intra-operator repeatability trial: 25
-individuals, each digitized 9-10 times independently by the same
-operator. Intended for <code><a href="measurement_error.html">measurement_error()</a></code> and
-<code><a href="digitization_error.html">digitization_error()</a></code>.</p></dd>
+<code>X</code>, <code>Y</code>) for the repeatability trial: 25 individuals, each
+digitized 9-10 times, by two operators (<code>Operator_1</code> and
+<code>Operator_6</code>). Here <code>specimen</code> (e.g. <code>"T-26-0004_rep1"</code>) encodes
+only the fish and replicate, so it is shared across the two
+operators in this table; <code><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks()</a></code> appends
+the operator to keep each digitization uniquely identified.
+Intended for <code><a href="measurement_error.html">measurement_error()</a></code> and <code><a href="digitization_error.html">digitization_error()</a></code>.</p></dd>
 
 <dt><code>"identifications"</code></dt>
 <dd><p>One row per fish (<code>code</code>), with
@@ -191,33 +196,30 @@ data set using intraitR.</p></div>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">ops</span> <span class="op">&lt;-</span> <span class="fu">load_t26_saudrune</span><span class="op">(</span><span class="st">"operators"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">ops</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 'data.frame':	11718 obs. of  6 variables:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ specimen: chr  "T-26-0279_Operator_1" "T-26-0279_Operator_1" "T-26-0279_Operator_1" "T-26-0279_Operator_1" ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ code    : chr  "T-26-0279" "T-26-0279" "T-26-0279" "T-26-0279" ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 'data.frame':	21756 obs. of  6 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ specimen: chr  "T-26-0001_Operator_1" "T-26-0001_Operator_1" "T-26-0001_Operator_1" "T-26-0001_Operator_1" ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ code    : chr  "T-26-0001" "T-26-0001" "T-26-0001" "T-26-0001" ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ operator: chr  "Operator_1" "Operator_1" "Operator_1" "Operator_1" ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ landmark: int  1 2 3 4 5 6 7 8 9 10 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ X       : num  3457 2086 2724 2732 NA ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ Y       : num  1459 1410 1296 1582 NA ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ X       : num  2462 3487 2946 2932 NA ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ Y       : num  1986 1967 1842 2108 NA ...</span>
 <span class="r-in"><span><span class="va">ident</span> <span class="op">&lt;-</span> <span class="fu">load_t26_saudrune</span><span class="op">(</span><span class="st">"identifications"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">ident</span><span class="op">$</span><span class="va">species</span>, <span class="va">ident</span><span class="op">$</span><span class="va">id_status</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                            </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                             curated preliminary unresolved</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                   0           0          1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Barbatula barbatula            13           5          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Barbus barbus                   0           5          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Gobio occitaniae              167           5          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Lepomis gibbosus                2           0          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Leuciscus burdigalensis         7           0          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Perca fluviatilis               8           0          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Phoxinus phoxinus              17           0          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Phoxinus phoxinus/bigerri       4           0          0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Squalius cephalus              47           1          0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                           curated</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Barbatula barbatula          19</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Gobio occitaniae            171</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Lepomis gibbosus              2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Leuciscus burdigalensis       7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Perca fluviatilis             9</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Phoxinus phoxinus            26</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Squalius cephalus            48</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># restrict to a single operator's digitizations (see `operator`); ignored</span></span></span>
 <span class="r-in"><span><span class="co"># with a warning, rather than an error, for tables with no operator</span></span></span>
 <span class="r-in"><span><span class="co"># column, e.g. "identifications":</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">ops</span><span class="op">$</span><span class="va">operator</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Operator_1" "Operator_2"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Operator_1" "Operator_2" "Operator_4" "Operator_3"</span>
 <span class="r-in"><span><span class="va">op1</span> <span class="op">&lt;-</span> <span class="fu">load_t26_saudrune</span><span class="op">(</span><span class="st">"operators"</span>, operator <span class="op">=</span> <span class="st">"Operator_1"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">op1</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">ops</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>

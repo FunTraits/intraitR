@@ -27,7 +27,9 @@ impute_landmarks(
   missforest_ntree = 100,
   missforest_maxiter = 10,
   tree = NULL,
-  missforest_phylo_k = 10
+  missforest_phylo_k = 10,
+  species = NULL,
+  phylo_axes = NULL
 )
 ```
 
@@ -118,6 +120,24 @@ impute_landmarks(
   Used only by `method = "missforest_phylo"`: maximum number of
   phylogenetic PCoA axes to add as predictors. Defaults to `10`.
 
+- species:
+
+  Species identifier for **each row / specimen**, used only to look up
+  the phylogenetic axes of `"missforest_phylo"`. `NULL` (default)
+  auto-detects it (a `species` / `Species` / `Genus.species` column, the
+  metadata, or the specimen names). Deliberately **separate from
+  `groups`**: the phylogeny needs to know which species a row belongs
+  to, not a categorical predictor for the forest.
+
+- phylo_axes:
+
+  Used only by `"missforest_phylo"`. `NULL` (default) uses the
+  **precomputed** axes of
+  [`load_fishmorph_phylo_axes()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylo_axes.md),
+  so that every call shares one and the same phylogenetic coordinate
+  system. Supply a data frame (a `species` column plus one column per
+  axis) to use your own.
+
 ## Value
 
 An object of the same class as `landmarks` (`"intrait_landmarks"` or a
@@ -188,8 +208,8 @@ fish <- load_t26_saudrune_landmarks()
 anyNA(fish$coords) # some real specimens are missing landmark 5
 #> [1] TRUE
 fish_imputed <- impute_landmarks(fish)
-#> Warning: 3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
-#> impute_landmarks(): estimated 260 missing anatomical landmark coordinate(s) using method = "tps".
+#> Warning: 23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
+#> impute_landmarks(): estimated 304 missing anatomical landmark coordinate(s) using method = "tps".
 anyNA(fish_imputed$coords[1:19, , ]) # anatomical landmarks now complete
 #> [1] TRUE
 
@@ -200,11 +220,11 @@ plot_fishmorph_points(fish_imputed, specimen = 1)
 # statistical alternatives, mirroring trait_space()'s na_action options;
 # `groups` is auto-detected here from fish$metadata$species
 fish_mean <- impute_landmarks(fish, method = "impute_mean")
-#> Warning: 3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
-#> impute_landmarks(): imputed 505 missing landmark coordinate value(s) using column means (method = "impute_mean").
+#> Warning: 23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
+#> impute_landmarks(): imputed 593 missing landmark coordinate value(s) using column means (method = "impute_mean").
 fish_gmean <- impute_landmarks(fish, method = "impute_group_mean")
-#> Warning: 3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
-#> impute_landmarks(): imputed 505 missing landmark coordinate value(s) using within-group means (method = "impute_group_mean").
+#> Warning: 23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
+#> impute_landmarks(): imputed 593 missing landmark coordinate value(s) using within-group means (method = "impute_group_mean").
 if (requireNamespace("missForest", quietly = TRUE)) {
   fish_rf <- impute_landmarks(fish, method = "missforest")
 
@@ -216,10 +236,9 @@ if (requireNamespace("missForest", quietly = TRUE)) {
     fish_rf_phylo <- impute_landmarks(fish, method = "missforest_phylo")
   }
 }
-#> Warning: 3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
-#> impute_landmarks(): imputed 505 missing landmark coordinate value(s) using random-forest imputation (missForest), using `groups` as an auxiliary predictor (out-of-bag NRMSE = 0.061).
-#> Warning: 3 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
-#> Warning: 3 species not found in `tree$tip.label` and dropped: Gobio_occitaniae, Phoxinus_phoxinus/bigerri, 
-#> impute_landmarks(): imputed 505 missing landmark coordinate value(s) using random-forest imputation (missForest), using `groups` as an auxiliary predictor, augmented with 6 phylogenetic PCoA axis/axes (7 species matched to the tree) (out-of-bag NRMSE = 0.051).
+#> Warning: 23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
+#> impute_landmarks(): imputed 593 missing landmark coordinate value(s) using random-forest imputation (missForest) (out-of-bag NRMSE = 0.037).
+#> Warning: 23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
+#> impute_landmarks(): imputed 593 missing landmark coordinate value(s) using random-forest imputation (missForest), augmented with 10 phylogenetic PCoA axis/axes from the precomputed axis table (6 species matched) (out-of-bag NRMSE = 0.031).
 # }
 ```

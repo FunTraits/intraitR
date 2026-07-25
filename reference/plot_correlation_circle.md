@@ -86,8 +86,10 @@ values (`-1` to `1`) are instead placed directly on the horizontal
 each line is labelled with its axis name only (e.g. `"PC1"`), in a small
 italic font, just outside the unit circle and centred on the line itself
 – the standard presentation of a correlation circle in the literature
-(e.g. `ade4::s.corcircle()`). The vertical axis's label is itself drawn
-rotated (reading bottom to top), as for a conventional `ylab`.
+(e.g.
+[`ade4::s.corcircle()`](https://adeverse.github.io/ade4/reference/s.corcircle.html)).
+The vertical axis's label is itself drawn rotated (reading bottom to
+top), as for a conventional `ylab`.
 
 ## References
 
@@ -103,13 +105,12 @@ Elsevier.
 ``` r
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
+#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ratios <- fishmorph_ratios(segments)
 ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 #> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
-#> na_action = "omit": removing 230 row(s) out of 558 with missing values.
-#> flag_outliers: 21 specimen(s) flagged as within-group outlier(s) across 5 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Phoxinus phoxinus/bigerri, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
-#> flag_outliers: 2 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
+#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
+#> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
 # \donttest{
 plot_correlation_circle(ts)
 

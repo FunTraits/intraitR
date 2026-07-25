@@ -23,7 +23,7 @@ individual effects consistent or highly variable?"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -203,31 +203,27 @@ n-dimensional hypervolumes. Methods in Ecology and Evolution, 9(2),
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">segments</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
 <span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="va">segments</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ts</span> <span class="op">&lt;-</span> <span class="fu"><a href="trait_space.html">trait_space</a></span><span class="op">(</span><span class="va">ratios</span>, groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>, na_action <span class="op">=</span> <span class="st">"omit"</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 230 row(s) out of 558 with missing values.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 21 specimen(s) flagged as within-group outlier(s) across 5 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Phoxinus phoxinus/bigerri, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 2 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 293 row(s) out of 1036 with missing values.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># method = "dendrogram" needs no extra Suggested package</span></span></span>
 <span class="r-in"><span><span class="va">ss_dendro</span> <span class="op">&lt;-</span> <span class="fu">species_sensitivity</span><span class="op">(</span><span class="va">ts</span>, method <span class="op">=</span> <span class="st">"dendrogram"</span>, n_axes <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ss_dendro</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_species_sensitivity&gt; (method = "dendrogram")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2 PCA axes retained (49.2% of variance), 10 species, FD_ref = 13.55</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Top 10 species by |mean %change in functional richness|:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                    species   n mean_dFD          range_dFD</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        Barbatula barbatula  19   +9.51% [-8.33%, +145.65%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          Squalius cephalus  95   +7.17% [-2.35%, +252.76%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           Gobio occitaniae 147   +5.90% [-7.47%, +162.00%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Phoxinus phoxinus/bigerri   5   +5.12%  [+1.18%, +15.15%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Leuciscus burdigalensis  13   +4.84%  [+1.59%, +14.55%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          Phoxinus phoxinus  27   +2.71%  [-3.82%, +13.73%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          Perca fluviatilis  14   +1.89%  [-4.59%, +14.01%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              Barbus barbus   5   -1.22%   [-3.43%, +3.70%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           Lepomis gibbosus   2   -0.57%  [-10.95%, +9.80%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                             NA   +0.00%   [+0.00%, +0.00%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2 PCA axes retained (53.4% of variance), 7 species, FD_ref = 7.234</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Top 7 species by |mean %change in functional richness|:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  species   n mean_dFD            range_dFD</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      Barbatula barbatula  38  +17.43%   [-7.57%, +259.19%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Phoxinus phoxinus  71  +15.19%   [-9.31%, +182.46%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         Gobio occitaniae 396  +14.39% [-12.15%, +1105.02%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Squalius cephalus 174  +14.27%   [-1.01%, +410.53%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Leuciscus burdigalensis  25   +9.19%    [+0.83%, +26.61%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Perca fluviatilis  34   +6.30%   [-11.07%, +46.14%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         Lepomis gibbosus   5   +5.51%    [-9.58%, +22.73%]</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ss_dendro</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="species_sensitivity-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
@@ -236,19 +232,16 @@ n-dimensional hypervolumes. Methods in Ecology and Evolution, 9(2),
 <span class="r-in"><span>  <span class="va">ss</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_species_sensitivity&gt; (method = "convexhull")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2 PCA axes retained (49.2% of variance), 10 species, FD_ref = 6.104</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Top 10 species by |mean %change in functional richness|:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                    species   n mean_dFD           range_dFD</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          Squalius cephalus  95  +14.13%  [+0.00%, +532.49%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           Gobio occitaniae 147  +11.28%  [-7.50%, +288.56%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          Phoxinus phoxinus  27  +10.32%   [+0.00%, +47.55%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        Barbatula barbatula  19  +10.31% [-16.10%, +122.05%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Phoxinus phoxinus/bigerri   5   +7.07%   [+0.00%, +35.34%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          Perca fluviatilis  14   +5.06%  [-13.36%, +44.93%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Leuciscus burdigalensis  13   +4.43%   [+0.00%, +23.49%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                             NA   +0.00%    [+0.00%, +0.00%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              Barbus barbus   5   +0.00%    [+0.00%, +0.00%]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           Lepomis gibbosus   2   +0.00%  [-17.56%, +17.56%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2 PCA axes retained (53.4% of variance), 7 species, FD_ref = 2.488</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Top 7 species by |mean %change in functional richness|:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  species   n mean_dFD            range_dFD</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      Barbatula barbatula  38  +19.70%  [-21.07%, +334.06%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Squalius cephalus 174  +14.87%   [+0.00%, +621.74%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         Gobio occitaniae 396  +13.95% [-19.68%, +1383.96%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Phoxinus phoxinus  71  +11.97%  [-19.56%, +182.93%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Leuciscus burdigalensis  25   +7.91%    [+0.00%, +28.27%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         Lepomis gibbosus   5   +6.33%   [-26.84%, +40.23%]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Perca fluviatilis  34   +6.03%   [-22.10%, +57.88%]</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

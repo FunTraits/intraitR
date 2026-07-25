@@ -98,9 +98,9 @@ Biologists: A Primer (2nd ed). Academic Press.
 # scale bar and incomplete/unidentified specimens are dropped first):
 fish <- load_t26_saudrune_landmarks()
 fish_shape <- fishmorph_shape_landmarks(fish)
-#> fishmorph_shape_landmarks(): dropping 230 specimen(s) with a missing landmark or unresolved species identification.
+#> fishmorph_shape_landmarks(): dropping 274 specimen(s) with a missing landmark or unresolved species identification.
 gpa <- gpa_fish(fish_shape)
-#> flag_outliers: 84 specimen(s) flagged as potential Procrustes-distance outlier(s) (threshold = median + 3.0 x MAD): T-26-0011_Operator_2, T-26-0052_Operator_1, T-26-0067_Operator_1, T-26-0067_Operator_2, T-26-0068_Operator_1, T-26-0068_Operator_2, T-26-0070_Operator_1, T-26-0070_Operator_2, T-26-0071_Operator_1, T-26-0071_Operator_2, T-26-0072_Operator_2, T-26-0073_Operator_2, T-26-0074_Operator_1, T-26-0074_Operator_2, T-26-0075_Operator_1, T-26-0075_Operator_2, T-26-0076_Operator_1, T-26-0076_Operator_2, T-26-0077_Operator_2, T-26-0078_Operator_2, T-26-0079_Operator_2, T-26-0080_Operator_1, T-26-0080_Operator_2, T-26-0082_Operator_1, T-26-0082_Operator_2, T-26-0085_Operator_1, T-26-0086_Operator_2, T-26-0090_Operator_2, T-26-0091_Operator_1, T-26-0091_Operator_2, T-26-0094_Operator_1, T-26-0096_Operator_1, T-26-0096_Operator_2, T-26-0097_Operator_1, T-26-0097_Operator_2, T-26-0098_Operator_2, T-26-0099_Operator_2, T-26-0103_Operator_1, T-26-0103_Operator_2, T-26-0104_Operator_2, T-26-0112-2_Operator_1, T-26-0112-2_Operator_2, T-26-0113_Operator_1, T-26-0116_Operator_1, T-26-0120_Operator_1, T-26-0120_Operator_2, T-26-0122_Operator_1, T-26-0128_Operator_1, T-26-0128_Operator_2, T-26-0130_Operator_1, T-26-0130_Operator_2, T-26-0230-1_Operator_2, T-26-0261-3_Operator_1, T-26-0261-5_Operator_1, T-26-0263_Operator_1, T-26-0263_Operator_2, T-26-0264-2_Operator_1, T-26-0264-2_Operator_2, T-26-0264-3_Operator_1, T-26-0264-4_Operator_1, T-26-0264-4_Operator_2, T-26-0265_Operator_1, T-26-0265_Operator_2, T-26-0266_Operator_1, T-26-0266_Operator_2, T-26-0268_Operator_1, T-26-0268_Operator_2, T-26-0269_Operator_1, T-26-0269_Operator_2, T-26-0270-1_Operator_1, T-26-0270-1_Operator_2, T-26-0270-2_Operator_1, T-26-0270-2_Operator_2, T-26-0271_Operator_1, T-26-0271_Operator_2, T-26-0272_Operator_1, T-26-0272_Operator_2, T-26-0273_Operator_1, T-26-0273_Operator_2, T-26-0276_Operator_1, T-26-0276_Operator_2, T-26-0277_Operator_1, T-26-0278-1_Operator_1, T-26-0278-2_Operator_2; this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them and re-align, or see $outlier_screen for details.
+#> flag_outliers: 183 specimen(s) flagged as potential Procrustes-distance outlier(s) (threshold = median + 3.0 x MAD): T-26-0009_Operator_2, T-26-0009_Operator_3, T-26-0009_Operator_4, T-26-0011_Operator_2, T-26-0011_Operator_3, T-26-0052_Operator_1, T-26-0052_Operator_4, T-26-0056_Operator_4, T-26-0067_Operator_1, T-26-0067_Operator_2, T-26-0067_Operator_3, T-26-0067_Operator_4, T-26-0068_Operator_1, T-26-0068_Operator_2, T-26-0068_Operator_3, T-26-0068_Operator_4, T-26-0070_Operator_1, T-26-0070_Operator_2, T-26-0070_Operator_3, T-26-0070_Operator_4, T-26-0071_Operator_1, T-26-0071_Operator_2, T-26-0071_Operator_4, T-26-0072_Operator_2, T-26-0072_Operator_4, T-26-0073_Operator_2, T-26-0073_Operator_4, T-26-0074_Operator_1, T-26-0074_Operator_2, T-26-0074_Operator_4, T-26-0075_Operator_1, T-26-0075_Operator_2, T-26-0075_Operator_4, T-26-0076_Operator_1, T-26-0076_Operator_2, T-26-0076_Operator_3, T-26-0076_Operator_4, T-26-0077_Operator_2, T-26-0077_Operator_4, T-26-0078_Operator_2, T-26-0078_Operator_4, T-26-0079_Operator_2, T-26-0079_Operator_4, T-26-0080_Operator_1, T-26-0080_Operator_2, T-26-0080_Operator_3, T-26-0080_Operator_4, T-26-0081_Operator_3, T-26-0081_Operator_4, T-26-0082_Operator_1, T-26-0082_Operator_2, T-26-0082_Operator_3, T-26-0082_Operator_4, T-26-0083_Operator_3, T-26-0083_Operator_4, T-26-0084_Operator_3, T-26-0084_Operator_4, T-26-0085_Operator_1, T-26-0085_Operator_3, T-26-0085_Operator_4, T-26-0086_Operator_2, T-26-0086_Operator_3, T-26-0086_Operator_4, T-26-0088_Operator_3, T-26-0088_Operator_4, T-26-0090_Operator_2, T-26-0090_Operator_3, T-26-0090_Operator_4, T-26-0091_Operator_1, T-26-0091_Operator_2, T-26-0091_Operator_3, T-26-0091_Operator_4, T-26-0092_Operator_3, T-26-0092_Operator_4, T-26-0093_Operator_3, T-26-0093_Operator_4, T-26-0094_Operator_1, T-26-0094_Operator_3, T-26-0094_Operator_4, T-26-0095_Operator_4, T-26-0096_Operator_1, T-26-0096_Operator_2, T-26-0096_Operator_4, T-26-0097_Operator_1, T-26-0097_Operator_2, T-26-0097_Operator_4, T-26-0098_Operator_2, T-26-0098_Operator_4, T-26-0099_Operator_2, T-26-0099_Operator_4, T-26-0100_Operator_4, T-26-0101_Operator_4, T-26-0102_Operator_4, T-26-0103_Operator_1, T-26-0103_Operator_2, T-26-0103_Operator_4, T-26-0104_Operator_2, T-26-0104_Operator_4, T-26-0107_Operator_4, T-26-0108_Operator_4, T-26-0109_Operator_4, T-26-0111_Operator_4, T-26-0112-2_Operator_1, T-26-0112-2_Operator_2, T-26-0113_Operator_1, T-26-0113_Operator_4, T-26-0114_Operator_4, T-26-0115_Operator_4, T-26-0116_Operator_1, T-26-0116_Operator_4, T-26-0117_Operator_4, T-26-0118_Operator_4, T-26-0120_Operator_1, T-26-0120_Operator_2, T-26-0120_Operator_4, T-26-0121_Operator_4, T-26-0122_Operator_1, T-26-0122_Operator_4, T-26-0123_Operator_4, T-26-0125_Operator_4, T-26-0126_Operator_4, T-26-0127_Operator_4, T-26-0128_Operator_1, T-26-0128_Operator_2, T-26-0128_Operator_4, T-26-0130_Operator_1, T-26-0130_Operator_2, T-26-0130_Operator_4, T-26-0138_Operator_3, T-26-0140_Operator_3, T-26-0141_Operator_3, T-26-0142_Operator_3, T-26-0167_Operator_3, T-26-0168_Operator_3, T-26-0190_Operator_4, T-26-0209_Operator_4, T-26-0230-1_Operator_2, T-26-0261-3_Operator_1, T-26-0261-5_Operator_1, T-26-0263_Operator_1, T-26-0263_Operator_2, T-26-0263_Operator_4, T-26-0264-2_Operator_1, T-26-0264-2_Operator_2, T-26-0264-3_Operator_1, T-26-0264-4_Operator_1, T-26-0264-4_Operator_2, T-26-0265_Operator_1, T-26-0265_Operator_2, T-26-0265_Operator_4, T-26-0266_Operator_1, T-26-0266_Operator_2, T-26-0266_Operator_4, T-26-0268_Operator_1, T-26-0268_Operator_2, T-26-0268_Operator_4, T-26-0269_Operator_1, T-26-0269_Operator_2, T-26-0269_Operator_4, T-26-0270-1_Operator_1, T-26-0270-1_Operator_2, T-26-0270-2_Operator_1, T-26-0270-2_Operator_2, T-26-0271_Operator_1, T-26-0271_Operator_2, T-26-0271_Operator_4, T-26-0272_Operator_1, T-26-0272_Operator_2, T-26-0272_Operator_4, T-26-0273_Operator_1, T-26-0273_Operator_2, T-26-0273_Operator_4, T-26-0274_Operator_4, T-26-0275_Operator_4, T-26-0276_Operator_1, T-26-0276_Operator_2, T-26-0276_Operator_4, T-26-0277_Operator_1, T-26-0277_Operator_4, T-26-0278-1_Operator_1, T-26-0278-2_Operator_1, T-26-0278-2_Operator_2, T-26-0279_Operator_4; this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them and re-align, or see $outlier_screen for details.
 distances <- list(SL = c(1, 2), BD = c(3, 4))
 ratios <- morpho_ratios(fish_shape, distances, norm_by = "SL")
 # \donttest{
@@ -122,143 +122,76 @@ iv
 #> 100 Permutations
 #> 
 #> Procrustes variances for defined groups
-#>                                 Barbatula barbatula             Barbus barbus 
-#>               0.008872289               0.075758555               0.054149386 
-#>          Gobio occitaniae          Lepomis gibbosus   Leuciscus burdigalensis 
-#>               0.038237871               0.044575344               0.012927875 
-#>         Perca fluviatilis         Phoxinus phoxinus Phoxinus phoxinus/bigerri 
-#>               0.039559048               0.058977497               0.069338245 
-#>         Squalius cephalus 
-#>               0.030266358 
+#>     Barbatula barbatula        Gobio occitaniae        Lepomis gibbosus 
+#>              0.05003387              0.03729353              0.04020467 
+#> Leuciscus burdigalensis       Perca fluviatilis       Phoxinus phoxinus 
+#>              0.01157969              0.03407003              0.05472135 
+#>       Squalius cephalus 
+#>              0.02571753 
 #> 
 #> 
 #> Pairwise absolute differences between variances
-#>                                       Barbatula barbatula Barbus barbus
-#>                           0.000000000          0.06688627   0.045277097
-#> Barbatula barbatula       0.066886266          0.00000000   0.021609169
-#> Barbus barbus             0.045277097          0.02160917   0.000000000
-#> Gobio occitaniae          0.029365582          0.03752068   0.015911516
-#> Lepomis gibbosus          0.035703055          0.03118321   0.009574042
-#> Leuciscus burdigalensis   0.004055586          0.06283068   0.041221511
-#> Perca fluviatilis         0.030686759          0.03619951   0.014590338
-#> Phoxinus phoxinus         0.050105208          0.01678106   0.004828111
-#> Phoxinus phoxinus/bigerri 0.060465956          0.00642031   0.015188859
-#> Squalius cephalus         0.021394069          0.04549220   0.023883028
-#>                           Gobio occitaniae Lepomis gibbosus
-#>                                0.029365582      0.035703055
-#> Barbatula barbatula            0.037520685      0.031183211
-#> Barbus barbus                  0.015911516      0.009574042
-#> Gobio occitaniae               0.000000000      0.006337473
-#> Lepomis gibbosus               0.006337473      0.000000000
-#> Leuciscus burdigalensis        0.025309995      0.031647469
-#> Perca fluviatilis              0.001321177      0.005016296
-#> Phoxinus phoxinus              0.020739626      0.014402153
-#> Phoxinus phoxinus/bigerri      0.031100374      0.024762901
-#> Squalius cephalus              0.007971512      0.014308986
-#>                           Leuciscus burdigalensis Perca fluviatilis
-#>                                       0.004055586       0.030686759
-#> Barbatula barbatula                   0.062830680       0.036199507
-#> Barbus barbus                         0.041221511       0.014590338
-#> Gobio occitaniae                      0.025309995       0.001321177
-#> Lepomis gibbosus                      0.031647469       0.005016296
-#> Leuciscus burdigalensis               0.000000000       0.026631173
-#> Perca fluviatilis                     0.026631173       0.000000000
-#> Phoxinus phoxinus                     0.046049622       0.019418449
-#> Phoxinus phoxinus/bigerri             0.056410370       0.029779197
-#> Squalius cephalus                     0.017338483       0.009292690
-#>                           Phoxinus phoxinus Phoxinus phoxinus/bigerri
-#>                                 0.050105208                0.06046596
-#> Barbatula barbatula             0.016781058                0.00642031
-#> Barbus barbus                   0.004828111                0.01518886
-#> Gobio occitaniae                0.020739626                0.03110037
-#> Lepomis gibbosus                0.014402153                0.02476290
-#> Leuciscus burdigalensis         0.046049622                0.05641037
-#> Perca fluviatilis               0.019418449                0.02977920
-#> Phoxinus phoxinus               0.000000000                0.01036075
-#> Phoxinus phoxinus/bigerri       0.010360748                0.00000000
-#> Squalius cephalus               0.028711139                0.03907189
-#>                           Squalius cephalus
-#>                                 0.021394069
-#> Barbatula barbatula             0.045492197
-#> Barbus barbus                   0.023883028
-#> Gobio occitaniae                0.007971512
-#> Lepomis gibbosus                0.014308986
-#> Leuciscus burdigalensis         0.017338483
-#> Perca fluviatilis               0.009292690
-#> Phoxinus phoxinus               0.028711139
-#> Phoxinus phoxinus/bigerri       0.039071887
-#> Squalius cephalus               0.000000000
+#>                         Barbatula barbatula Gobio occitaniae Lepomis gibbosus
+#> Barbatula barbatula             0.000000000      0.012740337      0.009829195
+#> Gobio occitaniae                0.012740337      0.000000000      0.002911142
+#> Lepomis gibbosus                0.009829195      0.002911142      0.000000000
+#> Leuciscus burdigalensis         0.038454176      0.025713839      0.028624981
+#> Perca fluviatilis               0.015963842      0.003223505      0.006134647
+#> Phoxinus phoxinus               0.004687484      0.017427821      0.014516679
+#> Squalius cephalus               0.024316339      0.011576002      0.014487144
+#>                         Leuciscus burdigalensis Perca fluviatilis
+#> Barbatula barbatula                  0.03845418       0.015963842
+#> Gobio occitaniae                     0.02571384       0.003223505
+#> Lepomis gibbosus                     0.02862498       0.006134647
+#> Leuciscus burdigalensis              0.00000000       0.022490334
+#> Perca fluviatilis                    0.02249033       0.000000000
+#> Phoxinus phoxinus                    0.04314166       0.020651326
+#> Squalius cephalus                    0.01413784       0.008352497
+#>                         Phoxinus phoxinus Squalius cephalus
+#> Barbatula barbatula           0.004687484       0.024316339
+#> Gobio occitaniae              0.017427821       0.011576002
+#> Lepomis gibbosus              0.014516679       0.014487144
+#> Leuciscus burdigalensis       0.043141660       0.014137837
+#> Perca fluviatilis             0.020651326       0.008352497
+#> Phoxinus phoxinus             0.000000000       0.029003823
+#> Squalius cephalus             0.029003823       0.000000000
 #> 
 #> 
 #> P-Values
-#>                                Barbatula barbatula Barbus barbus
-#>                           1.00                0.13          0.28
-#> Barbatula barbatula       0.13                1.00          0.24
-#> Barbus barbus             0.28                0.24          1.00
-#> Gobio occitaniae          0.43                0.08          0.32
-#> Lepomis gibbosus          0.49                0.32          0.79
-#> Leuciscus burdigalensis   0.98                0.04          0.08
-#> Perca fluviatilis         0.32                0.13          0.53
-#> Phoxinus phoxinus         0.24                0.26          0.80
-#> Phoxinus phoxinus/bigerri 0.13                0.75          0.50
-#> Squalius cephalus         0.76                0.04          0.15
-#>                           Gobio occitaniae Lepomis gibbosus
-#>                                       0.43             0.49
-#> Barbatula barbatula                   0.08             0.32
-#> Barbus barbus                         0.32             0.79
-#> Gobio occitaniae                      1.00             0.87
-#> Lepomis gibbosus                      0.87             1.00
-#> Leuciscus burdigalensis               0.08             0.30
-#> Perca fluviatilis                     0.90             0.94
-#> Phoxinus phoxinus                     0.06             0.71
-#> Phoxinus phoxinus/bigerri             0.12             0.48
-#> Squalius cephalus                     0.42             0.77
-#>                           Leuciscus burdigalensis Perca fluviatilis
-#>                                              0.98              0.32
-#> Barbatula barbatula                          0.04              0.13
-#> Barbus barbus                                0.08              0.53
-#> Gobio occitaniae                             0.08              0.90
-#> Lepomis gibbosus                             0.30              0.94
-#> Leuciscus burdigalensis                      1.00              0.16
-#> Perca fluviatilis                            0.16              1.00
-#> Phoxinus phoxinus                            0.06              0.21
-#> Phoxinus phoxinus/bigerri                    0.06              0.21
-#> Squalius cephalus                            0.28              0.51
-#>                           Phoxinus phoxinus Phoxinus phoxinus/bigerri
-#>                                        0.24                      0.13
-#> Barbatula barbatula                    0.26                      0.75
-#> Barbus barbus                          0.80                      0.50
-#> Gobio occitaniae                       0.06                      0.12
-#> Lepomis gibbosus                       0.71                      0.48
-#> Leuciscus burdigalensis                0.06                      0.06
-#> Perca fluviatilis                      0.21                      0.21
-#> Phoxinus phoxinus                      1.00                      0.62
-#> Phoxinus phoxinus/bigerri              0.62                      1.00
-#> Squalius cephalus                      0.06                      0.03
-#>                           Squalius cephalus
-#>                                        0.76
-#> Barbatula barbatula                    0.04
-#> Barbus barbus                          0.15
-#> Gobio occitaniae                       0.42
-#> Lepomis gibbosus                       0.77
-#> Leuciscus burdigalensis                0.28
-#> Perca fluviatilis                      0.51
-#> Phoxinus phoxinus                      0.06
-#> Phoxinus phoxinus/bigerri              0.03
-#> Squalius cephalus                      1.00
+#>                         Barbatula barbatula Gobio occitaniae Lepomis gibbosus
+#> Barbatula barbatula                    1.00             0.08             0.50
+#> Gobio occitaniae                       0.08             1.00             0.89
+#> Lepomis gibbosus                       0.50             0.89             1.00
+#> Leuciscus burdigalensis                0.04             0.04             0.15
+#> Perca fluviatilis                      0.14             0.65             0.75
+#> Phoxinus phoxinus                      0.56             0.01             0.44
+#> Squalius cephalus                      0.04             0.02             0.40
+#>                         Leuciscus burdigalensis Perca fluviatilis
+#> Barbatula barbatula                        0.04              0.14
+#> Gobio occitaniae                           0.04              0.65
+#> Lepomis gibbosus                           0.15              0.75
+#> Leuciscus burdigalensis                    1.00              0.08
+#> Perca fluviatilis                          0.08              1.00
+#> Phoxinus phoxinus                          0.01              0.04
+#> Squalius cephalus                          0.17              0.28
+#>                         Phoxinus phoxinus Squalius cephalus
+#> Barbatula barbatula                  0.56              0.04
+#> Gobio occitaniae                     0.01              0.02
+#> Lepomis gibbosus                     0.44              0.40
+#> Leuciscus burdigalensis              0.01              0.17
+#> Perca fluviatilis                    0.04              0.28
+#> Phoxinus phoxinus                    1.00              0.01
+#> Squalius cephalus                    0.01              1.00
 #> 
 #> 
 #> -- Coefficient of variation (%) of linear traits --
-#>                      group    trait   n      mean          sd cv_percent
-#>                            BD_ratio   1 0.2128000          NA         NA
-#>        Barbatula barbatula BD_ratio  19 0.4715211 1.238933160 262.752459
-#>              Barbus barbus BD_ratio   5 0.2288200 0.003401764   1.486655
-#>           Gobio occitaniae BD_ratio 147 0.2563986 0.027052273  10.550865
-#>           Lepomis gibbosus BD_ratio   2 0.4108000 0.032385491   7.883518
-#>    Leuciscus burdigalensis BD_ratio  13 0.2558846 0.025680727  10.036057
-#>          Perca fluviatilis BD_ratio  14 0.2819429 0.010413801   3.693586
-#>          Phoxinus phoxinus BD_ratio  27 0.2415000 0.015366222   6.362825
-#>  Phoxinus phoxinus/bigerri BD_ratio   5 0.2528400 0.018433204   7.290462
-#>          Squalius cephalus BD_ratio  95 0.2535168 0.023600729   9.309334
+#>                    group    trait   n      mean         sd cv_percent
+#>      Barbatula barbatula BD_ratio  39 0.3261308 0.86496555 265.220469
+#>         Gobio occitaniae BD_ratio 406 0.2550200 0.03108347  12.188643
+#>         Lepomis gibbosus BD_ratio   6 0.4080833 0.02154181   5.278778
+#>  Leuciscus burdigalensis BD_ratio  26 0.2569731 0.02592970  10.090434
+#>        Perca fluviatilis BD_ratio  34 0.2767676 0.02297231   8.300216
+#>        Phoxinus phoxinus BD_ratio  72 0.2378667 0.02895935  12.174617
+#>        Squalius cephalus BD_ratio 179 0.2551777 0.02656728  10.411288
 # }
 ```

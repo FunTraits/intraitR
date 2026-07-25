@@ -417,22 +417,21 @@ J. M. Diamond's assembly rules model. Ecology, 83(8), 2091-2096.
 # \donttest{
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
+#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ratios <- fishmorph_ratios(segments)
 ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
 #> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
-#> na_action = "omit": removing 230 row(s) out of 558 with missing values.
-#> flag_outliers: 21 specimen(s) flagged as within-group outlier(s) across 5 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Phoxinus phoxinus/bigerri, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
-#> flag_outliers: 2 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
+#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
+#> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
 
 # method = "dendrogram" needs no extra Suggested package
 bf_dendro <- bootstrap_functional_space(ts, method = "dendrogram", n_axes = 2, n_boot = 200)
 bf_dendro
 #> <intrait_bootstrap_fspace> (method = "dendrogram")
-#>   2 PCA axes retained (49.2% of variance), 10 species
-#>   Centroid-based reference richness (FD_ref): 13.55
-#>   Bootstrap richness (FD_boot, 200 draws): mean = 18.2, SD = 6.372, 5-95% = [12.92, 35.76]
-#>   Difference (mean FD_boot - FD_ref): 4.646 (one-sided bootstrap p = 0.1144)
+#>   2 PCA axes retained (53.4% of variance), 7 species
+#>   Centroid-based reference richness (FD_ref): 7.234
+#>   Bootstrap richness (FD_boot, 200 draws): mean = 12.5, SD = 8.896, 5-95% = [7.533, 23.74]
+#>   Difference (mean FD_boot - FD_ref): 5.263 (one-sided bootstrap p = 0.04478)
 plot(bf_dendro)
 
 
@@ -442,10 +441,10 @@ if (requireNamespace("geometry", quietly = TRUE)) {
   bf
 }
 #> <intrait_bootstrap_fspace> (method = "convexhull")
-#>   2 PCA axes retained (49.2% of variance), 10 species
-#>   Centroid-based reference richness (FD_ref): 6.104
-#>   Bootstrap richness (FD_boot, 200 draws): mean = 11.19, SD = 9.051, 5-95% = [5.474, 17.99]
-#>   Difference (mean FD_boot - FD_ref): 5.086 (one-sided bootstrap p = 0.1194)
+#>   2 PCA axes retained (53.4% of variance), 7 species
+#>   Centroid-based reference richness (FD_ref): 2.488
+#>   Bootstrap richness (FD_boot, 200 draws): mean = 4.816, SD = 3.008, 5-95% = [1.78, 8.628]
+#>   Difference (mean FD_boot - FD_ref): 2.328 (one-sided bootstrap p = 0.1393)
 if (requireNamespace("TPD", quietly = TRUE)) {
   bf_tpd <- bootstrap_functional_space(ts, method = "tpd", n_axes = 2, n_boot = 50)
   bf_tpd
@@ -655,10 +654,10 @@ if (requireNamespace("TPD", quietly = TRUE)) {
 #> Calculating FEvenness of communities
 #> Calculating FDivergence of communities
 #> <intrait_bootstrap_fspace> (method = "tpd")
-#>   2 PCA axes retained (49.2% of variance), 10 species
-#>   Centroid-based reference richness (FD_ref): 36.67
-#>   Bootstrap richness (FD_boot, 50 draws): mean = 43.29, SD = 5.62, 5-95% = [35.83, 55.67]
-#>   Difference (mean FD_boot - FD_ref): 6.615 (one-sided bootstrap p = 0.09804)
+#>   2 PCA axes retained (53.4% of variance), 7 species
+#>   Centroid-based reference richness (FD_ref): 26.31
+#>   Bootstrap richness (FD_boot, 50 draws): mean = 33.42, SD = 5.542, 5-95% = [25.56, 42.49]
+#>   Difference (mean FD_boot - FD_ref): 7.114 (one-sided bootstrap p = 0.09804)
 if (requireNamespace("hypervolume", quietly = TRUE)) {
   # small n_boot: method = "hypervolume" is comparatively slow
   bf_hv <- bootstrap_functional_space(ts, method = "hypervolume", n_axes = 2, n_boot = 20)
@@ -667,10 +666,10 @@ if (requireNamespace("hypervolume", quietly = TRUE)) {
 #> Note that the formula used for the Silverman estimator differs in version 3 compared to prior versions of this package.
 #> Use method='silverman-1d' to replicate prior behavior.
 #> <intrait_bootstrap_fspace> (method = "hypervolume")
-#>   2 PCA axes retained (49.2% of variance), 10 species
-#>   Centroid-based reference richness (FD_ref): 19.14
-#>   Bootstrap richness (FD_boot, 20 draws): mean = 23.93, SD = 3.291, 5-95% = [19.33, 29.76]
-#>   Difference (mean FD_boot - FD_ref): 4.787 (one-sided bootstrap p = 0.09524)
+#>   2 PCA axes retained (53.4% of variance), 7 species
+#>   Centroid-based reference richness (FD_ref): 11.5
+#>   Bootstrap richness (FD_boot, 20 draws): mean = 16.84, SD = 2.83, 5-95% = [12.37, 21.22]
+#>   Difference (mean FD_boot - FD_ref): 5.342 (one-sided bootstrap p = 0.04762)
 
 # Per-community results: a communities x species composition matrix
 # (here, three toy communities over the species in `ts`) gives obs/
@@ -690,10 +689,10 @@ bf_comm <- bootstrap_functional_space(
   ts, method = "dendrogram", n_axes = 2, n_boot = 200, composition = composition
 )
 bf_comm$communities
-#>   community n_species    fd_obs fd_expected    fd_sd        ses   p_value
-#> 1    site_A         3  7.225431    8.191091 5.726199 -0.1686390 0.5671642
-#> 2    site_B         3  4.872859    7.459348 4.120782 -0.6276695 0.1592040
-#> 3    site_C        10 13.551419   17.999694 6.309353 -0.7050288 0.1194030
+#>   community n_species   fd_obs fd_expected    fd_sd        ses    p_value
+#> 1    site_A         3 3.997189    5.962147 2.640699 -0.7441055 0.18407960
+#> 2    site_B         3 4.767717    6.568376 8.110058 -0.2220279 0.28358209
+#> 3    site_C         7 7.234171   11.634389 4.748301 -0.9266934 0.07462687
 plot(bf_comm, type = "communities")
 
 # }

@@ -252,7 +252,7 @@ plot_fishmorph_points(fish_fixed, specimen = "T-26-0010_Operator_1") # point 11 
 geom_check <- correct_landmarks(fish, rule = "check_geometry")
 geom_check
 #> <intrait_geometry_check>
-#>   3906 check(s) across 558 specimen(s): 816 non-conforming, 4 skipped (missing landmark(s))
+#>   7252 check(s) across 1036 specimen(s): 1381 non-conforming, 4 skipped (missing landmark(s))
 #>   tolerance = 2.0 deg (orientation checks), 2.0% of body length (coordinate checks)
 #> 
 #>   Non-conforming:
@@ -261,17 +261,35 @@ geom_check
 #>    T-26-0001_Operator_2        eye_axis_vertical_alignment  2.28200603    deg
 #>    T-26-0002_Operator_1           axis_horizontal_parallel  0.02821111 rel_bl
 #>    T-26-0002_Operator_2        eye_axis_vertical_alignment  4.25319850    deg
+#>    T-26-0002_Operator_4 perpendicular_eye_vertical_vs_axis  0.02601785 rel_bl
+#>    T-26-0002_Operator_4           axis_horizontal_parallel  0.02196202 rel_bl
+#>    T-26-0002_Operator_4         parallel_vertical_segments  3.73576459    deg
 #>    T-26-0003_Operator_2        eye_axis_vertical_alignment  2.06245324    deg
+#>    T-26-0003_Operator_4        eye_axis_vertical_alignment  5.77112238    deg
+#>    T-26-0003_Operator_4 perpendicular_eye_vertical_vs_axis  0.02394456 rel_bl
+#>    T-26-0003_Operator_4         parallel_vertical_segments  3.15524627    deg
+#>    T-26-0004_Operator_4        eye_axis_vertical_alignment  2.49945756    deg
 #>    T-26-0005_Operator_2         parallel_vertical_segments  2.47820697    deg
+#>    T-26-0005_Operator_4        eye_axis_vertical_alignment  3.38156289    deg
+#>    T-26-0005_Operator_4 perpendicular_eye_vertical_vs_axis  0.02674282 rel_bl
+#>    T-26-0005_Operator_4         parallel_vertical_segments  5.46958136    deg
 #>    T-26-0006_Operator_1        eye_axis_vertical_alignment  4.09018689    deg
 #>    T-26-0006_Operator_1           axis_horizontal_parallel  0.03378258 rel_bl
 #>    T-26-0006_Operator_1         parallel_vertical_segments  3.20423801    deg
 #>    T-26-0006_Operator_2        eye_axis_vertical_alignment  4.77894613    deg
+#>    T-26-0006_Operator_4        eye_axis_vertical_alignment  2.43124445    deg
+#>    T-26-0006_Operator_4           axis_horizontal_parallel  0.02385330 rel_bl
 #>    T-26-0007_Operator_1         parallel_vertical_segments  2.24034296    deg
 #>    T-26-0007_Operator_2        eye_axis_vertical_alignment  3.22705269    deg
+#>    T-26-0007_Operator_4        eye_axis_vertical_alignment  2.63247759    deg
 #>    T-26-0008_Operator_1           axis_horizontal_parallel  0.02318076 rel_bl
 #>    T-26-0008_Operator_1         parallel_vertical_segments  2.93772407    deg
+#>    T-26-0008_Operator_3         parallel_vertical_segments  2.17461472    deg
 #>    T-26-0009_Operator_2        eye_axis_vertical_alignment  2.09500646    deg
+#>    T-26-0009_Operator_4        eye_axis_vertical_alignment  6.53719835    deg
+#>    T-26-0009_Operator_4      perpendicular_seg_3_4_vs_axis  0.02099313 rel_bl
+#>    T-26-0009_Operator_4 perpendicular_eye_vertical_vs_axis  0.04982099 rel_bl
+#>    T-26-0009_Operator_4         parallel_vertical_segments  3.70445996    deg
 #>    T-26-0010_Operator_1        eye_axis_vertical_alignment  2.26859830    deg
 #>    T-26-0010_Operator_1           axis_horizontal_parallel  0.05950329 rel_bl
 #>    T-26-0010_Operator_1         parallel_vertical_segments  2.36584189    deg
@@ -279,10 +297,18 @@ geom_check
 #>    T-26-0010_Operator_2      perpendicular_seg_3_4_vs_axis  0.02324656 rel_bl
 #>    T-26-0010_Operator_2 perpendicular_eye_vertical_vs_axis  0.06934422 rel_bl
 #>    T-26-0010_Operator_2         parallel_vertical_segments  9.34496157    deg
+#>    T-26-0010_Operator_4        eye_axis_vertical_alignment  5.60059779    deg
+#>    T-26-0010_Operator_4 perpendicular_eye_vertical_vs_axis  0.03278505 rel_bl
+#>    T-26-0010_Operator_4         parallel_vertical_segments  2.93690965    deg
 #>    T-26-0011_Operator_1         parallel_vertical_segments  3.19793371    deg
 #>    T-26-0011_Operator_2        eye_axis_vertical_alignment  2.61665394    deg
 #>    T-26-0011_Operator_2      perpendicular_seg_3_4_vs_axis  0.02456198 rel_bl
 #>    T-26-0011_Operator_2         parallel_vertical_segments  2.65401682    deg
+#>    T-26-0011_Operator_3         parallel_vertical_segments  3.62953528    deg
+#>    T-26-0011_Operator_4        eye_axis_vertical_alignment 31.12993160    deg
+#>    T-26-0011_Operator_4 perpendicular_eye_vertical_vs_axis  0.06959513 rel_bl
+#>    T-26-0011_Operator_4           axis_horizontal_parallel  0.02083383 rel_bl
+#>    T-26-0011_Operator_4         parallel_vertical_segments 66.63767028    deg
 #>    T-26-0012_Operator_1        eye_axis_vertical_alignment  8.65675239    deg
 #>    T-26-0012_Operator_1      perpendicular_seg_3_4_vs_axis  0.02555507 rel_bl
 #>    T-26-0012_Operator_1 perpendicular_eye_vertical_vs_axis  0.02305512 rel_bl
@@ -293,26 +319,49 @@ geom_check
 #>    T-26-0012_Operator_2 perpendicular_eye_vertical_vs_axis  0.17101063 rel_bl
 #>    T-26-0012_Operator_2           axis_horizontal_parallel  0.02802398 rel_bl
 #>    T-26-0012_Operator_2         parallel_vertical_segments 31.51557649    deg
+#>    T-26-0012_Operator_4        eye_axis_vertical_alignment  7.43627401    deg
+#>    T-26-0012_Operator_4      perpendicular_seg_3_4_vs_axis  0.04136833 rel_bl
+#>    T-26-0012_Operator_4 perpendicular_eye_vertical_vs_axis  0.02916542 rel_bl
+#>    T-26-0012_Operator_4           axis_horizontal_parallel  0.03329630 rel_bl
+#>    T-26-0012_Operator_4         parallel_vertical_segments  3.44174880    deg
 #>    T-26-0013_Operator_2        eye_axis_vertical_alignment  2.55571738    deg
+#>    T-26-0013_Operator_3         parallel_vertical_segments  2.14196862    deg
+#>    T-26-0013_Operator_4        eye_axis_vertical_alignment  5.58884768    deg
+#>    T-26-0013_Operator_4 perpendicular_eye_vertical_vs_axis  0.04424194 rel_bl
+#>    T-26-0013_Operator_4         parallel_vertical_segments  5.83838358    deg
 #>    T-26-0014_Operator_1        eye_axis_vertical_alignment  3.76617362    deg
 #>    T-26-0015_Operator_2        eye_axis_vertical_alignment  2.20407713    deg
+#>    T-26-0015_Operator_4 perpendicular_eye_vertical_vs_axis  0.03017998 rel_bl
+#>    T-26-0015_Operator_4         parallel_vertical_segments  3.68222158    deg
 #>    T-26-0016_Operator_1        eye_axis_vertical_alignment  2.85329402    deg
 #>    T-26-0016_Operator_2        eye_axis_vertical_alignment  3.22124248    deg
 #>    T-26-0016_Operator_2         parallel_vertical_segments  2.36101014    deg
+#>    T-26-0016_Operator_4        eye_axis_vertical_alignment  2.17866919    deg
 #>    T-26-0017_Operator_2        eye_axis_vertical_alignment  3.18736306    deg
+#>    T-26-0017_Operator_4        eye_axis_vertical_alignment  5.11773711    deg
+#>    T-26-0017_Operator_4         parallel_vertical_segments  5.40243927    deg
 #>    T-26-0018_Operator_1        eye_axis_vertical_alignment  2.11104863    deg
 #>    T-26-0018_Operator_2 perpendicular_eye_vertical_vs_axis  0.03830315 rel_bl
 #>    T-26-0018_Operator_2         parallel_vertical_segments  5.62192403    deg
+#>    T-26-0018_Operator_4         parallel_vertical_segments  3.53604358    deg
 #>    T-26-0019_Operator_2        eye_axis_vertical_alignment  2.35075447    deg
 #>    T-26-0020_Operator_2        eye_axis_vertical_alignment 19.13620270    deg
 #>    T-26-0020_Operator_2 perpendicular_eye_vertical_vs_axis  0.14201665 rel_bl
 #>    T-26-0020_Operator_2         parallel_vertical_segments 19.08358083    deg
+#>    T-26-0020_Operator_4        eye_axis_vertical_alignment  6.60967861    deg
+#>    T-26-0020_Operator_4 perpendicular_eye_vertical_vs_axis  0.05600966 rel_bl
+#>    T-26-0020_Operator_4         parallel_vertical_segments  5.52475221    deg
 #>    T-26-0022_Operator_1           axis_horizontal_parallel  0.03417441 rel_bl
 #>    T-26-0022_Operator_2        eye_axis_vertical_alignment  6.66698299    deg
 #>    T-26-0022_Operator_2      perpendicular_seg_3_4_vs_axis  0.02467105 rel_bl
 #>    T-26-0022_Operator_2           axis_horizontal_parallel  0.03015350 rel_bl
+#>    T-26-0022_Operator_4        eye_axis_vertical_alignment  4.38273804    deg
+#>    T-26-0022_Operator_4           axis_horizontal_parallel  0.03229633 rel_bl
 #>  T-26-0023-2_Operator_2        eye_axis_vertical_alignment  2.13398457    deg
 #>  T-26-0023-2_Operator_2         parallel_vertical_segments  2.42316155    deg
+#>    T-26-0023_Operator_4        eye_axis_vertical_alignment 22.58755273    deg
+#>    T-26-0023_Operator_4 perpendicular_eye_vertical_vs_axis  0.15331183 rel_bl
+#>    T-26-0023_Operator_4         parallel_vertical_segments 24.91832420    deg
 #>    T-26-0024_Operator_1        eye_axis_vertical_alignment 14.16684410    deg
 #>    T-26-0024_Operator_1      perpendicular_seg_1_9_vs_axis  0.03559121 rel_bl
 #>    T-26-0024_Operator_1      perpendicular_seg_3_4_vs_axis  0.06206868 rel_bl
@@ -323,12 +372,27 @@ geom_check
 #>    T-26-0024_Operator_2      perpendicular_seg_3_4_vs_axis  0.03248931 rel_bl
 #>    T-26-0024_Operator_2 perpendicular_eye_vertical_vs_axis  0.02588972 rel_bl
 #>    T-26-0024_Operator_2           axis_horizontal_parallel  0.03807311 rel_bl
+#>    T-26-0024_Operator_4        eye_axis_vertical_alignment  4.95454856    deg
+#>    T-26-0024_Operator_4      perpendicular_seg_3_4_vs_axis  0.02308206 rel_bl
+#>    T-26-0024_Operator_4 perpendicular_eye_vertical_vs_axis  0.02223117 rel_bl
+#>    T-26-0024_Operator_4           axis_horizontal_parallel  0.03855549 rel_bl
 #>    T-26-0025_Operator_2        eye_axis_vertical_alignment  2.80012352    deg
 #>    T-26-0025_Operator_2           axis_horizontal_parallel  0.02034419 rel_bl
+#>    T-26-0025_Operator_4        eye_axis_vertical_alignment  5.85361485    deg
+#>    T-26-0025_Operator_4      perpendicular_seg_3_4_vs_axis  0.02270069 rel_bl
+#>    T-26-0025_Operator_4           axis_horizontal_parallel  0.02258627 rel_bl
 #>    T-26-0026_Operator_1        eye_axis_vertical_alignment  3.05152993    deg
 #>    T-26-0026_Operator_2        eye_axis_vertical_alignment  3.91131424    deg
+#>    T-26-0026_Operator_4        eye_axis_vertical_alignment  3.37884130    deg
+#>    T-26-0026_Operator_4         parallel_vertical_segments  4.53959125    deg
 #>    T-26-0027_Operator_2        eye_axis_vertical_alignment  3.01144837    deg
+#>    T-26-0027_Operator_4        eye_axis_vertical_alignment  4.82847414    deg
+#>    T-26-0027_Operator_4      perpendicular_seg_3_4_vs_axis  0.02384916 rel_bl
+#>    T-26-0027_Operator_4         parallel_vertical_segments  2.54459705    deg
 #>    T-26-0028_Operator_2        eye_axis_vertical_alignment  3.27027789    deg
+#>    T-26-0028_Operator_4        eye_axis_vertical_alignment  3.68449896    deg
+#>    T-26-0028_Operator_4      perpendicular_seg_3_4_vs_axis  0.02013828 rel_bl
+#>    T-26-0028_Operator_4         parallel_vertical_segments  2.41379629    deg
 #>    T-26-0029_Operator_1        eye_axis_vertical_alignment 10.77486308    deg
 #>    T-26-0029_Operator_1      perpendicular_seg_1_9_vs_axis  0.03982603 rel_bl
 #>    T-26-0029_Operator_1      perpendicular_seg_3_4_vs_axis  0.07241096 rel_bl
@@ -340,15 +404,25 @@ geom_check
 #>    T-26-0029_Operator_2      perpendicular_seg_3_4_vs_axis  0.04353441 rel_bl
 #>    T-26-0029_Operator_2 perpendicular_eye_vertical_vs_axis  0.02478922 rel_bl
 #>    T-26-0029_Operator_2           axis_horizontal_parallel  0.04353441 rel_bl
+#>    T-26-0029_Operator_4        eye_axis_vertical_alignment  8.05629319    deg
+#>    T-26-0029_Operator_4      perpendicular_seg_1_9_vs_axis  0.02753315 rel_bl
+#>    T-26-0029_Operator_4      perpendicular_seg_3_4_vs_axis  0.05763225 rel_bl
+#>    T-26-0029_Operator_4    perpendicular_seg_10_11_vs_axis  0.02174166 rel_bl
+#>    T-26-0029_Operator_4 perpendicular_eye_vertical_vs_axis  0.03400419 rel_bl
+#>    T-26-0029_Operator_4           axis_horizontal_parallel  0.04396715 rel_bl
 #>    T-26-0030_Operator_2         parallel_vertical_segments  3.67173590    deg
+#>    T-26-0030_Operator_4         parallel_vertical_segments  2.12092305    deg
 #>    T-26-0031_Operator_1           axis_horizontal_parallel  0.03598045 rel_bl
 #>    T-26-0031_Operator_2        eye_axis_vertical_alignment 18.09447130    deg
 #>    T-26-0031_Operator_2      perpendicular_seg_3_4_vs_axis  0.02661882 rel_bl
 #>    T-26-0031_Operator_2 perpendicular_eye_vertical_vs_axis  0.10647528 rel_bl
 #>    T-26-0031_Operator_2           axis_horizontal_parallel  0.02972435 rel_bl
 #>    T-26-0031_Operator_2         parallel_vertical_segments 13.24765166    deg
+#>    T-26-0031_Operator_4        eye_axis_vertical_alignment  4.89599257    deg
+#>    T-26-0031_Operator_4           axis_horizontal_parallel  0.03234403 rel_bl
 #>    T-26-0032_Operator_2        eye_axis_vertical_alignment  4.17053787    deg
 #>    T-26-0032_Operator_2           axis_horizontal_parallel  0.02079181 rel_bl
+#>    T-26-0032_Operator_4         parallel_vertical_segments  3.45287946    deg
 #>    T-26-0033_Operator_1         parallel_vertical_segments  2.20761771    deg
 #>    T-26-0034_Operator_1        eye_axis_vertical_alignment  9.48089875    deg
 #>    T-26-0034_Operator_1      perpendicular_seg_1_9_vs_axis  0.02636274 rel_bl
@@ -362,7 +436,16 @@ geom_check
 #>    T-26-0034_Operator_2    perpendicular_seg_10_11_vs_axis  0.02669911 rel_bl
 #>    T-26-0034_Operator_2 perpendicular_eye_vertical_vs_axis  0.03817138 rel_bl
 #>    T-26-0034_Operator_2           axis_horizontal_parallel  0.04630626 rel_bl
+#>    T-26-0034_Operator_4        eye_axis_vertical_alignment  4.52766414    deg
+#>    T-26-0034_Operator_4      perpendicular_seg_3_4_vs_axis  0.03320982 rel_bl
+#>    T-26-0034_Operator_4 perpendicular_eye_vertical_vs_axis  0.02563956 rel_bl
+#>    T-26-0034_Operator_4           axis_horizontal_parallel  0.04613853 rel_bl
+#>    T-26-0034_Operator_4         parallel_vertical_segments  2.31097591    deg
 #>    T-26-0035_Operator_2         parallel_vertical_segments  2.02407753    deg
+#>    T-26-0035_Operator_4        eye_axis_vertical_alignment  3.95120244    deg
+#>    T-26-0035_Operator_4 perpendicular_eye_vertical_vs_axis  0.03373904 rel_bl
+#>    T-26-0035_Operator_4         parallel_vertical_segments  3.86906654    deg
+#>    T-26-0036_Operator_4         parallel_vertical_segments  2.64381813    deg
 #>    T-26-0037_Operator_2        eye_axis_vertical_alignment  3.84899937    deg
 #>    T-26-0040_Operator_1        eye_axis_vertical_alignment  8.11951704    deg
 #>    T-26-0040_Operator_1      perpendicular_seg_3_4_vs_axis  0.03583418 rel_bl
@@ -372,49 +455,97 @@ geom_check
 #>    T-26-0040_Operator_2      perpendicular_seg_3_4_vs_axis  0.02850116 rel_bl
 #>    T-26-0040_Operator_2 perpendicular_eye_vertical_vs_axis  0.02261386 rel_bl
 #>    T-26-0040_Operator_2           axis_horizontal_parallel  0.02930401 rel_bl
+#>    T-26-0040_Operator_4        eye_axis_vertical_alignment  3.54502223    deg
+#>    T-26-0040_Operator_4      perpendicular_seg_3_4_vs_axis  0.02842227 rel_bl
+#>    T-26-0040_Operator_4           axis_horizontal_parallel  0.03112320 rel_bl
+#>    T-26-0040_Operator_4         parallel_vertical_segments  4.95012352    deg
 #>    T-26-0041_Operator_1        eye_axis_vertical_alignment  2.02137210    deg
 #>    T-26-0041_Operator_1           axis_horizontal_parallel  0.02040660 rel_bl
 #>    T-26-0041_Operator_1         parallel_vertical_segments  2.62485419    deg
 #>    T-26-0041_Operator_2        eye_axis_vertical_alignment  3.34613548    deg
 #>    T-26-0041_Operator_2         parallel_vertical_segments  2.16193460    deg
+#>    T-26-0041_Operator_4        eye_axis_vertical_alignment  3.59712211    deg
+#>    T-26-0041_Operator_4           axis_horizontal_parallel  0.02274661 rel_bl
+#>    T-26-0041_Operator_4         parallel_vertical_segments  2.09843294    deg
 #>    T-26-0042_Operator_1        eye_axis_vertical_alignment  2.91622456    deg
 #>    T-26-0042_Operator_2        eye_axis_vertical_alignment  3.88064964    deg
+#>    T-26-0042_Operator_4        eye_axis_vertical_alignment  4.98132429    deg
+#>    T-26-0042_Operator_4         parallel_vertical_segments  2.98550042    deg
 #>    T-26-0043_Operator_2        eye_axis_vertical_alignment  3.52886621    deg
 #>    T-26-0043_Operator_2           axis_horizontal_parallel  0.02246577 rel_bl
+#>    T-26-0043_Operator_4        eye_axis_vertical_alignment  7.16463366    deg
+#>    T-26-0043_Operator_4 perpendicular_eye_vertical_vs_axis  0.02926326 rel_bl
+#>    T-26-0043_Operator_4           axis_horizontal_parallel  0.02115695 rel_bl
+#>    T-26-0043_Operator_4         parallel_vertical_segments  4.54715014    deg
 #>    T-26-0044_Operator_1        eye_axis_vertical_alignment  2.12645356    deg
 #>    T-26-0044_Operator_2        eye_axis_vertical_alignment  6.70589142    deg
 #>    T-26-0044_Operator_2 perpendicular_eye_vertical_vs_axis  0.03912003 rel_bl
 #>    T-26-0044_Operator_2         parallel_vertical_segments  3.41035563    deg
+#>    T-26-0044_Operator_4         parallel_vertical_segments  2.50340438    deg
 #>    T-26-0045_Operator_2        eye_axis_vertical_alignment  2.45635832    deg
+#>    T-26-0045_Operator_4        eye_axis_vertical_alignment  2.51494952    deg
+#>    T-26-0045_Operator_4         parallel_vertical_segments  5.23312856    deg
 #>    T-26-0046_Operator_2        eye_axis_vertical_alignment  2.37207268    deg
 #>    T-26-0047_Operator_2        eye_axis_vertical_alignment  2.71315972    deg
 #>    T-26-0048_Operator_1           axis_horizontal_parallel  0.02106421 rel_bl
 #>    T-26-0048_Operator_1         parallel_vertical_segments  2.39327667    deg
 #>    T-26-0048_Operator_2        eye_axis_vertical_alignment  3.53379334    deg
 #>    T-26-0048_Operator_2         parallel_vertical_segments  2.18431183    deg
+#>    T-26-0048_Operator_4        eye_axis_vertical_alignment  4.75452089    deg
+#>    T-26-0048_Operator_4           axis_horizontal_parallel  0.02627747 rel_bl
+#>    T-26-0048_Operator_4         parallel_vertical_segments  2.93456349    deg
 #>    T-26-0049_Operator_1        eye_axis_vertical_alignment  2.46165855    deg
 #>    T-26-0049_Operator_1           axis_horizontal_parallel  0.03899065 rel_bl
 #>    T-26-0049_Operator_2        eye_axis_vertical_alignment  3.94845583    deg
 #>    T-26-0049_Operator_2           axis_horizontal_parallel  0.03043320 rel_bl
+#>    T-26-0049_Operator_4        eye_axis_vertical_alignment  3.65432822    deg
+#>    T-26-0049_Operator_4           axis_horizontal_parallel  0.03639919 rel_bl
 #>    T-26-0050_Operator_1         parallel_vertical_segments  2.63536778    deg
 #>    T-26-0050_Operator_2        eye_axis_vertical_alignment 45.00000000    deg
 #>    T-26-0050_Operator_2           axis_horizontal_parallel  0.22007925 rel_bl
+#>    T-26-0050_Operator_4        eye_axis_vertical_alignment 24.33525316    deg
+#>    T-26-0050_Operator_4           axis_horizontal_parallel  0.16351872 rel_bl
+#>    T-26-0050_Operator_4         parallel_vertical_segments  5.19492488    deg
 #>    T-26-0051_Operator_1        eye_axis_vertical_alignment  2.12594486    deg
+#>    T-26-0051_Operator_4        eye_axis_vertical_alignment  2.03278368    deg
 #>    T-26-0052_Operator_1        eye_axis_vertical_alignment  2.47607111    deg
 #>    T-26-0052_Operator_1           axis_horizontal_parallel  0.17349589 rel_bl
 #>    T-26-0052_Operator_1         parallel_vertical_segments  6.99188758    deg
 #>    T-26-0052_Operator_2        eye_axis_vertical_alignment  6.36773820    deg
 #>    T-26-0052_Operator_2      perpendicular_seg_3_4_vs_axis  0.02808398 rel_bl
 #>    T-26-0052_Operator_2           axis_horizontal_parallel  0.03446670 rel_bl
+#>    T-26-0052_Operator_3        eye_axis_vertical_alignment 18.01915191    deg
+#>    T-26-0052_Operator_3      perpendicular_seg_1_9_vs_axis  0.03837706 rel_bl
+#>    T-26-0052_Operator_3      perpendicular_seg_3_4_vs_axis  0.07931294 rel_bl
+#>    T-26-0052_Operator_3    perpendicular_seg_10_11_vs_axis  0.02343902 rel_bl
+#>    T-26-0052_Operator_3 perpendicular_eye_vertical_vs_axis  0.04127832 rel_bl
+#>    T-26-0052_Operator_3           axis_horizontal_parallel  0.08100087 rel_bl
+#>    T-26-0052_Operator_4        eye_axis_vertical_alignment 22.91541907    deg
+#>    T-26-0052_Operator_4      perpendicular_seg_1_9_vs_axis  0.06270793 rel_bl
+#>    T-26-0052_Operator_4      perpendicular_seg_3_4_vs_axis  0.11631397 rel_bl
+#>    T-26-0052_Operator_4    perpendicular_seg_10_11_vs_axis  0.04904673 rel_bl
+#>    T-26-0052_Operator_4 perpendicular_eye_vertical_vs_axis  0.08830068 rel_bl
+#>    T-26-0052_Operator_4           axis_horizontal_parallel  0.11175466 rel_bl
+#>    T-26-0052_Operator_4         parallel_vertical_segments  3.60500890    deg
 #>    T-26-0053_Operator_1        eye_axis_vertical_alignment  2.60442503    deg
 #>    T-26-0053_Operator_2        eye_axis_vertical_alignment  5.15277791    deg
 #>    T-26-0053_Operator_2      perpendicular_seg_3_4_vs_axis  0.02334124 rel_bl
 #>    T-26-0053_Operator_2           axis_horizontal_parallel  0.02216669 rel_bl
+#>    T-26-0053_Operator_4        eye_axis_vertical_alignment  5.59019476    deg
+#>    T-26-0053_Operator_4           axis_horizontal_parallel  0.02181439 rel_bl
+#>    T-26-0053_Operator_4         parallel_vertical_segments  2.29093248    deg
 #>    T-26-0054_Operator_2        eye_axis_vertical_alignment  2.83987734    deg
+#>    T-26-0054_Operator_4        eye_axis_vertical_alignment  2.33028452    deg
+#>    T-26-0054_Operator_4         parallel_vertical_segments  2.91612695    deg
 #>    T-26-0055_Operator_2        eye_axis_vertical_alignment  2.71947019    deg
 #>  T-26-0056-2_Operator_2        eye_axis_vertical_alignment  4.71313225    deg
 #>  T-26-0056-2_Operator_2      perpendicular_seg_3_4_vs_axis  0.02332223 rel_bl
 #>  T-26-0056-2_Operator_2           axis_horizontal_parallel  0.02190858 rel_bl
+#>    T-26-0056_Operator_4        eye_axis_vertical_alignment 13.14902036    deg
+#>    T-26-0056_Operator_4      perpendicular_seg_3_4_vs_axis  0.09536334 rel_bl
+#>    T-26-0056_Operator_4 perpendicular_eye_vertical_vs_axis  0.06132773 rel_bl
+#>    T-26-0056_Operator_4           axis_horizontal_parallel  0.02243138 rel_bl
+#>    T-26-0056_Operator_4         parallel_vertical_segments  8.30139895    deg
 #>    T-26-0058_Operator_1        eye_axis_vertical_alignment  4.88838220    deg
 #>    T-26-0058_Operator_1      perpendicular_seg_3_4_vs_axis  0.04173741 rel_bl
 #>    T-26-0058_Operator_1 perpendicular_eye_vertical_vs_axis  0.02192983 rel_bl
@@ -423,22 +554,41 @@ geom_check
 #>    T-26-0058_Operator_2        eye_axis_vertical_alignment  4.93466560    deg
 #>    T-26-0058_Operator_2      perpendicular_seg_3_4_vs_axis  0.02417451 rel_bl
 #>    T-26-0058_Operator_2           axis_horizontal_parallel  0.03235118 rel_bl
+#>    T-26-0058_Operator_4        eye_axis_vertical_alignment  2.27511979    deg
+#>    T-26-0058_Operator_4      perpendicular_seg_3_4_vs_axis  0.02303281 rel_bl
+#>    T-26-0058_Operator_4 perpendicular_eye_vertical_vs_axis  0.02033999 rel_bl
+#>    T-26-0058_Operator_4           axis_horizontal_parallel  0.02999578 rel_bl
+#>    T-26-0058_Operator_4         parallel_vertical_segments  3.37553534    deg
 #>    T-26-0059_Operator_1         parallel_vertical_segments  2.71002505    deg
 #>    T-26-0059_Operator_2        eye_axis_vertical_alignment  2.40688716    deg
+#>    T-26-0059_Operator_4 perpendicular_eye_vertical_vs_axis  0.02226305 rel_bl
+#>    T-26-0059_Operator_4         parallel_vertical_segments  4.50194656    deg
 #>    T-26-0060_Operator_1        eye_axis_vertical_alignment  2.43941566    deg
 #>    T-26-0061_Operator_2        eye_axis_vertical_alignment  4.18495318    deg
 #>    T-26-0061_Operator_2           axis_horizontal_parallel  0.02479981 rel_bl
+#>    T-26-0061_Operator_4      perpendicular_seg_3_4_vs_axis  0.02347176 rel_bl
+#>    T-26-0061_Operator_4           axis_horizontal_parallel  0.02695653 rel_bl
+#>    T-26-0061_Operator_4         parallel_vertical_segments  4.45244882    deg
 #>    T-26-0062_Operator_2        eye_axis_vertical_alignment  2.38847839    deg
+#>    T-26-0062_Operator_4        eye_axis_vertical_alignment  2.26489559    deg
 #>    T-26-0063_Operator_1        eye_axis_vertical_alignment  3.30779874    deg
 #>    T-26-0063_Operator_1           axis_horizontal_parallel  0.02016057 rel_bl
+#>    T-26-0063_Operator_4        eye_axis_vertical_alignment  4.01673111    deg
 #>    T-26-0064_Operator_2        eye_axis_vertical_alignment  2.81048498    deg
 #>    T-26-0064_Operator_2         parallel_vertical_segments  2.15526636    deg
+#>    T-26-0064_Operator_4        eye_axis_vertical_alignment  7.41907633    deg
+#>    T-26-0064_Operator_4 perpendicular_eye_vertical_vs_axis  0.03072655 rel_bl
+#>    T-26-0064_Operator_4         parallel_vertical_segments  3.63189518    deg
 #>    T-26-0065_Operator_1        eye_axis_vertical_alignment  2.82391657    deg
 #>    T-26-0067_Operator_1        eye_axis_vertical_alignment  2.16534710    deg
+#>    T-26-0067_Operator_4         parallel_vertical_segments  3.89569659    deg
 #>    T-26-0068_Operator_1        eye_axis_vertical_alignment  2.01777256    deg
 #>    T-26-0068_Operator_1           axis_horizontal_parallel  0.02815827 rel_bl
 #>    T-26-0068_Operator_2        eye_axis_vertical_alignment  4.57155395    deg
 #>    T-26-0068_Operator_2           axis_horizontal_parallel  0.03292460 rel_bl
+#>    T-26-0068_Operator_4        eye_axis_vertical_alignment  3.32485257    deg
+#>    T-26-0068_Operator_4           axis_horizontal_parallel  0.03218124 rel_bl
+#>    T-26-0068_Operator_4         parallel_vertical_segments  3.86167692    deg
 #>    T-26-0069_Operator_1        eye_axis_vertical_alignment  4.67930146    deg
 #>    T-26-0069_Operator_1      perpendicular_seg_3_4_vs_axis  0.02447469 rel_bl
 #>    T-26-0069_Operator_1           axis_horizontal_parallel  0.03897866 rel_bl
@@ -447,13 +597,28 @@ geom_check
 #>    T-26-0069_Operator_2      perpendicular_seg_1_9_vs_axis  0.02279747 rel_bl
 #>    T-26-0069_Operator_2      perpendicular_seg_3_4_vs_axis  0.03742868 rel_bl
 #>    T-26-0069_Operator_2           axis_horizontal_parallel  0.04446050 rel_bl
+#>    T-26-0069_Operator_4        eye_axis_vertical_alignment  8.43576384    deg
+#>    T-26-0069_Operator_4      perpendicular_seg_3_4_vs_axis  0.03082540 rel_bl
+#>    T-26-0069_Operator_4 perpendicular_eye_vertical_vs_axis  0.02060627 rel_bl
+#>    T-26-0069_Operator_4           axis_horizontal_parallel  0.04733490 rel_bl
+#>    T-26-0069_Operator_4         parallel_vertical_segments  2.56128578    deg
 #>    T-26-0070_Operator_1           axis_horizontal_parallel  0.02024682 rel_bl
 #>    T-26-0070_Operator_2        eye_axis_vertical_alignment  4.52486426    deg
 #>    T-26-0070_Operator_2      perpendicular_seg_3_4_vs_axis  0.02088347 rel_bl
 #>    T-26-0070_Operator_2           axis_horizontal_parallel  0.02028680 rel_bl
+#>    T-26-0070_Operator_4           axis_horizontal_parallel  0.02444996 rel_bl
+#>    T-26-0070_Operator_4         parallel_vertical_segments  4.81545174    deg
+#>    T-26-0071_Operator_4         parallel_vertical_segments  2.71013785    deg
 #>    T-26-0073_Operator_1           axis_horizontal_parallel  0.02124137 rel_bl
 #>    T-26-0073_Operator_2        eye_axis_vertical_alignment  3.40459086    deg
 #>    T-26-0073_Operator_2           axis_horizontal_parallel  0.02842332 rel_bl
+#>    T-26-0073_Operator_4        eye_axis_vertical_alignment  5.86133679    deg
+#>    T-26-0073_Operator_4      perpendicular_seg_3_4_vs_axis  0.02496916 rel_bl
+#>    T-26-0073_Operator_4           axis_horizontal_parallel  0.02458571 rel_bl
+#>    T-26-0073_Operator_4         parallel_vertical_segments  3.64529184    deg
+#>    T-26-0074_Operator_4         parallel_vertical_segments  3.75349377    deg
+#>    T-26-0075_Operator_4        eye_axis_vertical_alignment  4.68289731    deg
+#>    T-26-0075_Operator_4      perpendicular_seg_3_4_vs_axis  0.02099778 rel_bl
 #>    T-26-0076_Operator_1        eye_axis_vertical_alignment  5.02821091    deg
 #>    T-26-0076_Operator_1      perpendicular_seg_3_4_vs_axis  0.03548778 rel_bl
 #>    T-26-0076_Operator_1           axis_horizontal_parallel  0.05224590 rel_bl
@@ -464,12 +629,24 @@ geom_check
 #>    T-26-0076_Operator_2 perpendicular_eye_vertical_vs_axis  0.02448066 rel_bl
 #>    T-26-0076_Operator_2           axis_horizontal_parallel  0.06285584 rel_bl
 #>    T-26-0076_Operator_2         parallel_vertical_segments  2.15425231    deg
+#>    T-26-0076_Operator_4        eye_axis_vertical_alignment  3.30929196    deg
+#>    T-26-0076_Operator_4      perpendicular_seg_3_4_vs_axis  0.02864355 rel_bl
+#>    T-26-0076_Operator_4           axis_horizontal_parallel  0.06528194 rel_bl
+#>    T-26-0076_Operator_4         parallel_vertical_segments  3.74232461    deg
 #>    T-26-0077_Operator_1        eye_axis_vertical_alignment  2.21499565    deg
 #>    T-26-0077_Operator_1           axis_horizontal_parallel  0.02670172 rel_bl
 #>    T-26-0077_Operator_2        eye_axis_vertical_alignment  3.85744468    deg
 #>    T-26-0077_Operator_2           axis_horizontal_parallel  0.02732622 rel_bl
 #>    T-26-0077_Operator_2         parallel_vertical_segments  2.19631795    deg
+#>    T-26-0077_Operator_4        eye_axis_vertical_alignment  2.63145152    deg
+#>    T-26-0077_Operator_4           axis_horizontal_parallel  0.02988273 rel_bl
+#>    T-26-0077_Operator_4         parallel_vertical_segments  4.89254624    deg
+#>    T-26-0078_Operator_4        eye_axis_vertical_alignment  2.90017784    deg
+#>    T-26-0078_Operator_4         parallel_vertical_segments  3.00379424    deg
+#>    T-26-0079_Operator_4        eye_axis_vertical_alignment  2.89239622    deg
+#>    T-26-0079_Operator_4         parallel_vertical_segments  2.12942190    deg
 #>    T-26-0080_Operator_2        eye_axis_vertical_alignment  2.01138397    deg
+#>    T-26-0080_Operator_4         parallel_vertical_segments  2.66267587    deg
 #>    T-26-0081_Operator_1        eye_axis_vertical_alignment  3.24776193    deg
 #>    T-26-0081_Operator_1      perpendicular_seg_3_4_vs_axis  0.02367669 rel_bl
 #>    T-26-0081_Operator_1           axis_horizontal_parallel  0.04197136 rel_bl
@@ -478,12 +655,18 @@ geom_check
 #>    T-26-0081_Operator_2      perpendicular_seg_3_4_vs_axis  0.02409123 rel_bl
 #>    T-26-0081_Operator_2           axis_horizontal_parallel  0.04095509 rel_bl
 #>    T-26-0081_Operator_2         parallel_vertical_segments  2.10470041    deg
+#>    T-26-0081_Operator_4        eye_axis_vertical_alignment  6.97796004    deg
+#>    T-26-0081_Operator_4      perpendicular_seg_3_4_vs_axis  0.03372558 rel_bl
+#>    T-26-0081_Operator_4           axis_horizontal_parallel  0.03802078 rel_bl
+#>    T-26-0081_Operator_4         parallel_vertical_segments  5.29869109    deg
 #>    T-26-0082_Operator_1           axis_horizontal_parallel  0.04604035 rel_bl
 #>    T-26-0082_Operator_2        eye_axis_vertical_alignment  9.83565762    deg
 #>    T-26-0082_Operator_2      perpendicular_seg_1_9_vs_axis  0.03138591 rel_bl
 #>    T-26-0082_Operator_2      perpendicular_seg_3_4_vs_axis  0.04347630 rel_bl
 #>    T-26-0082_Operator_2 perpendicular_eye_vertical_vs_axis  0.02686777 rel_bl
 #>    T-26-0082_Operator_2           axis_horizontal_parallel  0.05129255 rel_bl
+#>    T-26-0082_Operator_4           axis_horizontal_parallel  0.04771405 rel_bl
+#>    T-26-0082_Operator_4         parallel_vertical_segments  2.04164965    deg
 #>    T-26-0083_Operator_1        eye_axis_vertical_alignment  4.62758698    deg
 #>    T-26-0083_Operator_1      perpendicular_seg_3_4_vs_axis  0.02394757 rel_bl
 #>    T-26-0083_Operator_1           axis_horizontal_parallel  0.03911476 rel_bl
@@ -493,6 +676,10 @@ geom_check
 #>    T-26-0083_Operator_2      perpendicular_seg_3_4_vs_axis  0.03280964 rel_bl
 #>    T-26-0083_Operator_2 perpendicular_eye_vertical_vs_axis  0.02594944 rel_bl
 #>    T-26-0083_Operator_2           axis_horizontal_parallel  0.03996810 rel_bl
+#>    T-26-0083_Operator_4        eye_axis_vertical_alignment  6.65119477    deg
+#>    T-26-0083_Operator_4      perpendicular_seg_3_4_vs_axis  0.02694434 rel_bl
+#>    T-26-0083_Operator_4 perpendicular_eye_vertical_vs_axis  0.02167436 rel_bl
+#>    T-26-0083_Operator_4           axis_horizontal_parallel  0.04057229 rel_bl
 #>    T-26-0084_Operator_1        eye_axis_vertical_alignment  5.71583634    deg
 #>    T-26-0084_Operator_1      perpendicular_seg_3_4_vs_axis  0.02169043 rel_bl
 #>    T-26-0084_Operator_1 perpendicular_eye_vertical_vs_axis  0.03158012 rel_bl
@@ -503,19 +690,29 @@ geom_check
 #>    T-26-0084_Operator_2 perpendicular_eye_vertical_vs_axis  0.02736006 rel_bl
 #>    T-26-0084_Operator_2           axis_horizontal_parallel  0.04654244 rel_bl
 #>    T-26-0084_Operator_2         parallel_vertical_segments  3.50662903    deg
+#>    T-26-0084_Operator_4        eye_axis_vertical_alignment  4.92716735    deg
+#>    T-26-0084_Operator_4      perpendicular_seg_3_4_vs_axis  0.02348617 rel_bl
+#>    T-26-0084_Operator_4           axis_horizontal_parallel  0.04383274 rel_bl
 #>    T-26-0085_Operator_2        eye_axis_vertical_alignment  2.04781455    deg
 #>    T-26-0085_Operator_2         parallel_vertical_segments  2.41147776    deg
+#>    T-26-0085_Operator_4         parallel_vertical_segments  5.92203849    deg
 #>    T-26-0086_Operator_2        eye_axis_vertical_alignment  3.48443044    deg
+#>    T-26-0086_Operator_4         parallel_vertical_segments  2.71649246    deg
 #>    T-26-0087_Operator_1        eye_axis_vertical_alignment  2.48487995    deg
 #>    T-26-0087_Operator_1         parallel_vertical_segments  2.71112950    deg
 #>    T-26-0087_Operator_2        eye_axis_vertical_alignment 16.56975592    deg
 #>    T-26-0087_Operator_2 perpendicular_eye_vertical_vs_axis  0.13075066 rel_bl
 #>    T-26-0087_Operator_2         parallel_vertical_segments 17.73889525    deg
+#>    T-26-0087_Operator_4         parallel_vertical_segments  3.30113893    deg
 #>    T-26-0088_Operator_1        eye_axis_vertical_alignment  4.05024607    deg
 #>    T-26-0088_Operator_1      perpendicular_seg_3_4_vs_axis  0.02297832 rel_bl
 #>    T-26-0088_Operator_2        eye_axis_vertical_alignment  6.04763744    deg
 #>    T-26-0088_Operator_2      perpendicular_seg_3_4_vs_axis  0.03005284 rel_bl
 #>    T-26-0088_Operator_2           axis_horizontal_parallel  0.03492560 rel_bl
+#>    T-26-0088_Operator_4        eye_axis_vertical_alignment  4.81864353    deg
+#>    T-26-0088_Operator_4      perpendicular_seg_3_4_vs_axis  0.02498641 rel_bl
+#>    T-26-0088_Operator_4           axis_horizontal_parallel  0.03869652 rel_bl
+#>    T-26-0088_Operator_4         parallel_vertical_segments  3.13133126    deg
 #>    T-26-0089_Operator_1        eye_axis_vertical_alignment  5.99146521    deg
 #>    T-26-0089_Operator_1      perpendicular_seg_3_4_vs_axis  0.02903216 rel_bl
 #>    T-26-0089_Operator_1           axis_horizontal_parallel  0.06008982 rel_bl
@@ -523,10 +720,19 @@ geom_check
 #>    T-26-0089_Operator_2        eye_axis_vertical_alignment  8.10883495    deg
 #>    T-26-0089_Operator_2      perpendicular_seg_3_4_vs_axis  0.03144470 rel_bl
 #>    T-26-0089_Operator_2           axis_horizontal_parallel  0.04238199 rel_bl
+#>    T-26-0089_Operator_4        eye_axis_vertical_alignment  3.32510124    deg
+#>    T-26-0089_Operator_4      perpendicular_seg_1_9_vs_axis  0.02289770 rel_bl
+#>    T-26-0089_Operator_4      perpendicular_seg_3_4_vs_axis  0.02953838 rel_bl
+#>    T-26-0089_Operator_4           axis_horizontal_parallel  0.05365051 rel_bl
+#>    T-26-0089_Operator_4         parallel_vertical_segments  7.32056210    deg
 #>    T-26-0090_Operator_1         parallel_vertical_segments  3.75019748    deg
+#>    T-26-0090_Operator_4        eye_axis_vertical_alignment  6.92571925    deg
+#>    T-26-0090_Operator_4 perpendicular_eye_vertical_vs_axis  0.02873354 rel_bl
+#>    T-26-0090_Operator_4         parallel_vertical_segments  5.29954617    deg
 #>    T-26-0091_Operator_1        eye_axis_vertical_alignment  3.34361016    deg
 #>    T-26-0091_Operator_2        eye_axis_vertical_alignment  2.43533595    deg
 #>    T-26-0091_Operator_2         parallel_vertical_segments  2.42246654    deg
+#>    T-26-0091_Operator_4         parallel_vertical_segments  3.53345096    deg
 #>    T-26-0092_Operator_1        eye_axis_vertical_alignment  3.61131498    deg
 #>    T-26-0092_Operator_1      perpendicular_seg_3_4_vs_axis  0.02118528 rel_bl
 #>    T-26-0092_Operator_1           axis_horizontal_parallel  0.03656233 rel_bl
@@ -535,11 +741,19 @@ geom_check
 #>    T-26-0092_Operator_2      perpendicular_seg_3_4_vs_axis  0.04266471 rel_bl
 #>    T-26-0092_Operator_2 perpendicular_eye_vertical_vs_axis  0.02549477 rel_bl
 #>    T-26-0092_Operator_2           axis_horizontal_parallel  0.04734742 rel_bl
+#>    T-26-0092_Operator_4        eye_axis_vertical_alignment  5.17234464    deg
+#>    T-26-0092_Operator_4      perpendicular_seg_3_4_vs_axis  0.02924318 rel_bl
+#>    T-26-0092_Operator_4           axis_horizontal_parallel  0.04498304 rel_bl
+#>    T-26-0092_Operator_4         parallel_vertical_segments  3.42310694    deg
 #>    T-26-0093_Operator_1        eye_axis_vertical_alignment  3.50702991    deg
 #>    T-26-0093_Operator_1           axis_horizontal_parallel  0.02475559 rel_bl
 #>    T-26-0093_Operator_2        eye_axis_vertical_alignment  4.46844811    deg
 #>    T-26-0093_Operator_2      perpendicular_seg_3_4_vs_axis  0.02133377 rel_bl
 #>    T-26-0093_Operator_2           axis_horizontal_parallel  0.02694793 rel_bl
+#>    T-26-0093_Operator_4        eye_axis_vertical_alignment  5.65738578    deg
+#>    T-26-0093_Operator_4      perpendicular_seg_3_4_vs_axis  0.02940414 rel_bl
+#>    T-26-0093_Operator_4           axis_horizontal_parallel  0.02526634 rel_bl
+#>    T-26-0093_Operator_4         parallel_vertical_segments  2.71027351    deg
 #>    T-26-0094_Operator_1        eye_axis_vertical_alignment  6.69613043    deg
 #>    T-26-0094_Operator_1      perpendicular_seg_1_9_vs_axis  0.02174779 rel_bl
 #>    T-26-0094_Operator_1      perpendicular_seg_3_4_vs_axis  0.02877401 rel_bl
@@ -549,6 +763,9 @@ geom_check
 #>    T-26-0094_Operator_2        eye_axis_vertical_alignment  5.15115871    deg
 #>    T-26-0094_Operator_2      perpendicular_seg_3_4_vs_axis  0.02422050 rel_bl
 #>    T-26-0094_Operator_2           axis_horizontal_parallel  0.02960284 rel_bl
+#>    T-26-0094_Operator_4        eye_axis_vertical_alignment  4.23393106    deg
+#>    T-26-0094_Operator_4           axis_horizontal_parallel  0.03412566 rel_bl
+#>    T-26-0094_Operator_4         parallel_vertical_segments  2.14319161    deg
 #>    T-26-0095_Operator_1        eye_axis_vertical_alignment  4.58606775    deg
 #>    T-26-0095_Operator_1           axis_horizontal_parallel  0.03893721 rel_bl
 #>    T-26-0095_Operator_1         parallel_vertical_segments  2.71994811    deg
@@ -556,6 +773,11 @@ geom_check
 #>    T-26-0095_Operator_2      perpendicular_seg_3_4_vs_axis  0.02497145 rel_bl
 #>    T-26-0095_Operator_2           axis_horizontal_parallel  0.03654359 rel_bl
 #>    T-26-0095_Operator_2         parallel_vertical_segments  4.84019974    deg
+#>    T-26-0095_Operator_4        eye_axis_vertical_alignment  9.73221044    deg
+#>    T-26-0095_Operator_4      perpendicular_seg_1_9_vs_axis  0.02031242 rel_bl
+#>    T-26-0095_Operator_4      perpendicular_seg_3_4_vs_axis  0.03253401 rel_bl
+#>    T-26-0095_Operator_4 perpendicular_eye_vertical_vs_axis  0.02708343 rel_bl
+#>    T-26-0095_Operator_4           axis_horizontal_parallel  0.04212502 rel_bl
 #>    T-26-0096_Operator_1        eye_axis_vertical_alignment  4.54055350    deg
 #>    T-26-0096_Operator_1      perpendicular_seg_3_4_vs_axis  0.02983129 rel_bl
 #>    T-26-0096_Operator_1           axis_horizontal_parallel  0.06179338 rel_bl
@@ -567,21 +789,40 @@ geom_check
 #>    T-26-0096_Operator_2 perpendicular_eye_vertical_vs_axis  0.04127844 rel_bl
 #>    T-26-0096_Operator_2           axis_horizontal_parallel  0.05793465 rel_bl
 #>    T-26-0096_Operator_2         parallel_vertical_segments  3.94135552    deg
+#>    T-26-0096_Operator_4        eye_axis_vertical_alignment 10.34362506    deg
+#>    T-26-0096_Operator_4      perpendicular_seg_1_9_vs_axis  0.02401294 rel_bl
+#>    T-26-0096_Operator_4      perpendicular_seg_3_4_vs_axis  0.04311271 rel_bl
+#>    T-26-0096_Operator_4    perpendicular_seg_10_11_vs_axis  0.02069046 rel_bl
+#>    T-26-0096_Operator_4 perpendicular_eye_vertical_vs_axis  0.03175942 rel_bl
+#>    T-26-0096_Operator_4           axis_horizontal_parallel  0.06386906 rel_bl
+#>    T-26-0097_Operator_4      perpendicular_seg_3_4_vs_axis  0.02132674 rel_bl
+#>    T-26-0097_Operator_4         parallel_vertical_segments  4.14316043    deg
 #>    T-26-0098_Operator_2        eye_axis_vertical_alignment  5.78886803    deg
 #>    T-26-0098_Operator_2      perpendicular_seg_3_4_vs_axis  0.02741126 rel_bl
 #>    T-26-0098_Operator_2           axis_horizontal_parallel  0.02323998 rel_bl
 #>    T-26-0098_Operator_2         parallel_vertical_segments  2.34123433    deg
+#>    T-26-0098_Operator_4        eye_axis_vertical_alignment  4.90380154    deg
+#>    T-26-0098_Operator_4      perpendicular_seg_3_4_vs_axis  0.02008084 rel_bl
+#>    T-26-0098_Operator_4           axis_horizontal_parallel  0.02573572 rel_bl
 #>    T-26-0099_Operator_2        eye_axis_vertical_alignment  4.77376813    deg
 #>    T-26-0099_Operator_2         parallel_vertical_segments  3.57691354    deg
+#>    T-26-0099_Operator_4        eye_axis_vertical_alignment  3.29649899    deg
+#>    T-26-0099_Operator_4         parallel_vertical_segments  2.43617907    deg
 #>    T-26-0100_Operator_1        eye_axis_vertical_alignment  3.12127767    deg
 #>    T-26-0100_Operator_2        eye_axis_vertical_alignment 17.03670102    deg
 #>    T-26-0100_Operator_2 perpendicular_eye_vertical_vs_axis  0.12956675 rel_bl
 #>    T-26-0100_Operator_2         parallel_vertical_segments 19.88135663    deg
+#>    T-26-0100_Operator_4        eye_axis_vertical_alignment  2.44255342    deg
+#>    T-26-0100_Operator_4      perpendicular_seg_3_4_vs_axis  0.02512692 rel_bl
+#>    T-26-0100_Operator_4         parallel_vertical_segments  3.09277649    deg
 #>    T-26-0101_Operator_1        eye_axis_vertical_alignment  7.37948326    deg
 #>    T-26-0101_Operator_1      perpendicular_seg_3_4_vs_axis  0.05518756 rel_bl
 #>    T-26-0101_Operator_1 perpendicular_eye_vertical_vs_axis  0.03425434 rel_bl
 #>    T-26-0101_Operator_1           axis_horizontal_parallel  0.02093321 rel_bl
 #>    T-26-0101_Operator_1         parallel_vertical_segments 17.40739203    deg
+#>    T-26-0101_Operator_4        eye_axis_vertical_alignment  7.40350917    deg
+#>    T-26-0101_Operator_4 perpendicular_eye_vertical_vs_axis  0.04999445 rel_bl
+#>    T-26-0101_Operator_4         parallel_vertical_segments  4.48397197    deg
 #>    T-26-0102_Operator_1        eye_axis_vertical_alignment  5.40005948    deg
 #>    T-26-0102_Operator_1      perpendicular_seg_1_9_vs_axis  0.07049423 rel_bl
 #>    T-26-0102_Operator_1 perpendicular_eye_vertical_vs_axis  0.03698576 rel_bl
@@ -589,18 +830,25 @@ geom_check
 #>    T-26-0102_Operator_2         parallel_vertical_segments  3.76409522    deg
 #>    T-26-0103_Operator_1        eye_axis_vertical_alignment  2.21262798    deg
 #>    T-26-0103_Operator_1         parallel_vertical_segments  8.55281973    deg
+#>    T-26-0103_Operator_4        eye_axis_vertical_alignment  2.59401332    deg
+#>    T-26-0103_Operator_4         parallel_vertical_segments  3.54986171    deg
 #>    T-26-0104_Operator_1        eye_axis_vertical_alignment  3.62250759    deg
 #>    T-26-0104_Operator_1 perpendicular_eye_vertical_vs_axis  0.03122564 rel_bl
 #>    T-26-0104_Operator_1         parallel_vertical_segments  5.01968862    deg
 #>    T-26-0104_Operator_2        eye_axis_vertical_alignment  2.45519827    deg
+#>    T-26-0104_Operator_3         parallel_vertical_segments  3.95478327    deg
+#>    T-26-0104_Operator_4        eye_axis_vertical_alignment  4.00373259    deg
 #>    T-26-0107_Operator_1        eye_axis_vertical_alignment  7.21059771    deg
 #>    T-26-0107_Operator_1 perpendicular_eye_vertical_vs_axis  0.04131456 rel_bl
 #>    T-26-0107_Operator_1         parallel_vertical_segments  8.11118271    deg
 #>    T-26-0107_Operator_2        eye_axis_vertical_alignment  2.62687073    deg
+#>    T-26-0107_Operator_4      perpendicular_seg_3_4_vs_axis  0.02408466 rel_bl
+#>    T-26-0107_Operator_4         parallel_vertical_segments  8.64593926    deg
 #>    T-26-0108_Operator_1        eye_axis_vertical_alignment 17.03412600    deg
 #>    T-26-0108_Operator_1 perpendicular_eye_vertical_vs_axis  0.05473784 rel_bl
 #>    T-26-0108_Operator_1         parallel_vertical_segments 17.03412600    deg
 #>    T-26-0108_Operator_2         parallel_vertical_segments  2.06382687    deg
+#>    T-26-0108_Operator_4         parallel_vertical_segments  4.45959214    deg
 #>    T-26-0109_Operator_1        eye_axis_vertical_alignment  8.81311798    deg
 #>    T-26-0109_Operator_1    perpendicular_seg_10_11_vs_axis  0.20430603 rel_bl
 #>    T-26-0109_Operator_1 perpendicular_eye_vertical_vs_axis  0.03236531 rel_bl
@@ -615,25 +863,54 @@ geom_check
 #>    T-26-0111_Operator_2        eye_axis_vertical_alignment  3.39522749    deg
 #>    T-26-0111_Operator_2           axis_horizontal_parallel  0.02278401 rel_bl
 #>    T-26-0111_Operator_2         parallel_vertical_segments  2.46811791    deg
+#>    T-26-0111_Operator_4        eye_axis_vertical_alignment 10.72268186    deg
+#>    T-26-0111_Operator_4      perpendicular_seg_3_4_vs_axis  0.02891118 rel_bl
+#>    T-26-0111_Operator_4 perpendicular_eye_vertical_vs_axis  0.03414632 rel_bl
+#>    T-26-0111_Operator_4           axis_horizontal_parallel  0.02398670 rel_bl
+#>    T-26-0111_Operator_4         parallel_vertical_segments  5.76609907    deg
 #>  T-26-0112-2_Operator_1           axis_horizontal_parallel  0.02079454 rel_bl
 #>  T-26-0112-2_Operator_2        eye_axis_vertical_alignment  3.08013764    deg
 #>    T-26-0112_Operator_1           axis_horizontal_parallel  0.03210157 rel_bl
 #>    T-26-0112_Operator_2        eye_axis_vertical_alignment  5.20342771    deg
 #>    T-26-0112_Operator_2           axis_horizontal_parallel  0.02194244 rel_bl
 #>    T-26-0112_Operator_2         parallel_vertical_segments  2.54270624    deg
+#>    T-26-0112_Operator_4        eye_axis_vertical_alignment 31.67563762    deg
+#>    T-26-0112_Operator_4      perpendicular_seg_1_9_vs_axis  0.02289024 rel_bl
+#>    T-26-0112_Operator_4      perpendicular_seg_3_4_vs_axis  0.03416888 rel_bl
+#>    T-26-0112_Operator_4    perpendicular_seg_10_11_vs_axis  0.02187196 rel_bl
+#>    T-26-0112_Operator_4 perpendicular_eye_vertical_vs_axis  0.05782202 rel_bl
+#>    T-26-0112_Operator_4           axis_horizontal_parallel  0.08676051 rel_bl
+#>    T-26-0112_Operator_4         parallel_vertical_segments 89.04090832    deg
 #>    T-26-0113_Operator_1           axis_horizontal_parallel  0.02292337 rel_bl
 #>    T-26-0113_Operator_2        eye_axis_vertical_alignment  7.85704435    deg
 #>    T-26-0113_Operator_2      perpendicular_seg_3_4_vs_axis  0.03094785 rel_bl
 #>    T-26-0113_Operator_2           axis_horizontal_parallel  0.04155847 rel_bl
+#>    T-26-0113_Operator_4      perpendicular_seg_3_4_vs_axis  0.02070836 rel_bl
+#>    T-26-0113_Operator_4           axis_horizontal_parallel  0.03607628 rel_bl
+#>    T-26-0113_Operator_4         parallel_vertical_segments  6.14522921    deg
 #>    T-26-0114_Operator_2        eye_axis_vertical_alignment  3.24428388    deg
+#>    T-26-0114_Operator_4        eye_axis_vertical_alignment 15.91222682    deg
+#>    T-26-0114_Operator_4      perpendicular_seg_1_9_vs_axis  0.02719145 rel_bl
+#>    T-26-0114_Operator_4      perpendicular_seg_3_4_vs_axis  0.02215542 rel_bl
+#>    T-26-0114_Operator_4 perpendicular_eye_vertical_vs_axis  0.06945667 rel_bl
+#>    T-26-0114_Operator_4         parallel_vertical_segments 11.02465358    deg
 #>    T-26-0115_Operator_2        eye_axis_vertical_alignment  3.33671348    deg
+#>    T-26-0115_Operator_4        eye_axis_vertical_alignment  8.11148123    deg
+#>    T-26-0115_Operator_4 perpendicular_eye_vertical_vs_axis  0.02758814 rel_bl
+#>    T-26-0115_Operator_4         parallel_vertical_segments 19.60455110    deg
 #>    T-26-0116_Operator_2        eye_axis_vertical_alignment  2.89146868    deg
 #>    T-26-0116_Operator_2           axis_horizontal_parallel  0.02418897 rel_bl
+#>    T-26-0116_Operator_3        eye_axis_vertical_alignment  3.18392759    deg
+#>    T-26-0116_Operator_4         parallel_vertical_segments 16.93357332    deg
 #>    T-26-0117_Operator_2        eye_axis_vertical_alignment  2.13262522    deg
+#>    T-26-0117_Operator_4        eye_axis_vertical_alignment  3.72282205    deg
+#>    T-26-0117_Operator_4         parallel_vertical_segments  2.25827378    deg
 #>    T-26-0118_Operator_2        eye_axis_vertical_alignment  5.40005741    deg
 #>    T-26-0118_Operator_2      perpendicular_seg_3_4_vs_axis  0.02169925 rel_bl
 #>    T-26-0118_Operator_2           axis_horizontal_parallel  0.02169983 rel_bl
 #>    T-26-0118_Operator_2         parallel_vertical_segments  3.03404089    deg
+#>    T-26-0118_Operator_4 perpendicular_eye_vertical_vs_axis  0.04787516 rel_bl
+#>    T-26-0118_Operator_4         parallel_vertical_segments  9.71780238    deg
 #>    T-26-0120_Operator_2        eye_axis_vertical_alignment  3.28777277    deg
 #>    T-26-0120_Operator_2           axis_horizontal_parallel  0.02232568 rel_bl
 #>    T-26-0120_Operator_2         parallel_vertical_segments  4.50226979    deg
@@ -643,9 +920,17 @@ geom_check
 #>    T-26-0121_Operator_2    perpendicular_seg_10_11_vs_axis  2.58966380 rel_bl
 #>    T-26-0121_Operator_2 perpendicular_eye_vertical_vs_axis  5.00484670 rel_bl
 #>    T-26-0121_Operator_2           axis_horizontal_parallel  0.25712974 rel_bl
+#>    T-26-0121_Operator_4        eye_axis_vertical_alignment  3.91463243    deg
+#>    T-26-0121_Operator_4 perpendicular_eye_vertical_vs_axis  0.02137796 rel_bl
+#>    T-26-0121_Operator_4           axis_horizontal_parallel  0.02504441 rel_bl
+#>    T-26-0121_Operator_4         parallel_vertical_segments  4.82444984    deg
 #>    T-26-0122_Operator_1        eye_axis_vertical_alignment  4.62979605    deg
 #>    T-26-0122_Operator_1         parallel_vertical_segments  4.35292792    deg
 #>    T-26-0122_Operator_2        eye_axis_vertical_alignment  3.89508258    deg
+#>    T-26-0122_Operator_4        eye_axis_vertical_alignment  3.62996757    deg
+#>    T-26-0122_Operator_4      perpendicular_seg_3_4_vs_axis  0.02358694 rel_bl
+#>    T-26-0122_Operator_4           axis_horizontal_parallel  0.02294994 rel_bl
+#>    T-26-0122_Operator_4         parallel_vertical_segments  2.46350297    deg
 #>    T-26-0123_Operator_1        eye_axis_vertical_alignment  7.23230578    deg
 #>    T-26-0123_Operator_1      perpendicular_seg_3_4_vs_axis  0.03099258 rel_bl
 #>    T-26-0123_Operator_1           axis_horizontal_parallel  0.05739366 rel_bl
@@ -654,45 +939,92 @@ geom_check
 #>    T-26-0123_Operator_2 perpendicular_eye_vertical_vs_axis  0.02002954 rel_bl
 #>    T-26-0123_Operator_2           axis_horizontal_parallel  0.04564513 rel_bl
 #>    T-26-0123_Operator_2         parallel_vertical_segments  2.22439456    deg
+#>    T-26-0123_Operator_4        eye_axis_vertical_alignment  5.02393404    deg
+#>    T-26-0123_Operator_4      perpendicular_seg_3_4_vs_axis  0.02196332 rel_bl
+#>    T-26-0123_Operator_4           axis_horizontal_parallel  0.04588603 rel_bl
 #>    T-26-0125_Operator_2        eye_axis_vertical_alignment  2.71983388    deg
+#>    T-26-0125_Operator_4        eye_axis_vertical_alignment  3.37577215    deg
+#>    T-26-0125_Operator_4      perpendicular_seg_3_4_vs_axis  0.02037041 rel_bl
+#>    T-26-0125_Operator_4         parallel_vertical_segments  2.50497858    deg
+#>    T-26-0126_Operator_4         parallel_vertical_segments  4.21122623    deg
 #>    T-26-0127_Operator_1        eye_axis_vertical_alignment  2.19475597    deg
 #>    T-26-0127_Operator_2        eye_axis_vertical_alignment  5.46401864    deg
 #>    T-26-0127_Operator_2      perpendicular_seg_3_4_vs_axis  0.02765882 rel_bl
 #>    T-26-0127_Operator_2           axis_horizontal_parallel  0.02021222 rel_bl
+#>    T-26-0127_Operator_4        eye_axis_vertical_alignment  5.07466390    deg
+#>    T-26-0127_Operator_4      perpendicular_seg_3_4_vs_axis  0.02622127 rel_bl
+#>    T-26-0127_Operator_4           axis_horizontal_parallel  0.02270231 rel_bl
 #>    T-26-0128_Operator_1        eye_axis_vertical_alignment  2.80819718    deg
 #>    T-26-0128_Operator_1           axis_horizontal_parallel  0.02066617 rel_bl
 #>    T-26-0128_Operator_1         parallel_vertical_segments  2.21753997    deg
 #>    T-26-0128_Operator_2        eye_axis_vertical_alignment  2.62655875    deg
 #>    T-26-0128_Operator_2         parallel_vertical_segments  2.23892954    deg
+#>    T-26-0128_Operator_4         parallel_vertical_segments  3.36751026    deg
 #>    T-26-0130_Operator_1        eye_axis_vertical_alignment  3.31443403    deg
 #>    T-26-0130_Operator_1           axis_horizontal_parallel  0.03180565 rel_bl
 #>    T-26-0130_Operator_1         parallel_vertical_segments  2.10148993    deg
 #>    T-26-0130_Operator_2        eye_axis_vertical_alignment  5.30264963    deg
 #>    T-26-0130_Operator_2      perpendicular_seg_3_4_vs_axis  0.02270459 rel_bl
 #>    T-26-0130_Operator_2           axis_horizontal_parallel  0.02486694 rel_bl
+#>    T-26-0130_Operator_4        eye_axis_vertical_alignment  3.95815041    deg
+#>    T-26-0130_Operator_4           axis_horizontal_parallel  0.03830603 rel_bl
+#>    T-26-0130_Operator_4         parallel_vertical_segments 12.94183954    deg
 #>    T-26-0131_Operator_1           axis_horizontal_parallel  0.02819743 rel_bl
 #>    T-26-0131_Operator_2        eye_axis_vertical_alignment  5.74999843    deg
 #>    T-26-0131_Operator_2      perpendicular_seg_3_4_vs_axis  0.02544042 rel_bl
 #>    T-26-0131_Operator_2           axis_horizontal_parallel  0.02805929 rel_bl
+#>    T-26-0131_Operator_4        eye_axis_vertical_alignment  5.23191210    deg
+#>    T-26-0131_Operator_4      perpendicular_seg_3_4_vs_axis  0.02088226 rel_bl
+#>    T-26-0131_Operator_4           axis_horizontal_parallel  0.02754595 rel_bl
+#>    T-26-0131_Operator_4         parallel_vertical_segments  2.98631270    deg
+#>    T-26-0132_Operator_4        eye_axis_vertical_alignment  2.35802614    deg
 #>    T-26-0133_Operator_1         parallel_vertical_segments  4.36922970    deg
 #>    T-26-0133_Operator_2        eye_axis_vertical_alignment  2.04727109    deg
 #>    T-26-0135_Operator_2         parallel_vertical_segments  4.00884913    deg
+#>    T-26-0135_Operator_4         parallel_vertical_segments  3.84360206    deg
 #>    T-26-0136_Operator_2         parallel_vertical_segments  2.65060362    deg
+#>    T-26-0136_Operator_4         parallel_vertical_segments  2.38660844    deg
 #>    T-26-0137_Operator_2        eye_axis_vertical_alignment  2.49213330    deg
+#>    T-26-0137_Operator_4        eye_axis_vertical_alignment  2.42467742    deg
 #>    T-26-0138_Operator_2         parallel_vertical_segments  2.89716041    deg
+#>    T-26-0138_Operator_4         parallel_vertical_segments  3.42200549    deg
+#>    T-26-0139_Operator_4         parallel_vertical_segments  2.55330872    deg
 #>    T-26-0140_Operator_2        eye_axis_vertical_alignment  3.09052817    deg
+#>    T-26-0140_Operator_4        eye_axis_vertical_alignment  2.53815597    deg
+#>    T-26-0141_Operator_4        eye_axis_vertical_alignment  4.18995482    deg
+#>    T-26-0141_Operator_4         parallel_vertical_segments  2.28345166    deg
 #>    T-26-0142_Operator_2        eye_axis_vertical_alignment  2.06258167    deg
+#>    T-26-0142_Operator_4        eye_axis_vertical_alignment  2.15944531    deg
+#>    T-26-0143_Operator_4         parallel_vertical_segments  2.82659038    deg
+#>    T-26-0144_Operator_4         parallel_vertical_segments  3.36673998    deg
 #>    T-26-0145_Operator_1           axis_horizontal_parallel  0.02835781 rel_bl
 #>    T-26-0145_Operator_1         parallel_vertical_segments  2.24653651    deg
 #>    T-26-0145_Operator_2        eye_axis_vertical_alignment  3.19549552    deg
+#>    T-26-0145_Operator_4        eye_axis_vertical_alignment  4.01157282    deg
+#>    T-26-0146_Operator_4        eye_axis_vertical_alignment  2.94236872    deg
 #>    T-26-0147_Operator_2         parallel_vertical_segments  4.02623197    deg
+#>    T-26-0147_Operator_4        eye_axis_vertical_alignment  4.15572329    deg
+#>    T-26-0147_Operator_4         parallel_vertical_segments  2.30214244    deg
 #>    T-26-0148_Operator_2        eye_axis_vertical_alignment  2.28381020    deg
+#>    T-26-0148_Operator_4        eye_axis_vertical_alignment  6.26481566    deg
+#>    T-26-0148_Operator_4 perpendicular_eye_vertical_vs_axis  0.02984339 rel_bl
+#>    T-26-0148_Operator_4         parallel_vertical_segments  4.00157743    deg
+#>    T-26-0149_Operator_4         parallel_vertical_segments  3.44325771    deg
 #>    T-26-0150_Operator_2         parallel_vertical_segments  5.75246975    deg
+#>    T-26-0150_Operator_4        eye_axis_vertical_alignment  3.88935937    deg
+#>    T-26-0150_Operator_4 perpendicular_eye_vertical_vs_axis  0.02377185 rel_bl
+#>    T-26-0150_Operator_4         parallel_vertical_segments  3.48992845    deg
+#>    T-26-0151_Operator_4         parallel_vertical_segments  2.19725128    deg
 #>    T-26-0152_Operator_1           axis_horizontal_parallel  0.02356416 rel_bl
 #>    T-26-0152_Operator_2        eye_axis_vertical_alignment  4.82760761    deg
 #>    T-26-0152_Operator_2           axis_horizontal_parallel  0.02143899 rel_bl
 #>    T-26-0152_Operator_2         parallel_vertical_segments  2.71812052    deg
+#>    T-26-0152_Operator_4        eye_axis_vertical_alignment  8.38222722    deg
+#>    T-26-0152_Operator_4 perpendicular_eye_vertical_vs_axis  0.03159616 rel_bl
+#>    T-26-0152_Operator_4           axis_horizontal_parallel  0.02605312 rel_bl
+#>    T-26-0152_Operator_4         parallel_vertical_segments  5.96522486    deg
 #>    T-26-0153_Operator_1        eye_axis_vertical_alignment  2.28810340    deg
+#>    T-26-0153_Operator_4         parallel_vertical_segments  2.30512552    deg
 #>    T-26-0154_Operator_1        eye_axis_vertical_alignment  3.23905687    deg
 #>    T-26-0154_Operator_1      perpendicular_seg_3_4_vs_axis  0.03416939 rel_bl
 #>    T-26-0154_Operator_1           axis_horizontal_parallel  0.02460147 rel_bl
@@ -700,8 +1032,15 @@ geom_check
 #>    T-26-0154_Operator_2        eye_axis_vertical_alignment  5.36865760    deg
 #>    T-26-0154_Operator_2      perpendicular_seg_3_4_vs_axis  0.02232424 rel_bl
 #>    T-26-0154_Operator_2           axis_horizontal_parallel  0.02561265 rel_bl
+#>    T-26-0154_Operator_4        eye_axis_vertical_alignment  2.82616579    deg
+#>    T-26-0154_Operator_4           axis_horizontal_parallel  0.02468669 rel_bl
+#>    T-26-0155_Operator_4        eye_axis_vertical_alignment  4.21056766    deg
+#>    T-26-0155_Operator_4         parallel_vertical_segments  2.61584546    deg
 #>    T-26-0157_Operator_1           axis_horizontal_parallel  0.02397433 rel_bl
 #>    T-26-0157_Operator_2        eye_axis_vertical_alignment  4.10998402    deg
+#>    T-26-0157_Operator_4        eye_axis_vertical_alignment  5.55071932    deg
+#>    T-26-0157_Operator_4           axis_horizontal_parallel  0.02385279 rel_bl
+#>    T-26-0158_Operator_4         parallel_vertical_segments  2.95611027    deg
 #>    T-26-0159_Operator_1        eye_axis_vertical_alignment  2.45539701    deg
 #>    T-26-0159_Operator_2         parallel_vertical_segments  2.54535130    deg
 #>    T-26-0160_Operator_1        eye_axis_vertical_alignment  3.27710118    deg
@@ -709,8 +1048,14 @@ geom_check
 #>    T-26-0160_Operator_2        eye_axis_vertical_alignment  4.49882543    deg
 #>    T-26-0160_Operator_2      perpendicular_seg_3_4_vs_axis  0.02078851 rel_bl
 #>    T-26-0160_Operator_2           axis_horizontal_parallel  0.02038873 rel_bl
+#>    T-26-0160_Operator_4           axis_horizontal_parallel  0.02080560 rel_bl
+#>    T-26-0160_Operator_4         parallel_vertical_segments  3.41247926    deg
 #>    T-26-0161_Operator_2        eye_axis_vertical_alignment  2.63207004    deg
+#>    T-26-0162_Operator_4        eye_axis_vertical_alignment  5.02919605    deg
+#>    T-26-0162_Operator_4 perpendicular_eye_vertical_vs_axis  0.04379387 rel_bl
+#>    T-26-0162_Operator_4         parallel_vertical_segments  6.62186475    deg
 #>    T-26-0163_Operator_1         parallel_vertical_segments  2.64254529    deg
+#>    T-26-0163_Operator_4         parallel_vertical_segments  4.25556014    deg
 #>    T-26-0164_Operator_1        eye_axis_vertical_alignment 11.41624322    deg
 #>    T-26-0164_Operator_1      perpendicular_seg_3_4_vs_axis  0.04739704 rel_bl
 #>    T-26-0164_Operator_1 perpendicular_eye_vertical_vs_axis  0.02695079 rel_bl
@@ -718,6 +1063,10 @@ geom_check
 #>    T-26-0164_Operator_1         parallel_vertical_segments  2.17171474    deg
 #>    T-26-0164_Operator_2        eye_axis_vertical_alignment  4.57095598    deg
 #>    T-26-0164_Operator_2           axis_horizontal_parallel  0.03423885 rel_bl
+#>    T-26-0164_Operator_4        eye_axis_vertical_alignment  3.60412790    deg
+#>    T-26-0164_Operator_4      perpendicular_seg_3_4_vs_axis  0.02414272 rel_bl
+#>    T-26-0164_Operator_4           axis_horizontal_parallel  0.04077638 rel_bl
+#>    T-26-0164_Operator_4         parallel_vertical_segments  3.37331770    deg
 #>    T-26-0165_Operator_1        eye_axis_vertical_alignment  2.03608781    deg
 #>    T-26-0165_Operator_1           axis_horizontal_parallel  0.03970688 rel_bl
 #>    T-26-0165_Operator_2        eye_axis_vertical_alignment  6.82468889    deg
@@ -725,14 +1074,30 @@ geom_check
 #>    T-26-0165_Operator_2 perpendicular_eye_vertical_vs_axis  0.02303841 rel_bl
 #>    T-26-0165_Operator_2           axis_horizontal_parallel  0.04425713 rel_bl
 #>    T-26-0165_Operator_2         parallel_vertical_segments  2.03882600    deg
+#>    T-26-0165_Operator_4        eye_axis_vertical_alignment  6.24179293    deg
+#>    T-26-0165_Operator_4      perpendicular_seg_3_4_vs_axis  0.02722024 rel_bl
+#>    T-26-0165_Operator_4           axis_horizontal_parallel  0.04492950 rel_bl
 #>    T-26-0166_Operator_1           axis_horizontal_parallel  0.04888907 rel_bl
 #>    T-26-0166_Operator_2        eye_axis_vertical_alignment  6.54373191    deg
 #>    T-26-0166_Operator_2      perpendicular_seg_3_4_vs_axis  0.02608449 rel_bl
 #>    T-26-0166_Operator_2           axis_horizontal_parallel  0.04471444 rel_bl
+#>    T-26-0166_Operator_4        eye_axis_vertical_alignment  3.81792167    deg
+#>    T-26-0166_Operator_4      perpendicular_seg_3_4_vs_axis  0.02343335 rel_bl
+#>    T-26-0166_Operator_4           axis_horizontal_parallel  0.04150678 rel_bl
+#>    T-26-0166_Operator_4         parallel_vertical_segments  2.55304452    deg
+#>    T-26-0168_Operator_4        eye_axis_vertical_alignment  2.65632422    deg
 #>    T-26-0169_Operator_2        eye_axis_vertical_alignment  4.68076154    deg
 #>    T-26-0169_Operator_2      perpendicular_seg_3_4_vs_axis  0.02040312 rel_bl
+#>    T-26-0169_Operator_4        eye_axis_vertical_alignment  2.06913277    deg
+#>    T-26-0170_Operator_4         parallel_vertical_segments  2.61719142    deg
+#>    T-26-0171_Operator_4        eye_axis_vertical_alignment  3.91300975    deg
+#>    T-26-0171_Operator_4 perpendicular_eye_vertical_vs_axis  0.02080757 rel_bl
+#>    T-26-0172_Operator_4         parallel_vertical_segments  4.90155999    deg
 #>    T-26-0173_Operator_2        eye_axis_vertical_alignment  2.54690677    deg
 #>    T-26-0174_Operator_2         parallel_vertical_segments  2.50193583    deg
+#>    T-26-0174_Operator_4        eye_axis_vertical_alignment  3.28859277    deg
+#>    T-26-0175_Operator_4         parallel_vertical_segments  4.11859119    deg
+#>    T-26-0176_Operator_4         parallel_vertical_segments  2.68001632    deg
 #>    T-26-0177_Operator_1        eye_axis_vertical_alignment 14.82132302    deg
 #>    T-26-0177_Operator_1      perpendicular_seg_1_9_vs_axis  0.04592682 rel_bl
 #>    T-26-0177_Operator_1      perpendicular_seg_3_4_vs_axis  0.07547663 rel_bl
@@ -743,9 +1108,19 @@ geom_check
 #>    T-26-0177_Operator_2      perpendicular_seg_3_4_vs_axis  0.02801072 rel_bl
 #>    T-26-0177_Operator_2 perpendicular_eye_vertical_vs_axis  0.02029556 rel_bl
 #>    T-26-0177_Operator_2           axis_horizontal_parallel  0.03560625 rel_bl
+#>    T-26-0177_Operator_4        eye_axis_vertical_alignment  7.45313080    deg
+#>    T-26-0177_Operator_4      perpendicular_seg_1_9_vs_axis  0.02650236 rel_bl
+#>    T-26-0177_Operator_4      perpendicular_seg_3_4_vs_axis  0.04248656 rel_bl
+#>    T-26-0177_Operator_4 perpendicular_eye_vertical_vs_axis  0.02959309 rel_bl
+#>    T-26-0177_Operator_4           axis_horizontal_parallel  0.04162747 rel_bl
 #>    T-26-0178_Operator_1           axis_horizontal_parallel  0.02412409 rel_bl
 #>    T-26-0178_Operator_2        eye_axis_vertical_alignment  4.18939710    deg
 #>    T-26-0178_Operator_2           axis_horizontal_parallel  0.02555728 rel_bl
+#>    T-26-0178_Operator_4        eye_axis_vertical_alignment  7.78562049    deg
+#>    T-26-0178_Operator_4      perpendicular_seg_3_4_vs_axis  0.02811909 rel_bl
+#>    T-26-0178_Operator_4 perpendicular_eye_vertical_vs_axis  0.02324202 rel_bl
+#>    T-26-0178_Operator_4           axis_horizontal_parallel  0.02746002 rel_bl
+#>    T-26-0178_Operator_4         parallel_vertical_segments  2.21988499    deg
 #>  T-26-0179-3_Operator_1        eye_axis_vertical_alignment  3.67760762    deg
 #>  T-26-0179-3_Operator_2        eye_axis_vertical_alignment  4.01404912    deg
 #>  T-26-0179-3_Operator_2      perpendicular_seg_3_4_vs_axis  0.02017696 rel_bl
@@ -754,6 +1129,13 @@ geom_check
 #>    T-26-0179_Operator_2        eye_axis_vertical_alignment  5.61951176    deg
 #>    T-26-0179_Operator_2      perpendicular_seg_3_4_vs_axis  0.02342528 rel_bl
 #>    T-26-0179_Operator_2           axis_horizontal_parallel  0.03018270 rel_bl
+#>    T-26-0179_Operator_3        eye_axis_vertical_alignment  6.10271322    deg
+#>    T-26-0179_Operator_3      perpendicular_seg_3_4_vs_axis  0.02682626 rel_bl
+#>    T-26-0179_Operator_3           axis_horizontal_parallel  0.03806128 rel_bl
+#>    T-26-0179_Operator_4        eye_axis_vertical_alignment 12.27609635    deg
+#>    T-26-0179_Operator_4      perpendicular_seg_3_4_vs_axis  0.02892101 rel_bl
+#>    T-26-0179_Operator_4 perpendicular_eye_vertical_vs_axis  0.04719668 rel_bl
+#>    T-26-0179_Operator_4         parallel_vertical_segments  2.18947066    deg
 #>    T-26-0180_Operator_1        eye_axis_vertical_alignment  4.65459540    deg
 #>    T-26-0180_Operator_1      perpendicular_seg_3_4_vs_axis  0.02123535 rel_bl
 #>    T-26-0180_Operator_1           axis_horizontal_parallel  0.02052751 rel_bl
@@ -761,23 +1143,42 @@ geom_check
 #>    T-26-0180_Operator_2        eye_axis_vertical_alignment  5.02311005    deg
 #>    T-26-0180_Operator_2      perpendicular_seg_3_4_vs_axis  0.02179240 rel_bl
 #>    T-26-0180_Operator_2           axis_horizontal_parallel  0.02060780 rel_bl
+#>    T-26-0180_Operator_4           axis_horizontal_parallel  0.02000048 rel_bl
 #>    T-26-0182_Operator_2        eye_axis_vertical_alignment  2.17904782    deg
+#>    T-26-0182_Operator_4        eye_axis_vertical_alignment  2.45864418    deg
+#>    T-26-0183_Operator_4        eye_axis_vertical_alignment  3.16081625    deg
+#>    T-26-0183_Operator_4         parallel_vertical_segments  2.00966949    deg
 #>    T-26-0184_Operator_1        eye_axis_vertical_alignment  3.83297829    deg
 #>    T-26-0184_Operator_1      perpendicular_seg_3_4_vs_axis  0.02024219 rel_bl
 #>    T-26-0184_Operator_1           axis_horizontal_parallel  0.03852545 rel_bl
 #>    T-26-0184_Operator_2        eye_axis_vertical_alignment  6.04677433    deg
 #>    T-26-0184_Operator_2      perpendicular_seg_3_4_vs_axis  0.02837512 rel_bl
 #>    T-26-0184_Operator_2           axis_horizontal_parallel  0.03274001 rel_bl
+#>    T-26-0184_Operator_4      perpendicular_seg_1_9_vs_axis  0.02267570 rel_bl
+#>    T-26-0184_Operator_4      perpendicular_seg_3_4_vs_axis  0.03980410 rel_bl
+#>    T-26-0184_Operator_4 perpendicular_eye_vertical_vs_axis  0.02356112 rel_bl
+#>    T-26-0184_Operator_4           axis_horizontal_parallel  0.03847662 rel_bl
+#>    T-26-0184_Operator_4         parallel_vertical_segments  8.07226732    deg
 #>    T-26-0185_Operator_2        eye_axis_vertical_alignment  3.56060168    deg
 #>    T-26-0185_Operator_2           axis_horizontal_parallel  0.02007448 rel_bl
+#>    T-26-0185_Operator_4        eye_axis_vertical_alignment  3.91901814    deg
+#>    T-26-0185_Operator_4         parallel_vertical_segments  2.23587237    deg
 #>    T-26-0186_Operator_2        eye_axis_vertical_alignment  4.13007068    deg
+#>    T-26-0186_Operator_4         parallel_vertical_segments  3.45206037    deg
 #>    T-26-0187_Operator_1        eye_axis_vertical_alignment  2.20094492    deg
 #>    T-26-0187_Operator_1           axis_horizontal_parallel  0.02611204 rel_bl
 #>    T-26-0187_Operator_2        eye_axis_vertical_alignment  6.13969222    deg
 #>    T-26-0187_Operator_2      perpendicular_seg_3_4_vs_axis  0.02623834 rel_bl
 #>    T-26-0187_Operator_2 perpendicular_eye_vertical_vs_axis  0.02001196 rel_bl
 #>    T-26-0187_Operator_2           axis_horizontal_parallel  0.02657121 rel_bl
+#>    T-26-0187_Operator_4        eye_axis_vertical_alignment  6.45569801    deg
+#>    T-26-0187_Operator_4      perpendicular_seg_3_4_vs_axis  0.02579416 rel_bl
+#>    T-26-0187_Operator_4           axis_horizontal_parallel  0.02892061 rel_bl
 #>    T-26-0188_Operator_2        eye_axis_vertical_alignment  2.92644717    deg
+#>    T-26-0188_Operator_4        eye_axis_vertical_alignment  6.82764361    deg
+#>    T-26-0188_Operator_4 perpendicular_eye_vertical_vs_axis  0.02136080 rel_bl
+#>    T-26-0188_Operator_4         parallel_vertical_segments  3.50841635    deg
+#>    T-26-0189_Operator_4        eye_axis_vertical_alignment  2.24690356    deg
 #>    T-26-0190_Operator_1        eye_axis_vertical_alignment 89.28211987    deg
 #>    T-26-0190_Operator_1      perpendicular_seg_1_9_vs_axis  0.11571905 rel_bl
 #>    T-26-0190_Operator_1      perpendicular_seg_3_4_vs_axis  0.25048599 rel_bl
@@ -785,6 +1186,11 @@ geom_check
 #>    T-26-0190_Operator_1 perpendicular_eye_vertical_vs_axis  0.15342267 rel_bl
 #>    T-26-0190_Operator_1           axis_horizontal_parallel  0.34546246 rel_bl
 #>    T-26-0190_Operator_2        eye_axis_vertical_alignment  2.28374260    deg
+#>    T-26-0190_Operator_4        eye_axis_vertical_alignment 25.30724858    deg
+#>    T-26-0190_Operator_4      perpendicular_seg_3_4_vs_axis  0.05025612 rel_bl
+#>    T-26-0190_Operator_4 perpendicular_eye_vertical_vs_axis  0.08225940 rel_bl
+#>    T-26-0190_Operator_4           axis_horizontal_parallel  0.27042352 rel_bl
+#>    T-26-0190_Operator_4         parallel_vertical_segments 26.21080769    deg
 #>    T-26-0191_Operator_1        eye_axis_vertical_alignment  2.69777595    deg
 #>    T-26-0191_Operator_2        eye_axis_vertical_alignment  4.48241911    deg
 #>    T-26-0191_Operator_2      perpendicular_seg_3_4_vs_axis  0.02002686 rel_bl
@@ -793,13 +1199,21 @@ geom_check
 #>    T-26-0192_Operator_1           axis_horizontal_parallel  0.02161128 rel_bl
 #>    T-26-0192_Operator_2        eye_axis_vertical_alignment  2.69056949    deg
 #>    T-26-0192_Operator_2           axis_horizontal_parallel  0.02066492 rel_bl
+#>    T-26-0192_Operator_4        eye_axis_vertical_alignment  2.21634484    deg
+#>    T-26-0192_Operator_4           axis_horizontal_parallel  0.02245041 rel_bl
 #>    T-26-0193_Operator_2        eye_axis_vertical_alignment  3.48763778    deg
 #>    T-26-0193_Operator_2           axis_horizontal_parallel  0.02060086 rel_bl
 #>    T-26-0193_Operator_2         parallel_vertical_segments  2.16272013    deg
+#>    T-26-0193_Operator_4        eye_axis_vertical_alignment  5.88833122    deg
+#>    T-26-0193_Operator_4 perpendicular_eye_vertical_vs_axis  0.03680193 rel_bl
+#>    T-26-0193_Operator_4         parallel_vertical_segments  4.62072097    deg
 #>    T-26-0194_Operator_2        eye_axis_vertical_alignment  4.71661678    deg
 #>    T-26-0194_Operator_2      perpendicular_seg_1_9_vs_axis  0.02269843 rel_bl
 #>    T-26-0194_Operator_2      perpendicular_seg_3_4_vs_axis  0.02057991 rel_bl
 #>    T-26-0194_Operator_2         parallel_vertical_segments  2.62505940    deg
+#>    T-26-0194_Operator_4        eye_axis_vertical_alignment  4.31066366    deg
+#>    T-26-0194_Operator_4      perpendicular_seg_3_4_vs_axis  0.02542035 rel_bl
+#>    T-26-0194_Operator_4         parallel_vertical_segments  2.24726699    deg
 #>    T-26-0195_Operator_1        eye_axis_vertical_alignment 14.33634556    deg
 #>    T-26-0195_Operator_1      perpendicular_seg_1_9_vs_axis  0.03397678 rel_bl
 #>    T-26-0195_Operator_1      perpendicular_seg_3_4_vs_axis  0.06442659 rel_bl
@@ -808,33 +1222,60 @@ geom_check
 #>    T-26-0195_Operator_2        eye_axis_vertical_alignment  2.54669154    deg
 #>    T-26-0195_Operator_2           axis_horizontal_parallel  0.02440200 rel_bl
 #>    T-26-0195_Operator_2         parallel_vertical_segments  2.87579438    deg
+#>    T-26-0195_Operator_4        eye_axis_vertical_alignment  3.40207420    deg
+#>    T-26-0195_Operator_4      perpendicular_seg_3_4_vs_axis  0.02083986 rel_bl
+#>    T-26-0195_Operator_4           axis_horizontal_parallel  0.02987457 rel_bl
 #>    T-26-0196_Operator_2        eye_axis_vertical_alignment  3.75203379    deg
 #>    T-26-0196_Operator_2         parallel_vertical_segments  2.06433845    deg
+#>    T-26-0196_Operator_4        eye_axis_vertical_alignment  4.63647077    deg
+#>    T-26-0196_Operator_4         parallel_vertical_segments  3.24564568    deg
 #>    T-26-0197_Operator_2        eye_axis_vertical_alignment  2.70746616    deg
 #>    T-26-0198_Operator_2        eye_axis_vertical_alignment  2.43875270    deg
+#>    T-26-0198_Operator_4         parallel_vertical_segments  2.01147671    deg
 #>    T-26-0199_Operator_2         parallel_vertical_segments  2.49996306    deg
+#>    T-26-0199_Operator_4        eye_axis_vertical_alignment  3.75374528    deg
+#>    T-26-0199_Operator_4         parallel_vertical_segments  2.07399483    deg
 #>    T-26-0200_Operator_1        eye_axis_vertical_alignment  2.52652670    deg
 #>    T-26-0200_Operator_2        eye_axis_vertical_alignment  2.06965563    deg
 #>    T-26-0201_Operator_2        eye_axis_vertical_alignment  3.39145649    deg
+#>    T-26-0201_Operator_4        eye_axis_vertical_alignment  3.30167326    deg
 #>    T-26-0202_Operator_1        eye_axis_vertical_alignment  2.88638973    deg
 #>    T-26-0202_Operator_1           axis_horizontal_parallel  0.02007277 rel_bl
 #>    T-26-0202_Operator_2        eye_axis_vertical_alignment  4.44929898    deg
 #>    T-26-0202_Operator_2      perpendicular_seg_3_4_vs_axis  0.02383667 rel_bl
 #>    T-26-0202_Operator_2           axis_horizontal_parallel  0.02750385 rel_bl
+#>    T-26-0202_Operator_4           axis_horizontal_parallel  0.02572613 rel_bl
+#>    T-26-0202_Operator_4         parallel_vertical_segments  2.06380463    deg
 #>    T-26-0203_Operator_2        eye_axis_vertical_alignment  3.46088697    deg
 #>    T-26-0204_Operator_2        eye_axis_vertical_alignment  2.80985798    deg
+#>    T-26-0204_Operator_4        eye_axis_vertical_alignment  2.22907195    deg
 #>    T-26-0205_Operator_2        eye_axis_vertical_alignment  3.63481024    deg
+#>    T-26-0205_Operator_4        eye_axis_vertical_alignment  2.99660648    deg
+#>    T-26-0205_Operator_4 perpendicular_eye_vertical_vs_axis  0.02371942 rel_bl
+#>    T-26-0205_Operator_4         parallel_vertical_segments  3.54504147    deg
 #>    T-26-0206_Operator_2         parallel_vertical_segments  2.31314504    deg
 #>    T-26-0207_Operator_2         parallel_vertical_segments  2.93507083    deg
+#>    T-26-0207_Operator_4        eye_axis_vertical_alignment  4.64440259    deg
+#>    T-26-0207_Operator_4 perpendicular_eye_vertical_vs_axis  0.02456498 rel_bl
+#>    T-26-0207_Operator_4         parallel_vertical_segments  4.21851050    deg
 #>    T-26-0208_Operator_1         parallel_vertical_segments  2.22846671    deg
 #>    T-26-0208_Operator_2         parallel_vertical_segments  2.83130309    deg
+#>    T-26-0208_Operator_4         parallel_vertical_segments  3.11101357    deg
 #>    T-26-0209_Operator_1        eye_axis_vertical_alignment 89.11864446    deg
 #>    T-26-0209_Operator_1      perpendicular_seg_1_9_vs_axis  0.14801766 rel_bl
 #>    T-26-0209_Operator_1      perpendicular_seg_3_4_vs_axis  0.27024263 rel_bl
 #>    T-26-0209_Operator_1    perpendicular_seg_10_11_vs_axis  0.10134116 rel_bl
 #>    T-26-0209_Operator_1 perpendicular_eye_vertical_vs_axis  0.17985762 rel_bl
 #>    T-26-0209_Operator_1           axis_horizontal_parallel  0.36564986 rel_bl
+#>    T-26-0209_Operator_4        eye_axis_vertical_alignment 41.14487896    deg
+#>    T-26-0209_Operator_4      perpendicular_seg_1_9_vs_axis  0.04836143 rel_bl
+#>    T-26-0209_Operator_4      perpendicular_seg_3_4_vs_axis  0.08594319 rel_bl
+#>    T-26-0209_Operator_4    perpendicular_seg_10_11_vs_axis  0.03670797 rel_bl
+#>    T-26-0209_Operator_4 perpendicular_eye_vertical_vs_axis  0.03982182 rel_bl
+#>    T-26-0209_Operator_4           axis_horizontal_parallel  0.29675747 rel_bl
+#>    T-26-0209_Operator_4         parallel_vertical_segments  2.75270441    deg
 #>    T-26-0210_Operator_2         parallel_vertical_segments  4.14613116    deg
+#>    T-26-0210_Operator_4        eye_axis_vertical_alignment  2.12890591    deg
 #>    T-26-0212_Operator_1        eye_axis_vertical_alignment  4.96197318    deg
 #>    T-26-0212_Operator_1      perpendicular_seg_3_4_vs_axis  0.02335622 rel_bl
 #>    T-26-0212_Operator_1           axis_horizontal_parallel  0.04471144 rel_bl
@@ -843,46 +1284,89 @@ geom_check
 #>    T-26-0212_Operator_2 perpendicular_eye_vertical_vs_axis  0.02225596 rel_bl
 #>    T-26-0212_Operator_2           axis_horizontal_parallel  0.03574409 rel_bl
 #>    T-26-0212_Operator_2         parallel_vertical_segments  2.38856350    deg
+#>    T-26-0212_Operator_4        eye_axis_vertical_alignment  9.86401611    deg
+#>    T-26-0212_Operator_4      perpendicular_seg_3_4_vs_axis  0.03371887 rel_bl
+#>    T-26-0212_Operator_4 perpendicular_eye_vertical_vs_axis  0.02253392 rel_bl
+#>    T-26-0212_Operator_4           axis_horizontal_parallel  0.03959461 rel_bl
+#>    T-26-0212_Operator_4         parallel_vertical_segments  2.18624097    deg
 #>    T-26-0213_Operator_1        eye_axis_vertical_alignment  2.82709045    deg
 #>    T-26-0213_Operator_1           axis_horizontal_parallel  0.02573432 rel_bl
 #>    T-26-0213_Operator_2        eye_axis_vertical_alignment  3.99644901    deg
+#>    T-26-0213_Operator_4        eye_axis_vertical_alignment  5.21994942    deg
+#>    T-26-0213_Operator_4      perpendicular_seg_3_4_vs_axis  0.02285635 rel_bl
+#>    T-26-0213_Operator_4           axis_horizontal_parallel  0.02214229 rel_bl
 #>    T-26-0214_Operator_1           axis_horizontal_parallel  0.03044470 rel_bl
 #>    T-26-0214_Operator_2        eye_axis_vertical_alignment  5.56669970    deg
 #>    T-26-0214_Operator_2         parallel_vertical_segments  2.02168851    deg
+#>    T-26-0214_Operator_4           axis_horizontal_parallel  0.02423537 rel_bl
+#>    T-26-0214_Operator_4         parallel_vertical_segments  2.09729670    deg
 #>    T-26-0215_Operator_2        eye_axis_vertical_alignment  4.84030822    deg
 #>    T-26-0215_Operator_2      perpendicular_seg_3_4_vs_axis  0.02247708 rel_bl
+#>    T-26-0216_Operator_4        eye_axis_vertical_alignment  3.41406082    deg
+#>    T-26-0216_Operator_4 perpendicular_eye_vertical_vs_axis  0.02043785 rel_bl
+#>    T-26-0216_Operator_4         parallel_vertical_segments  5.43676199    deg
 #>    T-26-0217_Operator_2        eye_axis_vertical_alignment  5.28998154    deg
 #>    T-26-0217_Operator_2      perpendicular_seg_3_4_vs_axis  0.02194261 rel_bl
 #>    T-26-0217_Operator_2           axis_horizontal_parallel  0.02765661 rel_bl
+#>    T-26-0217_Operator_4           axis_horizontal_parallel  0.02228180 rel_bl
 #>    T-26-0218_Operator_1         parallel_vertical_segments  2.12659540    deg
 #>    T-26-0218_Operator_2        eye_axis_vertical_alignment  2.85445351    deg
+#>    T-26-0218_Operator_4        eye_axis_vertical_alignment  2.29803658    deg
+#>    T-26-0218_Operator_4         parallel_vertical_segments  2.24916853    deg
 #>    T-26-0219_Operator_2        eye_axis_vertical_alignment  2.45724217    deg
 #>    T-26-0219_Operator_2         parallel_vertical_segments  2.06354037    deg
+#>    T-26-0219_Operator_4        eye_axis_vertical_alignment  2.87371898    deg
 #>    T-26-0220_Operator_1        eye_axis_vertical_alignment  2.33698579    deg
 #>    T-26-0220_Operator_2        eye_axis_vertical_alignment  4.65935717    deg
 #>    T-26-0220_Operator_2      perpendicular_seg_3_4_vs_axis  0.02076792 rel_bl
+#>    T-26-0220_Operator_4        eye_axis_vertical_alignment  4.76508998    deg
+#>    T-26-0220_Operator_4           axis_horizontal_parallel  0.02085403 rel_bl
+#>    T-26-0220_Operator_4         parallel_vertical_segments  3.86536969    deg
 #>    T-26-0221_Operator_1        eye_axis_vertical_alignment  2.89389549    deg
 #>    T-26-0221_Operator_1           axis_horizontal_parallel  0.05015633 rel_bl
 #>    T-26-0221_Operator_1         parallel_vertical_segments  2.74613948    deg
 #>    T-26-0221_Operator_2        eye_axis_vertical_alignment  5.19064520    deg
 #>    T-26-0221_Operator_2           axis_horizontal_parallel  0.03147897 rel_bl
 #>    T-26-0221_Operator_2         parallel_vertical_segments  2.88803708    deg
+#>    T-26-0221_Operator_4        eye_axis_vertical_alignment  8.35763324    deg
+#>    T-26-0221_Operator_4      perpendicular_seg_3_4_vs_axis  0.02715261 rel_bl
+#>    T-26-0221_Operator_4           axis_horizontal_parallel  0.04561570 rel_bl
+#>    T-26-0221_Operator_4         parallel_vertical_segments  2.85237769    deg
 #>    T-26-0222_Operator_1        eye_axis_vertical_alignment  5.07793926    deg
 #>    T-26-0222_Operator_1      perpendicular_seg_3_4_vs_axis  0.02167703 rel_bl
 #>    T-26-0222_Operator_1           axis_horizontal_parallel  0.03928963 rel_bl
 #>    T-26-0222_Operator_2        eye_axis_vertical_alignment  5.13760453    deg
 #>    T-26-0222_Operator_2      perpendicular_seg_3_4_vs_axis  0.02456452 rel_bl
 #>    T-26-0222_Operator_2           axis_horizontal_parallel  0.03172917 rel_bl
+#>    T-26-0222_Operator_4        eye_axis_vertical_alignment  7.20661634    deg
+#>    T-26-0222_Operator_4      perpendicular_seg_3_4_vs_axis  0.02090021 rel_bl
+#>    T-26-0222_Operator_4           axis_horizontal_parallel  0.03381071 rel_bl
+#>    T-26-0222_Operator_4         parallel_vertical_segments  4.25490599    deg
+#>    T-26-0223_Operator_4        eye_axis_vertical_alignment  2.34915493    deg
 #>    T-26-0224_Operator_2         parallel_vertical_segments  2.22772732    deg
+#>    T-26-0224_Operator_4        eye_axis_vertical_alignment  2.23221248    deg
+#>    T-26-0224_Operator_4 perpendicular_eye_vertical_vs_axis  0.02533513 rel_bl
+#>    T-26-0224_Operator_4         parallel_vertical_segments  2.87050387    deg
 #>    T-26-0225_Operator_2        eye_axis_vertical_alignment  2.09654425    deg
 #>    T-26-0225_Operator_2         parallel_vertical_segments  3.24730874    deg
+#>    T-26-0225_Operator_4         parallel_vertical_segments  2.92533649    deg
 #>    T-26-0226_Operator_2         parallel_vertical_segments  3.28501393    deg
+#>    T-26-0226_Operator_4         parallel_vertical_segments  4.48985671    deg
 #>    T-26-0227_Operator_2         parallel_vertical_segments  9.61588543    deg
+#>    T-26-0227_Operator_4        eye_axis_vertical_alignment  5.59340112    deg
+#>    T-26-0227_Operator_4         parallel_vertical_segments  3.74916022    deg
 #>    T-26-0228_Operator_1        eye_axis_vertical_alignment  3.23771294    deg
 #>    T-26-0228_Operator_1           axis_horizontal_parallel  0.02106202 rel_bl
 #>    T-26-0228_Operator_2        eye_axis_vertical_alignment  2.80847495    deg
+#>    T-26-0228_Operator_4        eye_axis_vertical_alignment  3.96544360    deg
+#>    T-26-0228_Operator_4           axis_horizontal_parallel  0.02365604 rel_bl
+#>    T-26-0228_Operator_4         parallel_vertical_segments  5.39778267    deg
 #>    T-26-0229_Operator_1           axis_horizontal_parallel  0.02193588 rel_bl
 #>    T-26-0229_Operator_2        eye_axis_vertical_alignment  3.06562784    deg
+#>    T-26-0229_Operator_4        eye_axis_vertical_alignment  3.50380214    deg
+#>    T-26-0229_Operator_4      perpendicular_seg_3_4_vs_axis  0.03202081 rel_bl
+#>    T-26-0229_Operator_4           axis_horizontal_parallel  0.02236731 rel_bl
+#>    T-26-0229_Operator_4         parallel_vertical_segments  8.30289431    deg
 #>  T-26-0230-1_Operator_1        eye_axis_vertical_alignment  2.33082867    deg
 #>  T-26-0230-1_Operator_2        eye_axis_vertical_alignment 45.00000000    deg
 #>  T-26-0230-1_Operator_2      perpendicular_seg_1_9_vs_axis  2.32335085 rel_bl
@@ -907,48 +1391,95 @@ geom_check
 #>  T-26-0230-4_Operator_2        eye_axis_vertical_alignment  3.66299296    deg
 #>  T-26-0230-4_Operator_2         parallel_vertical_segments  2.30373188    deg
 #>    T-26-0231_Operator_2         parallel_vertical_segments  2.26217622    deg
+#>    T-26-0231_Operator_4        eye_axis_vertical_alignment  7.80581943    deg
+#>    T-26-0231_Operator_4 perpendicular_eye_vertical_vs_axis  0.02098214 rel_bl
+#>    T-26-0231_Operator_4         parallel_vertical_segments  4.01710816    deg
 #>    T-26-0232_Operator_2         parallel_vertical_segments  2.92057497    deg
+#>    T-26-0232_Operator_4           axis_horizontal_parallel  0.02009528 rel_bl
 #>    T-26-0233_Operator_2         parallel_vertical_segments  2.10860168    deg
+#>    T-26-0233_Operator_4        eye_axis_vertical_alignment  6.33023922    deg
+#>    T-26-0233_Operator_4         parallel_vertical_segments  8.54887705    deg
 #>    T-26-0234_Operator_2         parallel_vertical_segments  2.75555457    deg
+#>    T-26-0234_Operator_4        eye_axis_vertical_alignment  4.50011282    deg
+#>    T-26-0234_Operator_4         parallel_vertical_segments  4.82691144    deg
 #>    T-26-0235_Operator_2        eye_axis_vertical_alignment  4.87853434    deg
 #>    T-26-0235_Operator_2      perpendicular_seg_3_4_vs_axis  0.02261858 rel_bl
 #>    T-26-0235_Operator_2         parallel_vertical_segments  4.50514449    deg
+#>    T-26-0235_Operator_4        eye_axis_vertical_alignment  2.48279306    deg
+#>    T-26-0235_Operator_4         parallel_vertical_segments  2.09943786    deg
+#>    T-26-0236_Operator_4         parallel_vertical_segments  3.06778424    deg
+#>    T-26-0237_Operator_4         parallel_vertical_segments 15.73215973    deg
 #>    T-26-0238_Operator_2         parallel_vertical_segments  2.97527390    deg
+#>    T-26-0238_Operator_4        eye_axis_vertical_alignment  3.78736611    deg
+#>    T-26-0238_Operator_4         parallel_vertical_segments  3.36892123    deg
 #>    T-26-0239_Operator_1        eye_axis_vertical_alignment  3.45729971    deg
 #>    T-26-0239_Operator_2        eye_axis_vertical_alignment  5.04185771    deg
 #>    T-26-0239_Operator_2      perpendicular_seg_3_4_vs_axis  0.02625884 rel_bl
 #>    T-26-0239_Operator_2           axis_horizontal_parallel  0.02500842 rel_bl
 #>    T-26-0239_Operator_2         parallel_vertical_segments  3.74517773    deg
+#>    T-26-0239_Operator_4           axis_horizontal_parallel  0.02586488 rel_bl
+#>    T-26-0239_Operator_4         parallel_vertical_segments  3.91748839    deg
+#>    T-26-0240_Operator_4         parallel_vertical_segments  2.30456151    deg
 #>    T-26-0241_Operator_2        eye_axis_vertical_alignment  2.21210170    deg
 #>    T-26-0241_Operator_2         parallel_vertical_segments  2.36254243    deg
 #>    T-26-0242_Operator_1        eye_axis_vertical_alignment  2.42225863    deg
 #>    T-26-0242_Operator_1           axis_horizontal_parallel  0.03479065 rel_bl
 #>    T-26-0242_Operator_2        eye_axis_vertical_alignment  3.74980313    deg
 #>    T-26-0242_Operator_2           axis_horizontal_parallel  0.03041762 rel_bl
+#>    T-26-0242_Operator_4        eye_axis_vertical_alignment  7.30474662    deg
+#>    T-26-0242_Operator_4      perpendicular_seg_3_4_vs_axis  0.02618060 rel_bl
+#>    T-26-0242_Operator_4 perpendicular_eye_vertical_vs_axis  0.02188544 rel_bl
+#>    T-26-0242_Operator_4           axis_horizontal_parallel  0.02941648 rel_bl
 #>    T-26-0243_Operator_2         parallel_vertical_segments  2.05942267    deg
+#>    T-26-0243_Operator_4        eye_axis_vertical_alignment  2.08254098    deg
+#>    T-26-0244_Operator_4        eye_axis_vertical_alignment  2.42503550    deg
+#>    T-26-0244_Operator_4         parallel_vertical_segments  2.42661683    deg
+#>    T-26-0245_Operator_3        eye_axis_vertical_alignment  2.41294947    deg
 #>    T-26-0246_Operator_1        eye_axis_vertical_alignment  3.44685455    deg
 #>    T-26-0246_Operator_2        eye_axis_vertical_alignment  4.89569377    deg
 #>    T-26-0246_Operator_2      perpendicular_seg_3_4_vs_axis  0.02056579 rel_bl
 #>    T-26-0246_Operator_2           axis_horizontal_parallel  0.02313688 rel_bl
 #>    T-26-0246_Operator_2         parallel_vertical_segments  4.26719086    deg
+#>    T-26-0246_Operator_4        eye_axis_vertical_alignment  5.43628456    deg
+#>    T-26-0246_Operator_4 perpendicular_eye_vertical_vs_axis  0.02112956 rel_bl
+#>    T-26-0246_Operator_4           axis_horizontal_parallel  0.02069259 rel_bl
+#>    T-26-0246_Operator_4         parallel_vertical_segments  9.55298798    deg
 #>    T-26-0247_Operator_2         parallel_vertical_segments  3.34499121    deg
+#>    T-26-0247_Operator_4        eye_axis_vertical_alignment 11.60444795    deg
+#>    T-26-0247_Operator_4 perpendicular_eye_vertical_vs_axis  0.04208629 rel_bl
+#>    T-26-0247_Operator_4         parallel_vertical_segments  8.29369399    deg
 #>    T-26-0248_Operator_1           axis_horizontal_parallel  0.02078000 rel_bl
 #>    T-26-0248_Operator_2        eye_axis_vertical_alignment  2.82040258    deg
 #>    T-26-0248_Operator_2         parallel_vertical_segments  4.07519547    deg
+#>    T-26-0248_Operator_4        eye_axis_vertical_alignment  8.63470009    deg
+#>    T-26-0248_Operator_4 perpendicular_eye_vertical_vs_axis  0.02297548 rel_bl
+#>    T-26-0248_Operator_4           axis_horizontal_parallel  0.02208597 rel_bl
+#>    T-26-0248_Operator_4         parallel_vertical_segments  5.07753125    deg
 #>    T-26-0249_Operator_1        eye_axis_vertical_alignment  2.05013779    deg
 #>    T-26-0249_Operator_1           axis_horizontal_parallel  0.02577412 rel_bl
 #>    T-26-0249_Operator_2        eye_axis_vertical_alignment  3.75521115    deg
 #>    T-26-0249_Operator_2         parallel_vertical_segments  4.65191324    deg
+#>    T-26-0249_Operator_4         parallel_vertical_segments  4.33294912    deg
 #>    T-26-0250_Operator_1           axis_horizontal_parallel  0.06534797 rel_bl
 #>    T-26-0250_Operator_2        eye_axis_vertical_alignment  7.97047026    deg
 #>    T-26-0250_Operator_2      perpendicular_seg_3_4_vs_axis  0.03574040 rel_bl
 #>    T-26-0250_Operator_2           axis_horizontal_parallel  0.05422617 rel_bl
+#>    T-26-0250_Operator_4        eye_axis_vertical_alignment 15.69546230    deg
+#>    T-26-0250_Operator_4      perpendicular_seg_3_4_vs_axis  0.03191216 rel_bl
+#>    T-26-0250_Operator_4 perpendicular_eye_vertical_vs_axis  0.04574840 rel_bl
+#>    T-26-0250_Operator_4           axis_horizontal_parallel  0.05774178 rel_bl
+#>    T-26-0250_Operator_4         parallel_vertical_segments 14.43599963    deg
 #>    T-26-0251_Operator_1        eye_axis_vertical_alignment  4.61252559    deg
 #>    T-26-0251_Operator_1           axis_horizontal_parallel  0.04874968 rel_bl
 #>    T-26-0251_Operator_2        eye_axis_vertical_alignment  6.99669281    deg
 #>    T-26-0251_Operator_2      perpendicular_seg_3_4_vs_axis  0.02519918 rel_bl
 #>    T-26-0251_Operator_2           axis_horizontal_parallel  0.03905873 rel_bl
 #>    T-26-0251_Operator_2         parallel_vertical_segments  2.12152304    deg
+#>    T-26-0251_Operator_4        eye_axis_vertical_alignment  9.31431876    deg
+#>    T-26-0251_Operator_4      perpendicular_seg_3_4_vs_axis  0.02698679 rel_bl
+#>    T-26-0251_Operator_4 perpendicular_eye_vertical_vs_axis  0.02327224 rel_bl
+#>    T-26-0251_Operator_4           axis_horizontal_parallel  0.04248595 rel_bl
+#>    T-26-0251_Operator_4         parallel_vertical_segments  3.02491386    deg
 #>    T-26-0252_Operator_1        eye_axis_vertical_alignment 11.86582159    deg
 #>    T-26-0252_Operator_1      perpendicular_seg_1_9_vs_axis  0.02039167 rel_bl
 #>    T-26-0252_Operator_1      perpendicular_seg_3_4_vs_axis  0.04698949 rel_bl
@@ -959,6 +1490,11 @@ geom_check
 #>    T-26-0252_Operator_2 perpendicular_eye_vertical_vs_axis  0.02620141 rel_bl
 #>    T-26-0252_Operator_2           axis_horizontal_parallel  0.06431110 rel_bl
 #>    T-26-0252_Operator_2         parallel_vertical_segments  2.88531830    deg
+#>    T-26-0252_Operator_4        eye_axis_vertical_alignment  6.47150597    deg
+#>    T-26-0252_Operator_4      perpendicular_seg_3_4_vs_axis  0.03675438 rel_bl
+#>    T-26-0252_Operator_4 perpendicular_eye_vertical_vs_axis  0.02292188 rel_bl
+#>    T-26-0252_Operator_4           axis_horizontal_parallel  0.07311364 rel_bl
+#>    T-26-0252_Operator_4         parallel_vertical_segments  3.22633709    deg
 #>  T-26-0261-1_Operator_1        eye_axis_vertical_alignment 12.83402864    deg
 #>  T-26-0261-1_Operator_1      perpendicular_seg_1_9_vs_axis  0.02281525 rel_bl
 #>  T-26-0261-1_Operator_1      perpendicular_seg_3_4_vs_axis  0.05514973 rel_bl
@@ -1013,8 +1549,13 @@ geom_check
 #>  T-26-0264-4_Operator_2           axis_horizontal_parallel  0.06009548 rel_bl
 #>  T-26-0264-4_Operator_2         parallel_vertical_segments  2.75383187    deg
 #>    T-26-0265_Operator_1         parallel_vertical_segments  4.51398846    deg
+#>    T-26-0265_Operator_4         parallel_vertical_segments  3.19515839    deg
+#>    T-26-0266_Operator_4         parallel_vertical_segments  6.55327313    deg
 #>    T-26-0267_Operator_1         parallel_vertical_segments  2.14784776    deg
+#>    T-26-0267_Operator_3        eye_axis_vertical_alignment  2.67936369    deg
+#>    T-26-0267_Operator_4         parallel_vertical_segments  6.65704510    deg
 #>    T-26-0268_Operator_1        eye_axis_vertical_alignment  2.44390168    deg
+#>    T-26-0268_Operator_4         parallel_vertical_segments 11.07012074    deg
 #>    T-26-0269_Operator_1        eye_axis_vertical_alignment  8.36810063    deg
 #>    T-26-0269_Operator_1      perpendicular_seg_3_4_vs_axis  0.03600715 rel_bl
 #>    T-26-0269_Operator_1           axis_horizontal_parallel  0.03228227 rel_bl
@@ -1022,6 +1563,10 @@ geom_check
 #>    T-26-0269_Operator_2      perpendicular_seg_3_4_vs_axis  0.03147178 rel_bl
 #>    T-26-0269_Operator_2           axis_horizontal_parallel  0.03021291 rel_bl
 #>    T-26-0269_Operator_2         parallel_vertical_segments  3.76589054    deg
+#>    T-26-0269_Operator_4        eye_axis_vertical_alignment  5.19907839    deg
+#>    T-26-0269_Operator_4      perpendicular_seg_3_4_vs_axis  0.02172873 rel_bl
+#>    T-26-0269_Operator_4           axis_horizontal_parallel  0.03300324 rel_bl
+#>    T-26-0269_Operator_4         parallel_vertical_segments  6.54121946    deg
 #>  T-26-0270-1_Operator_1        eye_axis_vertical_alignment  2.46970250    deg
 #>  T-26-0270-1_Operator_2        eye_axis_vertical_alignment  4.41680675    deg
 #>  T-26-0270-1_Operator_2      perpendicular_seg_3_4_vs_axis  0.02044563 rel_bl
@@ -1042,18 +1587,34 @@ geom_check
 #>    T-26-0271_Operator_2        eye_axis_vertical_alignment  3.52002310    deg
 #>    T-26-0271_Operator_2           axis_horizontal_parallel  0.02149934 rel_bl
 #>    T-26-0271_Operator_2         parallel_vertical_segments  2.42449116    deg
+#>    T-26-0271_Operator_4        eye_axis_vertical_alignment 10.90829527    deg
+#>    T-26-0271_Operator_4      perpendicular_seg_1_9_vs_axis  0.02306695 rel_bl
+#>    T-26-0271_Operator_4      perpendicular_seg_3_4_vs_axis  0.04503994 rel_bl
+#>    T-26-0271_Operator_4    perpendicular_seg_10_11_vs_axis  0.02132111 rel_bl
+#>    T-26-0271_Operator_4 perpendicular_eye_vertical_vs_axis  0.02829746 rel_bl
+#>    T-26-0271_Operator_4           axis_horizontal_parallel  0.02752033 rel_bl
+#>    T-26-0271_Operator_4         parallel_vertical_segments  2.88683122    deg
 #>    T-26-0272_Operator_1           axis_horizontal_parallel  0.02586498 rel_bl
 #>    T-26-0272_Operator_2        eye_axis_vertical_alignment  4.15198314    deg
 #>    T-26-0272_Operator_2           axis_horizontal_parallel  0.03214071 rel_bl
+#>    T-26-0272_Operator_4        eye_axis_vertical_alignment  3.07303742    deg
+#>    T-26-0272_Operator_4           axis_horizontal_parallel  0.02656260 rel_bl
+#>    T-26-0272_Operator_4         parallel_vertical_segments  3.81027855    deg
 #>    T-26-0273_Operator_1        eye_axis_vertical_alignment  2.47513233    deg
 #>    T-26-0273_Operator_1         parallel_vertical_segments  2.47513233    deg
+#>    T-26-0273_Operator_4         parallel_vertical_segments 12.02248379    deg
 #>    T-26-0274_Operator_1        eye_axis_vertical_alignment  8.27109501    deg
 #>    T-26-0274_Operator_1      perpendicular_seg_3_4_vs_axis  0.02249630 rel_bl
 #>    T-26-0274_Operator_1           axis_horizontal_parallel  0.04499260 rel_bl
 #>    T-26-0274_Operator_2        eye_axis_vertical_alignment  5.66219328    deg
 #>    T-26-0274_Operator_2           axis_horizontal_parallel  0.03396267 rel_bl
+#>    T-26-0274_Operator_4        eye_axis_vertical_alignment  4.77036711    deg
+#>    T-26-0274_Operator_4           axis_horizontal_parallel  0.03781491 rel_bl
+#>    T-26-0274_Operator_4         parallel_vertical_segments  8.72770895    deg
 #>    T-26-0275_Operator_1        eye_axis_vertical_alignment  3.34501064    deg
+#>    T-26-0275_Operator_4         parallel_vertical_segments  4.78814777    deg
 #>    T-26-0276_Operator_2        eye_axis_vertical_alignment  3.29193987    deg
+#>    T-26-0276_Operator_4         parallel_vertical_segments  3.49030121    deg
 #>    T-26-0277_Operator_1        eye_axis_vertical_alignment 16.43933200    deg
 #>    T-26-0277_Operator_1      perpendicular_seg_1_9_vs_axis  0.03276966 rel_bl
 #>    T-26-0277_Operator_1      perpendicular_seg_3_4_vs_axis  0.05428509 rel_bl
@@ -1063,6 +1624,9 @@ geom_check
 #>    T-26-0277_Operator_2        eye_axis_vertical_alignment  8.69378060    deg
 #>    T-26-0277_Operator_2      perpendicular_seg_3_4_vs_axis  0.02814185 rel_bl
 #>    T-26-0277_Operator_2           axis_horizontal_parallel  0.04422291 rel_bl
+#>    T-26-0277_Operator_4 perpendicular_eye_vertical_vs_axis  0.02014464 rel_bl
+#>    T-26-0277_Operator_4           axis_horizontal_parallel  0.04511847 rel_bl
+#>    T-26-0277_Operator_4         parallel_vertical_segments 10.11136690    deg
 #>  T-26-0278-1_Operator_2        eye_axis_vertical_alignment  3.43903102    deg
 #>  T-26-0278-1_Operator_2           axis_horizontal_parallel  0.02322560 rel_bl
 #>  T-26-0278-1_Operator_2         parallel_vertical_segments  7.61578735    deg
@@ -1073,15 +1637,557 @@ geom_check
 #>  T-26-0278-2_Operator_2         parallel_vertical_segments  4.00462840    deg
 #>    T-26-0279_Operator_1           axis_horizontal_parallel  0.02625135 rel_bl
 #>    T-26-0279_Operator_2        eye_axis_vertical_alignment  2.62801570    deg
+#>    T-26-0279_Operator_4         parallel_vertical_segments  4.01226654    deg
 #>  tolerance
 #>       2.00
 #>       2.00
 #>       0.02
 #>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
 #>       0.02
+#>       2.00
+#>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
@@ -1089,21 +2195,41 @@ geom_check
 #>       0.02
 #>       2.00
 #>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
 #>       2.00
+#>       2.00
 #>       0.02
 #>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
+#>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
 #>       0.02
+#>       2.00
 #>       2.00
 #>       2.00
+#>       2.00
+#>       2.00
 #>       0.02
+#>       2.00
+#>       2.00
 #>       0.02
+#>       2.00
+#>       2.00
 #>       0.02
+#>       2.00
+#>       2.00
 #>       2.00
 #>       2.00
 #>       0.02
@@ -1111,36 +2237,73 @@ geom_check
 #>       0.02
 #>       2.00
 #>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
 #>       2.00
 #>       2.00
+#>       0.02
 #>       2.00
 #>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
 #>       2.00
+#>       0.02
 #>       2.00
+#>       0.02
 #>       2.00
 #>       0.02
 #>       2.00
 #>       2.00
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
+#>       0.02
 #>       2.00
 #>       0.02
 #>       2.00
+#>       0.02
 #>       0.02
+#>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
+#>       0.02
+#>       2.00
 #>       2.00
+#>       2.00
+#>       0.02
 #>       2.00
 #>       2.00
 #>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
 #>       0.02
 #>       0.02
+#>       2.00
 #>       0.02
+#>       2.00
+#>       2.00
 #>       0.02
+#>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
 #>       0.02
+#>       0.02
+#>       0.02
 #>       2.00
+#>       0.02
 #>       0.02
 #>       2.00
 #>       2.00
@@ -1149,18 +2312,16 @@ geom_check
 #>       2.00
 #>       0.02
 #>       0.02
-#>       0.02
-#>       0.02
 #>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
+#>       2.00
 #>       0.02
 #>       0.02
-#>       2.00
 #>       0.02
 #>       2.00
-#>       0.02
+#>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
@@ -1168,28 +2329,34 @@ geom_check
 #>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
-#>       0.02
-#>       0.02
-#>       0.02
+#>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
+#>       2.00
 #>       0.02
 #>       0.02
+#>       2.00
 #>       0.02
+#>       2.00
+#>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
 #>       0.02
+#>       2.00
+#>       2.00
 #>       0.02
+#>       0.02
+#>       2.00
 #>       0.02
 #>       2.00
 #>       0.02
+#>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
+#>       0.02
 #>       0.02
 #>       2.00
 #>       2.00
@@ -1197,49 +2364,32 @@ geom_check
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
 #>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
 #>       2.00
-#>       2.00
-#>       0.02
-#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
 #>       2.00
-#>       0.02
-#>       0.02
-#>       0.02
 #>       2.00
 #>       2.00
 #>       0.02
-#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
@@ -1249,13 +2399,14 @@ geom_check
 #>       2.00
 #>       0.02
 #>       2.00
+#>       0.02
 #>       2.00
 #>       2.00
+#>       0.02
+#>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
-#>       0.02
 #>       2.00
 #>       0.02
 #>       0.02
@@ -1263,53 +2414,43 @@ geom_check
 #>       2.00
 #>       0.02
 #>       0.02
-#>       0.02
-#>       0.02
 #>       2.00
-#>       0.02
-#>       0.02
 #>       0.02
 #>       2.00
-#>       0.02
 #>       2.00
-#>       0.02
 #>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
 #>       0.02
-#>       0.02
+#>       2.00
 #>       2.00
 #>       2.00
+#>       2.00
 #>       0.02
 #>       2.00
+#>       0.02
 #>       0.02
+#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
 #>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
 #>       2.00
-#>       0.02
 #>       2.00
 #>       0.02
 #>       0.02
 #>       0.02
+#>       2.00
+#>       2.00
 #>       0.02
 #>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
 #>       0.02
-#>       0.02
-#>       0.02
 #>       2.00
 #>       0.02
 #>       0.02
@@ -1319,42 +2460,34 @@ geom_check
 #>       0.02
 #>       0.02
 #>       0.02
-#>       2.00
-#>       2.00
 #>       2.00
+#>       0.02
+#>       0.02
 #>       2.00
+#>       0.02
+#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
 #>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
-#>       2.00
-#>       0.02
-#>       0.02
 #>       2.00
 #>       0.02
-#>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
 #>       0.02
-#>       2.00
 #>       0.02
 #>       0.02
 #>       0.02
 #>       0.02
 #>       2.00
 #>       0.02
-#>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
@@ -1362,29 +2495,35 @@ geom_check
 #>       0.02
 #>       0.02
 #>       0.02
+#>       0.02
 #>       2.00
+#>       0.02
 #>       2.00
 #>       0.02
 #>       0.02
-#>       2.00
 #>       0.02
+#>       2.00
 #>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
-#>       2.00
+#>       0.02
 #>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
-#>       2.00
+#>       0.02
 #>       0.02
+#>       2.00
 #>       0.02
 #>       0.02
+#>       2.00
+#>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
 #>       2.00
+#>       0.02
 #>       0.02
 #>       0.02
 #>       2.00
@@ -1393,32 +2532,38 @@ geom_check
 #>       2.00
 #>       2.00
 #>       0.02
-#>       2.00
+#>       0.02
 #>       2.00
 #>       0.02
 #>       0.02
 #>       0.02
-#>       2.00
-#>       2.00
 #>       0.02
 #>       0.02
+#>       0.02
 #>       2.00
 #>       2.00
+#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
+#>       0.02
 #>       2.00
+#>       0.02
+#>       0.02
 #>       0.02
 #>       2.00
+#>       0.02
+#>       0.02
 #>       2.00
 #>       2.00
 #>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
+#>       0.02
+#>       0.02
 #>       0.02
 #>       0.02
 #>       0.02
@@ -1427,22 +2572,19 @@ geom_check
 #>       0.02
 #>       0.02
 #>       0.02
-#>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
 #>       0.02
-#>       2.00
 #>       0.02
 #>       2.00
 #>       0.02
 #>       2.00
 #>       0.02
 #>       2.00
-#>       0.02
 #>       0.02
 #>       2.00
+#>       0.02
 #>       2.00
 #>       2.00
 #>       0.02
@@ -1455,42 +2597,23 @@ geom_check
 #>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
-#>       0.02
 #>       0.02
 #>       0.02
-#>       2.00
-#>       2.00
-#>       2.00
-#>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
 #>       0.02
-#>       0.02
-#>       0.02
-#>       2.00
-#>       2.00
 #>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
-#>       0.02
-#>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
-#>       0.02
 #>       2.00
-#>       0.02
-#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
@@ -1500,23 +2623,16 @@ geom_check
 #>       2.00
 #>       2.00
 #>       0.02
-#>       2.00
-#>       2.00
-#>       2.00
-#>       2.00
 #>       2.00
 #>       0.02
-#>       2.00
+#>       0.02
 #>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
+#>       2.00
 #>       0.02
 #>       2.00
 #>       2.00
@@ -1524,44 +2640,38 @@ geom_check
 #>       2.00
 #>       0.02
 #>       2.00
-#>       0.02
-#>       0.02
+#>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
 #>       0.02
-#>       2.00
-#>       2.00
 #>       0.02
-#>       2.00
 #>       0.02
 #>       2.00
-#>       0.02
 #>       0.02
 #>       0.02
-#>       2.00
 #>       0.02
-#>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
+#>       2.00
 #>       0.02
 #>       0.02
 #>       0.02
 #>       2.00
-#>       0.02
+#>       2.00
 #>       0.02
 #>       0.02
 #>       0.02
 #>       2.00
+#>       2.00
 #>       0.02
 #>       2.00
 #>       2.00
@@ -1569,47 +2679,34 @@ geom_check
 #>       0.02
 #>       0.02
 #>       2.00
-#>       0.02
-#>       0.02
 #>       2.00
-#>       0.02
 #>       0.02
 #>       2.00
 #>       2.00
 #>       0.02
+#>       2.00
 #>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
 #>       0.02
-#>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
-#>       0.02
-#>       0.02
-#>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
-#>       0.02
-#>       0.02
-#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
 #>       0.02
 #>       2.00
 #>       0.02
 #>       2.00
+#>       2.00
 #>       0.02
+#>       2.00
 #>       2.00
 #>       0.02
 #>       2.00
@@ -1620,54 +2717,56 @@ geom_check
 #>       2.00
 #>       0.02
 #>       0.02
+#>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
+#>       0.02
 #>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
+#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
-#>       0.02
-#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
+#>       0.02
 #>       2.00
 #>       2.00
+#>       0.02
 #>       2.00
+#>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
-#>       0.02
 #>       0.02
 #>       0.02
 #>       2.00
 #>       2.00
+#>       2.00
 #>       0.02
 #>       0.02
-#>       2.00
 #>       0.02
 #>       0.02
 #>       0.02
 #>       2.00
-#>       2.00
 #>       0.02
+#>       2.00
 #>       2.00
 #>       0.02
 #>       2.00
+#>       0.02
 #>       2.00
 #>       2.00
 #>       0.02
+#>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
@@ -1675,20 +2774,17 @@ geom_check
 #>       2.00
 #>       2.00
 #>       2.00
+#>       0.02
 #>       2.00
 #>       2.00
 #>       0.02
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
-#>       0.02
 #>       2.00
-#>       0.02
+#>       2.00
 #>       0.02
 #>       2.00
 #>       2.00
@@ -1696,29 +2792,24 @@ geom_check
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
 #>       2.00
-#>       0.02
 #>       0.02
 #>       0.02
-#>       0.02
-#>       0.02
 #>       2.00
 #>       0.02
 #>       2.00
 #>       2.00
-#>       0.02
 #>       2.00
-#>       0.02
 #>       2.00
 #>       2.00
 #>       0.02
 #>       2.00
+#>       0.02
 #>       2.00
+#>       0.02
 #>       0.02
 #>       0.02
 #>       2.00
@@ -1729,13 +2820,11 @@ geom_check
 #>       2.00
 #>       2.00
 #>       0.02
-#>       2.00
-#>       2.00
+#>       0.02
 #>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
-#>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
@@ -1755,22 +2844,34 @@ geom_check
 #>       2.00
 #>       0.02
 #>       2.00
-#>       2.00
+#>       0.02
 #>       0.02
 #>       2.00
 #>       0.02
 #>       0.02
+#>       0.02
+#>       2.00
+#>       2.00
+#>       0.02
 #>       2.00
 #>       0.02
+#>       0.02
+#>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
+#>       0.02
 #>       2.00
 #>       2.00
+#>       0.02
 #>       0.02
 #>       0.02
 #>       0.02
+#>       2.00
+#>       0.02
 #>       0.02
+#>       0.02
+#>       2.00
 #>       2.00
 #>       0.02
 #>       0.02
@@ -1828,14 +2929,23 @@ geom_check
 #>       0.02
 #>       0.02
 #>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
+#>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
+#>       2.00
+#>       0.02
+#>       0.02
+#>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
+#>       2.00
 #>       0.02
 #>       0.02
 #>       2.00
@@ -1850,18 +2960,29 @@ geom_check
 #>       0.02
 #>       0.02
 #>       2.00
+#>       0.02
 #>       0.02
 #>       0.02
+#>       0.02
+#>       2.00
 #>       0.02
+#>       2.00
 #>       0.02
+#>       2.00
 #>       2.00
+#>       0.02
+#>       0.02
 #>       0.02
+#>       0.02
+#>       0.02
 #>       2.00
 #>       0.02
 #>       2.00
 #>       0.02
 #>       2.00
 #>       0.02
+#>       2.00
+#>       2.00
 #>       2.00
 #>       2.00
 #>       2.00
@@ -1870,17 +2991,25 @@ geom_check
 #>       2.00
 #>       0.02
 #>       2.00
+#>       0.02
+#>       2.00
+#>       2.00
+#>       2.00
 #>       2.00
 #>       2.00
+#>       2.00
 #>       0.02
 #>       0.02
 #>       0.02
 #>       0.02
 #>       2.00
 #>       2.00
+#>       0.02
 #>       0.02
 #>       0.02
+#>       0.02
 #>       2.00
+#>       2.00
 #>       0.02
 #>       2.00
 #>       2.00
@@ -1889,5 +3018,6 @@ geom_check
 #>       2.00
 #>       2.00
 #>       0.02
+#>       2.00
 #>       2.00
 ```

@@ -37,9 +37,12 @@ install.packages("geomorph")
     [`simulate_fish_landmarks()`](https://funtraits.github.io/intraitR/reference/simulate_fish_landmarks.md).
     Alternatively,
     [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-    digitizes landmarks interactively from specimen photographs
-    (point-and-click) and returns the result directly, following either
-    the FISHMORPH scheme or a generic one.
+    opens a bundled Shiny application for predictor-assisted
+    digitization of specimen photographs: a trained ml-morph model
+    proposes the 19 FISHMORPH landmarks from a few calibration clicks,
+    which are then reviewed, corrected and exported; import the exported
+    table with
+    [`read_mlmorph_landmarks()`](https://funtraits.github.io/intraitR/reference/read_mlmorph_landmarks.md).
 2.  **Align** configurations with Generalised Procrustes Analysis:
     [`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md).
 3.  **Derive traits**: inter-landmark linear distances

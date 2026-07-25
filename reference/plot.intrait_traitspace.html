@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -130,13 +130,12 @@ left unchanged. Only affects the legend text. Defaults to <code>FALSE</code>.</p
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">segments</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
 <span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="va">segments</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ts</span> <span class="op">&lt;-</span> <span class="fu"><a href="trait_space.html">trait_space</a></span><span class="op">(</span><span class="va">ratios</span>, groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>, na_action <span class="op">=</span> <span class="st">"omit"</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 230 row(s) out of 558 with missing values.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 21 specimen(s) flagged as within-group outlier(s) across 5 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Phoxinus phoxinus/bigerri, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 2 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 293 row(s) out of 1036 with missing values.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
 <span class="r-in"><span><span class="co"># species-flavoured legend: titled "Species", italic, abbreviated binomials</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ts</span>, legend_title <span class="op">=</span> <span class="st">"Species"</span>, legend_italic <span class="op">=</span> <span class="cn">TRUE</span>, abbreviate_species <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot.intrait_traitspace-1.png" alt="" width="700" height="433"></span>

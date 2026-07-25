@@ -17,7 +17,7 @@ actually plotted (e.g. Legendre &amp;amp; Legendre, 2012, sec. 9.1.5).'></head><
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -133,7 +133,7 @@ values (<code>-1</code> to <code>1</code>) are instead placed directly on the ho
 and each line is labelled with its axis name only (e.g. <code>"PC1"</code>), in a
 small italic font, just outside the unit circle and centred on the
 line itself – the standard presentation of a correlation circle in
-the literature (e.g. <code>ade4::s.corcircle()</code>). The vertical axis's label
+the literature (e.g. <code><a href="https://adeverse.github.io/ade4/reference/s.corcircle.html" class="external-link">ade4::s.corcircle()</a></code>). The vertical axis's label
 is itself drawn rotated (reading bottom to top), as for a conventional
 <code>ylab</code>.</p>
     </div>
@@ -151,13 +151,12 @@ ed). Elsevier.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">segments</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>3 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
 <span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="va">segments</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ts</span> <span class="op">&lt;-</span> <span class="fu"><a href="trait_space.html">trait_space</a></span><span class="op">(</span><span class="va">ratios</span>, groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>, na_action <span class="op">=</span> <span class="st">"omit"</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 230 row(s) out of 558 with missing values.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 21 specimen(s) flagged as within-group outlier(s) across 5 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Phoxinus phoxinus/bigerri, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 2 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 293 row(s) out of 1036 with missing values.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="fu">plot_correlation_circle</span><span class="op">(</span><span class="va">ts</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_correlation_circle-1.png" alt="" width="700" height="433"></span>

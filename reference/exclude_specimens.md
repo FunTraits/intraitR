@@ -139,7 +139,7 @@ fish_clean <- exclude_specimens(
   specimen = c("T-26-0050_Operator_2", "T-26-0230-1_Operator_2"),
   reason = "landmarks 3-4 and/or 5-6 collapsed to the same point (zero-length Bd/Hd)"
 )
-#> exclude_specimens(): removed 2 specimen(s) (556 remaining, out of 558): T-26-0050_Operator_2, T-26-0230-1_Operator_2.
+#> exclude_specimens(): removed 2 specimen(s) (1034 remaining, out of 1036): T-26-0050_Operator_2, T-26-0230-1_Operator_2.
 fish_clean$removed_specimens # full record: which, and why
 #>                 specimen
 #> 1   T-26-0050_Operator_2

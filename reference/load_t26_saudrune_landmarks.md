@@ -34,10 +34,11 @@ load_t26_saudrune_landmarks(
 
 - source:
 
-  Character, one of `"operators"` (default: 279 fish, one digitization
-  per operator, from the two independent operators of the T-26 survey)
-  or `"repeatability"` (25 individuals, 9-10 replicate digitizations by
-  a single operator; see
+  Character, one of `"operators"` (default: 826 digitizations of the
+  T-26 fish across four operators – Operator_1 and Operator_2 each
+  digitized the full set of 279 fish once, Operator_3 and Operator_4 a
+  subset) or `"repeatability"` (25 individuals, each digitized 9-10
+  times, by two operators; see
   [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md)
   and
   [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)).
@@ -59,7 +60,7 @@ load_t26_saudrune_landmarks(
   the labels available for a given `source`) to restrict to. This is the
   natural way to build **two separate functional trait spaces**, one per
   operator, from `source = "operators"` (each fish was digitized once by
-  each of two operators) — e.g. to check whether
+  each operator) — e.g. to check whether
   [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
   or
   [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
@@ -119,25 +120,23 @@ Biogeography, 30(12), 2330-2336.
 fish <- load_t26_saudrune_landmarks()
 fish
 #> <intrait_landmarks>
-#>   558 specimens, 21 landmarks, 2 dimensions
+#>   1036 specimens, 21 landmarks, 2 dimensions
 #>   Metadata columns: specimen, individual, species, population, replicate, operator 
 table(fish$metadata$species, useNA = "ifany")
 #> 
-#>                                 Barbatula barbatula             Barbus barbus 
-#>                         2                        36                        10 
-#>          Gobio occitaniae          Lepomis gibbosus   Leuciscus burdigalensis 
-#>                       338                         4                        14 
-#>         Perca fluviatilis         Phoxinus phoxinus Phoxinus phoxinus/bigerri 
-#>                        16                        34                         8 
-#>         Squalius cephalus 
-#>                        96 
+#>     Barbatula barbatula        Gobio occitaniae        Lepomis gibbosus 
+#>                      58                     637                       8 
+#> Leuciscus burdigalensis       Perca fluviatilis       Phoxinus phoxinus 
+#>                      27                      36                      90 
+#>       Squalius cephalus 
+#>                     180 
 
 # restrict to the two most abundant species
 gobio_squalius <- load_t26_saudrune_landmarks(
   species = c("Gobio occitaniae", "Squalius cephalus")
 )
 dim(gobio_squalius$coords)
-#> [1]  21   2 434
+#> [1]  21   2 817
 
 # build two separate functional trait spaces, one per operator, to check
 # whether the two digitizers' shape spaces agree:
@@ -151,12 +150,11 @@ ts_op1 <- trait_space(ratios_op1, groups = fish_op1$metadata$species, na_action 
 #> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
 #> na_action = "omit": removing 139 row(s) out of 279 with missing values.
 #> Warning: Dropping constant (zero-variance) column(s) from the ordination: replicate
-#> flag_outliers: 3 specimen(s) flagged as within-group outlier(s) across 3 group(s) (Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
-#> flag_outliers: 2 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
+#> flag_outliers: 6 specimen(s) flagged as within-group outlier(s) across 3 group(s) (Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
 ts_op2 <- trait_space(ratios_op2, groups = fish_op2$metadata$species, na_action = "omit")
 #> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
 #> na_action = "omit": removing 91 row(s) out of 279 with missing values.
 #> Warning: Dropping constant (zero-variance) column(s) from the ordination: replicate
-#> flag_outliers: 12 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
-#> flag_outliers: 4 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
+#> flag_outliers: 11 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
+#> flag_outliers: 1 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
 ```

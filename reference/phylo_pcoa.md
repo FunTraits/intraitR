@@ -173,7 +173,6 @@ if (requireNamespace("ape", quietly = TRUE)) {
   plot(ts_phylo)
 }
 #> Warning: Dropping non-numeric column(s) from the ordination: species
-#> flag_outliers: 8 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
 
 # }
 ```

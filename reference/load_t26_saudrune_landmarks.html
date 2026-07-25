@@ -27,7 +27,7 @@ trait_disparity(), and plot_fishmorph_points().'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -82,11 +82,11 @@ replacement for <code><a href="simulate_fishmorph_points.html">simulate_fishmorp
 
 
 <dl><dt id="arg-source">source<a class="anchor" aria-label="anchor" href="#arg-source"></a></dt>
-<dd><p>Character, one of <code>"operators"</code> (default: 279 fish, one
-digitization per operator, from the two independent operators of the
-T-26 survey) or <code>"repeatability"</code> (25 individuals, 9-10 replicate
-digitizations by a single operator; see <code><a href="digitization_error.html">digitization_error()</a></code> and
-<code><a href="measurement_error.html">measurement_error()</a></code>).</p></dd>
+<dd><p>Character, one of <code>"operators"</code> (default: 826 digitizations
+of the T-26 fish across four operators – Operator_1 and Operator_2 each
+digitized the full set of 279 fish once, Operator_3 and Operator_4 a
+subset) or <code>"repeatability"</code> (25 individuals, each digitized 9-10 times,
+by two operators; see <code><a href="digitization_error.html">digitization_error()</a></code> and <code><a href="measurement_error.html">measurement_error()</a></code>).</p></dd>
 
 
 <dt id="arg-species">species<a class="anchor" aria-label="anchor" href="#arg-species"></a></dt>
@@ -104,7 +104,7 @@ labels (e.g. <code>"Operator_1"</code>; see <code>unique(load_t26_saudrune(sourc
 for the labels available for a given <code>source</code>) to restrict to. This
 is the natural way to build <strong>two separate functional trait spaces</strong>,
 one per operator, from <code>source = "operators"</code> (each fish was
-digitized once by each of two operators) — e.g. to check whether
+digitized once by each operator) — e.g. to check whether
 <code><a href="trait_space.html">trait_space()</a></code> or <code><a href="fishmorph_ratios.html">fishmorph_ratios()</a></code> results are sensitive to who
 did the digitizing, complementing the landmark-level view of
 <code><a href="digitization_error.html">digitization_error()</a></code>. Modular by design: if the requested <code>source</code>
@@ -155,25 +155,23 @@ Biogeography, 30(12), 2330-2336.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu">load_t26_saudrune_landmarks</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fish</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_landmarks&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   558 specimens, 21 landmarks, 2 dimensions</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1036 specimens, 21 landmarks, 2 dimensions</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Metadata columns: specimen, individual, species, population, replicate, operator </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>, useNA <span class="op">=</span> <span class="st">"ifany"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                 Barbatula barbatula             Barbus barbus </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                         2                        36                        10 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          Gobio occitaniae          Lepomis gibbosus   Leuciscus burdigalensis </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                       338                         4                        14 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Perca fluviatilis         Phoxinus phoxinus Phoxinus phoxinus/bigerri </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                        16                        34                         8 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Squalius cephalus </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                        96 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Barbatula barbatula        Gobio occitaniae        Lepomis gibbosus </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                      58                     637                       8 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis       Perca fluviatilis       Phoxinus phoxinus </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                      27                      36                      90 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Squalius cephalus </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                     180 </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># restrict to the two most abundant species</span></span></span>
 <span class="r-in"><span><span class="va">gobio_squalius</span> <span class="op">&lt;-</span> <span class="fu">load_t26_saudrune_landmarks</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  species <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Gobio occitaniae"</span>, <span class="st">"Squalius cephalus"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">gobio_squalius</span><span class="op">$</span><span class="va">coords</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1]  21   2 434</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1]  21   2 817</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># build two separate functional trait spaces, one per operator, to check</span></span></span>
 <span class="r-in"><span><span class="co"># whether the two digitizers' shape spaces agree:</span></span></span>
@@ -187,14 +185,13 @@ Biogeography, 30(12), 2330-2336.</p>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 139 row(s) out of 279 with missing values.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Dropping constant (zero-variance) column(s) from the ordination: replicate</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 3 specimen(s) flagged as within-group outlier(s) across 3 group(s) (Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 2 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 6 specimen(s) flagged as within-group outlier(s) across 3 group(s) (Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
 <span class="r-in"><span><span class="va">ts_op2</span> <span class="op">&lt;-</span> <span class="fu"><a href="trait_space.html">trait_space</a></span><span class="op">(</span><span class="va">ratios_op2</span>, groups <span class="op">=</span> <span class="va">fish_op2</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>, na_action <span class="op">=</span> <span class="st">"omit"</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 91 row(s) out of 279 with missing values.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Dropping constant (zero-variance) column(s) from the ordination: replicate</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 12 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 4 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 11 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 1 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

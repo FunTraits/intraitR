@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,10 +65,17 @@
 
         <dt>
 
+          <code><a href="read_mlmorph_landmarks.html">read_mlmorph_landmarks()</a></code>
+
+        </dt>
+        <dd>Import predicted landmarks from an ml-morph / landmarking-app measure table</dd>
+
+        <dt>
+
           <code><a href="digitize_landmarks.html">digitize_landmarks()</a></code>
 
         </dt>
-        <dd>Interactively digitize landmarks from specimen photographs</dd>
+        <dd>Launch the interactive ml-morph landmarking application</dd>
 
         <dt>
 
@@ -220,6 +227,13 @@
 
         </dt>
         <dd>Overlay the body shape of every specimen in a species or a set of individuals</dd>
+
+        <dt>
+
+          <code><a href="plot_fishmorph_density.html">plot_fishmorph_density()</a></code>
+
+        </dt>
+        <dd>Density curves of the FISHMORPH space, per functional axis and per ratio</dd>
       </dl></div><div class="section level2">
       <h2 id="functional-and-shape-space">Functional and shape space<a class="anchor" aria-label="anchor" href="#functional-and-shape-space"></a></h2>
 
@@ -253,6 +267,20 @@
 
         <dt>
 
+          <code><a href="project_fishmorph.html">project_fishmorph()</a></code> <code><a href="project_fishmorph.html">print(<i>&lt;intrait_fishmorph_projection&gt;</i>)</a></code> <code><a href="project_fishmorph.html">plot(<i>&lt;intrait_fishmorph_projection&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Project specimens into the global FISHMORPH functional space</dd>
+
+        <dt>
+
+          <code><a href="itv_proportion.html">itv_proportion()</a></code> <code><a href="itv_proportion.html">print(<i>&lt;intrait_itv_proportion&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Proportion of the global functional diversity captured by projected ITV</dd>
+
+        <dt>
+
           <code><a href="shape_space.html">shape_space()</a></code> <code><a href="shape_space.html">print(<i>&lt;intrait_shapespace&gt;</i>)</a></code>
 
         </dt>
@@ -278,6 +306,20 @@
 
         </dt>
         <dd>Print an <code>"intrait_disparity"</code> object</dd>
+
+        <dt>
+
+          <code><a href="tpd_dissimilarity.html">tpd_dissimilarity()</a></code> <code><a href="tpd_dissimilarity.html">as.dist(<i>&lt;intrait_tpd_dissim&gt;</i>)</a></code> <code><a href="tpd_dissimilarity.html">print(<i>&lt;intrait_tpd_dissim&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Intraspecific-variability-aware functional dissimilarity between species</dd>
+
+        <dt>
+
+          <code><a href="plot.intrait_tpd_dissim.html">plot(<i>&lt;intrait_tpd_dissim&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Plot the TPD dissimilarity matrix as a heat map</dd>
 
         <dt>
 
@@ -353,6 +395,13 @@
 
         <dt>
 
+          <code><a href="load_fishmorph_phylo_axes.html">load_fishmorph_phylo_axes()</a></code>
+
+        </dt>
+        <dd>Precomputed phylogenetic PCoA axes for the FISHMORPH species pool</dd>
+
+        <dt>
+
           <code><a href="phylo_pcoa.html">phylo_pcoa()</a></code> <code><a href="phylo_pcoa.html">print(<i>&lt;intrait_phylopcoa&gt;</i>)</a></code>
 
         </dt>
@@ -390,6 +439,34 @@
 
         <dt>
 
+          <code><a href="itv_accumulation.html">itv_accumulation()</a></code> <code><a href="itv_accumulation.html">print(<i>&lt;intrait_itv_accumulation&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Rarefaction of intraspecific trait variability against sample size</dd>
+
+        <dt>
+
+          <code><a href="plot.intrait_itv_accumulation.html">plot(<i>&lt;intrait_itv_accumulation&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Plot intraspecific-variability rarefaction curves</dd>
+
+        <dt>
+
+          <code><a href="fd_accumulation.html">fd_accumulation()</a></code> <code><a href="fd_accumulation.html">print(<i>&lt;intrait_fd_accumulation&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Rarefaction of community functional diversity indices against sampling effort</dd>
+
+        <dt>
+
+          <code><a href="plot.intrait_fd_accumulation.html">plot(<i>&lt;intrait_fd_accumulation&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Plot functional-diversity rarefaction curves</dd>
+
+        <dt>
+
           <code><a href="measurement_error.html">measurement_error()</a></code>
 
         </dt>
@@ -408,6 +485,13 @@
 
         </dt>
         <dd>Quantify hierarchical digitization (operator) error from repeated landmark placement, linear measurements, or ratios</dd>
+
+        <dt>
+
+          <code><a href="operator_disagreement.html">operator_disagreement()</a></code> <code><a href="operator_disagreement.html">print(<i>&lt;intrait_operator_disagreement&gt;</i>)</a></code> <code><a href="operator_disagreement.html">plot(<i>&lt;intrait_operator_disagreement&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Flag individuals whose landmark configuration disagrees across operators, and attribute the disagreement to a specific operator</dd>
 
         <dt>
 

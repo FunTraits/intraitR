@@ -17,7 +17,7 @@ one specimen at a time (as in plot_fishmorph_points())."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -62,6 +62,11 @@ one specimen at a time (as in <code><a href="plot_fishmorph_points.html">plot_fi
 <span>  align <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  color <span class="op">=</span> <span class="st">"steelblue4"</span>,</span>
 <span>  alpha <span class="op">=</span> <span class="fl">0.15</span>,</span>
+<span>  color_by <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  operator <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  palette <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  max_colors <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -105,14 +110,54 @@ photograph, which are not informative about shape.</p></dd>
 
 
 <dt id="arg-color">color<a class="anchor" aria-label="anchor" href="#arg-color"></a></dt>
-<dd><p>Colour used for every specimen's points and outline.
-Defaults to <code>"steelblue4"</code>.</p></dd>
+<dd><p>Colour used for every specimen's points and outline when no
+per-group colouring is requested (<code>color_by</code>/<code>operator</code>), and the
+colour every shape reverts to when the number of colour groups exceeds
+<code>max_colors</code>. Defaults to <code>"steelblue4"</code>.</p></dd>
 
 
 <dt id="arg-alpha">alpha<a class="anchor" aria-label="anchor" href="#arg-alpha"></a></dt>
-<dd><p>Transparency (<code>0</code>-<code>1</code>) applied to <code>color</code>, so that
-overlapping specimens read as a denser cloud rather than a solid
-mass. Defaults to <code>0.15</code>.</p></dd>
+<dd><p>Transparency (<code>0</code>-<code>1</code>) applied to the drawing colour(s), so
+that overlapping specimens read as a denser cloud rather than a solid
+mass. Defaults to <code>0.15</code>; raise it when using <code>color_by</code>/<code>operator</code> so
+the individual group colours remain distinguishable.</p></dd>
+
+
+<dt id="arg-color-by">color_by<a class="anchor" aria-label="anchor" href="#arg-color-by"></a></dt>
+<dd><p>Optional, controls per-specimen colouring. <code>NULL</code>
+(default) draws every shape in <code>color</code>. Otherwise one of: a metadata
+column name (e.g. <code>"operator"</code>, <code>"species"</code>), colouring each shape by
+that column's value; the special value <code>"specimen"</code>, giving every
+plotted shape its own colour; or a vector with one value per plotted
+specimen (in the plotted order). See <code>max_colors</code> for the automatic
+fallback to a single colour.</p></dd>
+
+
+<dt id="arg-operator">operator<a class="anchor" aria-label="anchor" href="#arg-operator"></a></dt>
+<dd><p>Logical shortcut for <code>color_by = "operator"</code>: colour each
+shape by the operator who digitized it (requires an <code>operator</code> column
+in <code>landmarks$metadata</code>, as produced by
+<code><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks()</a></code> with <code>source = "operators"</code>). Cannot be
+combined with an explicit <code>color_by</code>. Defaults to <code>FALSE</code>.</p></dd>
+
+
+<dt id="arg-palette">palette<a class="anchor" aria-label="anchor" href="#arg-palette"></a></dt>
+<dd><p>Optional vector of colours to use for the groups defined
+by <code>color_by</code>/<code>operator</code>, at least as many as there are groups. <code>NULL</code>
+(default) generates evenly spaced, equally saturated HCL hues.</p></dd>
+
+
+<dt id="arg-max-colors">max_colors<a class="anchor" aria-label="anchor" href="#arg-max-colors"></a></dt>
+<dd><p>Integer. When <code>color_by</code>/<code>operator</code> yields more than
+<code>max_colors</code> distinct colour groups, per-group colouring is dropped and
+every shape reverts to the single <code>color</code> (with a message), so an
+overcrowded overlay – e.g. colouring each of dozens of individuals –
+never becomes an illegible rainbow. Defaults to <code>10</code>.</p></dd>
+
+
+<dt id="arg-legend">legend<a class="anchor" aria-label="anchor" href="#arg-legend"></a></dt>
+<dd><p>Logical, draw a legend mapping groups to colours when
+per-group colouring is in effect. Defaults to <code>TRUE</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -180,10 +225,17 @@ shape-outline-based, view of group-level variability)</p></div>
 <span class="r-in"><span><span class="fu">plot_fishmorph_shapes</span><span class="op">(</span><span class="va">fish</span>, species <span class="op">=</span> <span class="st">"Gobio occitaniae"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_fishmorph_shapes-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># or by an explicit list of individuals:</span></span></span>
-<span class="r-in"><span><span class="va">some_fish</span> <span class="op">&lt;-</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">individual</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></span>
-<span class="r-in"><span><span class="fu">plot_fishmorph_shapes</span><span class="op">(</span><span class="va">fish</span>, individuals <span class="op">=</span> <span class="va">some_fish</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># colour each outline by the operator who digitized it (raise alpha so</span></span></span>
+<span class="r-in"><span><span class="co"># the two operators' colours stay legible through the overlap):</span></span></span>
+<span class="r-in"><span><span class="fu">plot_fishmorph_shapes</span><span class="op">(</span><span class="va">fish</span>, species <span class="op">=</span> <span class="st">"Gobio occitaniae"</span>,</span></span>
+<span class="r-in"><span>                      operator <span class="op">=</span> <span class="cn">TRUE</span>, alpha <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_fishmorph_shapes-2.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># or by an explicit list of individuals, one colour each:</span></span></span>
+<span class="r-in"><span><span class="va">some_fish</span> <span class="op">&lt;-</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">individual</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></span>
+<span class="r-in"><span><span class="fu">plot_fishmorph_shapes</span><span class="op">(</span><span class="va">fish</span>, individuals <span class="op">=</span> <span class="va">some_fish</span>,</span></span>
+<span class="r-in"><span>                      color_by <span class="op">=</span> <span class="st">"specimen"</span>, alpha <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="plot_fishmorph_shapes-3.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

@@ -90,15 +90,15 @@ head(morpho_ratios(fish, distances, norm_by = "SL"))
 #>                                  specimen individual          species
 #> T-26-0001_Operator_1 T-26-0001_Operator_1  T-26-0001 Gobio occitaniae
 #> T-26-0001_Operator_2 T-26-0001_Operator_2  T-26-0001 Gobio occitaniae
+#> T-26-0001_Operator_3 T-26-0001_Operator_3  T-26-0001 Gobio occitaniae
+#> T-26-0001_Operator_4 T-26-0001_Operator_4  T-26-0001 Gobio occitaniae
 #> T-26-0002_Operator_1 T-26-0002_Operator_1  T-26-0002 Gobio occitaniae
 #> T-26-0002_Operator_2 T-26-0002_Operator_2  T-26-0002 Gobio occitaniae
-#> T-26-0003_Operator_1 T-26-0003_Operator_1  T-26-0003 Gobio occitaniae
-#> T-26-0003_Operator_2 T-26-0003_Operator_2  T-26-0003 Gobio occitaniae
 #>                      population replicate   operator BD_ratio ED_ratio
 #> T-26-0001_Operator_1       <NA>         1 Operator_1   0.2605   0.0507
 #> T-26-0001_Operator_2       <NA>         2 Operator_2   0.2598   0.0486
+#> T-26-0001_Operator_3       <NA>         3 Operator_3   0.2672   0.0512
+#> T-26-0001_Operator_4       <NA>         4 Operator_4   0.2570   0.0466
 #> T-26-0002_Operator_1       <NA>         1 Operator_1   0.2398   0.0461
 #> T-26-0002_Operator_2       <NA>         2 Operator_2   0.2459   0.0419
-#> T-26-0003_Operator_1       <NA>         1 Operator_1   0.2430   0.0524
-#> T-26-0003_Operator_2       <NA>         2 Operator_2   0.2482   0.0485
 ```

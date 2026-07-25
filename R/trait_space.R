@@ -295,15 +295,19 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
   # NOT. Filling both from the species column meant handing randomForest a factor
   # with thousands of levels, which it refuses beyond 53 -- and it forced
   # "missforest_phylo" to demand a `groups` it never actually needed.
-  if (is.null(species)) {
-    sc <- intersect(c("species", "Species", "Genus.species"), names(traits_df))[1]
-    if (!is.na(sc)) species <- traits_df[[sc]]
-  }
+  # Was `groups` supplied by the caller, or auto-detected below? Only an
+  # EXPLICIT `groups` is used as a missForest predictor -- an auto-detected
+  # species column would be redundant with the phylogenetic key and would trip
+  # randomForest's 53-level limit (with a warning) on species-rich data.
+  groups_explicit <- !is.null(groups)
+  sc <- intersect(c("species", "Species", "Genus.species"), names(traits_df))[1]
+  if (is.null(species) && !is.na(sc)) species <- traits_df[[sc]]
   if (!is.null(species) && length(species) != nrow(traits_df)) {
     stop("`species` must have one entry per row of `traits`.", call. = FALSE)
   }
-  # for within-group means the species IS the group: explicit fallback only there.
-  if (is.null(groups) && na_action == "impute_group_mean") groups <- species
+  # Auto-detect `groups` from a species column when not supplied (used for
+  # colouring, within-group means and outlier screening).
+  if (is.null(groups) && !is.na(sc)) groups <- traits_df[[sc]]
   if (!is.null(groups)) {
     if (length(groups) != nrow(traits_df)) stop("`groups` must have one entry per row of `traits`.", call. = FALSE)
     groups <- factor(groups)
@@ -450,7 +454,10 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
       n_na <- sum(is.na(X))
       df_for_rf <- as.data.frame(X)
       grp_note <- ""
-      if (!is.null(groups)) {
+      # Use `groups` as a missForest predictor only when the caller supplied it
+      # explicitly: an auto-detected species column is redundant with the
+      # phylogenetic axes and would otherwise warn/drop on > 53 levels.
+      if (!is.null(groups) && isTRUE(groups_explicit)) {
         # randomForest refuses a factor with more than 53 levels.
         g <- factor(groups)
         if (nlevels(g) > 53L) {

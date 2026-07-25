@@ -200,8 +200,16 @@ impute_landmarks <- function(landmarks,
       call. = FALSE
     )
   }
-  # for within-group means the species IS the group: explicit fallback only there.
-  if (is.null(groups) && method == "impute_group_mean") groups <- species
+  # For within-group means the species IS the group, but only a *real* species
+  # column (metadata$species) is an acceptable auto-detected grouping -- specimen
+  # names (dimnames) are not, since each is unique and a per-specimen "group
+  # mean" is meaningless. So the fallback here uses metadata$species only; a raw
+  # array without a species column therefore still errors below.
+  if (is.null(groups) && method == "impute_group_mean" &&
+      (inherits(landmarks, "intrait_landmarks") || inherits(landmarks, "intrait_gpa")) &&
+      !is.null(landmarks$metadata) && "species" %in% names(landmarks$metadata)) {
+    groups <- landmarks$metadata$species
+  }
   if (method == "impute_group_mean" && is.null(groups)) {
     stop(
       "method = \"impute_group_mean\" requires `groups` (e.g. species labels, ",

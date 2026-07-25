@@ -6,6 +6,19 @@ make_segments_df <- function() {
   )
 }
 
+# Defined here (before its first use) so testthat, which evaluates the file
+# top-to-bottom, finds it in every test that calls it (there is a second,
+# identical definition further down next to the na_action tests).
+make_segments_with_na <- function() {
+  data.frame(
+    species = rep(c("A", "B"), each = 3),
+    Bl = c(40, 20, 30, 25, 35, 45), Bd = rep(10, 6), Hd = c(6, 6, NA, 6, 6, 6),
+    Eh = rep(4, 6), Mo = rep(3, 6), PFi = rep(2, 6), PFl = rep(5, 6),
+    Ed = rep(1, 6), Jl = rep(5, 6), CPd = rep(8, 6), CFd = c(20, 4, 12, 16, 8, 10),
+    row.names = paste0("s", 1:6)
+  )
+}
+
 test_that("fishmorph_ratios() computes the nine ratios correctly", {
   seg <- make_segments_df()
   r <- fishmorph_ratios(seg)

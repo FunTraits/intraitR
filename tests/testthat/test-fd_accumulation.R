@@ -38,7 +38,7 @@ test_that("fd_accumulation() returns a well-formed object with correct framing",
 
   # both are dispersion indices -> convergence framing, n* within sampled range
   expect_true(all(acc$summary$framing == "convergence"))
-  ok <- with(acc$summary, is.na(n_star) | (n_star >= 2 & n_star <= n_cap))
+  ok <- with(acc$summary, is.na(n_star) | (n_star >= 2 & n_star <= acc$n_cap))
   expect_true(all(ok))
   expect_true(all(is.na(acc$summary$asymptote)))  # no asymptote for convergence
 })

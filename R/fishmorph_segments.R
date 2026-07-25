@@ -269,7 +269,14 @@ fishmorph_segments <- function(landmarks, scale_cm = 1, groups = NULL,
   if (!is.null(species) && length(species) != nrow(out)) {
     stop("`species` must have one entry per specimen.", call. = FALSE)
   }
-  if (is.null(groups) && na_action == "impute_group_mean") groups <- species
+  # within-group means may auto-detect the grouping only from a *real* species
+  # column (metadata$species), never from the specimen names -- so a raw array
+  # without species metadata still errors below (a per-specimen group mean is
+  # meaningless).
+  if (is.null(groups) && na_action == "impute_group_mean" &&
+      !is.null(meta) && "species" %in% names(meta)) {
+    groups <- meta[specimen_names, "species"]
+  }
   if (!is.null(groups)) {
     if (length(groups) != nrow(out)) {
       stop("`groups` must have one entry per specimen.", call. = FALSE)

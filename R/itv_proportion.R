@@ -107,20 +107,23 @@
 #'
 #' @examples
 #' \donttest{
-#' fish   <- load_t26_saudrune_landmarks()
-#' ratios <- fishmorph_ratios(fishmorph_segments(fish), na_action = "omit")
-#' proj   <- project_fishmorph(ratios, reference = "FishMORPH/fishmorph_data.csv")
+#' # Needs the full FISHMORPH database (a ~9,000-species CSV) as `reference`;
+#' # this file is not shipped with the package, so the example runs only when it
+#' # is available locally (adjust the path to your own copy).
+#' ref_path <- "FishMORPH/fishmorph_data.csv"
+#' if (file.exists(ref_path)) {
+#'   fish   <- load_t26_saudrune_landmarks()
+#'   ratios <- fishmorph_ratios(fishmorph_segments(fish), na_action = "omit")
+#'   proj   <- project_fishmorph(ratios, reference = ref_path)
 #'
-#' # project_fishmorph() already bundles the default (volume_dims = 2) result:
-#' proj$itv_proportion
+#'   # project_fishmorph() already bundles the default (volume_dims = 2) result:
+#'   proj$itv_proportion
 #'
-#' # recompute on a different number of axes:
-#' itv_proportion(proj, volume_dims = 3)
+#'   # recompute on a different number of axes:
+#'   itv_proportion(proj, volume_dims = 3)
 #'
-#' # density-based (TPD) functional richness instead of the convex hull --
-#' # down-weights sparse outliers, usually a smaller, more conservative share:
-#' if (requireNamespace("TPD", quietly = TRUE)) {
-#'   itv_proportion(proj, metric = "tpd")
+#'   # density-based (TPD) functional richness instead of the convex hull:
+#'   if (requireNamespace("TPD", quietly = TRUE)) itv_proportion(proj, metric = "tpd")
 #' }
 #' }
 #'

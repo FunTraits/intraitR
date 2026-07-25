@@ -144,20 +144,23 @@ across both figures.
 }
 \examples{
 \donttest{
-fish   <- load_t26_saudrune_landmarks()
-ratios <- fishmorph_ratios(fishmorph_segments(fish), na_action = "omit")
-proj   <- project_fishmorph(ratios, reference = "FishMORPH/fishmorph_data.csv")
+# Needs the FISHMORPH database CSV (not shipped); runs only if available.
+ref_path <- "FishMORPH/fishmorph_data.csv"
+if (file.exists(ref_path)) {
+  fish   <- load_t26_saudrune_landmarks()
+  ratios <- fishmorph_ratios(fishmorph_segments(fish), na_action = "omit")
+  proj   <- project_fishmorph(ratios, reference = ref_path)
 
-# every axis + every ratio, reference in grey and each species in colour
-plot_fishmorph_density(proj)
+  # every axis + every ratio, reference in grey and each species in colour
+  plot_fishmorph_density(proj)
 
-# only the two functional axes
-plot_fishmorph_density(proj, what = "axes")
+  # only the two functional axes
+  plot_fishmorph_density(proj, what = "axes")
 
-# only a couple of ratios, for one species
-plot_fishmorph_density(proj, what = "ratios",
-                       traits = c("BEl", "REs"),
-                       select_species = "Squalius cephalus")
+  # only a couple of ratios, for one species
+  plot_fishmorph_density(proj, what = "ratios", traits = c("BEl", "REs"),
+                         select_species = "Squalius cephalus")
+}
 }
 
 }

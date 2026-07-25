@@ -286,30 +286,30 @@ on different scales (e.g. a raw reference: \code{reference_prelogged = FALSE}).
 
 \examples{
 \donttest{
-# Focal specimens: the T-26 Saudrune individuals
-fish     <- load_t26_saudrune_landmarks()
-ratios   <- fishmorph_ratios(fishmorph_segments(fish), na_action = "omit")
+# Reference: the FISHMORPH database (a ~9,000-species CSV, not shipped with
+# the package). The example runs only where that file is available locally.
+ref_path <- "FishMORPH/fishmorph_data.csv"
+if (file.exists(ref_path)) {
+  # Focal specimens: the T-26 Saudrune individuals
+  fish   <- load_t26_saudrune_landmarks()
+  ratios <- fishmorph_ratios(fishmorph_segments(fish), na_action = "omit")
 
-# Reference: the FISHMORPH database (here, a path to fishmorph_data.csv)
-proj <- project_fishmorph(ratios, reference = "FishMORPH/fishmorph_data.csv")
-proj
+  proj <- project_fishmorph(ratios, reference = ref_path)
+  proj
 
-plot(proj, style = "hull")                       # ITV footprints over the
-                                                 # reference density heatmap
-plot(proj, style = "spider")                     # dispersion around centroids
-plot(proj, style = "points",                     # just the projected points
-     select_species = "Squalius cephalus")
+  plot(proj, style = "hull")       # ITV footprints over the density heatmap
+  plot(proj, style = "spider")     # dispersion around centroids
+  plot(proj, style = "points", select_species = "Squalius cephalus")
 
-# show the raw reference cloud instead of (or as well as) the heatmap:
-plot(proj, style = "hull", reference_density = FALSE, reference_points = TRUE)
+  # raw reference cloud instead of (or as well as) the heatmap:
+  plot(proj, style = "hull", reference_density = FALSE, reference_points = TRUE)
 
-# mark each focal species' own FISHMORPH-database point, to compare the
-# single database morphotype with the spread of projected individuals:
-plot(proj, style = "hull", itv_reference = TRUE)
+  # mark each focal species' own FISHMORPH-database point:
+  plot(proj, style = "hull", itv_reference = TRUE)
 
-# overlay the trait loadings as biplot arrows, to read which ratios drive
-# each axis:
-plot(proj, style = "hull", arrows = TRUE)
+  # overlay the trait loadings as biplot arrows:
+  plot(proj, style = "hull", arrows = TRUE)
+}
 }
 
 }

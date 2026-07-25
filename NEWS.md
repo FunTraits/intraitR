@@ -1,3 +1,43 @@
+# intraitR 1.12.0
+
+## Phylogenetic imputation now works on precomputed eigenvalues
+
+* New `load_fishmorph_phylo_axes()`: reads
+  `inst/extdata/Phylogeny/pcoaPhylogenyFish.rds`, the **precomputed** PCoA axes
+  of the bundled fish phylogeny (8,970 species, 10 axes), cached once per R
+  session. Shipped as a compressed `.rds` (540 kB); the loader also accepts the
+  whitespace-separated text format, dispatching on the file extension.
+* Every `"missforest_phylo"` option — in `trait_space()`, `fishmorph_segments()`,
+  `fishmorph_ratios()` and `impute_landmarks()` — now uses that table by default
+  instead of eigendecomposing the patristic distance matrix on every call.
+  Beyond the cost (that matrix is *n* × *n*, and the decomposition cubic in *n*),
+  this fixes a **comparability** problem: axes recomputed on whichever species
+  happened to be present defined a different coordinate system for each
+  analysis, so two imputations on two subsets did not live in the same
+  phylogenetic space. A `phylo_axes` argument accepts an alternative table;
+  passing `tree` still recomputes from that tree, as before.
+* The imputation message now names the **source** of the axes, so two runs can be
+  told apart.
+
+## `species` is now separate from `groups`
+
+* `trait_space()`, `fishmorph_segments()`, `fishmorph_ratios()` and
+  `impute_landmarks()` gain a `species` argument. The two roles were conflated
+  under `groups`, so `"missforest_phylo"` refused to work without a grouping
+  vector — yet the phylogeny only needs to know which species each row belongs
+  to, not a categorical predictor for the forest.
+* `species` is auto-detected (a `species` / `Species` / `Genus.species` column,
+  the metadata, or the specimen names). **`groups` is no longer auto-filled with
+  species**, except for `"impute_group_mean"`, where the species genuinely is the
+  group.
+* A `groups` factor with more than 53 levels is now dropped from the missForest
+  predictors with a warning instead of failing: `randomForest` cannot handle more
+  than 53 categories, so auto-filling `groups` with thousands of species names
+  would have made the imputation error out.
+* Row subsets (`na_action = "omit"`, dropping rows with an unresolved group) now
+  carry `species` along, so the phylogenetic axes cannot end up attached to the
+  wrong specimens.
+
 # intraitR 1.11.0
 
 * `digitize_landmarks()` has been re-implemented as a launcher for the bundled

@@ -12,7 +12,9 @@ impute_landmarks(
   missforest_ntree = 100,
   missforest_maxiter = 10,
   tree = NULL,
-  missforest_phylo_k = 10
+  missforest_phylo_k = 10,
+  species = NULL,
+  phylo_axes = NULL
 )
 }
 \arguments{
@@ -79,6 +81,18 @@ class \code{"phylo"}, or \code{NULL} (default) to use the bundled
 \item{missforest_phylo_k}{Used only by \code{method = "missforest_phylo"}:
 maximum number of phylogenetic PCoA axes to add as predictors.
 Defaults to \code{10}.}
+
+\item{species}{Species identifier for \strong{each row / specimen}, used only to
+look up the phylogenetic axes of \code{"missforest_phylo"}. \code{NULL} (default)
+auto-detects it (a \code{species} / \code{Species} / \code{Genus.species} column, the
+metadata, or the specimen names). Deliberately \strong{separate from \code{groups}}:
+the phylogeny needs to know which species a row belongs to, not a
+categorical predictor for the forest.}
+
+\item{phylo_axes}{Used only by \code{"missforest_phylo"}. \code{NULL} (default) uses the
+\strong{precomputed} axes of \code{\link[=load_fishmorph_phylo_axes]{load_fishmorph_phylo_axes()}}, so that every call
+shares one and the same phylogenetic coordinate system. Supply a data frame
+(a \code{species} column plus one column per axis) to use your own.}
 }
 \value{
 An object of the same class as \code{landmarks} (\code{"intrait_landmarks"}

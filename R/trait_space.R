@@ -83,6 +83,16 @@
 #' @param missforest_phylo_k Used only by `na_action = "missforest_phylo"`:
 #'   maximum number of phylogenetic PCoA axes to add as predictors.
 #'   Defaults to `10`.
+#' @param species Species identifier for **each row / specimen**, used only to
+#'   look up the phylogenetic axes of `"missforest_phylo"`. `NULL` (default)
+#'   auto-detects it (a `species` / `Species` / `Genus.species` column, the
+#'   metadata, or the specimen names). Deliberately **separate from `groups`**:
+#'   the phylogeny needs to know which species a row belongs to, not a
+#'   categorical predictor for the forest.
+#' @param phylo_axes Used only by `"missforest_phylo"`. `NULL` (default) uses the
+#'   **precomputed** axes of [load_fishmorph_phylo_axes()], so that every call
+#'   shares one and the same phylogenetic coordinate system. Supply a data frame
+#'   (a `species` column plus one column per axis) to use your own.
 #' @param flag_outliers Logical, screen for potential within-group (e.g.
 #'   within-species) outliers -- specimens unusually far from other members
 #'   of their own group in the standardised trait space -- and report them
@@ -268,6 +278,7 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
                                        "missforest", "missforest_phylo"),
                          missforest_ntree = 100, missforest_maxiter = 10,
                          tree = NULL, missforest_phylo_k = 10,
+                         species = NULL, phylo_axes = NULL,
                          flag_outliers = TRUE, outlier_threshold = 3, outlier_min_n = 5,
                          remove_outliers = FALSE) {
   method <- match.arg(method)
@@ -280,9 +291,19 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
   }
   traits_df <- as.data.frame(traits)
 
-  if (is.null(groups) && "species" %in% names(traits_df)) {
-    groups <- traits_df$species
+  # `species` (the key of the phylogenetic axes) is auto-detected; `groups` is
+  # NOT. Filling both from the species column meant handing randomForest a factor
+  # with thousands of levels, which it refuses beyond 53 -- and it forced
+  # "missforest_phylo" to demand a `groups` it never actually needed.
+  if (is.null(species)) {
+    sc <- intersect(c("species", "Species", "Genus.species"), names(traits_df))[1]
+    if (!is.na(sc)) species <- traits_df[[sc]]
   }
+  if (!is.null(species) && length(species) != nrow(traits_df)) {
+    stop("`species` must have one entry per row of `traits`.", call. = FALSE)
+  }
+  # for within-group means the species IS the group: explicit fallback only there.
+  if (is.null(groups) && na_action == "impute_group_mean") groups <- species
   if (!is.null(groups)) {
     if (length(groups) != nrow(traits_df)) stop("`groups` must have one entry per row of `traits`.", call. = FALSE)
     groups <- factor(groups)
@@ -298,6 +319,9 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
       ))
       traits_df <- traits_df[keep_g, , drop = FALSE]
       groups <- droplevels(groups[keep_g])
+      # `species` indexes ROWS: it must follow every row subset, or the
+      # phylogenetic axes would be attached to the wrong specimens.
+      if (!is.null(species)) species <- species[keep_g]
     }
   }
 
@@ -373,6 +397,7 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
       X <- X[keep, , drop = FALSE]
       traits_df <- traits_df[keep, , drop = FALSE]
       if (!is.null(groups)) groups <- droplevels(groups[keep])
+      if (!is.null(species)) species <- species[keep]
     } else if (na_action == "impute_mean") {
       n_na <- sum(is.na(X))
       for (j in seq_len(ncol(X))) {
@@ -419,11 +444,28 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
       }
       n_na <- sum(is.na(X))
       df_for_rf <- as.data.frame(X)
-      if (!is.null(groups)) df_for_rf$.group <- groups
+      grp_note <- ""
+      if (!is.null(groups)) {
+        # randomForest refuses a factor with more than 53 levels.
+        g <- factor(groups)
+        if (nlevels(g) > 53L) {
+          warning(
+            "`groups` has ", nlevels(g), " levels; randomForest cannot use more ",
+            "than 53 categories, so it is dropped from the predictors. Species ",
+            "identity reaches the model through the phylogenetic axes instead.",
+            call. = FALSE
+          )
+        } else {
+          df_for_rf$.group <- g
+          grp_note <- ", using `groups` as an auxiliary predictor"
+        }
+      }
 
       phylo_note <- ""
       if (na_action == "missforest_phylo") {
-        pax <- .phylo_axes_for_groups(groups, tree = tree, k_phylo = missforest_phylo_k)
+        pax <- .phylo_axes_for_species(species, tree = tree,
+                                       k_phylo = missforest_phylo_k,
+                                       axes = phylo_axes)
         if (is.null(pax$axes)) {
           warning(
             "na_action = \"missforest_phylo\": phylogenetic axes could not be used (",
@@ -433,8 +475,8 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
         } else {
           df_for_rf <- cbind(df_for_rf, pax$axes)
           phylo_note <- sprintf(
-            ", augmented with %d phylogenetic PCoA axis/axes (%d species matched to the tree)",
-            pax$k_used, pax$n_matched
+            ", augmented with %d phylogenetic PCoA axis/axes from the %s (%d species matched)",
+            pax$k_used, pax$source, pax$n_matched
           )
         }
       }
@@ -449,9 +491,7 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
       nrmse <- if ("NRMSE" %in% names(imp$OOBerror)) imp$OOBerror[["NRMSE"]] else NA_real_
       message(sprintf(
         "na_action = \"%s\": imputed %d missing value(s) using random-forest imputation (missForest)%s%s%s.",
-        na_action, n_na,
-        if (!is.null(groups)) ", using `groups` as an auxiliary predictor" else "",
-        phylo_note,
+        na_action, n_na, grp_note, phylo_note,
         if (!is.na(nrmse)) sprintf(" (out-of-bag NRMSE = %.3f)", nrmse) else ""
       ))
     }

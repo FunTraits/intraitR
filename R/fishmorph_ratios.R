@@ -79,6 +79,16 @@
 #' @param missforest_phylo_k Used only by `na_action = "missforest_phylo"`:
 #'   maximum number of phylogenetic PCoA axes to add as predictors.
 #'   Defaults to `10`.
+#' @param species Species identifier for **each row / specimen**, used only to
+#'   look up the phylogenetic axes of `"missforest_phylo"`. `NULL` (default)
+#'   auto-detects it (a `species` / `Species` / `Genus.species` column, the
+#'   metadata, or the specimen names). Deliberately **separate from `groups`**:
+#'   the phylogeny needs to know which species a row belongs to, not a
+#'   categorical predictor for the forest.
+#' @param phylo_axes Used only by `"missforest_phylo"`. `NULL` (default) uses the
+#'   **precomputed** axes of [load_fishmorph_phylo_axes()], so that every call
+#'   shares one and the same phylogenetic coordinate system. Supply a data frame
+#'   (a `species` column plus one column per axis) to use your own.
 #' @param landmarks Optional: the same `"intrait_landmarks"` object or raw
 #'   `p x k x n` array originally passed to [fishmorph_segments()] to
 #'   produce `segments`. When supplied, rescues the nine ratios (not the
@@ -184,6 +194,7 @@ fishmorph_ratios <- function(segments, MBl = NULL, MBw = FALSE,
                                             "missforest_phylo"),
                               missforest_ntree = 100, missforest_maxiter = 10,
                               tree = NULL, missforest_phylo_k = 10,
+                              species = NULL, phylo_axes = NULL,
                               landmarks = NULL) {
   na_action <- match.arg(na_action)
   required <- c("Bl", "Bd", "Hd", "Eh", "Mo", "PFi", "PFl", "Ed", "Jl", "CPd", "CFd")
@@ -321,9 +332,15 @@ fishmorph_ratios <- function(segments, MBl = NULL, MBw = FALSE,
   )
   rownames(ratio_mat) <- rownames(segments)
 
-  if (is.null(groups) && "species" %in% names(segments)) {
-    groups <- segments$species
+  # `species` (the key of the phylogenetic axes) is auto-detected; `groups` is not.
+  if (is.null(species)) {
+    sc <- intersect(c("species", "Species", "Genus.species"), names(segments))[1]
+    if (!is.na(sc)) species <- segments[[sc]]
   }
+  if (!is.null(species) && length(species) != n) {
+    stop("`species` must have one entry per row of `segments`.", call. = FALSE)
+  }
+  if (is.null(groups) && na_action == "impute_group_mean") groups <- species
   if (!is.null(groups)) {
     if (length(groups) != n) stop("`groups` must have one entry per row of `segments`.", call. = FALSE)
     groups <- factor(groups)
@@ -331,7 +348,8 @@ fishmorph_ratios <- function(segments, MBl = NULL, MBw = FALSE,
 
   res <- .apply_na_action(
     ratio_mat, groups, na_action, missforest_ntree, missforest_maxiter,
-    context = "ratios", tree = tree, missforest_phylo_k = missforest_phylo_k
+    context = "ratios", tree = tree, missforest_phylo_k = missforest_phylo_k,
+    phylo_axes = phylo_axes, species = species
   )
   ratio_mat <- res$X
   if (!all(res$keep)) {

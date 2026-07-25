@@ -51,6 +51,16 @@
 #' @param missforest_phylo_k Used only by `na_action = "missforest_phylo"`:
 #'   maximum number of phylogenetic PCoA axes to add as predictors.
 #'   Defaults to `10`.
+#' @param species Species identifier for **each row / specimen**, used only to
+#'   look up the phylogenetic axes of `"missforest_phylo"`. `NULL` (default)
+#'   auto-detects it (a `species` / `Species` / `Genus.species` column, the
+#'   metadata, or the specimen names). Deliberately **separate from `groups`**:
+#'   the phylogeny needs to know which species a row belongs to, not a
+#'   categorical predictor for the forest.
+#' @param phylo_axes Used only by `"missforest_phylo"`. `NULL` (default) uses the
+#'   **precomputed** axes of [load_fishmorph_phylo_axes()], so that every call
+#'   shares one and the same phylogenetic coordinate system. Supply a data frame
+#'   (a `species` column plus one column per axis) to use your own.
 #' @param geometry_check Optional object of class `"intrait_geometry_check"`,
 #'   as returned by `correct_landmarks(landmarks, rule = "check_geometry")`
 #'   -- typically computed once beforehand and passed in here, rather than
@@ -160,7 +170,8 @@ fishmorph_segments <- function(landmarks, scale_cm = 1, groups = NULL,
                                               "missforest_phylo"),
                                 missforest_ntree = 100, missforest_maxiter = 10,
                                 geometry_check = NULL, tree = NULL,
-                                missforest_phylo_k = 10) {
+                                missforest_phylo_k = 10,
+                                species = NULL, phylo_axes = NULL) {
   na_action <- match.arg(na_action)
   if (!is.null(geometry_check) && !inherits(geometry_check, "intrait_geometry_check")) {
     stop(
@@ -246,9 +257,19 @@ fishmorph_segments <- function(landmarks, scale_cm = 1, groups = NULL,
   }
 
   meta <- .get_metadata(landmarks)
-  if (is.null(groups) && !is.null(meta) && "species" %in% names(meta)) {
-    groups <- meta[specimen_names, "species"]
+  # `species` (the key of the phylogenetic axes) is auto-detected: from the
+  # metadata, otherwise from the specimen names themselves. `groups` is not.
+  if (is.null(species)) {
+    if (!is.null(meta) && "species" %in% names(meta)) {
+      species <- meta[specimen_names, "species"]
+    } else {
+      species <- specimen_names
+    }
   }
+  if (!is.null(species) && length(species) != nrow(out)) {
+    stop("`species` must have one entry per specimen.", call. = FALSE)
+  }
+  if (is.null(groups) && na_action == "impute_group_mean") groups <- species
   if (!is.null(groups)) {
     if (length(groups) != nrow(out)) {
       stop("`groups` must have one entry per specimen.", call. = FALSE)
@@ -258,7 +279,8 @@ fishmorph_segments <- function(landmarks, scale_cm = 1, groups = NULL,
 
   res <- .apply_na_action(
     as.matrix(out), groups, na_action, missforest_ntree, missforest_maxiter,
-    context = "segments", tree = tree, missforest_phylo_k = missforest_phylo_k
+    context = "segments", tree = tree, missforest_phylo_k = missforest_phylo_k,
+    phylo_axes = phylo_axes, species = species
   )
   out <- as.data.frame(res$X)
   if (!all(res$keep)) {

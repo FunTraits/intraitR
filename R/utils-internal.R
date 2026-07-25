@@ -870,7 +870,7 @@
 #' [impute_landmarks()] implement the same options inline (they operate on
 #' a different shape of input -- a full ordination input / raw landmark
 #' coordinates, respectively -- rather than a plain specimen x trait
-#' matrix), calling the shared `.phylo_axes_for_groups()` helper for the
+#' matrix), calling the shared `.phylo_axes_for_species()` helper for the
 #' phylogenetic-augmentation step specifically, so that step at least is
 #' not duplicated three times over.
 #'
@@ -893,16 +893,22 @@
 #'   `"traits"`, `"segments"`, `"ratios"`).
 #' @param tree Used only by `na_action = "missforest_phylo"`: an object of
 #'   class `"phylo"`, or `NULL` (default) to use the bundled
-#'   [load_fishmorph_phylogeny()] tree; see `.phylo_axes_for_groups()`.
+#'   [load_fishmorph_phylogeny()] tree; see `.phylo_axes_for_species()`.
 #' @param missforest_phylo_k Used only by `na_action = "missforest_phylo"`:
 #'   maximum number of phylogenetic PCoA axes to add as predictors.
 #' @return A list with `X` (the possibly modified/row-reduced matrix) and
 #'   `keep` (logical vector, length `nrow(X)` as passed in, `TRUE` for rows
 #'   retained -- all `TRUE` unless `na_action = "omit"` dropped some).
 #' @noRd
+# `groups`  : optional CATEGORICAL predictor (and the key of "impute_group_mean").
+# `species` : per-ROW species identifier, used solely to look up the phylogenetic
+#             axes. The two used to be the same argument, so "missforest_phylo"
+#             refused to run without `groups` -- yet the phylogeny needs to know
+#             which species a row belongs to, not a grouping factor for the forest.
 .apply_na_action <- function(X, groups, na_action, missforest_ntree = 100,
                               missforest_maxiter = 10, context = "traits",
-                              tree = NULL, missforest_phylo_k = 10) {
+                              tree = NULL, missforest_phylo_k = 10,
+                              phylo_axes = NULL, species = NULL) {
   n <- nrow(X)
   if (!anyNA(X)) {
     return(list(X = X, keep = rep(TRUE, n)))
@@ -996,11 +1002,30 @@
     }
     n_na <- sum(is.na(X))
     df_for_rf <- as.data.frame(X)
-    if (!is.null(groups)) df_for_rf$.group <- groups
+    grp_note <- ""
+    if (!is.null(groups)) {
+      # randomForest refuses a factor with more than 53 levels. A `groups` equal
+      # to the species (thousands of levels) would therefore make missForest
+      # fail outright -- one more reason not to fill it with species by default.
+      g <- factor(groups)
+      if (nlevels(g) > 53L) {
+        warning(
+          "`groups` has ", nlevels(g), " levels; randomForest cannot use more ",
+          "than 53 categories, so it is dropped from the predictors. Species ",
+          "identity reaches the model through the phylogenetic axes instead.",
+          call. = FALSE
+        )
+      } else {
+        df_for_rf$.group <- g
+        grp_note <- ", using `groups` as an auxiliary predictor"
+      }
+    }
 
     phylo_note <- ""
     if (na_action == "missforest_phylo") {
-      pax <- .phylo_axes_for_groups(groups, tree = tree, k_phylo = missforest_phylo_k)
+      pax <- .phylo_axes_for_species(species, tree = tree,
+                                     k_phylo = missforest_phylo_k,
+                                     axes = phylo_axes)
       if (is.null(pax$axes)) {
         warning(
           "na_action = \"missforest_phylo\": phylogenetic axes could not be used (",
@@ -1009,9 +1034,11 @@
         )
       } else {
         df_for_rf <- cbind(df_for_rf, pax$axes)
+        # the SOURCE of the axes is reported: two imputations are only
+        # comparable if they rest on the same phylogenetic coordinate system.
         phylo_note <- sprintf(
-          ", augmented with %d phylogenetic PCoA axis/axes (%d species matched to the tree)",
-          pax$k_used, pax$n_matched
+          ", augmented with %d phylogenetic PCoA axis/axes from the %s (%d species matched)",
+          pax$k_used, pax$source, pax$n_matched
         )
       }
     }
@@ -1026,9 +1053,7 @@
     nrmse <- if ("NRMSE" %in% names(imp$OOBerror)) imp$OOBerror[["NRMSE"]] else NA_real_
     message(sprintf(
       "na_action = \"%s\": imputed %d missing value(s) using random-forest imputation (missForest)%s%s%s.",
-      na_action, n_na,
-      if (!is.null(groups)) ", using `groups` as an auxiliary predictor" else "",
-      phylo_note,
+      na_action, n_na, grp_note, phylo_note,
       if (!is.na(nrmse)) sprintf(" (out-of-bag NRMSE = %.3f)", nrmse) else ""
     ))
   }
@@ -1066,44 +1091,98 @@
 #'   (number of distinct species successfully matched to the tree), and
 #'   `k_used` (number of phylogenetic axes actually included).
 #' @noRd
-.phylo_axes_for_groups <- function(groups, tree = NULL, k_phylo = 10) {
-  if (is.null(groups)) {
-    return(list(axes = NULL, reason = "no `groups` supplied", n_matched = 0L, k_used = 0L))
+# Axes phylogenetiques diffuses sur un vecteur d'ESPECES (une entree par ligne).
+#
+# `species` et non `groups` : la phylogenie a besoin de savoir a quelle espece
+# correspond chaque ligne, pas d'un facteur de regroupement alimentant la foret.
+# Les deux etaient confondus, si bien que "missforest_phylo" refusait de
+# fonctionner sans `groups` -- alors qu'un `groups` egal aux especes (des milliers
+# de niveaux) aurait de toute facon fait echouer randomForest, qui en refuse plus
+# de 53.
+#
+# Source par defaut : la TABLE PRECALCULEE sur les 8970 especes
+# (load_fishmorph_phylo_axes()), preferee au calcul depuis l'arbre pour deux
+# raisons, dont la seconde importe le plus :
+#   1. cout -- l'eigendecomposition d'une matrice patristique 8970 x 8970 est
+#      cubique, et serait refaite a chaque appel ;
+#   2. COMPARABILITE -- des axes recalcules sur le seul sous-ensemble d'especes
+#      present dans les donnees definissent un repere DIFFERENT a chaque analyse.
+#      Deux imputations sur deux sous-ensembles ne vivraient donc pas dans le meme
+#      espace phylogenetique. La table fixe fait des axes une propriete de la
+#      phylogenie, non du jeu de donnees courant.
+#
+# Un `tree` explicitement fourni signifie que l'appelant veut SON arbre : on
+# recalcule alors via phylo_pcoa(), comme avant.
+.phylo_axes_for_species <- function(species, tree = NULL, k_phylo = 10,
+                                    axes = NULL) {
+  if (is.null(species)) {
+    return(list(axes = NULL, reason = "no `species` supplied", n_matched = 0L,
+                k_used = 0L, source = NA_character_))
   }
-  if (is.null(tree)) {
-    tree <- tryCatch(load_fishmorph_phylogeny(), error = function(e) e)
-    if (inherits(tree, "error")) {
-      return(list(
-        axes = NULL,
-        reason = paste0(
-          "no `tree` supplied and the bundled phylogeny could not be loaded: ",
-          conditionMessage(tree)
-        ),
-        n_matched = 0L, k_used = 0L
-      ))
+  canon_sp <- .canon_species_name(as.character(species))
+  n_sp <- length(unique(canon_sp[!is.na(canon_sp)]))
+
+  broadcast <- function(ax, src) {
+    k_use <- min(k_phylo, ncol(ax) - 1L)
+    cols <- names(ax)[seq_len(k_use) + 1L]
+    m <- match(canon_sp, ax$species)
+    if (all(is.na(m))) {
+      return(list(axes = NULL, n_matched = 0L, k_used = 0L, source = src,
+                  reason = paste0("none of the ", n_sp,
+                                  " species could be matched to the ", src)))
     }
+    out <- ax[m, cols, drop = FALSE]
+    names(out) <- paste0("phylo_", seq_len(k_use))
+    rownames(out) <- NULL
+    list(axes = out, reason = NULL, k_used = k_use, source = src,
+         n_matched = length(unique(canon_sp[!is.na(m)])))
   }
 
-  sp_pool <- unique(as.character(groups)[!is.na(groups)])
-  pp <- tryCatch(
-    phylo_pcoa(tree, species = sp_pool, k = NULL, ultrametric = FALSE),
-    error = function(e) e
-  )
-  if (inherits(pp, "error")) {
-    return(list(axes = NULL, reason = conditionMessage(pp), n_matched = 0L, k_used = 0L))
+  # 1. table fournie par l'appelant
+  if (!is.null(axes)) {
+    if (!is.data.frame(axes) || !"species" %in% names(axes)) {
+      return(list(axes = NULL, k_used = 0L, n_matched = 0L,
+                  source = "user table",
+                  reason = "`phylo_axes` must be a data frame with a `species` column"))
+    }
+    axes$species <- .canon_species_name(axes$species)
+    return(broadcast(axes, "supplied axis table"))
   }
 
-  k_use <- min(k_phylo, pp$k)
-  ax <- pp$traits[, c("species", paste0("PCoA", seq_len(k_use))), drop = FALSE]
-  names(ax) <- c("species", paste0("phylo_", seq_len(k_use)))
+  # 2. arbre explicite -> recalcul (comportement historique)
+  if (!is.null(tree)) {
+    sp_pool <- unique(as.character(species)[!is.na(species)])
+    pp <- tryCatch(
+      phylo_pcoa(tree, species = sp_pool, k = NULL, ultrametric = FALSE),
+      error = function(e) e
+    )
+    if (inherits(pp, "error")) {
+      return(list(axes = NULL, reason = conditionMessage(pp), n_matched = 0L,
+                  k_used = 0L, source = "supplied tree"))
+    }
+    k_use <- min(k_phylo, pp$k)
+    ax <- pp$traits[, c("species", paste0("PCoA", seq_len(k_use))), drop = FALSE]
+    ax$species <- .canon_species_name(ax$species)
+    return(broadcast(ax, "supplied tree"))
+  }
 
-  canon_groups <- .canon_species_name(as.character(groups))
-  canon_ax_sp <- .canon_species_name(ax$species)
-  m <- match(canon_groups, canon_ax_sp)
-  out <- ax[m, paste0("phylo_", seq_len(k_use)), drop = FALSE]
-  rownames(out) <- NULL
-
-  list(axes = out, reason = NULL, n_matched = nrow(ax), k_used = k_use)
+  # 3. defaut : table precalculee ; repli sur l'arbre embarque
+  ax <- tryCatch(load_fishmorph_phylo_axes(), error = function(e) e)
+  if (!inherits(ax, "error")) {
+    res <- broadcast(ax, "precomputed axis table")
+    if (!is.null(res$axes)) return(res)
+    first_reason <- res$reason
+  } else {
+    first_reason <- conditionMessage(ax)
+  }
+  tr <- tryCatch(load_fishmorph_phylogeny(), error = function(e) e)
+  if (inherits(tr, "error")) {
+    return(list(axes = NULL, k_used = 0L, n_matched = 0L, source = "none",
+                reason = paste0(first_reason,
+                                "; and the bundled phylogeny could not be loaded ",
+                                "either: ", conditionMessage(tr))))
+  }
+  Recall(species, tree = tr, k_phylo = k_phylo)
 }
 
 #' Orientation of the best-fit line through a set of 2D points

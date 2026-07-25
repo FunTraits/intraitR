@@ -72,6 +72,16 @@
 #'   maximum number of phylogenetic PCoA axes to add as predictors.
 #'   Defaults to `10`.
 #'
+#' @param species Species identifier for **each row / specimen**, used only to
+#'   look up the phylogenetic axes of `"missforest_phylo"`. `NULL` (default)
+#'   auto-detects it (a `species` / `Species` / `Genus.species` column, the
+#'   metadata, or the specimen names). Deliberately **separate from `groups`**:
+#'   the phylogeny needs to know which species a row belongs to, not a
+#'   categorical predictor for the forest.
+#' @param phylo_axes Used only by `"missforest_phylo"`. `NULL` (default) uses the
+#'   **precomputed** axes of [load_fishmorph_phylo_axes()], so that every call
+#'   shares one and the same phylogenetic coordinate system. Supply a data frame
+#'   (a `species` column plus one column per axis) to use your own.
 #' @return An object of the same class as `landmarks` (`"intrait_landmarks"`
 #'   or a raw array), with `NA` coordinates in landmarks 1-19 replaced by
 #'   their estimated value. Everything else (`scale`, `metadata`, landmarks
@@ -151,7 +161,8 @@ impute_landmarks <- function(landmarks,
                                          "missforest_phylo"),
                               groups = NULL,
                               missforest_ntree = 100, missforest_maxiter = 10,
-                              tree = NULL, missforest_phylo_k = 10) {
+                              tree = NULL, missforest_phylo_k = 10,
+                              species = NULL, phylo_axes = NULL) {
   method <- match.arg(method)
   A <- .get_coords(landmarks)
   p <- dim(A)[1]
@@ -168,11 +179,29 @@ impute_landmarks <- function(landmarks,
     )
   }
 
-  if (is.null(groups) &&
-      (inherits(landmarks, "intrait_landmarks") || inherits(landmarks, "intrait_gpa")) &&
-      !is.null(landmarks$metadata) && "species" %in% names(landmarks$metadata)) {
-    groups <- landmarks$metadata$species
+  # `species` (the key of the phylogenetic axes) is auto-detected: from the
+  # `species` metadata column, otherwise from the SPECIMEN NAMES (third dimension
+  # of the coordinate array). `groups` is NOT auto-filled: a factor with as many
+  # levels as there are species is useless to randomForest, which refuses more
+  # than 53 categories -- and "missforest_phylo" never needed a grouping factor,
+  # only a row-to-species mapping.
+  if (is.null(species)) {
+    if ((inherits(landmarks, "intrait_landmarks") || inherits(landmarks, "intrait_gpa")) &&
+        !is.null(landmarks$metadata) && "species" %in% names(landmarks$metadata)) {
+      species <- landmarks$metadata$species
+    } else if (!is.null(dimnames(A)[[3]])) {
+      species <- dimnames(A)[[3]]
+    }
   }
+  if (!is.null(species) && length(species) != n) {
+    stop(
+      "`species` must have one entry per specimen (", n, " found in `landmarks`); ",
+      "got length ", length(species), ".",
+      call. = FALSE
+    )
+  }
+  # for within-group means the species IS the group: explicit fallback only there.
+  if (is.null(groups) && method == "impute_group_mean") groups <- species
   if (method == "impute_group_mean" && is.null(groups)) {
     stop(
       "method = \"impute_group_mean\" requires `groups` (e.g. species labels, ",
@@ -311,11 +340,28 @@ impute_landmarks <- function(landmarks,
         )
       }
       df_for_rf <- as.data.frame(M)
-      if (!is.null(groups)) df_for_rf$.group <- groups
+      grp_note <- ""
+      if (!is.null(groups)) {
+        # randomForest refuses a factor with more than 53 levels.
+        g <- factor(groups)
+        if (nlevels(g) > 53L) {
+          warning(
+            "`groups` has ", nlevels(g), " levels; randomForest cannot use more ",
+            "than 53 categories, so it is dropped from the predictors. Species ",
+            "identity reaches the model through the phylogenetic axes instead.",
+            call. = FALSE
+          )
+        } else {
+          df_for_rf$.group <- g
+          grp_note <- ", using `groups` as an auxiliary predictor"
+        }
+      }
 
       phylo_note <- ""
       if (method == "missforest_phylo") {
-        pax <- .phylo_axes_for_groups(groups, tree = tree, k_phylo = missforest_phylo_k)
+        pax <- .phylo_axes_for_species(species, tree = tree,
+                                       k_phylo = missforest_phylo_k,
+                                       axes = phylo_axes)
         if (is.null(pax$axes)) {
           warning(
             "method = \"missforest_phylo\": phylogenetic axes could not be used (",
@@ -325,8 +371,8 @@ impute_landmarks <- function(landmarks,
         } else {
           df_for_rf <- cbind(df_for_rf, pax$axes)
           phylo_note <- sprintf(
-            ", augmented with %d phylogenetic PCoA axis/axes (%d species matched to the tree)",
-            pax$k_used, pax$n_matched
+            ", augmented with %d phylogenetic PCoA axis/axes from the %s (%d species matched)",
+            pax$k_used, pax$source, pax$n_matched
           )
         }
       }
@@ -341,9 +387,7 @@ impute_landmarks <- function(landmarks,
       nrmse <- if ("NRMSE" %in% names(imp$OOBerror)) imp$OOBerror[["NRMSE"]] else NA_real_
       message(sprintf(
         "impute_landmarks(): imputed %d missing landmark coordinate value(s) using random-forest imputation (missForest)%s%s%s.",
-        n_na,
-        if (!is.null(groups)) ", using `groups` as an auxiliary predictor" else "",
-        phylo_note,
+        n_na, grp_note, phylo_note,
         if (!is.na(nrmse)) sprintf(" (out-of-bag NRMSE = %.3f)", nrmse) else ""
       ))
     }

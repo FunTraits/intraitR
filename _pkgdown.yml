@@ -68,6 +68,8 @@ reference:
       - trait_space
       - plot.intrait_traitspace
       - plot_correlation_circle
+      - project_fishmorph
+      - plot.intrait_fishmorph_projection
       - shape_space
       - plot.intrait_shapespace
       - trait_disparity
@@ -105,6 +107,7 @@ reference:
       - measurement_error
       - print.intrait_measurement_error
       - digitization_error
+      - operator_disagreement
       - summary_traits
 
   - title: Simulated example data

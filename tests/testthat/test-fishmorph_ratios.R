@@ -46,6 +46,94 @@ test_that("fishmorph_ratios() adds MBl when supplied", {
   expect_equal(names(r)[1], "MBl")
 })
 
+# --- MBw (FishBase-derived maximum body weight) -----------------------
+
+test_that("fishmorph_ratios() validates MBw and its prerequisites", {
+  seg <- make_segments_df()
+  # MBw must be a single logical
+  expect_error(fishmorph_ratios(seg, MBw = "yes"), "single logical")
+  # MBw = TRUE requires MBl
+  expect_error(fishmorph_ratios(seg, MBw = TRUE), "requires `MBl`")
+  # MBw = TRUE requires species names (no `species` column, no `groups`)
+  expect_error(
+    fishmorph_ratios(seg, MBl = c(15, 8), MBw = TRUE),
+    "needs a species name"
+  )
+})
+
+test_that("fishmorph_ratios() computes MBw = a * MBl^b from FishBase coefficients", {
+  seg <- make_segments_df()
+  MBl <- c(20, 10)
+
+  # Stub the internal FishBase lookup so the test is deterministic and needs
+  # neither the rfishbase package nor network access. .fishmorph_length_weight_ab()
+  # returns one (Species, a, b) row per unique cleaned species name.
+  fake_ab <- data.frame(
+    Species = c("Genus one", "Genus two"),
+    a = c(0.01, 0.02), b = c(3, 3.1),
+    stringsAsFactors = FALSE
+  )
+  local_mocked_bindings(
+    .fishmorph_length_weight_ab = function(species) fake_ab,
+    .package = "intraitR"
+  )
+
+  r <- fishmorph_ratios(
+    seg, MBl = MBl, MBw = TRUE,
+    groups = c("Genus.one", "Genus_two")
+  )
+
+  expect_true("MBw" %in% names(r))
+  # column order: MBl, MBw, then the nine ratios
+  expect_equal(names(r)[1:2], c("MBl", "MBw"))
+  expect_equal(r$MBw, c(0.01 * 20^3, 0.02 * 10^3.1))
+})
+
+test_that("fishmorph_ratios() sets MBw to NA (with a warning) for species lacking coefficients", {
+  seg <- make_segments_df()
+  fake_ab <- data.frame(
+    Species = c("Genus one", "Genus two"),
+    a = c(0.01, NA_real_), b = c(3, NA_real_),
+    stringsAsFactors = FALSE
+  )
+  local_mocked_bindings(
+    .fishmorph_length_weight_ab = function(species) fake_ab,
+    .package = "intraitR"
+  )
+  expect_warning(
+    r <- fishmorph_ratios(
+      seg, MBl = c(20, 10), MBw = TRUE,
+      groups = c("Genus one", "Genus two")
+    ),
+    "no usable FishBase length-weight coefficients for 1"
+  )
+  expect_equal(r$MBw[1], 0.01 * 20^3)
+  expect_true(is.na(r$MBw[2]))
+})
+
+test_that("fishmorph_ratios() subsets MBw consistently under na_action = 'omit'", {
+  seg <- make_segments_with_na() # species column "A"/"A"/"A"/"B"/"B"/"B", row 3 has NA Hd
+  fake_ab <- data.frame(
+    Species = c("A", "B"), a = c(0.01, 0.02), b = c(3, 3),
+    stringsAsFactors = FALSE
+  )
+  local_mocked_bindings(
+    .fishmorph_length_weight_ab = function(species) fake_ab,
+    .package = "intraitR"
+  )
+  MBl <- seq_len(nrow(seg))
+  expect_message(
+    r <- fishmorph_ratios(seg, MBl = MBl, MBw = TRUE, na_action = "omit"),
+    "removing 1 row"
+  )
+  expect_equal(nrow(r), nrow(seg) - 1)
+  # MBw follows MBl through the row drop (row 3 removed)
+  a_b <- ifelse(seg$species == "A", 0.01, 0.02)
+  expected_mbw <- a_b * MBl^3
+  expect_equal(r$MBw, expected_mbw[-3])
+  expect_equal(r$MBl, MBl[-3])
+})
+
 test_that("fishmorph_ratios() errors on missing required columns", {
   expect_error(fishmorph_ratios(data.frame(Bl = 1, Bd = 1)), "missing required column")
 })

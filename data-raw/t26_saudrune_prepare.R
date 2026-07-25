@@ -136,10 +136,10 @@ principal_ok <- principal[!principal$code_norm %in% unmatched, ]
 ## to the same "Operator_<n>" label everywhere, see .build_operator_map()).
 biais_raw <- read_excel(MPATH, sheet = "Biais_ut")
 
-# operator_map <- .build_operator_map(principal_ok$operator, biais_raw$Utilisateur)
-# cat("\nOperator anonymisation map (real name -> anonymous label; not printed to any",
-#     "shipped file):\n")
-# print(operator_map)
+operator_map <- .build_operator_map(principal_ok$operator, biais_raw$Utilisateur)
+cat("\nOperator anonymisation map (real name -> anonymous label; not printed to any",
+    "shipped file):\n")
+print(operator_map)
 
 long_principal <- do.call(rbind, lapply(seq_len(nrow(principal_ok)), function(i) {
   row <- principal_ok[i, ]

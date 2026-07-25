@@ -7,6 +7,7 @@
 fishmorph_ratios(
   segments,
   MBl = NULL,
+  MBw = FALSE,
   no_caudal_fin = FALSE,
   ventral_mouth = FALSE,
   no_pectoral_fin = FALSE,
@@ -28,7 +29,22 @@ any \code{data.frame} containing (at least) numeric columns \code{Bl}, \code{Bd}
 
 \item{MBl}{Optional numeric vector of maximum body length (one value
 per row of \code{segments}, same order), used only to add an \code{MBl} column
-to the output; not used in any ratio computation.}
+to the output; not used in any ratio computation. Also required when
+\code{MBw = TRUE}, which derives maximum body weight from it (see \code{MBw}).}
+
+\item{MBw}{Logical, length 1. If \code{TRUE}, adds a maximum body weight
+(\code{MBw}) column, derived from \code{MBl} through the species-level allometric
+length-weight relationship \code{W = a * MBl^b}, whose parameters \code{a} and \code{b}
+are looked up in FishBase with \code{rfishbase::length_weight()} (taking, per
+species, the study with the highest coefficient of determination). This
+therefore requires \code{MBl} to be supplied and a species name for each row
+-- taken from \code{groups} if given, otherwise from a \code{species} column in
+\code{segments} -- and the (Suggested) \code{rfishbase} package to be installed.
+Species with no usable FishBase coefficients yield \code{NA} (with a
+warning). Note that \code{a}/\code{b} are length-type specific (usually total or
+standard length): for a physically meaningful weight, \code{MBl} should be
+expressed on the same length type as the FishBase coefficients.
+Defaults to \code{FALSE}.}
 
 \item{no_caudal_fin}{Logical, length 1 or \code{nrow(segments)}. \code{TRUE} for
 specimens with no visible caudal fin (e.g. Sternopygidae, Anguillidae,
@@ -111,9 +127,9 @@ if \code{NULL} (default).}
 \value{
 A \code{data.frame} (class \code{"intrait_fishmorph"}) with one row per
 specimen (fewer, if \code{na_action = "omit"} dropped any), an \code{MBl}
-column if supplied, and columns \code{BEl}, \code{VEp}, \code{REs}, \code{OGp}, \code{RMl},
-\code{BLs}, \code{PFv}, \code{PFs}, \code{CPt}, preceded by any metadata columns carried
-over from \code{segments}.
+column if supplied, an \code{MBw} column if \code{MBw = TRUE}, and columns
+\code{BEl}, \code{VEp}, \code{REs}, \code{OGp}, \code{RMl}, \code{BLs}, \code{PFv}, \code{PFs}, \code{CPt}, preceded
+by any metadata columns carried over from \code{segments}.
 }
 \description{
 Derives the nine dimensionless morphological ratios (traits) defined by
@@ -169,6 +185,13 @@ fishmorph_ratios(segments, groups = segments$species, na_action = "impute_group_
 # directly from pixel-space landmark distances:
 fishmorph_ratios(segments, landmarks = fish)
 
+\dontrun{
+# add maximum body weight, derived from MBl via FishBase length-weight
+# coefficients (needs the 'rfishbase' package and network access):
+MBl <- rep(20, nrow(segments)) # per-specimen max body length (cm)
+fishmorph_ratios(segments, MBl = MBl, MBw = TRUE)
+}
+
 }
 \references{
 Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
@@ -180,6 +203,11 @@ Villéger, S., Ramos Miranda, J., Flores Hernandez, D., & Mouillot, D.
 (2010). Contrasting changes in taxonomic vs. functional diversity of
 tropical fish communities after habitat degradation. Ecological
 Applications, 20(6), 1512-1522.
+
+Froese, R., & Pauly, D. (Eds.) (2024). FishBase.
+\url{https://www.fishbase.org}. Accessed through the \code{rfishbase} package
+(Boettiger, Lang & Wainwright, 2012, Journal of Fish Biology, 81(6),
+2030-2039).
 }
 \seealso{
 \code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=trait_space]{trait_space()}},

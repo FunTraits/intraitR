@@ -1,4 +1,216 @@
+# intraitR 1.11.0
+
+* `digitize_landmarks()` has been re-implemented as a launcher for the bundled
+  ml-morph landmarking Shiny application, replacing the former point-and-click
+  wrapper around `geomorph::digitize2d()`. Instead of digitizing every landmark
+  by hand, the user loads a photograph (or a folder of photographs), places a
+  few calibration clicks, and a trained ml-morph shape predictor proposes the
+  19 anatomical FISHMORPH landmarks for review, correction, quality scoring and
+  export to `CSV`/`tpsDig` (import the result with `read_mlmorph_landmarks()`).
+  The Shiny app now ships inside the package
+  (`inst/shiny/landmarking_app/`) together with its Python worker
+  (`inst/mlmorph/`); the heavier ml-morph assets (trained predictor, aligned
+  dataset, `dlib`-enabled Python environment) remain external and are located
+  through the new `mlmorph_dir`, `predictor` and `python` arguments (with
+  auto-detection from the working directory and `INTRAITR_MLMORPH_*`
+  environment variables). The former `images`, `scheme`, `n_landmarks`,
+  `curvature` and `tpsfile` arguments are removed. `shiny` is a new Suggested
+  dependency, and `geomorph::digitize2d()` is no longer imported.
+
+# intraitR 1.10.0
+
+* `fishmorph_ratios()` gains an `MBw` argument (`FALSE` by default). When
+  `TRUE`, it adds a maximum body weight (`MBw`) column derived from the
+  supplied `MBl` through the species-level allometric length-weight
+  relationship `W = a * MBl^b`, whose coefficients `a` and `b` are looked up
+  in FishBase with `rfishbase::length_weight()` (per species, the study with
+  the highest coefficient of determination, selected in base R). Species
+  names are taken from `groups` or a `species` column in `segments`; species
+  without usable FishBase coefficients yield `NA`, with a warning. The new
+  `MBw` column is placed immediately after `MBl`, and is subset consistently
+  under `na_action = "omit"`. `rfishbase` is a Suggested dependency, loaded
+  only when `MBw = TRUE`.
+
+# intraitR 1.9.0
+
+* New `plot_fishmorph_density()` draws, for a `project_fishmorph()`
+  projection, a panel of kernel-density curves per functional axis and per
+  morphological ratio, comparing the whole FISHMORPH reference database (a
+  filled grey curve) with each focal species (a coloured, translucently filled
+  curve, using the same session-stable colours as the ordination). Each curve
+  is rescaled to a percentage of its own maximum (peak = 100%) and drawn on a
+  shared 0-100% axis, so species with very different spreads or sample sizes
+  stay directly comparable in position and width rather than in raw height.
+  Axis panels use the projected PCA scores; ratio panels use the trait values
+  on the analysis (log) scale, so the reference and species curves are always
+  directly comparable. Arguments select which axes/ratios and which
+  species/specimens to show, and control the reference fill, the per-species
+  translucent fill (`species_fill`, `species_fill_alpha`), rug, legend and
+  panel grid. To support the ratio panels,
+  `project_fishmorph()` now also stores the full reference trait matrix
+  (analysis scale) as `reference_traits` in its returned object (older
+  projections without it are handled by exact reconstruction from the frozen
+  PCA).
+
+* `plot.intrait_fishmorph_projection()` gains an `arrows` argument (with
+  `arrow_scale` and `arrow_col`) that overlays the PCA trait loadings
+  (`x$loadings`) on the FISHMORPH functional space as biplot arrows -- one per
+  trait, drawn from the origin along its loading on the two plotted axes and
+  labelled with the trait name -- so a reader can see which morphological
+  ratios drive each axis. The loadings are unit-scaled direction vectors with
+  no natural length in score units, so they are rescaled to the current plot:
+  the longest arrow reaches `arrow_scale` (default `0.8`) of the distance from
+  the origin to the nearest plot edge, all arrows sharing that one factor so
+  their relative lengths and directions are preserved. The overlay is purely
+  visual and does not change the ordination. Works with every `style` and
+  composes with the reference background and `itv_reference` layers.
+
+# intraitR 1.8.0
+
+* `itv_proportion()` gains a `metric` argument selecting how the multivariate
+  functional-volume proportion is measured:
+  - `metric = "hull"` (default, unchanged): the convex-hull volume ratio
+    (Villeger, Mason & Mouillot, 2008) -- an *extent*-based richness driven by
+    the outermost specimens.
+  - `metric = "tpd"`: a *density*-based richness, the Trait Probability
+    Density FRichness (Carmona et al. 2016, 2019), via `TPD::TPDs()`/`TPDc()`/
+    `REND()`. A kernel density is estimated from the individuals and the
+    proportion is the volume of trait space it occupies above a `tpd_alpha`
+    density threshold, so sparse outliers are down-weighted instead of
+    stretching the volume as they do under a convex hull. Every unit (the
+    reference, the pooled focal set, each species) is evaluated on the same
+    fixed grid, keeping the volumes comparable; it typically returns a
+    smaller, more conservative proportion than the hull for a
+    centrally-clustered focal set. New arguments `tpd_alpha` (default `0.99`)
+    and `tpd_n_divisions` (default `NULL`, auto-scaled with `volume_dims`)
+    tune the density threshold and grid resolution. Requires the Suggested
+    'TPD' package.
+* The `"intrait_itv_proportion"` object now records the metric used (`$metric`)
+  and a `$volume_scale` note; its `print()` method labels the volume as
+  "convex hull" or "TPD FRichness" accordingly. The per-trait (range)
+  proportions are identical under either metric.
+
+# intraitR 1.7.0
+
+* New `itv_proportion()`: quantifies how much of the global functional
+  diversity of the reference database a group's projected intraspecific trait
+  variation (ITV) occupies, from a `project_fishmorph()` projection, along two
+  decompositions -- **per trait** (univariate range ratio: focal ITV range
+  divided by the whole-reference range, on the analysis scale) and **per
+  functional volume** (multivariate convex-hull volume ratio in the
+  `volume_dims` leading principal components, Villeger, Mason & Mouillot,
+  2008). Both are reported pooled over all focal specimens and per species.
+  Returns an `"intrait_itv_proportion"` object with a dedicated `print()`
+  method.
+* `project_fishmorph()` gains a `volume_dims` argument (default `2L`) and now
+  bundles the ITV proportion in its result as `$itv_proportion` (an
+  `"intrait_itv_proportion"` object). The returned projection additionally
+  stores `scores_all`/`global_scores_all` (scores on all components),
+  `specimen_traits` (transformed specimen traits) and
+  `trait_ranges_reference` (per-trait reference envelope) so the proportion
+  can be recomputed on a different number of axes. Its `print()` method now
+  reports the pooled ITV-to-global volume and trait-range proportions.
+* The convex-hull volume uses the Suggested `geometry` package; when it is not
+  installed the volume proportions degrade to `NA` (never an error), while the
+  per-trait proportions are always available.
+
+# intraitR 1.6.0
+
+* `plot.intrait_fishmorph_projection()` now renders the FISHMORPH reference
+  database as a **kernel-density heatmap** by default (a white-to-red
+  gradient with nested highest-density-region contour lines), instead of an
+  unreadably dense ~9,000-point cloud. New arguments control the background
+  and overlays:
+  - `reference_density` (default `TRUE`): draw the reference distribution as
+    the density heatmap. `density_probs` and `density_palette` tune its
+    contour probabilities and colour ramp.
+  - `reference_points` (default `FALSE`): draw the reference species as the
+    previous light point cloud (can be combined with the heatmap). This is
+    the explicit yes/no toggle for the reference species points; the old
+    `background = TRUE` default cloud is now off unless requested.
+  - `itv_reference` (default `FALSE`): mark each focal species' *own* entry
+    in the FISHMORPH database as a filled circle coloured to match its
+    species, so the single database morphotype can be compared with the
+    spread of the projected intraspecific trait variation. Matching is
+    case-insensitive and treats spaces/underscores as equivalent.
+  - `background` remains a master off-switch (`FALSE` suppresses every
+    reference layer).
+* `project_fishmorph()` now stores `global_species`, the reference species
+  labels aligned row-for-row to `global_scores` (from a `"Species"` column
+  when present, else the reference row names), used by `itv_reference` above.
+* New internal helper `.density_field()` (kernel-density grid + HDR contour
+  levels) backing the reference heatmap; `.plot_ordination()` gains
+  `background_density`/`background_points`/`highlight` support, shared with
+  any ordination that supplies a background cloud.
+
+# intraitR 1.5.0
+
+* New `project_fishmorph()`: builds a **fixed** functional trait space by
+  PCA of a reference FISHMORPH database (e.g. the ~9,000-species
+  `fishmorph_data.csv`) and projects new specimens -- typically the
+  individuals of a few focal species from `fishmorph_ratios()` -- into that
+  *same, frozen* space with `stats::predict()`, without re-fitting the
+  ordination. This shows how much of the global morphospace a group's
+  intraspecific trait variation (ITV) occupies relative to the whole
+  diversity of fishes, on axes defined once by the reference alone.
+  Arguments `select_species`/`select_specimens` restrict which specimens
+  are projected. The published FISHMORPH database ships already
+  `log10(x + 1)`-transformed while `fishmorph_ratios()` returns raw ratios;
+  the `reference_prelogged`/`specimens_prelogged`/`log_transform` defaults
+  encode the correct combination so the two never end up on incompatible
+  scales (which would otherwise displace the projected points by a large,
+  spurious offset). A `print()` method summarises the space, and a `plot()`
+  method draws the reference database as a light background cloud with the
+  projected specimens on top, in `style = "hull"` (per-species ITV
+  footprint), `"spider"`, `"density"`, or `"points"`.
+
+* `plot.intrait_traitspace()`/`plot.intrait_shapespace()`'s shared internal
+  plotting engine gained an optional background point cloud (used by
+  `plot.intrait_fishmorph_projection()`); existing plots are unchanged.
+
+# intraitR 1.4.0
+
+* New `operator_disagreement()`: screens a landmark data set in which the
+  **same individuals were digitized by several independent operators** (as
+  produced by `load_t26_saudrune_landmarks(source = "operators")`) and
+  returns, for every individual, a single inter-operator disagreement
+  index, an automatic robust "at-risk" flag (median + `threshold`*MAD, the
+  same rule as `detect_outliers()`), and -- where identifiable -- the
+  operator responsible for the disagreement. It is the population-level,
+  one-number-per-individual companion to the by-eye overlay of
+  `plot_fishmorph_shapes(..., operator = TRUE)`: instead of paging through
+  each fish to spot the ones whose operators drew visibly different shapes,
+  it ranks all individuals and names the outlier operator. The magnitude is
+  the mean across landmarks of the root-mean-square across-operator
+  displacement from the per-landmark consensus, normalised (per individual)
+  by centroid size, an inter-landmark reference distance, or standard
+  length -- the inter-operator analogue of the intra-operator
+  `digitization_error()`. Operator attribution uses a leave-one-out
+  consensus of the other operators (identifiable for three or more
+  operators); a `reference_operator` argument (e.g. a trusted expert)
+  makes attribution identifiable for two-operator individuals as well.
+  Returns `by_individual`, `by_operator` (which operator is systematically
+  discordant), and `by_landmark` (which anatomical points operators
+  disagree on most) tables, with dedicated `print()` and `plot()` methods
+  (`type = "individual"`/`"operator"`/`"landmark"`).
+
 # intraitR 1.3.0
+
+* New `read_mlmorph_landmarks()`: imports the long-format measure table
+  exported by the **ml-morph** shape predictor or by the interactive
+  landmarking Shiny app (columns `specimen`, `landmark`, `X`, `Y`,
+  optional `mm_per_px`) directly into an `"intrait_landmarks"` object. It
+  carries the per-specimen calibration scale into `metadata$mm_per_px`,
+  flags uncalibrated individuals via `metadata$has_scalebar`, and
+  optionally joins a specimen-level metadata table (e.g. species
+  identifications) by a key column. Wraps `read_landmarks_csv()`.
+
+* `plot()` for `itv_accumulation()` objects gains a `legend` argument.
+  With many groups or trait panels the per-panel colour/line-type keys
+  overplotted the curves; the default is now `legend = "panel"`, which
+  draws a single shared legend in a dedicated cell of the panel grid.
+  `legend = "each"` restores the previous per-panel keys and
+  `legend = "none"` suppresses them.
 
 * New `fd_accumulation()`: rarefies community **functional diversity
   indices** against intraspecific sampling effort -- the community-level

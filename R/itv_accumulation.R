@@ -541,11 +541,24 @@ print.intrait_itv_accumulation <- function(x, ...) {
 #' for is visible even when it lies well beyond the individuals actually
 #' sampled -- the interpolation/extrapolation style of a rarefaction curve.
 #'
+#' With many groups and/or many trait panels, repeating the colour and
+#' line-type keys inside every panel quickly overplots the curves. By default
+#' (`legend = "panel"`) the keys are therefore drawn *once*, in a dedicated
+#' cell of the panel grid (one extra slot is reserved for it), leaving the
+#' data panels uncluttered. `legend = "each"` restores the previous
+#' behaviour (a key in every panel), and `legend = "none"` suppresses the
+#' keys entirely -- useful when composing the panels into a figure whose
+#' legend is added separately.
+#'
 #' @param x An object of class `"intrait_itv_accumulation"`.
 #' @param series Optional character vector selecting which trait series
 #'   (panels) to draw; defaults to all.
 #' @param band Logical, draw the resampling quantile band. Defaults to
 #'   `TRUE`.
+#' @param legend Character, where to place the colour/line-type keys. One of
+#'   `"panel"` (default; a single shared legend in its own cell of the panel
+#'   grid), `"each"` (a legend inside every panel, the former behaviour) or
+#'   `"none"` (no legend).
 #' @param extrapolate Logical, for accumulation metrics extend the fitted
 #'   curve beyond the observed range up to `n*` (or `xmax`) and draw the
 #'   fitted asymptote. Ignored for convergence framing. Defaults to `TRUE`.
@@ -559,7 +572,10 @@ print.intrait_itv_accumulation <- function(x, ...) {
 #' @return Invisibly returns `x`.
 #' @export
 plot.intrait_itv_accumulation <- function(x, series = NULL, band = TRUE,
-                                          extrapolate = TRUE, xmax = NULL, ...) {
+                                          extrapolate = TRUE, xmax = NULL,
+                                          legend = c("panel", "each", "none"),
+                                          ...) {
+  legend <- match.arg(legend)
   curve <- x$curve
   all_series <- unique(curve$trait)
   if (!is.null(series)) {
@@ -571,9 +587,12 @@ plot.intrait_itv_accumulation <- function(x, series = NULL, band = TRUE,
   cols <- .stable_group_colors(grps)
   do_extrap <- isTRUE(extrapolate) && x$framing == "accumulation"
 
+  # Reserve one extra grid cell for the shared legend when `legend = "panel"`,
+  # so the data panels stay uncluttered.
   n_panel <- length(all_series)
-  nc <- ceiling(sqrt(n_panel))
-  nr <- ceiling(n_panel / nc)
+  n_cells <- n_panel + if (legend == "panel") 1L else 0L
+  nc <- ceiling(sqrt(n_cells))
+  nr <- ceiling(n_cells / nc)
   old_par <- graphics::par(mfrow = c(nr, nc), mar = c(4, 4, 2.5, 1))
   on.exit(graphics::par(old_par), add = TRUE)
 
@@ -649,15 +668,40 @@ plot.intrait_itv_accumulation <- function(x, series = NULL, band = TRUE,
         }
       }
     }
-    graphics::legend("bottomright", legend = grps, col = unlist(cols[grps]),
-                     lwd = 2, bty = "n", cex = 0.75)
-    if (do_extrap) {
-      graphics::legend(
-        "topleft",
-        legend = c("observed", "extrapolated", "asymptote"),
-        lty = c(1, 2, 3), lwd = c(2, 2, 1), col = "grey30", bty = "n", cex = 0.7
-      )
+    if (legend == "each") {
+      graphics::legend("bottomright", legend = grps, col = unlist(cols[grps]),
+                       lwd = 2, bty = "n", cex = 0.75)
+      if (do_extrap) {
+        graphics::legend(
+          "topleft",
+          legend = c("observed", "extrapolated", "asymptote"),
+          lty = c(1, 2, 3), lwd = c(2, 2, 1), col = "grey30", bty = "n", cex = 0.7
+        )
+      }
     }
+  }
+
+  # Shared legend in its own grid cell: group colours plus the line-type key
+  # (which differs between the two framings).
+  if (legend == "panel") {
+    graphics::plot.new()
+    graphics::legend(
+      "topleft", legend = grps, col = unlist(cols[grps]), lwd = 2,
+      bty = "n", cex = 0.9, title = "Group", title.adj = 0
+    )
+    if (x$framing == "accumulation") {
+      style_lab <- c("observed", "extrapolated", "asymptote")
+      style_lty <- c(1, 2, 3)
+      style_lwd <- c(2, 2, 1)
+    } else {
+      style_lab <- c("rarefied mean", "full-sample value", "n*")
+      style_lty <- c(1, 3, 2)
+      style_lwd <- c(2, 1, 1.5)
+    }
+    graphics::legend(
+      "bottomleft", legend = style_lab, lty = style_lty, lwd = style_lwd,
+      col = "grey30", bty = "n", cex = 0.8, title = "Line type", title.adj = 0
+    )
   }
   invisible(x)
 }

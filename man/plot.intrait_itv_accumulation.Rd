@@ -4,7 +4,15 @@
 \alias{plot.intrait_itv_accumulation}
 \title{Plot intraspecific-variability rarefaction curves}
 \usage{
-\method{plot}{intrait_itv_accumulation}(x, series = NULL, band = TRUE, extrapolate = TRUE, xmax = NULL, ...)
+\method{plot}{intrait_itv_accumulation}(
+  x,
+  series = NULL,
+  band = TRUE,
+  extrapolate = TRUE,
+  xmax = NULL,
+  legend = c("panel", "each", "none"),
+  ...
+)
 }
 \arguments{
 \item{x}{An object of class \code{"intrait_itv_accumulation"}.}
@@ -26,6 +34,11 @@ series cannot squash the observed range; the fitted asymptote is always
 drawn regardless, so the target remains visible even if the curve is
 cut off before reaching it.}
 
+\item{legend}{Character, where to place the colour/line-type keys. One of
+\code{"panel"} (default; a single shared legend in its own cell of the panel
+grid), \code{"each"} (a legend inside every panel, the former behaviour) or
+\code{"none"} (no legend).}
+
 \item{...}{Further arguments passed to \code{\link[graphics:plot]{graphics::plot()}}.}
 }
 \value{
@@ -43,4 +56,14 @@ dashed line beyond the observed range up towards its estimated asymptote
 (drawn as a horizontal dotted line), so the plateau the curve is heading
 for is visible even when it lies well beyond the individuals actually
 sampled -- the interpolation/extrapolation style of a rarefaction curve.
+}
+\details{
+With many groups and/or many trait panels, repeating the colour and
+line-type keys inside every panel quickly overplots the curves. By default
+(\code{legend = "panel"}) the keys are therefore drawn \emph{once}, in a dedicated
+cell of the panel grid (one extra slot is reserved for it), leaving the
+data panels uncluttered. \code{legend = "each"} restores the previous
+behaviour (a key in every panel), and \code{legend = "none"} suppresses the
+keys entirely -- useful when composing the panels into a figure whose
+legend is added separately.
 }

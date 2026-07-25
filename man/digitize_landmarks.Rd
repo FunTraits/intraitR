@@ -2,128 +2,136 @@
 % Please edit documentation in R/digitize_landmarks.R
 \name{digitize_landmarks}
 \alias{digitize_landmarks}
-\title{Interactively digitize landmarks from specimen photographs}
+\title{Launch the interactive ml-morph landmarking application}
 \usage{
 digitize_landmarks(
-  images,
-  scheme = c("fishmorph", "generic"),
-  n_landmarks = NULL,
-  curvature = FALSE,
-  tpsfile,
-  metadata = NULL,
+  mlmorph_dir = NULL,
+  predictor = NULL,
+  python = NULL,
+  autosave = NULL,
+  launch.browser = getOption("shiny.launch.browser", interactive()),
   ...
 )
 }
 \arguments{
-\item{images}{Character vector of paths to \code{.jpg}/\code{.jpeg} specimen
-photographs (one file per specimen), passed on to
-\code{\link[geomorph:digitize2d]{geomorph::digitize2d()}} as its \code{filelist} argument. \code{geomorph}'s
-underlying reader (\code{\link[jpeg:readJPEG]{jpeg::readJPEG()}}) only supports JPEG images;
-convert other formats (PNG, TIFF, etc.) to \code{.jpg} first.}
+\item{mlmorph_dir}{Path to the ml-morph resource directory holding the
+trained predictor(s) (\code{mlmorph_run_app/predictor.dat},
+\code{mlmorph_run_aligned/predictor.dat}), the aligned dataset
+(\verb{mlmorph_dataset_aligned/}) and, optionally, a Python virtual
+environment (\verb{.venv_mlmorph/}). If \code{NULL} (default), the location is
+auto-detected from the \code{INTRAITR_MLMORPH_DIR} environment variable and
+then from a small set of conventional locations relative to the current
+working directory (\verb{ml_morph/}, \verb{../ml_morph/}, and the working
+directory itself). A directory "looks like" an ml-morph directory when
+it contains a trained predictor, the worker script, or the aligned
+dataset.}
 
-\item{scheme}{Character, one of \code{"fishmorph"} (the fixed FISHMORPH
-scheme of Brosse et al., 2021: 21 landmarks, or 22 with \code{curvature = TRUE}) or \code{"generic"} (any fixed number of landmarks, set via
-\code{n_landmarks}).}
+\item{predictor}{Optional path to a specific trained predictor
+(\code{.dat}) file to offer first in the app's model selector, in addition
+to any predictors auto-discovered under \code{mlmorph_dir}.}
 
-\item{n_landmarks}{Integer, number of landmarks to digitize per
-specimen when \code{scheme = "generic"}. Ignored (and set automatically to
-21 or 22) when \code{scheme = "fishmorph"}.}
+\item{python}{Optional path to (or name of) the Python interpreter used
+to run the prediction worker. It must have \code{numpy}, \code{opencv-python}
+and \code{dlib} available (typically the \code{.venv_mlmorph} environment). If
+\code{NULL} (default), the interpreter is resolved from the
+\code{INTRAITR_MLMORPH_PY}/\code{PY} environment variables, then from
+\verb{~/.venv_mlmorph/bin/python}, then from a \verb{.venv_mlmorph/} inside
+\code{mlmorph_dir}, falling back to \code{python3} on the search path.}
 
-\item{curvature}{Logical, digitize the optional 22nd FISHMORPH
-body-curvature correction point in addition to the 21 fixed points
-(see \code{\link[=fishmorph_segments]{fishmorph_segments()}}). Ignored when \code{scheme = "generic"}.}
+\item{autosave}{Path to the writable \code{CSV} file the app uses to
+auto-save the cumulative multi-specimen table (reloaded on start-up).
+If \code{NULL} (default), a file \code{intraitR_landmarking_autosave.csv} is
+used in the working directory \emph{from which this function is called}
+(necessary because \code{\link[shiny:runApp]{shiny::runApp()}} switches the working directory to
+the read-only installed app folder while the app runs).}
 
-\item{tpsfile}{Path to the \code{tpsDig}-format file that will store the
-digitized coordinates (see \code{\link[=read_tps]{read_tps()}}); required, since it is also
-how this function retrieves the digitized data back from
-\code{\link[geomorph:digitize2d]{geomorph::digitize2d()}}.}
+\item{launch.browser}{Passed to \code{\link[shiny:runApp]{shiny::runApp()}}; whether to open the
+app in a browser. Defaults to the \code{shiny.launch.browser} option, or to
+\code{\link[=interactive]{interactive()}}.}
 
-\item{metadata}{Optional \code{data.frame} of specimen-level metadata,
-passed on to \code{\link[=read_tps]{read_tps()}} after digitizing (see its \code{metadata}
-argument).}
-
-\item{...}{Further arguments passed on to \code{\link[geomorph:digitize2d]{geomorph::digitize2d()}}, for
-example \code{verbose = FALSE} for uninterrupted (non-prompted) digitizing
-of each landmark, or \code{scale}/\code{MultScale} to additionally digitize a
-scale bar per image via \code{digitize2d()}'s own mechanism (not needed
-for \code{scheme = "fishmorph"}, whose embedded scale-bar landmarks are
-handled separately by \code{\link[=fishmorph_segments]{fishmorph_segments()}}). Do not pass
-\code{filelist}, \code{nlandmarks}, or \code{tpsfile} here; use the dedicated
-arguments above instead.}
+\item{...}{Further arguments passed on to \code{\link[shiny:runApp]{shiny::runApp()}} (for example
+\code{port} or \code{host}). Do not pass \code{appDir}; the packaged app directory is
+used automatically.}
 }
 \value{
-An object of class \code{"intrait_landmarks"} (see \code{\link[=read_tps]{read_tps()}}),
-built from the coordinates written to \code{tpsfile} by
-\code{\link[geomorph:digitize2d]{geomorph::digitize2d()}}.
+Invisibly \code{NULL}. Called for its side effect of running the
+Shiny application (a blocking call in an interactive session).
+Landmark tables produced by the app are written to disk (\code{CSV}/\code{TPS})
+and imported separately with \code{\link[=read_mlmorph_landmarks]{read_mlmorph_landmarks()}} or
+\code{\link[=read_tps]{read_tps()}}.
 }
 \description{
-A convenience wrapper around \code{\link[geomorph:digitize2d]{geomorph::digitize2d()}} for point-and-click
-digitization of two-dimensional landmarks directly from specimen
-photographs, following either the fixed 21/22-point FISHMORPH
-digitization scheme (Brosse et al., 2021; see \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}})
-or a user-specified number of generic landmarks. Digitized coordinates
-are written to a \code{tpsDig}-format file and immediately re-read with
-\code{\link[=read_tps]{read_tps()}}, so the result is a ready-to-use \code{"intrait_landmarks"}
-object.
+Opens the bundled Shiny application for semi-automatic digitization of
+fish landmarks. The user loads a specimen photograph (or a folder of
+photographs), places a handful of calibration clicks (snout, caudal-fin
+base, a dorsal orientation point and the two scale-bar points), and a
+trained ml-morph shape predictor (Porto & Voje, 2020) proposes the 19
+anatomical FISHMORPH landmarks (Brosse et al., 2021); the remaining
+points can then be reviewed and corrected by hand, quality-scored, and
+exported to \code{CSV}/\code{tpsDig}. The exported \code{CSV}
+(\verb{specimen, landmark, X, Y, mm_per_px, note}) is read back into an
+\code{"intrait_landmarks"} object with \code{\link[=read_mlmorph_landmarks]{read_mlmorph_landmarks()}}.
 }
 \details{
-This function requires an interactive graphics device (it calls
-\code{\link[geomorph:digitize2d]{geomorph::digitize2d()}}, which in turn uses \code{\link[graphics:locator]{graphics::locator()}}) and
-cannot be used non-interactively — e.g. via \code{Rscript}, inside a knitted
-vignette, or inside automated tests — where it stops with an
-informative error instead of hanging.
+This function replaces the former point-and-click wrapper around
+\code{\link[geomorph:digitize2d]{geomorph::digitize2d()}}: rather than digitizing every landmark manually,
+it drives a predictor-assisted workflow with far fewer clicks per
+specimen and an active-learning loop (corrected specimens can be fed
+back into training; see the \code{ml_morph/README.md} pipeline).
 
-For the FISHMORPH scheme, digitize landmarks 1 to 21 (or 1 to 22 with
-\code{curvature = TRUE}) in the exact anatomical order shown by
-\code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}} (points 20-21 are the embedded scale bar, used
-by \code{\link[=fishmorph_segments]{fishmorph_segments()}} to convert pixel distances to centimetres via
-its own \code{scale_cm} argument — no separate scale-bar step is requested
-here). Digitizing points out of order silently produces wrong
-measurements downstream in \code{\link[=fishmorph_segments]{fishmorph_segments()}}; always spot-check
-immediately after digitizing with \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}} on the
-resulting object, and consider \code{\link[=detect_outliers]{detect_outliers()}} across a full batch
-once Procrustes-aligned.
+The Shiny application is shipped inside the package
+(\code{system.file("shiny/landmarking_app", package = "intraitR")}) together
+with its Python worker (\code{system.file("mlmorph", package = "intraitR")}).
+The heavier ml-morph assets — the trained predictor(s), the aligned
+training dataset, and the Python virtual environment with \code{dlib} — are
+\emph{not} bundled (they are large and platform-specific) and must live in an
+external ml-morph directory located via \code{mlmorph_dir}. When no predictor
+is found the app still launches, but the prediction step is disabled
+until a valid predictor is supplied.
 
-This wrapper relies on \code{\link[geomorph:digitize2d]{geomorph::digitize2d()}}'s \code{filelist},
-\code{nlandmarks}, and \code{tpsfile} arguments; if a future \code{geomorph} release
-renames these, digitize directly with \code{\link[geomorph:digitize2d]{geomorph::digitize2d()}} and
-import the resulting file with \code{\link[=read_tps]{read_tps()}} instead.
+Resource locations are handed to the app through environment variables
+(\code{INTRAITR_MLMORPH_DIR}, \code{INTRAITR_MLMORPH_WORKER}, \code{INTRAITR_MLMORPH_PY},
+\code{INTRAITR_MLMORPH_PREDICTOR}, \code{INTRAITR_MLMORPH_AUTOSAVE}); these are set
+for the duration of the call and restored on exit, so the app can also be
+launched directly with \code{shiny::runApp("ml_morph/landmarking_app")}, in
+which case it falls back to paths relative to the \verb{ml_morph/} folder.
 
-\code{\link[geomorph:digitize2d]{geomorph::digitize2d()}} checks for an existing file of the same name
-as \code{tpsfile} in the current working directory to decide whether to
-start a fresh digitizing session or resume an interrupted one; use a
-\code{tpsfile} name not already present in the working directory for a new
-batch of specimens (an unrelated pre-existing file of that name, from
-an earlier, differently sized \code{images} batch, causes
-\code{geomorph::digitize2d()} to error with "Filelist not the same length
-as input TPS file").
+Digitizing points out of order silently produces wrong measurements
+downstream in \code{\link[=fishmorph_segments]{fishmorph_segments()}}; always spot-check immediately with
+\code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}} on the imported object, and consider
+\code{\link[=detect_outliers]{detect_outliers()}} across a full batch once Procrustes-aligned.
 }
 \examples{
 \dontrun{
-# FISHMORPH scheme, three photographs, writing a tpsDig file:
-lm <- digitize_landmarks(
-  images = c("specimen1.jpg", "specimen2.jpg", "specimen3.jpg"),
-  scheme = "fishmorph", tpsfile = "specimens.tps"
+# Auto-detect the ml-morph resources (e.g. an "ml_morph/" folder in the
+# working directory) and open the landmarking app:
+digitize_landmarks()
+
+# Point explicitly at the ml-morph directory, a specific predictor and
+# the dlib-enabled Python environment:
+digitize_landmarks(
+  mlmorph_dir = "~/projects/fish/ml_morph",
+  predictor   = "~/projects/fish/ml_morph/mlmorph_run_app/predictor.dat",
+  python      = "~/.venv_mlmorph/bin/python"
 )
 
-# Generic 12-landmark scheme:
-lm <- digitize_landmarks(
-  images = "specimen1.jpg", scheme = "generic", n_landmarks = 12,
-  tpsfile = "specimen1.tps"
-)
+# Import the CSV exported from the app into an "intrait_landmarks" object:
+lm <- read_mlmorph_landmarks("mesures.csv")
 }
 
 }
 \references{
-Adams DC, Collyer ML, Kaliontzopoulou A, Baken EK (2024). geomorph:
-Software for geometric morphometric analyses. R package.
-
 Brosse S, Charpin N, Su G, Toussaint A, Herrera-R GA, Tedesco PA,
 Villeger S (2021). FISHMORPH: A global database on morphological
 traits of freshwater fishes. Global Ecology and Biogeography, 30(12),
 2330-2336. \doi{10.1111/geb.13395}
+
+Porto A, Voje KL (2020). ML-morph: A fast, accurate and general approach
+for automated detection and landmarking of biological structures in
+images. Methods in Ecology and Evolution, 11(4), 500-512.
+\doi{10.1111/2041-210X.13373}
 }
 \seealso{
-\code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}, \code{\link[=read_tps]{read_tps()}}, \code{\link[=fishmorph_segments]{fishmorph_segments()}},
-\code{\link[=detect_outliers]{detect_outliers()}}
+\code{\link[=read_mlmorph_landmarks]{read_mlmorph_landmarks()}}, \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}},
+\code{\link[=read_tps]{read_tps()}}, \code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=detect_outliers]{detect_outliers()}}
 }

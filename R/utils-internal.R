@@ -260,6 +260,52 @@
   lines
 }
 
+#' Kernel-density field (raster grid + HDR contour levels) for a 2D cloud
+#'
+#' Companion to `.density_contour()` used to shade the *background* of an
+#' ordination -- typically a large reference database (e.g. the ~9,000
+#' FISHMORPH species) into which a few focal groups are projected -- as a
+#' filled kernel-density heatmap rather than an unreadably dense point
+#' cloud. Where `.density_contour()` returns a single highest-density-region
+#' (HDR) polyline for one group, this returns the whole estimated density
+#' surface on a regular grid (ready for [graphics::image()]), together with
+#' the HDR density thresholds enclosing each requested probability mass
+#' (ready for [graphics::contour()]), so the caller can draw both the raster
+#' and a few nested HDR contour lines from a single estimate.
+#'
+#' @param x,y Numeric vectors of coordinates (the reference cloud).
+#' @param n Grid resolution (an `n x n` grid); higher than
+#'   `.density_contour()`'s default, since the surface is rendered as a
+#'   raster rather than reduced to a single contour.
+#' @param expand Fraction of each axis' data range used to pad the grid.
+#' @param probs Numeric vector of coverage probabilities for the HDR
+#'   contour levels (e.g. `c(0.5, 0.95, 0.99)`: the 0.5 level bounds the
+#'   densest region holding 50% of the mass, 0.99 the outer envelope).
+#' @return A list with `x`, `y` (grid coordinate vectors), `z` (the `n x n`
+#'   density matrix, in the orientation expected by [graphics::image()] /
+#'   [graphics::contour()]) and `levels` (the HDR density thresholds,
+#'   sorted ascending), or `NULL` if there are too few points (fewer than
+#'   5) or the estimate is degenerate.
+#' @noRd
+.density_field <- function(x, y, n = 120, expand = 0.05,
+                           probs = c(0.25, 0.5, 0.99)) {
+  ok <- is.finite(x) & is.finite(y)
+  x <- x[ok]; y <- y[ok]
+  if (length(x) < 5) return(NULL)
+  kd <- tryCatch(.kde2d(x, y, n = n, expand = expand), error = function(e) NULL)
+  if (is.null(kd) || any(!is.finite(kd$z))) return(NULL)
+  z_sorted <- sort(as.vector(kd$z), decreasing = TRUE)
+  total_mass <- sum(z_sorted)
+  if (!is.finite(total_mass) || total_mass <= 0) return(NULL)
+  cum_mass <- cumsum(z_sorted) / total_mass
+  levels <- vapply(probs, function(p) {
+    idx <- which(cum_mass >= p)[1]
+    if (is.na(idx)) min(z_sorted) else z_sorted[idx]
+  }, numeric(1))
+  levels <- sort(unique(levels[is.finite(levels) & levels > 0]))
+  list(x = kd$x, y = kd$y, z = kd$z, levels = levels)
+}
+
 #' Abbreviate a "Genus species" binomial for compact legend display
 #'
 #' Converts `"Genus species"` to `"G. species"` (the standard taxonomic
@@ -2015,10 +2061,72 @@
                               ellipse_level = 0.95, density_level = 0.95,
                               legend = TRUE, legend_position = "outside",
                               legend_title = "Group", legend_italic = FALSE,
-                              abbreviate_species = FALSE, space_name = "Ordination", ...) {
+                              abbreviate_species = FALSE, space_name = "Ordination",
+                              background = NULL, background_col = "grey75",
+                              background_cex = 0.35, background_alpha = 0.5,
+                              background_pch = 16,
+                              background_density = FALSE, background_points = TRUE,
+                              density_probs = c(0.25, 0.5, 0.99),
+                              density_palette = NULL,
+                              highlight = NULL, highlight_col = "black",
+                              highlight_pch = 21, highlight_cex = 1.5, ...) {
   x <- scores[, 1]
   y <- scores[, 2]
   dots <- list(...)
+
+  # Optional highlight overlay (e.g. the reference-database entries of the
+  # focal species themselves): a matrix/data.frame of coordinates, drawn on
+  # top of everything else. Coerced once and folded into the axis range
+  # below so a highlighted point outside the focal cloud is never clipped.
+  hl <- if (!is.null(highlight)) as.matrix(highlight) else NULL
+  if (!is.null(hl) && nrow(hl) == 0) hl <- NULL
+
+  # Reference background as a filled kernel-density heatmap: a white-to-red
+  # gradient (ColorBrewer YlOrRd, extended with white at the low end so
+  # empty regions stay blank) matching the package's density-figure style.
+  # Precomputed here so both the null-groups and grouped branches below can
+  # draw it through the same closure.
+  bg <- if (!is.null(background)) as.matrix(background) else NULL
+  density_cols <- if (is.null(density_palette)) {
+    grDevices::colorRampPalette(
+      c("#FFFFFF", "#FFEDA0", "#FEB24C", "#FC8D59",
+        "#EF6548", "#D7301F", "#990000", "#7F0000")
+    )(64)
+  } else {
+    density_palette
+  }
+  draw_reference_bg <- function() {
+    if (is.null(bg)) return(invisible(NULL))
+    if (isTRUE(background_density)) {
+      fld <- .density_field(bg[, 1], bg[, 2], probs = density_probs)
+      if (!is.null(fld)) {
+        graphics::image(fld$x, fld$y, fld$z, col = density_cols,
+                        add = TRUE, useRaster = TRUE)
+        if (length(fld$levels) > 0) {
+          graphics::contour(fld$x, fld$y, fld$z, levels = fld$levels,
+                            drawlabels = FALSE, col = "#3a0000",
+                            lwd = 0.6, add = TRUE)
+        }
+      }
+    }
+    if (isTRUE(background_points)) {
+      graphics::points(bg[, 1], bg[, 2], pch = background_pch, cex = background_cex,
+                       col = grDevices::adjustcolor(background_col, alpha.f = background_alpha))
+    }
+    invisible(NULL)
+  }
+  draw_highlight <- function() {
+    if (is.null(hl)) return(invisible(NULL))
+    # pch 21-25 are filled via `bg`; 19/others via `col`.
+    if (any(highlight_pch %in% 21:25)) {
+      graphics::points(hl[, 1], hl[, 2], pch = highlight_pch, cex = highlight_cex,
+                       bg = highlight_col, col = "black", lwd = 1.2)
+    } else {
+      graphics::points(hl[, 1], hl[, 2], pch = highlight_pch, cex = highlight_cex,
+                       col = highlight_col, lwd = 1.2)
+    }
+    invisible(NULL)
+  }
 
   # Short, inward-pointing tick marks for the duration of this plot only.
   # `las = 1` is set explicitly (rather than left to whatever the current
@@ -2043,13 +2151,35 @@
   )
   main_title <- if (!is.null(style_label)) paste0(space_name, " (", style_label, ")") else space_name
 
+  # The background reference cloud (e.g. a full reference database into
+  # which a handful of focal points are being projected) is drawn first --
+  # as a density heatmap and/or a light point cloud, via draw_reference_bg()
+  # above -- so the focal points/groups sit on top of it. `bg` was resolved
+  # near the top of the function and is folded into the axis-range
+  # computation below so the whole cloud (and any highlight) stays visible.
+
   if (is.null(groups)) {
-    plot_args <- utils::modifyList(
-      list(x = x, y = y, xlab = xlab, ylab = ylab, main = main_title, pch = 19, cex = pt_cex,
-           col = grDevices::adjustcolor("black", alpha.f = pt_alpha)),
-      dots
-    )
-    do.call(graphics::plot, plot_args)
+    if (!is.null(bg) || !is.null(hl)) {
+      rx <- range(c(x, if (!is.null(bg)) bg[, 1], if (!is.null(hl)) hl[, 1]))
+      ry <- range(c(y, if (!is.null(bg)) bg[, 2], if (!is.null(hl)) hl[, 2]))
+      base_args <- utils::modifyList(
+        list(x = x, y = y, xlab = xlab, ylab = ylab, main = main_title, type = "n",
+             xlim = rx, ylim = ry),
+        dots
+      )
+      do.call(graphics::plot, base_args)
+      draw_reference_bg()
+      graphics::points(x, y, pch = 19, cex = pt_cex,
+                       col = grDevices::adjustcolor("black", alpha.f = pt_alpha))
+      draw_highlight()
+    } else {
+      plot_args <- utils::modifyList(
+        list(x = x, y = y, xlab = xlab, ylab = ylab, main = main_title, pch = 19, cex = pt_cex,
+             col = grDevices::adjustcolor("black", alpha.f = pt_alpha)),
+        dots
+      )
+      do.call(graphics::plot, plot_args)
+    }
     graphics::abline(h = 0, v = 0, lty = 3, col = "grey60")
     return(invisible(NULL))
   }
@@ -2116,8 +2246,8 @@
     }
   }
 
-  xr <- range(c(x, extra_x))
-  yr <- range(c(y, extra_y))
+  xr <- range(c(x, extra_x, if (!is.null(bg)) bg[, 1], if (!is.null(hl)) hl[, 1]))
+  yr <- range(c(y, extra_y, if (!is.null(bg)) bg[, 2], if (!is.null(hl)) hl[, 2]))
   xpad <- diff(xr) * 0.06
   ypad <- diff(yr) * 0.06
   if (!is.finite(xpad) || xpad == 0) xpad <- 1
@@ -2142,7 +2272,17 @@
          col = cols, xlim = auto_xlim, ylim = auto_ylim),
     dots
   )
-  do.call(graphics::plot, plot_args)
+  if (!is.null(bg) || !is.null(hl)) {
+    # Draw an empty frame first, lay the reference background (density
+    # heatmap and/or point cloud) underneath, then the focal points on top
+    # -- so projected specimens are never hidden behind the (typically far
+    # more numerous) reference. Any highlight overlay is drawn last, below.
+    do.call(graphics::plot, utils::modifyList(plot_args, list(type = "n")))
+    draw_reference_bg()
+    graphics::points(x, y, pch = 19, cex = pt_cex, col = cols)
+  } else {
+    do.call(graphics::plot, plot_args)
+  }
   graphics::abline(h = 0, v = 0, lty = 3, col = "grey60")
 
   if (style == "spider") {
@@ -2177,6 +2317,11 @@
     }
   }
 
+  # Highlight overlay (e.g. the focal species' own reference-database
+  # positions) drawn last, so it reads on top of the density heatmap,
+  # reference cloud, focal points and group geometry alike.
+  draw_highlight()
+
   if (draw_legend) {
     labels <- levels(groups)
     if (isTRUE(abbreviate_species)) labels <- .abbreviate_species_name(labels)
@@ -2198,4 +2343,69 @@
     }
   }
   invisible(NULL)
+}
+
+#' Best FishBase length-weight coefficients (a, b) per species
+#'
+#' Queries FishBase (via `rfishbase::length_weight()`) for the parameters of
+#' the allometric length-weight relationship `W = a * L^b`, and returns, for
+#' each requested species, the single (a, b) pair from the study with the
+#' highest coefficient of determination (`CoeffDetermination`), mirroring the
+#' `dplyr::slice_max()` selection commonly used for this purpose but in base
+#' R so as not to add a hard dependency. Species with no usable coefficients
+#' (absent from FishBase, or with all `a`/`b` missing) are returned with `NA`
+#' for both.
+#'
+#' @param species Character vector of species names (any mix of
+#'   `"Genus species"`, `"Genus.species"`, or `"Genus_species"`); dots and
+#'   underscores are converted to spaces before the query.
+#' @return A `data.frame` with one row per *unique* cleaned species name and
+#'   columns `Species` (`"Genus species"`), `a`, and `b`.
+#' @noRd
+.fishmorph_length_weight_ab <- function(species) {
+  if (!requireNamespace("rfishbase", quietly = TRUE)) {
+    stop(
+      "MBw = TRUE requires the 'rfishbase' package, which is not installed. ",
+      "Install it with install.packages(\"rfishbase\").",
+      call. = FALSE
+    )
+  }
+  sp_clean <- gsub("[._]+", " ", trimws(as.character(species)))
+  uniq <- unique(sp_clean[!is.na(sp_clean) & nzchar(sp_clean)])
+  ab <- data.frame(Species = uniq, a = NA_real_, b = NA_real_,
+                   stringsAsFactors = FALSE)
+  if (length(uniq) == 0) return(ab)
+
+  lw <- tryCatch(
+    as.data.frame(rfishbase::length_weight(uniq)),
+    error = function(e) {
+      warning("rfishbase::length_weight() failed: ", conditionMessage(e),
+              call. = FALSE)
+      NULL
+    }
+  )
+  if (is.null(lw) || nrow(lw) == 0 ||
+      !all(c("Species", "a", "b") %in% names(lw))) {
+    return(ab)
+  }
+
+  lw <- lw[!is.na(lw$a) & !is.na(lw$b), , drop = FALSE]
+  if (nrow(lw) == 0) return(ab)
+
+  # Highest CoeffDetermination first (records lacking one sort last), then
+  # keep the first row per species: the base-R equivalent of grouping by
+  # Species and slice_max(CoeffDetermination).
+  cd <- if ("CoeffDetermination" %in% names(lw)) {
+    suppressWarnings(as.numeric(lw$CoeffDetermination))
+  } else {
+    rep(NA_real_, nrow(lw))
+  }
+  cd_key <- ifelse(is.na(cd), -Inf, cd)
+  lw <- lw[order(lw$Species, -cd_key), , drop = FALSE]
+  best <- lw[!duplicated(lw$Species), c("Species", "a", "b"), drop = FALSE]
+
+  idx <- match(ab$Species, best$Species)
+  ab$a <- best$a[idx]
+  ab$b <- best$b[idx]
+  ab
 }

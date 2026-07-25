@@ -35,9 +35,11 @@ install.packages("geomorph")
    specimen with one X/Y column pair per landmark -- the layout produced
    directly by most manual digitization spreadsheets); or generate a
    simulated example data set with `simulate_fish_landmarks()`.
-   Alternatively, `digitize_landmarks()` digitizes landmarks interactively
-   from specimen photographs (point-and-click) and returns the result
-   directly, following either the FISHMORPH scheme or a generic one.
+   Alternatively, `digitize_landmarks()` opens a bundled Shiny application
+   for predictor-assisted digitization of specimen photographs: a trained
+   ml-morph model proposes the 19 FISHMORPH landmarks from a few
+   calibration clicks, which are then reviewed, corrected and exported;
+   import the exported table with `read_mlmorph_landmarks()`.
 2. **Align** configurations with Generalised Procrustes Analysis:
    `gpa_fish()`.
 3. **Derive traits**: inter-landmark linear distances

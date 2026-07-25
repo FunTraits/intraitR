@@ -1,84 +1,123 @@
-# digitize_landmarks() wraps geomorph::digitize2d(), which requires a real
-# interactive graphics device and human point-and-click input; it cannot
-# be exercised end-to-end in automated tests. These tests instead cover
-# the argument validation that happens *before* any interactive call is
-# attempted.
+# digitize_landmarks() now launches the bundled ml-morph landmarking Shiny
+# app (shiny::runApp()); it cannot be exercised end-to-end in automated
+# tests. These tests cover the argument validation and resource resolution
+# that happen *before* any interactive Shiny call is attempted.
 #
-# Note: `interactive()` reflects whether the R *session* itself was
-# started interactively, not whether code is running inside test_that().
-# Tests that rely on digitize_landmarks() reaching its `interactive()`
-# guard therefore skip themselves (via `skip_if(interactive())`) when run
-# from an interactive session (e.g. `devtools::test()` in RStudio),
-# rather than risk falling through to a real call to
-# geomorph::digitize2d() against a placeholder (non-image) file.
+# Note: `interactive()` reflects whether the R *session* was started
+# interactively, not whether code runs inside test_that(). The tests that
+# rely on reaching the `interactive()` guard therefore skip themselves (via
+# `skip_if(interactive())`) when run from an interactive session, rather
+# than risk actually launching the app.
 
-test_that("digitize_landmarks() validates `images`", {
-  expect_error(digitize_landmarks(character(0), tpsfile = tempfile()), "non-empty character vector")
-  expect_error(digitize_landmarks(123, tpsfile = tempfile()), "non-empty character vector")
+test_that("digitize_landmarks() validates `mlmorph_dir`", {
+  expect_error(digitize_landmarks(mlmorph_dir = 123), "single directory path")
+  expect_error(digitize_landmarks(mlmorph_dir = c("a", "b")), "single directory path")
   expect_error(
-    digitize_landmarks("no_such_file.jpg", tpsfile = tempfile()),
-    "not found"
+    digitize_landmarks(mlmorph_dir = file.path(tempdir(), "no_such_dir_xyz")),
+    "directory not found"
   )
 })
 
-test_that("digitize_landmarks() requires `tpsfile`", {
-  img <- tempfile(fileext = ".jpg")
-  writeLines("not a real image, just needs to exist", img)
-  on.exit(unlink(img))
-
-  expect_error(digitize_landmarks(img), "tpsfile.*required|required.*tpsfile")
-  expect_error(digitize_landmarks(img, tpsfile = NULL), "tpsfile.*required|required.*tpsfile")
-})
-
-test_that("digitize_landmarks() validates `n_landmarks` for scheme = 'generic'", {
-  img <- tempfile(fileext = ".jpg")
-  writeLines("placeholder", img)
-  on.exit(unlink(img))
-
+test_that("digitize_landmarks() validates `predictor`", {
+  d <- file.path(tempdir(), "mlm_ok"); dir.create(d, showWarnings = FALSE)
+  on.exit(unlink(d, recursive = TRUE), add = TRUE)
   expect_error(
-    digitize_landmarks(img, scheme = "generic", tpsfile = tempfile()),
-    "n_landmarks.*at least 3"
+    digitize_landmarks(mlmorph_dir = d, predictor = 1L),
+    "single file path"
   )
   expect_error(
-    digitize_landmarks(img, scheme = "generic", n_landmarks = 2, tpsfile = tempfile()),
-    "n_landmarks.*at least 3"
+    digitize_landmarks(mlmorph_dir = d, predictor = "no_such_predictor.dat"),
+    "file not found"
   )
 })
 
-test_that("digitize_landmarks() warns if n_landmarks is set with scheme = 'fishmorph'", {
-  testthat::skip_if_not_installed("geomorph")
-  testthat::skip_if(
-    interactive(),
-    "cannot safely exercise the interactive digitizing path from an interactive R session"
+test_that("digitize_landmarks() validates `python` and `autosave`", {
+  d <- file.path(tempdir(), "mlm_ok2"); dir.create(d, showWarnings = FALSE)
+  on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  expect_error(
+    digitize_landmarks(mlmorph_dir = d, python = "definitely_not_a_python_xyz"),
+    "interpreter not found"
   )
-  img <- tempfile(fileext = ".jpg")
-  writeLines("placeholder", img)
-  on.exit(unlink(img))
-
-  # Non-interactively, digitize_landmarks() warns about the ignored
-  # `n_landmarks` and then stops at its interactive() guard; the stop is
-  # swallowed here to isolate and test the warning alone.
-  expect_warning(
-    tryCatch(
-      digitize_landmarks(img, scheme = "fishmorph", n_landmarks = 12, tpsfile = tempfile()),
-      error = function(e) NULL
-    ),
-    "n_landmarks.*is ignored"
+  expect_error(
+    digitize_landmarks(mlmorph_dir = d, autosave = 42),
+    "single file path"
   )
 })
 
 test_that("digitize_landmarks() refuses to run non-interactively", {
-  testthat::skip_if_not_installed("geomorph")
+  testthat::skip_if_not_installed("shiny")
+  testthat::skip_if_not_installed("jpeg")
+  testthat::skip_if_not_installed("png")
   testthat::skip_if(
     interactive(),
-    "cannot safely exercise the interactive digitizing path from an interactive R session"
+    "cannot safely launch the Shiny app from an interactive R session"
   )
-  img <- tempfile(fileext = ".jpg")
-  writeLines("placeholder", img)
-  on.exit(unlink(img))
-
+  d <- file.path(tempdir(), "mlm_ok3"); dir.create(d, showWarnings = FALSE)
+  on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  # A valid (if empty) mlmorph_dir avoids the auto-detection warning so the
+  # interactive() guard is what stops execution.
   expect_error(
-    digitize_landmarks(img, scheme = "fishmorph", tpsfile = tempfile()),
+    digitize_landmarks(mlmorph_dir = d),
     "interactive"
   )
+})
+
+test_that(".resolve_mlmorph_dir() honours an explicit path unchanged", {
+  d <- file.path(tempdir(), "mlm_explicit"); dir.create(d, showWarnings = FALSE)
+  on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  expect_identical(
+    normalizePath(intraitR:::.resolve_mlmorph_dir(d), mustWork = FALSE),
+    normalizePath(d, mustWork = FALSE)
+  )
+})
+
+test_that(".resolve_mlmorph_dir() honours INTRAITR_MLMORPH_DIR", {
+  d <- file.path(tempdir(), "mlm_env"); dir.create(d, showWarnings = FALSE)
+  old <- Sys.getenv("INTRAITR_MLMORPH_DIR", unset = NA)
+  Sys.setenv(INTRAITR_MLMORPH_DIR = d)
+  on.exit({
+    unlink(d, recursive = TRUE)
+    if (is.na(old)) Sys.unsetenv("INTRAITR_MLMORPH_DIR")
+    else Sys.setenv(INTRAITR_MLMORPH_DIR = old)
+  }, add = TRUE)
+
+  expect_identical(
+    normalizePath(intraitR:::.resolve_mlmorph_dir(NULL), mustWork = FALSE),
+    normalizePath(d, mustWork = FALSE)
+  )
+})
+
+test_that(".resolve_mlmorph_dir() auto-detects an ml_morph/ subdirectory by marker", {
+  parent <- file.path(tempdir(), "mlm_parent"); dir.create(parent, showWarnings = FALSE)
+  sub    <- file.path(parent, "ml_morph");      dir.create(sub, showWarnings = FALSE)
+  # A directory "looks like" ml-morph when it holds the worker script.
+  writeLines("# worker", file.path(sub, "predict_new_image.py"))
+
+  old <- Sys.getenv("INTRAITR_MLMORPH_DIR", unset = NA)
+  Sys.unsetenv("INTRAITR_MLMORPH_DIR")
+  old_wd <- getwd(); setwd(parent)
+  on.exit({
+    setwd(old_wd); unlink(parent, recursive = TRUE)
+    if (!is.na(old)) Sys.setenv(INTRAITR_MLMORPH_DIR = old)
+  }, add = TRUE)
+
+  expect_identical(
+    normalizePath(intraitR:::.resolve_mlmorph_dir(NULL), mustWork = FALSE),
+    normalizePath(sub, mustWork = FALSE)
+  )
+})
+
+test_that(".resolve_mlmorph_dir() returns NULL when nothing looks like ml-morph", {
+  parent <- file.path(tempdir(), "mlm_none"); dir.create(parent, showWarnings = FALSE)
+  sub    <- file.path(parent, "work");        dir.create(sub, showWarnings = FALSE)
+
+  old <- Sys.getenv("INTRAITR_MLMORPH_DIR", unset = NA)
+  Sys.unsetenv("INTRAITR_MLMORPH_DIR")
+  old_wd <- getwd(); setwd(sub)   # no ml_morph/ here or in the parent, no markers
+  on.exit({
+    setwd(old_wd); unlink(parent, recursive = TRUE)
+    if (!is.na(old)) Sys.setenv(INTRAITR_MLMORPH_DIR = old)
+  }, add = TRUE)
+
+  expect_null(intraitR:::.resolve_mlmorph_dir(NULL))
 })

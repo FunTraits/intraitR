@@ -14,3 +14,5 @@
 ^specimens\.tps$
 ^P5180033\.jpg$
 ^_pkgdown\.yml$
+__pycache__
+\.pyc$

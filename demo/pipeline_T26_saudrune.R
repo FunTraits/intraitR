@@ -371,4 +371,26 @@ if (requireNamespace("geometry", quietly = TRUE)) {
   plot(ss)
 }
 
+
+acc <- fd_accumulation(
+  ratios[,ratio_cols],n_axes = 2,
+  groups = lm_corr$metadata$species,
+  indices = c("fric", "fdis", "rao", "feve", "fdiv"), n_perm = 30, min_n = 10, seed = 1
+)
+plot(acc)
+
+acc <- itv_accumulation(
+  ratios[, ratio_cols],
+  groups = lm_corr$metadata$species, n_perm = 30, seed = 1
+)
+acc
+plot(acc,legend = c("none"))
+
+acc_range <- itv_accumulation(
+  ratios[, ratio_cols], groups = lm_corr$metadata$species,
+  metric = "range", n_perm = 30, seed = 1
+)
+plot(acc_range)
+
+
 ## End of pipeline_T26_saudrune.R

@@ -73,18 +73,21 @@ landmark was placed off the body outline:
 plot_landmarks(fish, specimen = 1, background_image = "specimen1.jpg")
 ```
 
-If landmarks have not yet been digitized, [digitize_landmarks()] provides
-an interactive, point-and-click front end (built on
-[geomorph::digitize2d()]) that digitizes directly from specimen
-photographs and returns a ready-to-use `"intrait_landmarks"` object; it
-requires a live interactive graphics session and so cannot be run inside
-this vignette, but the intended usage is:
+If landmarks have not yet been digitized, [digitize_landmarks()] launches
+a bundled Shiny application for predictor-assisted digitization: a trained
+ml-morph model proposes the 19 FISHMORPH landmarks from a few calibration
+clicks per specimen, which are then reviewed, corrected and exported to
+`CSV`/`tpsDig`. It requires a live interactive session (and an external
+ml-morph resource directory holding the trained predictor and a
+`dlib`-enabled Python environment), so it cannot be run inside this
+vignette, but the intended usage is:
 
 ```{r, eval = FALSE}
-lm <- digitize_landmarks(
-  images = c("specimen1.jpg", "specimen2.jpg", "specimen3.jpg"),
-  scheme = "fishmorph", tpsfile = "specimens.tps"
-)
+# Open the app (auto-detecting an "ml_morph/" resource directory):
+digitize_landmarks()
+
+# Import the exported table into an "intrait_landmarks" object:
+lm <- read_mlmorph_landmarks("mesures.csv")
 ```
 
 ## 2. Generalised Procrustes Analysis

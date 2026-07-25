@@ -12,7 +12,21 @@
 #'   `Hd`, `Eh`, `Mo`, `PFi`, `PFl`, `Ed`, `Jl`, `CPd`, `CFd`.
 #' @param MBl Optional numeric vector of maximum body length (one value
 #'   per row of `segments`, same order), used only to add an `MBl` column
-#'   to the output; not used in any ratio computation.
+#'   to the output; not used in any ratio computation. Also required when
+#'   `MBw = TRUE`, which derives maximum body weight from it (see `MBw`).
+#' @param MBw Logical, length 1. If `TRUE`, adds a maximum body weight
+#'   (`MBw`) column, derived from `MBl` through the species-level allometric
+#'   length-weight relationship `W = a * MBl^b`, whose parameters `a` and `b`
+#'   are looked up in FishBase with `rfishbase::length_weight()` (taking, per
+#'   species, the study with the highest coefficient of determination). This
+#'   therefore requires `MBl` to be supplied and a species name for each row
+#'   -- taken from `groups` if given, otherwise from a `species` column in
+#'   `segments` -- and the (Suggested) `rfishbase` package to be installed.
+#'   Species with no usable FishBase coefficients yield `NA` (with a
+#'   warning). Note that `a`/`b` are length-type specific (usually total or
+#'   standard length): for a physically meaningful weight, `MBl` should be
+#'   expressed on the same length type as the FishBase coefficients.
+#'   Defaults to `FALSE`.
 #' @param no_caudal_fin Logical, length 1 or `nrow(segments)`. `TRUE` for
 #'   specimens with no visible caudal fin (e.g. Sternopygidae, Anguillidae,
 #'   Plotosidae), for which caudal peduncle throttling (`CPt`) is set to 1
@@ -84,9 +98,9 @@
 #'
 #' @return A `data.frame` (class `"intrait_fishmorph"`) with one row per
 #'   specimen (fewer, if `na_action = "omit"` dropped any), an `MBl`
-#'   column if supplied, and columns `BEl`, `VEp`, `REs`, `OGp`, `RMl`,
-#'   `BLs`, `PFv`, `PFs`, `CPt`, preceded by any metadata columns carried
-#'   over from `segments`.
+#'   column if supplied, an `MBw` column if `MBw = TRUE`, and columns
+#'   `BEl`, `VEp`, `REs`, `OGp`, `RMl`, `BLs`, `PFv`, `PFs`, `CPt`, preceded
+#'   by any metadata columns carried over from `segments`.
 #'
 #' @details
 #' The nine ratios and their ecological interpretation, following Brosse
@@ -132,6 +146,11 @@
 #' tropical fish communities after habitat degradation. Ecological
 #' Applications, 20(6), 1512-1522.
 #'
+#' Froese, R., & Pauly, D. (Eds.) (2024). FishBase.
+#' \url{https://www.fishbase.org}. Accessed through the `rfishbase` package
+#' (Boettiger, Lang & Wainwright, 2012, Journal of Fish Biology, 81(6),
+#' 2030-2039).
+#'
 #' @seealso [fishmorph_segments()], [trait_space()],
 #'   [load_t26_saudrune_landmarks()], [impute_landmarks()]
 #'
@@ -148,8 +167,16 @@
 #' # directly from pixel-space landmark distances:
 #' fishmorph_ratios(segments, landmarks = fish)
 #'
+#' \dontrun{
+#' # add maximum body weight, derived from MBl via FishBase length-weight
+#' # coefficients (needs the 'rfishbase' package and network access):
+#' MBl <- rep(20, nrow(segments)) # per-specimen max body length (cm)
+#' fishmorph_ratios(segments, MBl = MBl, MBw = TRUE)
+#' }
+#'
 #' @export
-fishmorph_ratios <- function(segments, MBl = NULL, no_caudal_fin = FALSE,
+fishmorph_ratios <- function(segments, MBl = NULL, MBw = FALSE,
+                              no_caudal_fin = FALSE,
                               ventral_mouth = FALSE, no_pectoral_fin = FALSE,
                               digits = 4, groups = NULL,
                               na_action = c("keep", "omit", "impute_mean",
@@ -184,6 +211,52 @@ fishmorph_ratios <- function(segments, MBl = NULL, no_caudal_fin = FALSE,
   no_pectoral_fin <- recycle(no_pectoral_fin, "no_pectoral_fin")
   if (!is.null(MBl) && length(MBl) != n) {
     stop("`MBl` must have length nrow(segments) (", n, ").", call. = FALSE)
+  }
+
+  if (!isTRUE(MBw) && !isFALSE(MBw)) {
+    stop("`MBw` must be a single logical (TRUE or FALSE).", call. = FALSE)
+  }
+  mbw <- NULL
+  if (isTRUE(MBw)) {
+    if (is.null(MBl)) {
+      stop(
+        "`MBw = TRUE` derives maximum body weight as a * MBl^b, so it ",
+        "requires `MBl` (maximum body length, one value per specimen).",
+        call. = FALSE
+      )
+    }
+    mbw_species <- if (!is.null(groups)) {
+      groups
+    } else if ("species" %in% names(segments)) {
+      segments$species
+    } else {
+      NULL
+    }
+    if (is.null(mbw_species)) {
+      stop(
+        "`MBw = TRUE` needs a species name for each specimen, taken from ",
+        "`groups` or a `species` column in `segments`; neither is available.",
+        call. = FALSE
+      )
+    }
+    if (length(mbw_species) != n) {
+      stop("species names for `MBw` must have one entry per row of `segments`.",
+           call. = FALSE)
+    }
+    ab <- .fishmorph_length_weight_ab(mbw_species)
+    sp_clean <- gsub("[._]+", " ", trimws(as.character(mbw_species)))
+    ab_idx <- match(sp_clean, ab$Species)
+    mbw <- ab$a[ab_idx] * MBl^ab$b[ab_idx]
+    n_missing <- sum(is.na(mbw) & !is.na(MBl))
+    if (n_missing > 0) {
+      warning(sprintf(
+        paste(
+          "fishmorph_ratios(): no usable FishBase length-weight coefficients",
+          "for %d specimen(s); their MBw is NA."
+        ),
+        n_missing
+      ), call. = FALSE)
+    }
   }
 
   if (!is.null(landmarks)) {
@@ -264,11 +337,18 @@ fishmorph_ratios <- function(segments, MBl = NULL, no_caudal_fin = FALSE,
   if (!all(res$keep)) {
     segments <- segments[res$keep, , drop = FALSE]
     if (!is.null(MBl)) MBl <- MBl[res$keep]
+    if (!is.null(mbw)) mbw <- mbw[res$keep]
   }
 
   ratio_df <- as.data.frame(round(ratio_mat, digits))
   rownames(ratio_df) <- rownames(segments)
 
+  # Add the two species-level size traits (if any) so the final column order
+  # is MBl, MBw, then the nine ratios: cbind() prepends, so MBw is added
+  # first and MBl second.
+  if (!is.null(mbw)) {
+    ratio_df <- cbind(MBw = mbw, ratio_df)
+  }
   if (!is.null(MBl)) {
     if (length(MBl) != nrow(ratio_df)) {
       stop("`MBl` must have length nrow(segments) (", nrow(ratio_df), ").", call. = FALSE)

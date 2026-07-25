@@ -433,43 +433,30 @@ Biogeography, 30(11), 2330-2336.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="co"># Focal specimens: the T-26 Saudrune individuals</span></span></span>
-<span class="r-in"><span><span class="va">fish</span>     <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">ratios</span>   <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span>, na_action <span class="op">=</span> <span class="st">"omit"</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 293 row(s) out of 1036 with missing values.</span>
+<span class="r-in"><span><span class="co"># Reference: the FISHMORPH database (a ~9,000-species CSV, not shipped with</span></span></span>
+<span class="r-in"><span><span class="co"># the package). The example runs only where that file is available locally.</span></span></span>
+<span class="r-in"><span><span class="va">ref_path</span> <span class="op">&lt;-</span> <span class="st">"FishMORPH/fishmorph_data.csv"</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">ref_path</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="co"># Focal specimens: the T-26 Saudrune individuals</span></span></span>
+<span class="r-in"><span>  <span class="va">fish</span>   <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span>, na_action <span class="op">=</span> <span class="st">"omit"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Reference: the FISHMORPH database (here, a path to fishmorph_data.csv)</span></span></span>
-<span class="r-in"><span><span class="va">proj</span> <span class="op">&lt;-</span> <span class="fu">project_fishmorph</span><span class="op">(</span><span class="va">ratios</span>, reference <span class="op">=</span> <span class="st">"FishMORPH/fishmorph_data.csv"</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> `reference` file does not exist: FishMORPH/fishmorph_data.csv</span>
-<span class="r-in"><span><span class="va">proj</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> function (object, ...) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> UseMethod("proj")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x5617534bb298&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: namespace:stats&gt;</span>
+<span class="r-in"><span>  <span class="va">proj</span> <span class="op">&lt;-</span> <span class="fu">project_fishmorph</span><span class="op">(</span><span class="va">ratios</span>, reference <span class="op">=</span> <span class="va">ref_path</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">proj</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"hull"</span><span class="op">)</span>                       <span class="co"># ITV footprints over the</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in object$qr:</span> $ operator is invalid for atomic vectors</span>
-<span class="r-in"><span>                                                 <span class="co"># reference density heatmap</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"spider"</span><span class="op">)</span>                     <span class="co"># dispersion around centroids</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in object$qr:</span> $ operator is invalid for atomic vectors</span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"points"</span>,                     <span class="co"># just the projected points</span></span></span>
-<span class="r-in"><span>     select_species <span class="op">=</span> <span class="st">"Squalius cephalus"</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in object$qr:</span> $ operator is invalid for atomic vectors</span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"hull"</span><span class="op">)</span>       <span class="co"># ITV footprints over the density heatmap</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"spider"</span><span class="op">)</span>     <span class="co"># dispersion around centroids</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"points"</span>, select_species <span class="op">=</span> <span class="st">"Squalius cephalus"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># show the raw reference cloud instead of (or as well as) the heatmap:</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"hull"</span>, reference_density <span class="op">=</span> <span class="cn">FALSE</span>, reference_points <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in object$qr:</span> $ operator is invalid for atomic vectors</span>
+<span class="r-in"><span>  <span class="co"># raw reference cloud instead of (or as well as) the heatmap:</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"hull"</span>, reference_density <span class="op">=</span> <span class="cn">FALSE</span>, reference_points <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># mark each focal species' own FISHMORPH-database point, to compare the</span></span></span>
-<span class="r-in"><span><span class="co"># single database morphotype with the spread of projected individuals:</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"hull"</span>, itv_reference <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in object$qr:</span> $ operator is invalid for atomic vectors</span>
+<span class="r-in"><span>  <span class="co"># mark each focal species' own FISHMORPH-database point:</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"hull"</span>, itv_reference <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># overlay the trait loadings as biplot arrows, to read which ratios drive</span></span></span>
-<span class="r-in"><span><span class="co"># each axis:</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"hull"</span>, arrows <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in object$qr:</span> $ operator is invalid for atomic vectors</span>
+<span class="r-in"><span>  <span class="co"># overlay the trait loadings as biplot arrows:</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"hull"</span>, arrows <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

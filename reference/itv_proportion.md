@@ -195,26 +195,23 @@ Biogeography, 30(11), 2330-2336.
 
 ``` r
 # \donttest{
-fish   <- load_t26_saudrune_landmarks()
-ratios <- fishmorph_ratios(fishmorph_segments(fish), na_action = "omit")
-#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
-#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
-proj   <- project_fishmorph(ratios, reference = "FishMORPH/fishmorph_data.csv")
-#> Error: `reference` file does not exist: FishMORPH/fishmorph_data.csv
+# Needs the full FISHMORPH database (a ~9,000-species CSV) as `reference`;
+# this file is not shipped with the package, so the example runs only when it
+# is available locally (adjust the path to your own copy).
+ref_path <- "FishMORPH/fishmorph_data.csv"
+if (file.exists(ref_path)) {
+  fish   <- load_t26_saudrune_landmarks()
+  ratios <- fishmorph_ratios(fishmorph_segments(fish), na_action = "omit")
+  proj   <- project_fishmorph(ratios, reference = ref_path)
 
-# project_fishmorph() already bundles the default (volume_dims = 2) result:
-proj$itv_proportion
-#> Error in proj$itv_proportion: object of type 'closure' is not subsettable
+  # project_fishmorph() already bundles the default (volume_dims = 2) result:
+  proj$itv_proportion
 
-# recompute on a different number of axes:
-itv_proportion(proj, volume_dims = 3)
-#> Error in UseMethod("itv_proportion"): no applicable method for 'itv_proportion' applied to an object of class "function"
+  # recompute on a different number of axes:
+  itv_proportion(proj, volume_dims = 3)
 
-# density-based (TPD) functional richness instead of the convex hull --
-# down-weights sparse outliers, usually a smaller, more conservative share:
-if (requireNamespace("TPD", quietly = TRUE)) {
-  itv_proportion(proj, metric = "tpd")
+  # density-based (TPD) functional richness instead of the convex hull:
+  if (requireNamespace("TPD", quietly = TRUE)) itv_proportion(proj, metric = "tpd")
 }
-#> Error in UseMethod("itv_proportion"): no applicable method for 'itv_proportion' applied to an object of class "function"
 # }
 ```

@@ -216,27 +216,24 @@ Biogeography, 30(11), 2330-2336.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="va">fish</span>   <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span>, na_action <span class="op">=</span> <span class="st">"omit"</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> na_action = "omit": removing 293 row(s) out of 1036 with missing values.</span>
-<span class="r-in"><span><span class="va">proj</span>   <span class="op">&lt;-</span> <span class="fu"><a href="project_fishmorph.html">project_fishmorph</a></span><span class="op">(</span><span class="va">ratios</span>, reference <span class="op">=</span> <span class="st">"FishMORPH/fishmorph_data.csv"</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> `reference` file does not exist: FishMORPH/fishmorph_data.csv</span>
+<span class="r-in"><span><span class="co"># Needs the full FISHMORPH database (a ~9,000-species CSV) as `reference`;</span></span></span>
+<span class="r-in"><span><span class="co"># this file is not shipped with the package, so the example runs only when it</span></span></span>
+<span class="r-in"><span><span class="co"># is available locally (adjust the path to your own copy).</span></span></span>
+<span class="r-in"><span><span class="va">ref_path</span> <span class="op">&lt;-</span> <span class="st">"FishMORPH/fishmorph_data.csv"</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">ref_path</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="va">fish</span>   <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span>, na_action <span class="op">=</span> <span class="st">"omit"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">proj</span>   <span class="op">&lt;-</span> <span class="fu"><a href="project_fishmorph.html">project_fishmorph</a></span><span class="op">(</span><span class="va">ratios</span>, reference <span class="op">=</span> <span class="va">ref_path</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># project_fishmorph() already bundles the default (volume_dims = 2) result:</span></span></span>
-<span class="r-in"><span><span class="va">proj</span><span class="op">$</span><span class="va">itv_proportion</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in proj$itv_proportion:</span> object of type 'closure' is not subsettable</span>
+<span class="r-in"><span>  <span class="co"># project_fishmorph() already bundles the default (volume_dims = 2) result:</span></span></span>
+<span class="r-in"><span>  <span class="va">proj</span><span class="op">$</span><span class="va">itv_proportion</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># recompute on a different number of axes:</span></span></span>
-<span class="r-in"><span><span class="fu">itv_proportion</span><span class="op">(</span><span class="va">proj</span>, volume_dims <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in UseMethod("itv_proportion"):</span> no applicable method for 'itv_proportion' applied to an object of class "function"</span>
+<span class="r-in"><span>  <span class="co"># recompute on a different number of axes:</span></span></span>
+<span class="r-in"><span>  <span class="fu">itv_proportion</span><span class="op">(</span><span class="va">proj</span>, volume_dims <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># density-based (TPD) functional richness instead of the convex hull --</span></span></span>
-<span class="r-in"><span><span class="co"># down-weights sparse outliers, usually a smaller, more conservative share:</span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"TPD"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>  <span class="fu">itv_proportion</span><span class="op">(</span><span class="va">proj</span>, metric <span class="op">=</span> <span class="st">"tpd"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="co"># density-based (TPD) functional richness instead of the convex hull:</span></span></span>
+<span class="r-in"><span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"TPD"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="fu">itv_proportion</span><span class="op">(</span><span class="va">proj</span>, metric <span class="op">=</span> <span class="st">"tpd"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in UseMethod("itv_proportion"):</span> no applicable method for 'itv_proportion' applied to an object of class "function"</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

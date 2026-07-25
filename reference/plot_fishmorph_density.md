@@ -197,25 +197,22 @@ so a species keeps one colour across both figures.
 
 ``` r
 # \donttest{
-fish   <- load_t26_saudrune_landmarks()
-ratios <- fishmorph_ratios(fishmorph_segments(fish), na_action = "omit")
-#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
-#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
-proj   <- project_fishmorph(ratios, reference = "FishMORPH/fishmorph_data.csv")
-#> Error: `reference` file does not exist: FishMORPH/fishmorph_data.csv
+# Needs the FISHMORPH database CSV (not shipped); runs only if available.
+ref_path <- "FishMORPH/fishmorph_data.csv"
+if (file.exists(ref_path)) {
+  fish   <- load_t26_saudrune_landmarks()
+  ratios <- fishmorph_ratios(fishmorph_segments(fish), na_action = "omit")
+  proj   <- project_fishmorph(ratios, reference = ref_path)
 
-# every axis + every ratio, reference in grey and each species in colour
-plot_fishmorph_density(proj)
-#> Error: `x` must be an "intrait_fishmorph_projection" object from project_fishmorph().
+  # every axis + every ratio, reference in grey and each species in colour
+  plot_fishmorph_density(proj)
 
-# only the two functional axes
-plot_fishmorph_density(proj, what = "axes")
-#> Error: `x` must be an "intrait_fishmorph_projection" object from project_fishmorph().
+  # only the two functional axes
+  plot_fishmorph_density(proj, what = "axes")
 
-# only a couple of ratios, for one species
-plot_fishmorph_density(proj, what = "ratios",
-                       traits = c("BEl", "REs"),
-                       select_species = "Squalius cephalus")
-#> Error: `x` must be an "intrait_fishmorph_projection" object from project_fishmorph().
+  # only a couple of ratios, for one species
+  plot_fishmorph_density(proj, what = "ratios", traits = c("BEl", "REs"),
+                         select_species = "Squalius cephalus")
+}
 # }
 ```

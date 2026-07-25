@@ -381,42 +381,29 @@ Biogeography, 30(11), 2330-2336.
 
 ``` r
 # \donttest{
-# Focal specimens: the T-26 Saudrune individuals
-fish     <- load_t26_saudrune_landmarks()
-ratios   <- fishmorph_ratios(fishmorph_segments(fish), na_action = "omit")
-#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
-#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
+# Reference: the FISHMORPH database (a ~9,000-species CSV, not shipped with
+# the package). The example runs only where that file is available locally.
+ref_path <- "FishMORPH/fishmorph_data.csv"
+if (file.exists(ref_path)) {
+  # Focal specimens: the T-26 Saudrune individuals
+  fish   <- load_t26_saudrune_landmarks()
+  ratios <- fishmorph_ratios(fishmorph_segments(fish), na_action = "omit")
 
-# Reference: the FISHMORPH database (here, a path to fishmorph_data.csv)
-proj <- project_fishmorph(ratios, reference = "FishMORPH/fishmorph_data.csv")
-#> Error: `reference` file does not exist: FishMORPH/fishmorph_data.csv
-proj
-#> function (object, ...) 
-#> UseMethod("proj")
-#> <bytecode: 0x5617534bb298>
-#> <environment: namespace:stats>
+  proj <- project_fishmorph(ratios, reference = ref_path)
+  proj
 
-plot(proj, style = "hull")                       # ITV footprints over the
-#> Error in object$qr: $ operator is invalid for atomic vectors
-                                                 # reference density heatmap
-plot(proj, style = "spider")                     # dispersion around centroids
-#> Error in object$qr: $ operator is invalid for atomic vectors
-plot(proj, style = "points",                     # just the projected points
-     select_species = "Squalius cephalus")
-#> Error in object$qr: $ operator is invalid for atomic vectors
+  plot(proj, style = "hull")       # ITV footprints over the density heatmap
+  plot(proj, style = "spider")     # dispersion around centroids
+  plot(proj, style = "points", select_species = "Squalius cephalus")
 
-# show the raw reference cloud instead of (or as well as) the heatmap:
-plot(proj, style = "hull", reference_density = FALSE, reference_points = TRUE)
-#> Error in object$qr: $ operator is invalid for atomic vectors
+  # raw reference cloud instead of (or as well as) the heatmap:
+  plot(proj, style = "hull", reference_density = FALSE, reference_points = TRUE)
 
-# mark each focal species' own FISHMORPH-database point, to compare the
-# single database morphotype with the spread of projected individuals:
-plot(proj, style = "hull", itv_reference = TRUE)
-#> Error in object$qr: $ operator is invalid for atomic vectors
+  # mark each focal species' own FISHMORPH-database point:
+  plot(proj, style = "hull", itv_reference = TRUE)
 
-# overlay the trait loadings as biplot arrows, to read which ratios drive
-# each axis:
-plot(proj, style = "hull", arrows = TRUE)
-#> Error in object$qr: $ operator is invalid for atomic vectors
+  # overlay the trait loadings as biplot arrows:
+  plot(proj, style = "hull", arrows = TRUE)
+}
 # }
 ```

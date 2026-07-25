@@ -172,6 +172,7 @@ if (requireNamespace("ape", quietly = TRUE)) {
   ts_phylo <- trait_space(pp$traits, na_action = "fail", log_transform = FALSE)
   plot(ts_phylo)
 }
+#> flag_outliers: 8 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
 
 # }
 ```

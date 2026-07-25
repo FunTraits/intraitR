@@ -183,7 +183,7 @@ tpd_dissimilarity <- function(x, groups = NULL, n_axes = 2,
 }
 
 #' @return `as.dist()` returns a `"dist"` object of the dissimilarity matrix.
-#' @export
+#' @exportS3Method stats::as.dist
 #' @rdname tpd_dissimilarity
 #' @param m An object of class `"intrait_tpd_dissim"`.
 #' @param ... Currently unused.

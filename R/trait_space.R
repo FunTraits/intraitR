@@ -326,7 +326,12 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
   }
 
   numeric_cols <- names(traits_df)[vapply(traits_df, is.numeric, logical(1))]
-  dropped <- setdiff(names(traits_df), numeric_cols)
+  # Identifier columns (species/specimen labels) are expected non-numeric inputs
+  # -- they are used as `species`/`groups`, not traits -- so drop them silently
+  # rather than warning about them; warn only about genuinely unexpected columns.
+  id_like <- intersect(c("species", "Species", "Genus.species", "specimen"),
+                       names(traits_df))
+  dropped <- setdiff(names(traits_df), c(numeric_cols, id_like))
   if (length(numeric_cols) == 0) stop("`traits` must contain at least two numeric columns.", call. = FALSE)
   if (length(dropped) > 0) {
     warning("Dropping non-numeric column(s) from the ordination: ", paste(dropped, collapse = ", "), call. = FALSE)

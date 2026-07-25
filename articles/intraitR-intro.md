@@ -481,8 +481,8 @@ spider/ellipse display per group:
 ``` r
 
 fts <- trait_space(fishmorph_traits, groups = fishmorph_fish$metadata$species)
-#> Warning: Dropping non-numeric column(s) from the ordination: specimen,
-#> individual, species, population
+#> Warning: Dropping non-numeric column(s) from the ordination: individual,
+#> population
 #> Warning: Dropping constant (zero-variance) column(s) from the ordination:
 #> replicate
 fts

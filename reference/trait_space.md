@@ -383,7 +383,7 @@ segments <- fishmorph_segments(fish)
 #> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ratios <- fishmorph_ratios(segments)
 ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
-#> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
+#> Warning: Dropping non-numeric column(s) from the ordination: individual, population, operator
 #> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
 #> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
 ts   # flags any within-species outliers found, see ts$outlier_screen
@@ -408,7 +408,7 @@ ts_clean <- trait_space(
   ratios, groups = fish$metadata$species, na_action = "omit",
   remove_outliers = TRUE
 )
-#> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
+#> Warning: Dropping non-numeric column(s) from the ordination: individual, population, operator
 #> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
 #> remove_outliers: removing 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus) before building the ordination; see $removed_outliers for exactly which ones, and why, before relying on this in a publication -- always confirm each removal corresponds to a real error (e.g. via plot_landmarks()/ plot_fishmorph_points()), not just genuine morphological variation.
 ts_clean$removed_outliers   # exactly which specimen(s) were excluded, and why

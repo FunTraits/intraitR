@@ -172,7 +172,6 @@ if (requireNamespace("ape", quietly = TRUE)) {
   ts_phylo <- trait_space(pp$traits, na_action = "fail", log_transform = FALSE)
   plot(ts_phylo)
 }
-#> Warning: Dropping non-numeric column(s) from the ordination: species
 
 # }
 ```

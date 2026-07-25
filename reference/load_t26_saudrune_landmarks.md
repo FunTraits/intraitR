@@ -147,12 +147,12 @@ ratios_op1 <- fishmorph_ratios(fishmorph_segments(fish_op1))
 ratios_op2 <- fishmorph_ratios(fishmorph_segments(fish_op2))
 #> Warning: 2 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
 ts_op1 <- trait_space(ratios_op1, groups = fish_op1$metadata$species, na_action = "omit")
-#> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
+#> Warning: Dropping non-numeric column(s) from the ordination: individual, population, operator
 #> na_action = "omit": removing 139 row(s) out of 279 with missing values.
 #> Warning: Dropping constant (zero-variance) column(s) from the ordination: replicate
 #> flag_outliers: 6 specimen(s) flagged as within-group outlier(s) across 3 group(s) (Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
 ts_op2 <- trait_space(ratios_op2, groups = fish_op2$metadata$species, na_action = "omit")
-#> Warning: Dropping non-numeric column(s) from the ordination: specimen, individual, species, population, operator
+#> Warning: Dropping non-numeric column(s) from the ordination: individual, population, operator
 #> na_action = "omit": removing 91 row(s) out of 279 with missing values.
 #> Warning: Dropping constant (zero-variance) column(s) from the ordination: replicate
 #> flag_outliers: 11 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.

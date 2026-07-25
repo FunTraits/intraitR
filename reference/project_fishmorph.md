@@ -393,7 +393,7 @@ proj <- project_fishmorph(ratios, reference = "FishMORPH/fishmorph_data.csv")
 proj
 #> function (object, ...) 
 #> UseMethod("proj")
-#> <bytecode: 0x56391c733298>
+#> <bytecode: 0x56112ef23298>
 #> <environment: namespace:stats>
 
 plot(proj, style = "hull")                       # ITV footprints over the

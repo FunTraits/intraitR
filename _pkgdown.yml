@@ -25,6 +25,7 @@ reference:
       - read_tps
       - read_landmarks_csv
       - read_landmarks_xlsx
+      - read_mlmorph_landmarks
       - digitize_landmarks
       - plot_landmarks
       - print.intrait_landmarks
@@ -58,6 +59,7 @@ reference:
       - fishmorph_ratios
       - plot_fishmorph_points
       - plot_fishmorph_shapes
+      - plot_fishmorph_density
 
   - title: Functional and shape space
     desc: >
@@ -70,11 +72,13 @@ reference:
       - plot_correlation_circle
       - project_fishmorph
       - plot.intrait_fishmorph_projection
+      - itv_proportion
       - shape_space
       - plot.intrait_shapespace
       - trait_disparity
       - print.intrait_disparity
       - tpd_dissimilarity
+      - plot.intrait_tpd_dissim
       - bootstrap_functional_space
       - print.intrait_bootstrap_fspace
       - species_sensitivity
@@ -91,6 +95,7 @@ reference:
       comparing functional and phylogenetic diversity loss.
     contents:
       - load_fishmorph_phylogeny
+      - load_fishmorph_phylo_axes
       - phylo_pcoa
 
   - title: Intraspecific variability and measurement error
@@ -103,7 +108,9 @@ reference:
       - plot.intrait_itv
       - intraspecific_variability
       - itv_accumulation
+      - plot.intrait_itv_accumulation
       - fd_accumulation
+      - plot.intrait_fd_accumulation
       - measurement_error
       - print.intrait_measurement_error
       - digitization_error

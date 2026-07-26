@@ -13,6 +13,12 @@ entirely in English.
   or derived, hinge, scale bar, and *not yet placed* are now distinguishable at
   a glance. An unreviewed point is therefore visible **before** it is exported
   rather than after — which is the whole point of the change.
+* The bar is laid out as in the FISHMORPH digitizer: the broken axis first
+  (1, 22, 23, 2), then the anatomical points in **entry order** — head, body,
+  caudal — then the derived points, the spare hinge and the scale bar. The
+  auto-advance follows the same sequence, generated from one definition so the
+  two cannot drift apart. Numeric order would have made the eye jump back and
+  forth between body regions.
 * **Per-point provenance.** The exported table gains a `status` column
   (`"clicked"`, `"predicted"`, `"derived"`, `"na"`, `"missing"`).
   `"predicted"` flags a landmark still sitting exactly where the model put it,

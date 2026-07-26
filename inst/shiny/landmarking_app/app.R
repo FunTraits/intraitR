@@ -97,12 +97,19 @@ AUTO_LM_PIN <- c(1L, 2L, 3L, 4L, 7L, 8L, 9L, 10L, 11L, 12L, 15L, 16L, 18L)
 ## Points whose position is computed, never measured.
 DERIVED_LM  <- c(8L, 9L, 11L)
 
+## Anatomical points in ENTRY order (head -> body -> caudal), which is the path
+## the eye takes over the specimen; numeric order would jump back and forth
+## between regions. Used for the button bar and for the review sequence. The
+## derived points 8, 9 and 11 are excluded: they are never entered by hand.
+ANAT_ORDER <- c(3L, 4L, 7L, 5L, 6L, 13L, 14L, 15L,
+                10L, 12L, 16L, 17L, 18L, 19L)
+
 ## Landmarks the auto-advance stops on, in review order: the anatomical points
 ## left to the operator, then the two scale-bar points. Hinges are deliberately
 ## excluded -- they are placed on demand from the button bar.
 review_order <- function(pin) {
   auto <- if (isTRUE(pin)) AUTO_LM_PIN else AUTO_LM
-  c(setdiff(seq_len(N_ANAT), auto), SCALE_PTS)
+  c(setdiff(ANAT_ORDER, auto), SCALE_PTS)   # same anatomical path as the button bar
 }
 ## Next landmark TO REVIEW after `cur` (wraps around).
 next_review <- function(cur, pin) {
@@ -831,15 +838,18 @@ server <- function(input, output, session) {
                "Then 'Predict'. Afterwards, select a landmark and click to reposition",
                "it (20-21 = scale bar, placed the same way).")
   })
+  ## Listed from review_order() rather than spelled out, so the help can never
+  ## drift away from what the auto-advance actually does.
   output$auto_help <- renderUI({
+    ord <- paste(review_order(input$pin), collapse = ", ")
     if (isTRUE(input$pin))
-      helpText(tags$b("To review:"), "5, 6, 13, 14, 17, 19, 20, 21 (the auto-advance",
-               "stops there).", tags$br(), tags$b("Pinned / derived:"),
+      helpText(tags$b("To review, in this order:"), ord, tags$br(),
+               tags$b("Pinned / derived:"),
                "1, 2, 3, 4, 7, 10, 12, 15, 16, 18 (clicks) and 8, 9, 11 (derived from",
                "1, 7, 10 and 4).")
     else
-      helpText(tags$b("To review:"), "3-7, 10, 12-21 (the auto-advance stops there).",
-               tags$br(), tags$b("Automatic:"), "1, 2 (clicks) and 8, 9, 11 (derived",
+      helpText(tags$b("To review, in this order:"), ord, tags$br(),
+               tags$b("Automatic:"), "1, 2 (clicks) and 8, 9, 11 (derived",
                "from 1, 7, 10 and 4).")
   })
 
@@ -875,8 +885,13 @@ server <- function(input, output, session) {
   output$lm_buttons <- renderUI({
     if (is.null(rv$pred)) return(NULL)
     auto <- if (isTRUE(input$pin)) AUTO_LM_PIN else AUTO_LM
-    order_show <- c(1L, CURVE_PT, EXTRA_HINGES, 2L,
-                    setdiff(seq_len(N_ANAT), c(1L, 2L)), SCALE_PTS)
+    # Layout, as in the FISHMORPH digitizer: the broken axis first (1 -> 22 ->
+    # 23 -> 2, the points that define every frame), then the anatomical points in
+    # entry order, then the derived ones and the spare hinge, and finally the
+    # scale bar. Anatomical order beats numeric order here because it follows the
+    # path the eye takes over the specimen -- head, then body, then caudal.
+    order_show <- c(1L, CURVE_PT, EXTRA_HINGES[1], 2L, ANAT_ORDER,
+                    DERIVED_LM, EXTRA_HINGES[-1], SCALE_PTS)
     btn <- function(i) {
       col <- if (i == rv$sel) "background:#28a745;color:#fff;font-weight:bold;"
              else if (i %in% rv$na) "background:#f8d7da;color:#a00;text-decoration:line-through;"
@@ -889,21 +904,23 @@ server <- function(input, output, session) {
         col <- paste0(col, "border-style:dashed;")
       tags$button(type = "button", i,
         onclick = sprintf("Shiny.setInputValue('sel_btn', %d, {priority:'event'});", i),
-        style = paste0("margin:1px;padding:3px 8px;min-width:34px;border:1px solid #ccc;",
-                       "border-radius:3px;cursor:pointer;", col))
+        style = paste0("margin:2px;padding:6px 12px;min-width:42px;font-size:15px;",
+                       "border:1px solid #ccc;border-radius:4px;cursor:pointer;", col))
     }
-    div(style = "margin-bottom:6px;line-height:2.2;",
+    div(style = "margin-bottom:8px;line-height:2.4;",
         tags$strong("Active landmark (click the photograph to place it -> auto-advance): "),
         lapply(order_show, btn),
-        tags$div(style = "font-size:11px;color:#666;",
+        tags$div(style = "font-size:11px;color:#666;line-height:1.5;",
           "Green = active; blue = placed by hand; pink struck through = NA;",
-          "grey = automatic or derived; gold = HINGES; pale green = scale bar;",
-          "dashed border = not placed yet.", tags$br(),
-          "Broken axis 1 -> 22 -> 23 -> 24 -> 2: place the hinges on the bends of a",
-          "curved specimen. LM22 is a genuine landmark (fishmorph_segments() uses",
-          "it to correct the standard length); 23 and 24 are entry aids and are",
-          "NOT exported. Head conventions apply on 1-22, body depth and pectoral",
-          "fin on 22-23, caudal peduncle and fin on 23-2."))
+          "grey = automatic or derived; gold = HINGES; pale green = SCALE BAR",
+          "(20/21, optional, at the end of the list); dashed border = not placed yet.",
+          tags$br(),
+          "Broken axis 1 -> 22 -> 23 -> 2: place 22 then 23 on the bends of a curved",
+          "specimen. Head conventions apply on 1-22, body depth and pectoral fin",
+          "(10, 11, 12) on 22-23, caudal (16-17, 18-19) on 23-2. LM24 (end of the",
+          "list) adds a fourth axis segment, without conventions. LM22 is a genuine",
+          "landmark -- fishmorph_segments() uses it to correct the standard length --",
+          "whereas 23 and 24 are entry aids and are NOT exported."))
   })
   observeEvent(input$sel_btn, { rv$sel <- as.integer(input$sel_btn); zoom_to_sel() })
 

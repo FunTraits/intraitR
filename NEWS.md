@@ -1,3 +1,61 @@
+# intraitR 1.13.0
+
+## The landmarking app rewritten around the operator
+
+The Shiny application behind `digitize_landmarks()` has been rebuilt along the
+lines of the FISHMORPH digitizer, and its interface and comments are now
+entirely in English.
+
+* **Active-landmark model.** One point is active at a time; a click places it
+  and the selection advances to the next point that actually needs review,
+  skipping calibration clicks and derived points. The numbered button bar
+  doubles as a status display: active, placed by hand, marked `NA`, automatic
+  or derived, hinge, scale bar, and *not yet placed* are now distinguishable at
+  a glance. An unreviewed point is therefore visible **before** it is exported
+  rather than after — which is the whole point of the change.
+* **Per-point provenance.** The exported table gains a `status` column
+  (`"clicked"`, `"predicted"`, `"derived"`, `"na"`, `"missing"`).
+  `"predicted"` flags a landmark still sitting exactly where the model put it,
+  never verified by eye; the count is shown on screen and repeated when a
+  specimen is saved. A coordinate table cannot carry this distinction, and
+  without it a measurement and a plausible guess are indistinguishable
+  downstream.
+
+## Broken axis for curved specimens
+
+* The FISHMORPH conventions are defined against the antero-posterior axis, so a
+  fish photographed with a bent body had all of them misstated at once by a
+  single straight axis 1-2. Hinge points now break the axis into up to four
+  segments and each convention is applied in the frame of the segment it
+  belongs to: head on 1-22, body depth and pectoral fin on 22-23, caudal
+  peduncle and fin on 23-2.
+* Landmark **22 is exported** — `fishmorph_segments()` already used it to split
+  the standard length into (1-22) + (22-2) — while 23 and 24 are entry aids and
+  are never written out. Placing no hinge reproduces the previous straight-axis
+  behaviour exactly, so nothing changes for straight specimens.
+
+## Robustness and quality control
+
+* **Images are routed by their magic bytes, not their file extension.** A
+  sizeable minority of `.jpg` files in specimen archives are in fact `PNG`,
+  `GIF` or `BMP`; these used to fail outright and now open through `magick`
+  (added to `Suggests`; a message on start-up says so when it is missing).
+* **Flipping a photograph remaps the points already placed** instead of
+  discarding them, and a separate display-only flip mirrors the image while
+  leaving the coordinates untouched — for the case where a reloaded table is
+  mirrored relative to its photograph.
+* **On-screen control table** of the eleven FISHMORPH segments as digitized: in
+  pixels, as a ratio to the standard length (comparable across specimens, which
+  raw pixels are not) and, once the scale bar is placed, in millimetres. `Bl` is
+  measured along the broken axis.
+* **Reference lines** (body outline, belly line, eye vertical, eye circle,
+  broken axis) drawn over the photograph, alongside the existing FISHMORPH
+  geometry check, which is now evaluated segment by segment.
+* Jump straight to a photograph by name (server-side `selectize`), notifications
+  on every state change, zoom centred on the active landmark, and a "Clear this
+  point" action distinct from "Mark NA" — *not placed* and *not measurable* are
+  different claims and no longer collapse into the same `NA`.
+
 # intraitR 1.12.0
 
 ## Phylogenetic imputation now works on precomputed eigenvalues

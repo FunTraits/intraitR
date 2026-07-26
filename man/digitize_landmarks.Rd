@@ -69,7 +69,7 @@ trained ml-morph shape predictor (Porto & Voje, 2020) proposes the 19
 anatomical FISHMORPH landmarks (Brosse et al., 2021); the remaining
 points can then be reviewed and corrected by hand, quality-scored, and
 exported to \code{CSV}/\code{tpsDig}. The exported \code{CSV}
-(\verb{specimen, landmark, X, Y, mm_per_px, note}) is read back into an
+(\verb{specimen, landmark, X, Y, mm_per_px, note, status}) is read back into an
 \code{"intrait_landmarks"} object with \code{\link[=read_mlmorph_landmarks]{read_mlmorph_landmarks()}}.
 }
 \details{
@@ -95,12 +95,56 @@ Resource locations are handed to the app through environment variables
 for the duration of the call and restored on exit, so the app can also be
 launched directly with \code{shiny::runApp("ml_morph/landmarking_app")}, in
 which case it falls back to paths relative to the \verb{ml_morph/} folder.
+}
+\section{Working in the app}{
+Correction follows an \emph{active-landmark} model: one point is active at a
+time, a click on the photograph places it, and the selection advances
+automatically to the next point that actually needs review, skipping the
+ones placed by a calibration click or derived geometrically. The button
+bar above the photograph is also a status display -- active, placed by
+hand, marked \code{NA}, automatic or derived, hinge, scale bar, and not yet
+placed are all distinguishable at a glance, which makes an unreviewed
+point visible before it is exported rather than after.
+
+Flipping the photograph remaps the points already placed instead of
+discarding them, and a separate display-only flip mirrors the image while
+leaving the coordinates untouched (useful when a reloaded table is
+mirrored relative to its photograph). Images are routed by their magic
+bytes rather than their file extension, so the \code{.jpg} files that are in
+fact \code{PNG}, \code{GIF} or \code{BMP} -- common in specimen archives -- open
+correctly, through \code{magick} when it is installed.
+}
+
+\section{Curved specimens: the broken axis}{
+The FISHMORPH conventions (segment 3-4 perpendicular to the body axis,
+the eye group on one vertical, the ventral group on one line) are defined
+against the antero-posterior axis. On a fish photographed with a bent
+body a single straight axis 1-2 misstates all of them at once. The app
+therefore accepts \emph{hinge} points that break the axis into up to four
+segments, each convention being applied in the frame of the segment it
+belongs to: head conventions on 1-22, body depth and pectoral fin on
+22-23, caudal peduncle and fin on 23-2. Landmark 22 is a genuine landmark
+-- \code{\link[=fishmorph_segments]{fishmorph_segments()}} already uses it to split the standard length
+into (1-22) + (22-2) -- and is exported; landmarks 23 and 24 are entry
+aids and are never written out. Placing no hinge reproduces exactly the
+straight-axis behaviour.
+}
+
+\section{Auditing a batch}{
+Each exported row carries a \code{status}: \code{"clicked"} for a point placed or
+moved by hand, \code{"predicted"} for one still sitting exactly where the model
+put it (never verified by eye, and therefore the first thing to audit),
+\code{"derived"} for the geometrically computed ventral points 8, 9 and 11,
+\code{"na"} for a point declared non-measurable and \code{"missing"} for one never
+placed. This is the piece of information a coordinate table cannot carry,
+and it is what distinguishes a measurement from a plausible guess.
 
 Digitizing points out of order silently produces wrong measurements
 downstream in \code{\link[=fishmorph_segments]{fishmorph_segments()}}; always spot-check immediately with
 \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}} on the imported object, and consider
 \code{\link[=detect_outliers]{detect_outliers()}} across a full batch once Procrustes-aligned.
 }
+
 \examples{
 \dontrun{
 # Auto-detect the ml-morph resources (e.g. an "ml_morph/" folder in the

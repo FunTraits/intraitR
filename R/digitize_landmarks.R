@@ -8,7 +8,7 @@
 #' anatomical FISHMORPH landmarks (Brosse et al., 2021); the remaining
 #' points can then be reviewed and corrected by hand, quality-scored, and
 #' exported to `CSV`/`tpsDig`. The exported `CSV`
-#' (`specimen, landmark, X, Y, mm_per_px, note`) is read back into an
+#' (`specimen, landmark, X, Y, mm_per_px, note, status`) is read back into an
 #' `"intrait_landmarks"` object with [read_mlmorph_landmarks()].
 #'
 #' This function replaces the former point-and-click wrapper around
@@ -74,6 +74,50 @@
 #' for the duration of the call and restored on exit, so the app can also be
 #' launched directly with `shiny::runApp("ml_morph/landmarking_app")`, in
 #' which case it falls back to paths relative to the `ml_morph/` folder.
+#'
+#' # Working in the app
+#'
+#' Correction follows an *active-landmark* model: one point is active at a
+#' time, a click on the photograph places it, and the selection advances
+#' automatically to the next point that actually needs review, skipping the
+#' ones placed by a calibration click or derived geometrically. The button
+#' bar above the photograph is also a status display -- active, placed by
+#' hand, marked `NA`, automatic or derived, hinge, scale bar, and not yet
+#' placed are all distinguishable at a glance, which makes an unreviewed
+#' point visible before it is exported rather than after.
+#'
+#' Flipping the photograph remaps the points already placed instead of
+#' discarding them, and a separate display-only flip mirrors the image while
+#' leaving the coordinates untouched (useful when a reloaded table is
+#' mirrored relative to its photograph). Images are routed by their magic
+#' bytes rather than their file extension, so the `.jpg` files that are in
+#' fact `PNG`, `GIF` or `BMP` -- common in specimen archives -- open
+#' correctly, through `magick` when it is installed.
+#'
+#' # Curved specimens: the broken axis
+#'
+#' The FISHMORPH conventions (segment 3-4 perpendicular to the body axis,
+#' the eye group on one vertical, the ventral group on one line) are defined
+#' against the antero-posterior axis. On a fish photographed with a bent
+#' body a single straight axis 1-2 misstates all of them at once. The app
+#' therefore accepts *hinge* points that break the axis into up to four
+#' segments, each convention being applied in the frame of the segment it
+#' belongs to: head conventions on 1-22, body depth and pectoral fin on
+#' 22-23, caudal peduncle and fin on 23-2. Landmark 22 is a genuine landmark
+#' -- [fishmorph_segments()] already uses it to split the standard length
+#' into (1-22) + (22-2) -- and is exported; landmarks 23 and 24 are entry
+#' aids and are never written out. Placing no hinge reproduces exactly the
+#' straight-axis behaviour.
+#'
+#' # Auditing a batch
+#'
+#' Each exported row carries a `status`: `"clicked"` for a point placed or
+#' moved by hand, `"predicted"` for one still sitting exactly where the model
+#' put it (never verified by eye, and therefore the first thing to audit),
+#' `"derived"` for the geometrically computed ventral points 8, 9 and 11,
+#' `"na"` for a point declared non-measurable and `"missing"` for one never
+#' placed. This is the piece of information a coordinate table cannot carry,
+#' and it is what distinguishes a measurement from a plausible guess.
 #'
 #' Digitizing points out of order silently produces wrong measurements
 #' downstream in [fishmorph_segments()]; always spot-check immediately with
@@ -156,6 +200,14 @@ digitize_landmarks <- function(mlmorph_dir = NULL, predictor = NULL,
       stop("Package \"", pkg, "\" is required by digitize_landmarks(); ",
            "install it with install.packages(\"", pkg, "\").", call. = FALSE)
     }
+  }
+  ## Optional: 'magick' lets the app open images whose real format does not
+  ## match their extension (a sizeable minority of ".jpg" specimen photographs
+  ## are in fact PNG, GIF or BMP). Without it those files simply fail to load.
+  if (!requireNamespace("magick", quietly = TRUE)) {
+    message("Package \"magick\" is not installed: photographs whose real format ",
+            "differs from their file extension (e.g. a GIF named \".jpg\") will ",
+            "not open. install.packages(\"magick\") to handle them.")
   }
 
   ## ---- locate the packaged app and worker -----------------------------------

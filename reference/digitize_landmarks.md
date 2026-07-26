@@ -121,14 +121,35 @@ to paths relative to the `ml_morph/` folder.
 
 ## Working in the app
 
-Correction follows an *active-landmark* model: one point is active at a
-time, a click on the photograph places it, and the selection advances
-automatically to the next point that actually needs review, skipping the
-ones placed by a calibration click or derived geometrically. The button
-bar above the photograph is also a status display – active, placed by
-hand, marked `NA`, automatic or derived, hinge, scale bar, and not yet
-placed are all distinguishable at a glance, which makes an unreviewed
-point visible before it is exported rather than after.
+Everything follows one *active-landmark* model, from the first click to
+the last: a single point is active, a click on the photograph places it,
+and the selection advances along one sequence,
+`1, 22, 23, 2, 3 ... 19, 20, 21` – the axis first and complete, then the
+anatomical landmarks, then the scale bar. Only the derived points 8, 9
+and 11 and the spare hinge 24 are skipped, and they stay reachable from
+the button bar, as does any other landmark at any moment.
+
+The moment LM2 goes down the whole configuration is seeded, so placing
+by hand is the default way to work rather than a mode to switch into,
+and there is no calibration/review distinction. Running the predictor is
+optional and available throughout: it refines the anatomical landmarks
+over the seeded configuration. The app is therefore fully usable with no
+trained predictor at all. The button bar above the photograph is also a
+status display – active, placed by hand, marked `NA`, automatic or
+derived, hinge, scale bar, and not yet placed are all distinguishable at
+a glance, which makes an unreviewed point visible before it is exported
+rather than after.
+
+Field photographs of 12 to 24 Mpx would otherwise make clicking
+sluggish, since the plot redraws on every interaction. The image is
+therefore downsampled once when it is loaded and the full-resolution
+array is dropped, the display bitmap is converted to a raster once
+rather than on every redraw, and only the visible crop is drawn when
+zoomed. A `Display` selector above the photograph trades sharpness
+against speed (800 to 2400 px, or full resolution; 1200 px by default).
+None of this touches the coordinates – landmarks are always recorded in
+original image pixels – and the predictor is still handed the file
+itself at full resolution.
 
 Flipping the photograph remaps the points already placed instead of
 discarding them, and a separate display-only flip mirrors the image
@@ -157,13 +178,25 @@ out. Placing no hinge reproduces exactly the straight-axis behaviour.
 ## Auditing a batch
 
 Each exported row carries a `status`: `"clicked"` for a point placed or
-moved by hand, `"predicted"` for one still sitting exactly where the
-model put it (never verified by eye, and therefore the first thing to
-audit), `"derived"` for the geometrically computed ventral points 8, 9
-and 11, `"na"` for a point declared non-measurable and `"missing"` for
-one never placed. This is the piece of information a coordinate table
-cannot carry, and it is what distinguishes a measurement from a
-plausible guess.
+moved by hand, `"seeded"` for one still at the median FISHMORPH
+proportion the app used to lay out the configuration, `"predicted"` for
+one still sitting exactly where the model put it, `"derived"` for the
+geometrically computed ventral points 8, 9 and 11, `"na"` for a point
+declared non-measurable and `"missing"` for one never placed. This is
+the piece of information a coordinate table cannot carry, and it is what
+distinguishes a measurement from a plausible guess: a `"predicted"`
+point was at least inferred from this image, whereas a `"seeded"` one
+was measured on no specimen at all. Both are counted on screen and again
+when a specimen is saved, and both are worth auditing before the
+coordinates are analysed.
+
+Once the axis (LM1, the hinges, LM2) is in place the app seeds every
+remaining landmark at the median proportion of the body – medians of
+segment over standard length across 6,492 to 7,706 FISHMORPH species –
+so the work is repositioning rather than placing from nothing. Sliders
+expose the quantities those ratios leave free: where a segment sits
+along the body, how it splits dorsal to ventral, and the pectoral-fin
+and jaw angles. A landmark moved by hand is never re-seeded.
 
 Digitizing points out of order silently produces wrong measurements
 downstream in

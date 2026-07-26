@@ -97,45 +97,63 @@ AUTO_LM_PIN <- c(1L, 2L, 3L, 4L, 7L, 8L, 9L, 10L, 11L, 12L, 15L, 16L, 18L)
 ## Points whose position is computed, never measured.
 DERIVED_LM  <- c(8L, 9L, 11L)
 
-## Anatomical points in ENTRY order (head -> body -> caudal), which is the path
-## the eye takes over the specimen; numeric order would jump back and forth
-## between regions. Used for the button bar and for the review sequence. The
-## derived points 8, 9 and 11 are excluded: they are never entered by hand.
-ANAT_ORDER <- c(3L, 4L, 7L, 5L, 6L, 13L, 14L, 15L,
-                10L, 12L, 16L, 17L, 18L, 19L)
+## Anatomical points in numeric order, minus the three derived ones.
+ANAT_ORDER <- setdiff(3:19, DERIVED_LM)
 
-## Landmarks the auto-advance stops on, in review order: the anatomical points
-## left to the operator, then the two scale-bar points. Hinges are deliberately
-## excluded -- they are placed on demand from the button bar.
-review_order <- function(pin) {
-  auto <- if (isTRUE(pin)) AUTO_LM_PIN else AUTO_LM
-  c(setdiff(ANAT_ORDER, auto), SCALE_PTS)   # same anatomical path as the button bar
+## ONE auto-advance sequence, from the axis to the scale bar. There is no
+## separate calibration list: every point is an ordinary landmark, and the ones
+## the predictor needs (LM1, LM2, the dorsal point LM3, the scale bar) are
+## simply the ones that come first.
+##
+##   1 -> 22 -> 23 -> 2 -> 3 ... 19 -> 20 -> 21
+##
+## The axis comes FIRST and complete: snout, the two hinges, caudal basis. Every
+## convention downstream is expressed in the frame of a body segment, so
+## defining the axis last would mean laying out every other point against the
+## wrong reference. On a straight fish the hinges go anywhere along the midline:
+## a hinge on the line leaves the chain straight, and LM22 then also gives
+## fishmorph_segments() its curvature correction for free.
+##
+## Then the anatomical landmarks in plain numeric order, and finally the scale
+## bar. The three derived points (8, 9, 11) are the only numbers skipped: they
+## are computed from LM1, LM7, LM10 and LM4, so stopping on them would invite a
+## click that the next derivation immediately undoes. They stay reachable from
+## the button bar. LM24, the spare hinge, is likewise on demand only.
+ADVANCE_ORDER <- c(1L, CURVE_PT, EXTRA_HINGES[1], 2L, ANAT_ORDER, SCALE_PTS)
+
+## Next landmark after `cur` in that sequence (wraps around).
+next_point <- function(cur) {
+  i <- match(cur, ADVANCE_ORDER)
+  if (is.na(i)) return(ADVANCE_ORDER[1])
+  ADVANCE_ORDER[if (i >= length(ADVANCE_ORDER)) 1L else i + 1L]
 }
-## Next landmark TO REVIEW after `cur` (wraps around).
-next_review <- function(cur, pin) {
-  ord <- review_order(pin)
-  if (!length(ord)) return(cur)
-  i <- match(cur, ord)
-  if (is.na(i)) return(ord[1])
-  ord[if (i >= length(ord)) 1L else i + 1L]
+## An empty coordinate matrix: the app always has one, from the moment a
+## photograph is loaded, so the landmark bar is usable straight away.
+empty_coords <- function() {
+  matrix(NA_real_, N_TOT, 2, dimnames = list(seq_len(N_TOT), c("X", "Y")))
 }
 
-## Calibration click sequences (depend on the "pin" option).
-##  - pin OFF: snout, caudal basis, dorsal (orientation), 2 scale marks  (5 clicks)
-##  - pin ON : snout, caudal basis, LM3 (= dorsal), LM4, LM7, LM10, LM12,
-##             LM16, LM18, LM15 (mouth), then the 2 scale marks         (12 clicks)
-CLICK_LABELS <- c("1 -- snout (LM1)", "2 -- caudal-fin basis (LM2)",
-                  "3 -- dorsal point (top of the body; orients dorsal side up)",
-                  "4 -- scale mark A (LM20)", "5 -- scale mark B (LM21)")
-CLICK_LABELS_PIN <- c("1 -- snout (LM1)", "2 -- caudal-fin basis (LM2)",
-                  "3 -- DORSAL point = LM3 (top of the body; orients dorsal side up)",
-                  "4 -- LM4 (ventral, directly below LM3)",
-                  "5 -- LM7 (head reference: defines the eye vertical)",
-                  "6 -- LM10", "7 -- LM12", "8 -- LM16", "9 -- LM18",
-                  "10 -- LM15 (mouth)",
-                  "11 -- scale mark A (LM20)", "12 -- scale mark B (LM21)")
-n_calib_clicks  <- function(pin) if (isTRUE(pin)) 12L else 5L
-scale_click_idx <- function(pin) if (isTRUE(pin)) c(11L, 12L) else c(4L, 5L)
+## Anatomical landmarks the worker FREEZES on the operator's clicks, and which
+## therefore stay measurements after a prediction. In pin mode that is the whole
+## pinned battery; otherwise only the snout and the caudal basis -- LM3 is an
+## orientation hint there and IS re-predicted, so it must not keep the status of
+## a hand-placed point. (20-21 are outside the model's range and never touched.)
+PINNED_CLICKS <- c(1L, 2L, 3L, 4L, 7L, 10L, 12L, 15L, 16L, 18L)
+pinned_clicks <- function(pin) if (isTRUE(pin)) PINNED_CLICKS else c(1L, 2L)
+
+## Human-readable role of a point, for the status line and the click prompts.
+point_label <- function(i) {
+  switch(as.character(i),
+    "1"  = "LM1 -- snout",
+    "2"  = "LM2 -- caudal-fin basis",
+    "3"  = "LM3 -- dorsal point (top of the body; orients dorsal side up)",
+    "20" = "LM20 -- scale mark A",
+    "21" = "LM21 -- scale mark B",
+    "22" = "LM22 -- curvature point on the midline (exported)",
+    "23" = "LM23 -- hinge (entry aid, not exported)",
+    "24" = "LM24 -- hinge (entry aid, not exported)",
+    paste0("LM", i))
+}
 
 ## FISHMORPH segments, for the on-screen control table. Same battery as
 ## fishmorph_segments(): standard length, body depth, head depth, eye position,
@@ -300,16 +318,21 @@ belly_align <- function(P, fr, pivot, movers) {
 ## (the ventral end of the body-depth segment), so it defines the height the
 ## others inherit. Moving 8, 9 or 11 by hand is therefore only meaningful with
 ## "Auto constraints" switched off -- otherwise the next derivation overrides it.
+## ORDER MATTERS: abscissas first, heights second. Setting an abscissa moves the
+## point in space, which on a curved specimen changes its coordinate in the
+## OTHER segment's frame -- so fixing 11 onto 10 after propagating heights from
+## 11 pulls 8 and 9 off the belly line (measured at 9.8 px on a fish bent 35
+## degrees). belly_align() only ever touches the perpendicular coordinate, so
+## running it second leaves the abscissas intact.
 derive_ventral <- function(P, fr) {
-  P <- belly_align(P, fr$mid, 4L, 11L)                    # 11 <- 4
-  P <- belly_align(P, fr$head, if (fin_row(P, 11L)) 11L else 9L, c(8L, 9L))
   if (fin_row(P, 1L)  && fin_row(P, 9L))
     P["9", ]  <- fr$head$at(fr$head$ax(P["1", ]),  fr$head$pe(P["9", ]))
   if (fin_row(P, 7L)  && fin_row(P, 8L))
     P["8", ]  <- fr$head$at(fr$head$ax(P["7", ]),  fr$head$pe(P["8", ]))
   if (fin_row(P, 10L) && fin_row(P, 11L))
     P["11", ] <- fr$mid$at(fr$mid$ax(P["10", ]),   fr$mid$pe(P["11", ]))
-  P
+  P <- belly_align(P, fr$mid, 4L, 11L)                    # 11 <- 4  (mid frame)
+  belly_align(P, fr$head, if (fin_row(P, 11L)) 11L else 9L, c(8L, 9L))
 }
 
 ## Keep the caudal peduncle (16-17) parallel to the caudal fin (18-19): the
@@ -358,6 +381,104 @@ propagate_conventions <- function(P, sel) {
   if (s %in% c("7", "5", "6", "13", "14"))
     P <- enforce_head_order(P, fr$head, fr$len)
   P
+}
+
+## =============================================================================
+## Seeding a whole configuration from the axis
+## =============================================================================
+
+## MEDIAN FISHMORPH proportions, segment / standard length. Computed over the
+## FISHMORPH database (n = 6,492 to 7,706 species depending on the segment;
+## only strictly positive values retained). They are a SEED and nothing more:
+## once the axis 1 -> 22 -> 23 -> 2 is placed, every remaining landmark is put
+## at the median proportion of the body so the operator repositions points
+## rather than placing them from nothing. A point left at its seed has been
+## measured on no specimen -- which is why it carries the status "seeded" and
+## is reported separately when the specimen is saved.
+FM_MEDIAN_RATIOS <- c(Bd = 0.2480, Hd = 0.1382, Eh = 0.1372, Mo = 0.1152,
+                      PFi = 0.0745, PFl = 0.1829, Ed = 0.0589, Jl = 0.0559,
+                      CPd = 0.1055, CFd = 0.2593)
+
+## Free parameters the segment ratios do not determine: where along the body a
+## segment sits (f_*), how it splits dorsal/ventral (o_*), and the angle of the
+## pectoral fin and the jaw. Defaults are the medians of the digitized FISHMORPH
+## species. o_PF is negative because the pectoral insertion lies below the
+## midline.
+SEED_DEFAULTS <- list(f_Bd = 0.47, o_Bd = 0.50, f_Hd = 0.10, o_Hd = 0.43,
+                      f_eye = 0.10, o_eye = 0.82, f_PF = 0.25, o_PF = -0.69,
+                      ang_PFl = 35, ang_Jl = 20, f_CP = 0.93, o_CP = 0.52,
+                      f_CF = 1.15, o_CF = 0.47)
+
+## Point and local frame at arc-length fraction `f` of the broken axis. `f` may
+## fall outside [0, 1] (the caudal fin sits past LM2, f_CF = 1.15), in which
+## case the first or last segment is extrapolated. Working in arc length rather
+## than along the straight chord is what makes the seed follow a curved body.
+chain_at <- function(P, f) {
+  ch <- axis_chain(P)
+  if (!all(vapply(ch, function(i) fin_row(P, i), logical(1)))) return(NULL)
+  pts <- P[ch, , drop = FALSE]
+  d <- pts[-1, , drop = FALSE] - pts[-nrow(pts), , drop = FALSE]
+  seglen <- sqrt(rowSums(d^2))
+  L <- sum(seglen)
+  if (!is.finite(L) || L <= 0) return(NULL)
+  t <- f * L
+  k <- 1L; acc <- 0
+  while (k < length(seglen) && acc + seglen[k] < t) { acc <- acc + seglen[k]; k <- k + 1L }
+  u <- d[k, ] / seglen[k]
+  list(p = as.numeric(pts[k, ] + (t - acc) * u), u = as.numeric(u),
+       n = c(-u[2], u[1]), L = L)
+}
+
+## Fill every anatomical landmark from the median proportions, then apply the
+## FISHMORPH conventions so the seeded configuration is already coherent.
+## `keep` lists the points that must NOT be overwritten -- everything the
+## operator has placed by hand, marked NA, or that defines the axis.
+seed_configuration <- function(P, params = list(), flip_dorsal = FALSE,
+                               keep = integer(0)) {
+  mid <- chain_at(P, 0.5); if (is.null(mid)) return(P)
+  L <- mid$L
+  p <- utils::modifyList(SEED_DEFAULTS, params)
+  r <- function(nm) as.numeric(FM_MEDIAN_RATIOS[[nm]])
+  # Which side is dorsal? The normal is always u rotated the same way, so one
+  # sign settles it for the whole chain. Default to the top of the image (Y
+  # grows downward); LM3 is the dorsal point and overrides that when present.
+  sgn <- if (mid$n[2] > 0) -1 else 1
+  if (fin_row(P, 3L)) {
+    d <- sum((P[3, ] - mid$p) * (mid$n * sgn))
+    if (is.finite(d) && d < 0) sgn <- -sgn
+  }
+  if (isTRUE(flip_dorsal)) sgn <- -sgn
+  frame_at <- function(f) {
+    A <- chain_at(P, f)
+    list(p = A$p, u = A$u, up = A$n * sgn)
+  }
+  cm  <- function(x) x * L
+  set <- function(i, xy) { if (!(i %in% keep)) P[i, ] <<- xy; invisible() }
+  vseg <- function(f, ratio, o) {
+    A <- frame_at(f)
+    list(top = A$p + cm(ratio) * o * A$up,
+         bot = A$p - cm(ratio) * (1 - o) * A$up)
+  }
+  rot <- function(ang, A) cos(-ang * pi / 180) * A$u + sin(-ang * pi / 180) * A$up
+
+  v <- vseg(p$f_Bd, r("Bd"), p$o_Bd); set(3L, v$top);  set(4L, v$bot)
+  v <- vseg(p$f_Hd, r("Hd"), p$o_Hd); set(5L, v$top);  set(6L, v$bot)
+  A <- frame_at(p$f_eye)                       # eye vertical, ventral end first
+  set(8L, A$p - cm(r("Hd")) * p$o_eye * A$up)
+  if (fin_row(P, 8L)) set(7L, P[8L, ] + cm(r("Eh")) * A$up)
+  if (fin_row(P, 7L)) {                        # eye symmetric about its centre
+    set(13L, P[7L, ] + cm(r("Ed") / 2) * A$up)
+    set(14L, P[7L, ] - cm(r("Ed") / 2) * A$up)
+  }
+  A1 <- frame_at(0)
+  set(9L, P[1L, ] - cm(r("Mo")) * A1$up)
+  v <- vseg(p$f_PF, r("PFi"), p$o_PF); set(10L, v$top); set(11L, v$bot)
+  Apf <- frame_at(p$f_PF)
+  if (fin_row(P, 10L)) set(12L, P[10L, ] + cm(r("PFl")) * rot(p$ang_PFl, Apf))
+  set(15L, P[1L, ] + cm(r("Jl")) * rot(p$ang_Jl, A1))
+  v <- vseg(p$f_CP, r("CPd"), p$o_CP); set(16L, v$top); set(17L, v$bot)
+  v <- vseg(p$f_CF, r("CFd"), p$o_CF); set(18L, v$top); set(19L, v$bot)
+  apply_conventions(P)
 }
 
 ## Propagate the conventions from the PINNED anchors to the dependent points, in
@@ -440,7 +561,15 @@ ui <- fluidPage(
     "document.addEventListener('mousedown',function(e){var m=el();if(m&&m.contains(e.target)&&e.button===2){dg=true;lx=e.clientX;ly=e.clientY;e.preventDefault();}});",
     "document.addEventListener('mousemove',function(e){if(!dg)return;var m=el();if(!m)return;var r=m.getBoundingClientRect();adx+=(e.clientX-lx)/r.width;ady+=(e.clientY-ly)/r.height;lx=e.clientX;ly=e.clientY;if(!raf)raf=requestAnimationFrame(flush);});",
     "document.addEventListener('mouseup',function(e){if(e.button===2){dg=false;if(!raf)raf=requestAnimationFrame(flush);}});",
-    "})();", sep = "\n")))),
+    "})();", sep = "\n"))),
+    # the action bar is one row: kill the form-group margin the selectize would
+    # otherwise add, and keep the checkbox labels on the baseline of the buttons
+    tags$style(HTML(paste0(
+      ".actionbar .form-group{margin-bottom:0;}",
+      ".actionbar .btn{margin-right:3px;}",
+      ".actionbar .selectize-control{margin-bottom:0;}",
+      ".phasebar .form-group{margin-bottom:0;}",
+      ".phasebar .checkbox{margin:0;}")))),
   titlePanel("Predictor-assisted landmarking -- ml-morph"),
   sidebarLayout(
     sidebarPanel(width = 3,
@@ -449,12 +578,8 @@ ui <- fluidPage(
       tags$strong("Photograph folder"),
       textInput("photo_dir", NULL, placeholder = "folder path..."),
       actionButton("load_dir", "Load folder", class = "btn-primary"),
-      div(style = "margin:4px 0;",
-          actionButton("prev_photo", "< Previous"),
-          actionButton("next_photo", "Next >")),
-      selectizeInput("goto_file", NULL, choices = NULL, selected = NULL,
-                     width = "100%",
-                     options = list(placeholder = "Jump to a photograph...")),
+      helpText("Navigation and the save actions live in the action bar above",
+               "the photograph, where the eye already is."),
       tags$hr(),
       fileInput("photo", "...or a single photograph (jpg/png)",
                 accept = c(".jpg", ".jpeg", ".png")),
@@ -470,7 +595,6 @@ ui <- fluidPage(
                     value = FALSE),
       tags$hr(),
       tags$strong("Display"),
-      checkboxInput("fastdisp", "Fast display (down-sampled photograph)", value = TRUE),
       checkboxInput("showlines", "Reference lines (outline / belly / eye)", value = TRUE),
       checkboxInput("guides", "Alignment guides", value = FALSE),
       checkboxInput("fishguides", "FISHMORPH geometry check", value = FALSE),
@@ -484,9 +608,6 @@ ui <- fluidPage(
                "already placed stay on the specimen. The second changes the",
                "display only -- useful when loaded points are mirrored relative",
                "to the photograph. It persists from one photograph to the next."),
-      div(actionButton("zoom_in", "Zoom +"), actionButton("zoom_out", "Zoom -"),
-          actionButton("zoom_reset", "Whole view")),
-      helpText("Zoom centres on the selected landmark."),
       tags$hr(),
       # --- review measurements already made (CSV specimen,landmark,X,Y[,mm_per_px]) ---
       tags$strong("Review existing measurements"),
@@ -503,15 +624,75 @@ ui <- fluidPage(
       tags$strong("Multi-specimen table"),
       textOutput("saved_info"),
       downloadButton("dl_all", "Export all measurements"),
-      actionButton("clear_all", "Clear the table")
+      actionButton("clear_all", "Clear the table"),
+      # --- seeding, last: set once for a batch, then rarely touched ------------
+      tags$hr(),
+      tags$strong("Seed (initial placement)"),
+      helpText("Once the axis 1 - 22 - 23 - 2 is placed, every other landmark is",
+               "put at the MEDIAN FISHMORPH proportion of the body, so there is",
+               "only repositioning left to do. These sliders set what the segment",
+               "ratios do not fix: where a segment sits along the body, how it",
+               "splits dorsal/ventral, and two fin angles. A point you have moved",
+               "is never re-seeded."),
+      checkboxInput("flipdorsal", "Flip dorsal / ventral", FALSE),
+      actionButton("reseed", "Re-seed the unplaced landmarks"),
+      sliderInput("f_Bd",    "Bd position",              0, 1,  0.47, 0.01),
+      sliderInput("o_Bd",    "Bd dorsal share",          0, 1,  0.50, 0.01),
+      sliderInput("f_Hd",    "Hd position",              0, 1,  0.10, 0.01),
+      sliderInput("o_Hd",    "Hd dorsal share",          0, 1,  0.43, 0.01),
+      sliderInput("f_eye",   "Eye position",             0, 1,  0.10, 0.01),
+      sliderInput("o_eye",   "Eye height (from belly)",  0, 1.5, 0.82, 0.01),
+      sliderInput("f_PF",    "Pectoral position",        0, 1,  0.25, 0.01),
+      sliderInput("o_PF",    "Pectoral dorsal share",   -1, 1, -0.69, 0.01),
+      sliderInput("f_CP",    "Peduncle position",      0.5, 1,  0.93, 0.01),
+      sliderInput("ang_PFl", "Pectoral fin angle",       0, 90, 35,   1),
+      sliderInput("ang_Jl",  "Jaw angle",              -30, 90, 20,   1)
     ),
     mainPanel(width = 9,
+      # ---- action bar, directly above the photograph -------------------------
+      # Every action taken once per specimen sits on one row, where the eye
+      # already is: navigating the queue, declaring a point unmeasurable, saving.
+      # Nothing here requires a trip back to the side panel mid-specimen.
+      div(class = "actionbar", style = "margin-bottom:6px;",
+        actionButton("prev_photo", "< Previous"),
+        actionButton("next_photo", "Next >"),
+        span(style = "display:inline-block;width:14px;"),
+        actionButton("set_na", "Mark NA"),
+        actionButton("clear_pt", "Clear point"),
+        span(style = "display:inline-block;width:14px;"),
+        actionButton("save_specimen", "Save & next", class = "btn-primary"),
+        actionButton("skip", "Skip"),
+        span(style = "display:inline-block;width:14px;"),
+        actionButton("flush", "Write the table"),
+        span(style = "display:inline-block;width:14px;"),
+        div(style = "display:inline-block;vertical-align:middle;min-width:280px;",
+            selectizeInput("goto_file", NULL, choices = NULL, selected = NULL,
+                           width = "280px",
+                           options = list(placeholder = "Jump to a photograph...")))),
       uiOutput("click_help"),
       uiOutput("auto_help"),
-      helpText("Zoom: +/- buttons; hold the right button to pan across the",
-               "photograph; double-click restores the whole view."),
-      uiOutput("phase_ui"),     # action buttons (Predict / NA / Save...)
+      uiOutput("phase_ui"),     # phase-dependent controls (Predict / corrections)
       uiOutput("lm_buttons"),   # active-landmark bar, above the photograph
+      # ---- view bar, immediately above the photograph ------------------------
+      # Zoom belongs next to what it zooms: at high magnification the operator
+      # alternates between placing a point and re-framing, and a trip to the
+      # side panel between the two breaks that loop.
+      div(class = "actionbar", style = "margin-bottom:4px;",
+        actionButton("zoom_in", "Zoom +"),
+        actionButton("zoom_out", "Zoom -"),
+        actionButton("zoom_reset", "Whole view"),
+        span(style = "display:inline-block;width:14px;"),
+        div(style = "display:inline-block;vertical-align:middle;",
+            selectInput("dispmax", NULL,
+                        choices = c("Display 800 px (fastest)"  = 800,
+                                    "Display 1200 px"           = 1200,
+                                    "Display 1600 px"           = 1600,
+                                    "Display 2400 px"           = 2400,
+                                    "Display full resolution"   = 0),
+                        selected = 1200, width = "215px")),
+        span(style = "font-size:12px;color:#666;margin-left:10px;",
+             "Right-click and drag to pan; double-click for the whole view;",
+             "zoom centres on the active landmark. No wheel zoom.")),
       plotOutput("img", click = "click",
                  dblclick = "img_dblclick", height = "700px"),
       fluidRow(
@@ -531,7 +712,9 @@ server <- function(input, output, session) {
   rv <- reactiveValues(
     img = NULL, arr = NULL, w = NULL, h = NULL, orig = NULL,
     flip = "none", dispflip = "none",
-    clicks = list(), pred = NULL, sel = 1L, msg = "",
+    pred = NULL, sel = 1L, msg = "",
+    placed_order = integer(0),          # points in the order they were placed (for Undo)
+    seeded = integer(0),                # points still at their median-proportion seed
     saved = NULL,                       # cumulative table of every specimen done
     na = integer(0),                    # landmarks declared non-measurable
     edited = integer(0),                # landmarks moved by hand this session
@@ -589,14 +772,29 @@ server <- function(input, output, session) {
   }
 
   ## ---- image display --------------------------------------------------------
-  ## rv$arr holds the ORIGINAL array; rv$flip is baked into the coordinate frame
-  ## (landmarks are remapped when it changes) while rv$dispflip is purely visual.
+  ## PERFORMANCE. A 24 Mpx photograph makes the app unusable for clicking unless
+  ## three things are avoided on every redraw, and the plot redraws on *every*
+  ## click, slider and checkbox:
+  ##   1. keeping the full-resolution array around. It is decoded once, then
+  ##      immediately downsampled to `dispmax` and the original is dropped --
+  ##      coordinates stay in original pixels (rv$w, rv$h are unchanged), so
+  ##      nothing downstream notices. The predictor still gets the file itself.
+  ##   2. handing rasterImage() a numeric array. It re-converts the whole thing
+  ##      to colours each call; a raster object is converted once, here.
+  ##   3. drawing the whole image when zoomed in. Only the visible crop is
+  ##      drawn (see output$img), which is what makes work at 8x fluid.
+  ## rv$arr holds the downsampled array in ORIGINAL orientation; rv$flip is
+  ## baked into the coordinate frame (landmarks are remapped when it changes)
+  ## while rv$dispflip is purely visual.
+  disp_max <- function() {
+    v <- num1(input$dispmax)
+    if (!is.finite(v) || v <= 0) Inf else v
+  }
   make_disp <- function() {
     if (is.null(rv$arr)) return(NULL)
     a <- flip_array(rv$arr, rv$flip)
     a <- flip_array(a, rv$dispflip)
-    if (isTRUE(input$fastdisp)) a <- downscale(a)
-    a
+    grDevices::as.raster(a)                 # converted once, redrawn cheaply
   }
   flip_pt <- function(p, mode) {
     if (is.null(p) || !all(is.finite(p))) return(p)
@@ -606,13 +804,19 @@ server <- function(input, output, session) {
   }
   remap_pt <- function(p, oldm, newm) flip_pt(flip_pt(p, oldm), newm)
 
-  ## Path of the image handed to the Python worker: the file itself when no flip
-  ## is applied, a temporary flipped copy otherwise. Written on demand (at
-  ## prediction time) rather than on every flip.
+  ## Path of the image handed to the Python worker. With no flip it is the file
+  ## itself, at full resolution. With a flip the ORIGINAL is re-read from disk
+  ## and flipped: the display copy is downsampled, and feeding that to the
+  ## predictor would both degrade it and put its output in the wrong pixel
+  ## frame. One extra decode at prediction time is a fair price.
   worker_path <- function() {
     if (identical(rv$flip, "none")) return(rv$orig)
+    full <- tryCatch(read_image(rv$orig), error = function(e) NULL)
+    if (is.null(full)) return(rv$orig)
+    if (length(dim(full)) == 2) full <- array(full, c(dim(full), 3))
+    if (dim(full)[3] > 3) full <- full[, , 1:3, drop = FALSE]
     tf <- tempfile(fileext = ".jpg")
-    jpeg::writeJPEG(flip_array(rv$arr, rv$flip), tf, quality = 0.95)
+    jpeg::writeJPEG(flip_array(full, rv$flip), tf, quality = 0.95)
     tf
   }
 
@@ -624,13 +828,17 @@ server <- function(input, output, session) {
     if (is.null(im)) { rv$arr <- NULL; rv$img <- NULL; return() }
     if (length(dim(im)) == 2) im <- array(im, c(dim(im), 3))     # greyscale -> RGB
     if (length(dim(im)) == 3 && dim(im)[3] > 3) im <- im[, , 1:3, drop = FALSE]
-    rv$arr <- im
     rv$h <- dim(im)[1]; rv$w <- dim(im)[2]      # ORIGINAL dims (coordinate frame)
+    # Downsample now and drop the full array: it is never needed again for
+    # display, and holding a 24 Mpx double array is what makes every redraw slow.
+    rv$arr <- downscale(im, disp_max())
+    rm(im)
     rv$flip <- "none"
     updateRadioButtons(session, "flip_mode", selected = "none")
     rv$img <- make_disp()
-    rv$clicks <- list(); rv$pred <- NULL; rv$sel <- 1L
-    rv$na <- integer(0); rv$edited <- integer(0)
+    rv$pred <- empty_coords(); rv$sel <- 1L
+    rv$na <- integer(0); rv$edited <- integer(0); rv$placed_order <- integer(0)
+    rv$seeded <- integer(0)
     rv$zoom <- 1; rv$cx <- NULL; rv$cy <- NULL
   }
 
@@ -685,8 +893,6 @@ server <- function(input, output, session) {
     if (is.null(rv$arr)) return()
     oldm <- rv$flip; newm <- input$flip_mode
     if (identical(oldm, newm)) return()
-    if (length(rv$clicks))
-      rv$clicks <- lapply(rv$clicks, remap_pt, oldm = oldm, newm = newm)
     if (!is.null(rv$pred)) {
       P <- rv$pred
       for (i in seq_len(nrow(P))) if (all(is.finite(P[i, ])))
@@ -703,8 +909,18 @@ server <- function(input, output, session) {
     rv$dispflip <- input$flip_disp
     rv$img <- make_disp()
   }, ignoreInit = TRUE)
-  observeEvent(input$fastdisp, { if (!is.null(rv$arr)) rv$img <- make_disp() },
-               ignoreInit = TRUE)
+  ## Changing the display resolution needs the pixels back, so the file is
+  ## re-decoded and re-downsampled. The landmarks are untouched: they live in
+  ## original-pixel coordinates, which no display setting affects.
+  observeEvent(input$dispmax, {
+    if (is.null(rv$orig)) return()
+    im <- tryCatch(read_image(rv$orig), error = function(e) NULL)
+    if (is.null(im)) return()
+    if (length(dim(im)) == 2) im <- array(im, c(dim(im), 3))
+    if (dim(im)[3] > 3) im <- im[, , 1:3, drop = FALSE]
+    rv$arr <- downscale(im, disp_max())
+    rv$img <- make_disp()
+  }, ignoreInit = TRUE)
 
   ## ---- zoom and pan ---------------------------------------------------------
   zoom_to_sel <- function() {
@@ -773,8 +989,11 @@ server <- function(input, output, session) {
     M <- matrix(NA_real_, N_TOT, 2, dimnames = list(seq_len(N_TOT), c("X", "Y")))
     ok <- d$landmark >= 1 & d$landmark <= N_TOT
     M[as.character(d$landmark[ok]), ] <- as.matrix(d[ok, c("X", "Y")])
-    rv$pred <- M; rv$clicks <- list(); rv$na <- integer(0); rv$edited <- integer(0)
-    rv$sel <- next_review(0L, input$pin)
+    # Reloaded points count as already digitized, so the review phase applies.
+    rv$pred <- M
+    rv$na <- integer(0); rv$edited <- integer(0); rv$placed_order <- integer(0)
+    rv$seeded <- integer(0)
+    rv$sel <- ANAT_ORDER[1]   # first anatomical point to review
     updateTextInput(session, "specimen_id", value = input$load_specimen)
     nt <- if ("note" %in% names(d)) d$note[!is.na(d$note)] else integer(0)
     if (length(nt)) updateRadioButtons(session, "quality", selected = as.character(nt[1]))
@@ -782,23 +1001,51 @@ server <- function(input, output, session) {
                    input$load_specimen, sum(ok)))
   })
 
-  ## ---- clicking on the photograph -------------------------------------------
-  ## Calibration phase (no prediction yet) accumulates the calibration clicks;
-  ## afterwards a click moves the ACTIVE landmark and the selection auto-advances.
-  observeEvent(input$click, {
-    if (is.null(rv$img)) return()
-    p <- c(input$click$x, input$click$y)
-    if (is.null(rv$pred)) {
-      nmax <- n_calib_clicks(input$pin)
-      labs <- if (isTRUE(input$pin)) CLICK_LABELS_PIN else CLICK_LABELS
-      if (length(rv$clicks) < nmax) {
-        rv$clicks[[length(rv$clicks) + 1]] <- p
-        nxt <- length(rv$clicks) + 1
-        rv$msg <- if (nxt <= nmax) paste("Click:", labs[nxt])
-                  else "All calibration points placed -- click 'Predict'."
-      }
-      return()
+  ## ---- seeding --------------------------------------------------------------
+  seed_params <- reactive({
+    p <- SEED_DEFAULTS
+    for (nm in c("f_Bd", "o_Bd", "f_Hd", "o_Hd", "f_eye", "o_eye",
+                 "f_PF", "o_PF", "f_CP", "ang_PFl", "ang_Jl")) {
+      v <- num1(input[[nm]])
+      if (is.finite(v)) p[[nm]] <- v
     }
+    p
+  })
+
+  ## Place every landmark the operator has not touched at its median FISHMORPH
+  ## proportion. Protected from being overwritten: the axis itself (it is the
+  ## input), anything placed by hand, and anything marked NA.
+  reseed <- function(quiet = TRUE) {
+    P <- rv$pred
+    if (is.null(P) || !fin_row(P, 1L) || !fin_row(P, 2L)) return(invisible(FALSE))
+    keep <- Reduce(union, list(rv$edited, rv$na, c(1L, 2L), HINGES))
+    P2 <- seed_configuration(P, seed_params(), isTRUE(input$flipdorsal), keep = keep)
+    if (is.null(P2)) return(invisible(FALSE))
+    rv$pred <- P2
+    rv$seeded <- setdiff(seq_len(N_ANAT), keep)
+    if (!quiet)
+      notify(sprintf("%d landmark(s) seeded at the median FISHMORPH proportions -- reposition them.",
+                     length(setdiff(rv$seeded, DERIVED_LM))))
+    invisible(TRUE)
+  }
+  observeEvent(input$reseed, reseed(quiet = FALSE))
+  ## Live re-seed while the axis is still being defined: moving a slider or the
+  ## dorsal switch should show its effect straight away. Not in the review
+  ## phase, where the conventions are already driving the configuration.
+  observeEvent(
+    lapply(c("f_Bd", "o_Bd", "f_Hd", "o_Hd", "f_eye", "o_eye", "f_PF", "o_PF",
+             "f_CP", "ang_PFl", "ang_Jl", "flipdorsal"), function(nm) input[[nm]]),
+    reseed(), ignoreInit = TRUE)
+
+  ## ---- clicking on the photograph -------------------------------------------
+  ## One behaviour throughout: a click places the ACTIVE landmark and the
+  ## selection advances. Before the model has been run the sequence walks the
+  ## calibration points, afterwards the points left to review -- but there is no
+  ## separate "calibration mode", so any landmark can be selected and placed at
+  ## any moment, which is what makes the numbered bar useful from the start.
+  observeEvent(input$click, {
+    if (is.null(rv$img) || is.null(rv$pred)) return()
+    p <- c(input$click$x, input$click$y)
     if (isTRUE(input$move_all)) {                  # rigid translation of the block
       cur <- rv$pred[rv$sel, ]
       if (all(is.finite(cur))) {
@@ -807,74 +1054,78 @@ server <- function(input, output, session) {
       }
       return()
     }
+    just <- rv$sel
     P <- rv$pred
-    P[rv$sel, ] <- p
-    rv$na     <- setdiff(rv$na, rv$sel)            # re-placed -> no longer NA
-    rv$edited <- union(rv$edited, rv$sel)          # moved by hand
-    # A hinge is not a landmark, but placing one redefines the segment frames, so
-    # the derived points are recomputed in that case too.
-    if (isTRUE(input$auto_constraints)) P <- propagate_conventions(P, rv$sel)
+    P[just, ] <- p
+    rv$na     <- setdiff(rv$na, just)              # re-placed -> no longer NA
+    rv$edited <- union(rv$edited, just)            # placed by hand
+    rv$seeded <- setdiff(rv$seeded, just)          # no longer at its seed
+    rv$placed_order <- c(setdiff(rv$placed_order, just), just)
+    # Points that define the reference frames rather than sit in them: the axis
+    # (1, 2 and the hinges) and LM3, which settles which side is dorsal. Moving
+    # one of these re-seeds instead of propagating, since it changes the frame
+    # every other point is expressed in.
+    frame_pt <- just %in% c(1L, 2L, 3L, HINGES)
+    if (isTRUE(input$auto_constraints) && !frame_pt &&
+        fin_row(P, 1L) && fin_row(P, 2L))
+      P <- propagate_conventions(P, just)
     rv$pred <- P
-    if (rv$sel %in% HINGES) {                      # hinges are outside the review loop
-      rv$msg <- paste0("Hinge ", rv$sel, " placed -- the axis is now broken there.")
-    } else {
-      nxt <- next_review(rv$sel, input$pin)
-      rv$msg <- paste0("Landmark ", rv$sel, " placed -> next: ", nxt, ".")
-      rv$sel <- nxt
-    }
+    # ALWAYS advance -- hinges included. They are stops in the sequence like any
+    # other point; treating them as a special case is what left the selection
+    # stuck on 22.
+    nxt <- next_point(just)
+    rv$sel <- nxt
+    rv$msg <- paste0(point_label(just), " placed -> next: ", point_label(nxt), ".")
+    # As soon as the axis is complete, drop the whole configuration onto the
+    # median FISHMORPH proportions, so from LM2 onwards the work is
+    # repositioning rather than placing on a bare photograph.
+    if (frame_pt && fin_row(rv$pred, 1L) && fin_row(rv$pred, 2L)) reseed()
   })
 
   ## ---- contextual help ------------------------------------------------------
+  ## Printed from ADVANCE_ORDER itself, so the help cannot drift away from what
+  ## the auto-advance actually does.
   output$click_help <- renderUI({
-    if (isTRUE(input$pin))
-      helpText("PIN mode (12 clicks): snout, caudal-fin basis, DORSAL point (= LM3,",
-               "orients dorsal side up), LM4, LM7, LM10, LM12, LM16, LM18, LM15",
-               "(mouth), then the 2 scale marks. Then 'Predict': 1, 2, 3, 4, 7, 10,",
-               "12, 15, 16 and 18 are frozen on your clicks, 8/9/11 are derived, and",
-               "the model predicts only the remaining points.")
-    else
-      helpText("Click in order: snout, caudal-fin basis, a DORSAL point (top of the",
-               "body -- orients dorsal side up), then the 2 scale marks -- 5 clicks.",
-               "Then 'Predict'. Afterwards, select a landmark and click to reposition",
-               "it (20-21 = scale bar, placed the same way).")
+    helpText(tags$b("Auto-advance:"), paste(ADVANCE_ORDER, collapse = " > "),
+             tags$br(),
+             "Place the axis first (1, 22, 23, 2): the hinges 22 and 23 go on the",
+             "bends of a curved specimen, anywhere along the midline if it is",
+             "straight. The moment LM2 is down, every remaining landmark is put",
+             "at the median FISHMORPH proportion, so from there on it is",
+             "repositioning only. 'Predict' is optional and can be used at any",
+             "point to let the model refine the anatomical landmarks. Any",
+             "landmark can also be selected directly from the bar below.")
   })
-  ## Listed from review_order() rather than spelled out, so the help can never
-  ## drift away from what the auto-advance actually does.
   output$auto_help <- renderUI({
-    ord <- paste(review_order(input$pin), collapse = ", ")
     if (isTRUE(input$pin))
-      helpText(tags$b("To review, in this order:"), ord, tags$br(),
-               tags$b("Pinned / derived:"),
-               "1, 2, 3, 4, 7, 10, 12, 15, 16, 18 (clicks) and 8, 9, 11 (derived from",
-               "1, 7, 10 and 4).")
+      helpText(tags$b("Skipped by the auto-advance:"),
+               "8, 9, 11 (derived from 1, 7, 10 and 4) and 24 (spare hinge).",
+               tags$br(), tags$b("PIN mode:"), "once 1, 2, 3, 4, 7, 10, 12, 15,",
+               "16 and 18 are placed, 'Predict' freezes them on your clicks and",
+               "the model predicts only the rest.")
     else
-      helpText(tags$b("To review, in this order:"), ord, tags$br(),
-               tags$b("Automatic:"), "1, 2 (clicks) and 8, 9, 11 (derived",
-               "from 1, 7, 10 and 4).")
+      helpText(tags$b("Skipped by the auto-advance:"),
+               "8, 9, 11 (derived from 1, 7, 10 and 4) and 24 (spare hinge).",
+               tags$br(), "'Predict' keeps LM1 and LM2; LM3 only orients the fish",
+               "dorsal side up and is re-predicted.")
   })
 
+  ## One fixed bar. Placing by hand is the DEFAULT way to work -- the seed puts
+  ## every landmark down as soon as the axis is drawn -- so it is not a mode to
+  ## switch into. `Predict` stays available throughout: the model is an optional
+  ## accelerator over the seeded configuration, not a step to get past first.
+  ## Mark NA / Clear point / Save live in the action bar above; only the editing
+  ## MODES belong here, since they change how the next click is interpreted.
   output$phase_ui <- renderUI({
-    if (is.null(rv$pred)) {
-      tagList(
-        actionButton("undo", "Undo last click"),
-        actionButton("predict", "Predict the 19 landmarks", class = "btn-primary"),
-        actionButton("manual", "Place by hand (no model)"),
-        helpText("'Place by hand' opens the correction phase with only the",
-                 "calibration clicks in place and every other landmark empty --",
-                 "the way to digitize when no trained predictor is available."))
-    } else {
-      tagList(
-        helpText("Select the landmark to correct with the numbered buttons below,",
-                 "then click its position on the photograph."),
-        checkboxInput("move_all", "Move the whole block (on click)", FALSE),
-        checkboxInput("auto_constraints", "Auto constraints (adapt the other points)", TRUE),
-        actionButton("snap1", "Snap LM1 back onto the snout click"),
-        actionButton("set_na", "Mark NA (not measurable)"),
-        actionButton("clear_pt", "Clear this point"),
-        tags$hr(),
-        actionButton("save_specimen", "Save this specimen", class = "btn-success"),
-        actionButton("restart", "Start over (new clicks)"))
-    }
+    div(class = "phasebar", style = "margin-bottom:4px;",
+      div(style = "display:inline-block;margin-right:16px;",
+          checkboxInput("move_all", "Move the whole block (on click)", FALSE)),
+      div(style = "display:inline-block;margin-right:16px;",
+          checkboxInput("auto_constraints",
+                        "Auto constraints (adapt the other points)", TRUE)),
+      actionButton("predict", "Predict the 19 landmarks"),
+      actionButton("undo", "Undo last point"),
+      actionButton("restart", "Start over"))
   })
 
   ## ---- active-landmark bar --------------------------------------------------
@@ -883,11 +1134,11 @@ server <- function(input, output, session) {
   ## hinge, pale green = scale bar. Plain HTML buttons setting input$sel_btn --
   ## robust to re-rendering, unlike actionButton counters which would reset.
   output$lm_buttons <- renderUI({
-    if (is.null(rv$pred)) return(NULL)
+    if (is.null(rv$pred)) return(helpText("Load a photograph to start placing landmarks."))
     auto <- if (isTRUE(input$pin)) AUTO_LM_PIN else AUTO_LM
     # Layout, as in the FISHMORPH digitizer: the broken axis first (1 -> 22 ->
     # 23 -> 2, the points that define every frame), then the anatomical points in
-    # entry order, then the derived ones and the spare hinge, and finally the
+    # numeric order, then the derived ones and the spare hinge, and finally the
     # scale bar. Anatomical order beats numeric order here because it follows the
     # path the eye takes over the specimen -- head, then body, then caudal.
     order_show <- c(1L, CURVE_PT, EXTRA_HINGES[1], 2L, ANAT_ORDER,
@@ -899,6 +1150,7 @@ server <- function(input, output, session) {
              else if (i %in% SCALE_PTS) "background:#d9f2e6;color:#065;font-weight:bold;"
              else if (i %in% rv$edited) "background:#cfe8ff;"
              else if (i %in% auto || i %in% DERIVED_LM) "background:#eee;color:#999;"
+             else if (i %in% rv$seeded) "background:#faeeda;color:#854f0b;"
              else "background:#f7f7f7;"
       if (!fin_row(rv$pred, i) && !(i %in% rv$na))
         col <- paste0(col, "border-style:dashed;")
@@ -911,9 +1163,10 @@ server <- function(input, output, session) {
         tags$strong("Active landmark (click the photograph to place it -> auto-advance): "),
         lapply(order_show, btn),
         tags$div(style = "font-size:11px;color:#666;line-height:1.5;",
-          "Green = active; blue = placed by hand; pink struck through = NA;",
-          "grey = automatic or derived; gold = HINGES; pale green = SCALE BAR",
-          "(20/21, optional, at the end of the list); dashed border = not placed yet.",
+          "Green = active; blue = placed by hand; amber = still at its seed",
+          "(median FISHMORPH proportion -- never checked on this specimen);",
+          "pink struck through = NA; grey = automatic or derived; gold = HINGES;",
+          "pale green = SCALE BAR (20/21); dashed border = not placed yet.",
           tags$br(),
           "Broken axis 1 -> 22 -> 23 -> 2: place 22 then 23 on the bends of a curved",
           "specimen. Head conventions apply on 1-22, body depth and pectoral fin",
@@ -924,71 +1177,50 @@ server <- function(input, output, session) {
   })
   observeEvent(input$sel_btn, { rv$sel <- as.integer(input$sel_btn); zoom_to_sel() })
 
+  # The action bar is always on screen, so these guard against being pressed
+  # during the calibration phase, when there is no coordinate matrix yet.
   observeEvent(input$set_na, {
+    if (is.null(rv$pred)) {
+      notify("Nothing to mark yet: predict, or start manual placement first.",
+             "warning"); return() }
     if (rv$sel %in% c(1L, 2L)) {
       notify("LM1 and LM2 define the body axis and cannot be marked NA.", "warning"); return()
     }
     rv$pred[rv$sel, ] <- NA_real_
     rv$na <- union(rv$na, rv$sel); rv$edited <- setdiff(rv$edited, rv$sel)
+    rv$seeded <- setdiff(rv$seeded, rv$sel)
     s <- rv$sel
-    rv$sel <- if (s %in% HINGES) s else next_review(s, input$pin)
-    rv$msg <- paste("Landmark", s, "marked NA (not measurable).")
+    rv$placed_order <- setdiff(rv$placed_order, s)
+    rv$sel <- if (s %in% HINGES) s else next_point(s)
+    rv$msg <- paste(point_label(s), "marked NA (not measurable).")
   })
   observeEvent(input$clear_pt, {                   # unlike NA: simply "not placed"
+    if (is.null(rv$pred)) return()
     rv$pred[rv$sel, ] <- NA_real_
     rv$na <- setdiff(rv$na, rv$sel); rv$edited <- setdiff(rv$edited, rv$sel)
-    rv$msg <- paste("Landmark", rv$sel, "cleared.")
+    rv$seeded <- setdiff(rv$seeded, rv$sel)
+    rv$placed_order <- setdiff(rv$placed_order, rv$sel)
+    rv$msg <- paste(point_label(rv$sel), "cleared.")
   })
-  observeEvent(input$snap1, {                      # translate the block: LM1 -> snout click
-    if (is.null(rv$pred) || length(rv$clicks) < 1) return()
-    cur <- rv$pred[1, ]
-    if (all(is.finite(cur))) {
-      rv$pred <- sweep(rv$pred, 2, rv$clicks[[1]] - cur, "+")
-      notify("Block snapped: LM1 back on the snout click.")
-    }
+  ## Undo: clear the point placed most recently, and make it active again.
+  observeEvent(input$undo, {
+    if (is.null(rv$pred) || !length(rv$placed_order)) {
+      notify("Nothing to undo.", "warning"); return() }
+    last <- rv$placed_order[length(rv$placed_order)]
+    rv$placed_order <- rv$placed_order[-length(rv$placed_order)]
+    rv$pred[last, ] <- NA_real_
+    rv$edited <- setdiff(rv$edited, last); rv$na <- setdiff(rv$na, last)
+    rv$seeded <- setdiff(rv$seeded, last)
+    rv$sel <- last
+    rv$msg <- paste0(point_label(last), " cleared -- place it again.")
   })
-  ## Manual entry: open the correction phase with the calibration clicks in place
-  ## and nothing else, so the app is usable with no trained predictor at all.
-  observeEvent(input$manual, {
-    if (length(rv$clicks) < 2) {
-      notify("Click at least the snout and the caudal-fin basis first.", "error"); return() }
-    M <- matrix(NA_real_, N_TOT, 2, dimnames = list(seq_len(N_TOT), c("X", "Y")))
-    M["1", ] <- rv$clicks[[1]]; M["2", ] <- rv$clicks[[2]]
-    placed <- c(1L, 2L)
-    if (isTRUE(input$pin)) {   # the pinned clicks map onto their own landmarks
-      map <- c(3L, 4L, 7L, 10L, 12L, 16L, 18L, 15L)   # clicks 3..10, in pin order
-      for (k in seq_along(map)) if (length(rv$clicks) >= k + 2L) {
-        M[as.character(map[k]), ] <- rv$clicks[[k + 2L]]
-        placed <- c(placed, map[k])
-      }
-    }
-    si <- scale_click_idx(input$pin)                  # scale bar, when clicked
-    if (length(rv$clicks) >= si[2]) {
-      M["20", ] <- rv$clicks[[si[1]]]; M["21", ] <- rv$clicks[[si[2]]]
-      placed <- c(placed, SCALE_PTS)
-    }
-    # Seed the derived ventral points from LM4 when it is available (pin mode):
-    # derive_ventral() only moves points that already exist, so they need a
-    # starting position before the conventions can take over.
-    fr <- seg_frames(M)
-    if (!is.null(fr) && fin_row(M, 4L)) {
-      pb <- fr$mid$pe(M["4", ])
-      for (ab in list(c(1L, 9L), c(7L, 8L), c(10L, 11L)))
-        if (fin_row(M, ab[1])) {
-          f <- if (ab[2] == 11L) fr$mid else fr$head
-          M[as.character(ab[2]), ] <- f$at(f$ax(M[ab[1], ]), pb)
-        }
-      M <- apply_conventions(M)
-    }
-    rv$pred <- M; rv$na <- integer(0); rv$edited <- unique(placed)
-    rv$sel <- next_review(0L, input$pin)
-    notify("Manual placement: every remaining landmark is empty. Select one and click its position.")
+  observeEvent(input$restart, {
+    rv$pred <- empty_coords()
+    rv$na <- integer(0); rv$edited <- integer(0); rv$placed_order <- integer(0)
+    rv$seeded <- integer(0)
+    rv$sel <- 1L
+    rv$msg <- "Cleared. Click the snout (LM1)."
   })
-
-  observeEvent(input$undo, if (length(rv$clicks)) rv$clicks[[length(rv$clicks)]] <- NULL)
-  observeEvent(input$restart, { rv$pred <- NULL; rv$clicks <- list()
-    rv$na <- integer(0); rv$edited <- integer(0)
-    rv$msg <- "Click the snout (point 1)." })
 
   ## ---- per-point status -----------------------------------------------------
   ## The information a wide coordinate table cannot carry: which points were
@@ -999,6 +1231,7 @@ server <- function(input, output, session) {
       if (p %in% rv$na) "na"
       else if (!fin_row(rv$pred, p)) "missing"
       else if (p %in% rv$edited) "clicked"
+      else if (p %in% rv$seeded && !(p %in% DERIVED_LM)) "seeded"
       else if (p %in% DERIVED_LM) "derived"
       else if (p %in% c(1L, 2L)) "clicked"
       else "predicted"
@@ -1020,8 +1253,39 @@ server <- function(input, output, session) {
                row.names = NULL)
   }
 
+  ## Skip: jump to the next photograph NOT yet in the saved table, rather than
+  ## simply the next one. In a batch that is what "skip" is actually for --
+  ## coming back to the gaps after a first pass, without stepping through the
+  ## specimens already done.
+  observeEvent(input$skip, {
+    n <- length(rv$dir_files)
+    if (!n) { notify("No folder loaded.", "warning"); return() }
+    done <- if (!is.null(rv$saved)) unique(rv$saved$specimen) else character(0)
+    codes <- tools::file_path_sans_ext(basename(rv$dir_files))
+    cand <- setdiff(seq_len(n), which(codes %in% done))
+    nxt <- cand[cand > rv$dir_i]
+    if (!length(nxt)) nxt <- cand              # wrap around to the earlier gaps
+    if (!length(nxt)) { notify("Every photograph in the folder is saved.");  return() }
+    load_dir_photo(nxt[1])
+  })
+
+  ## Rewrite the cumulative table now. It is already written on every save, so
+  ## this is a belt-and-braces action for a long session.
+  observeEvent(input$flush, {
+    if (is.null(rv$saved) || !nrow(rv$saved)) {
+      notify("Nothing to write yet.", "warning"); return() }
+    ok <- tryCatch({ utils::write.csv(rv$saved, AUTOSAVE, row.names = FALSE); TRUE },
+                   error = function(e) FALSE)
+    notify(if (ok) sprintf("Table written to %s (%d specimen(s)).",
+                           basename(AUTOSAVE), length(unique(rv$saved$specimen)))
+           else sprintf("Could not write %s.", AUTOSAVE),
+           type = if (ok) "message" else "error")
+  })
+
   observeEvent(input$save_specimen, {
-    req(rv$pred)
+    if (is.null(rv$pred)) {
+      notify("Nothing to save yet: predict, or start manual placement first.",
+             "warning"); return() }
     df <- current_table()
     id <- df$specimen[1]
     if (!is.null(rv$saved)) {
@@ -1033,13 +1297,19 @@ server <- function(input, output, session) {
     rv$saved <- rbind(rv$saved, df)
     ok <- tryCatch({ utils::write.csv(rv$saved, AUTOSAVE, row.names = FALSE); TRUE },
                    error = function(e) FALSE)
-    npred <- sum(df$status == "predicted")
     msg <- sprintf("Specimen '%s' saved (score %s/5; %d in total; %s).",
                    id, df$note[1], length(unique(rv$saved$specimen)),
                    if (ok) "autosaved" else "AUTOSAVE FAILED")
-    if (npred)   # points never looked at are the quality risk worth surfacing
-      msg <- paste(msg, sprintf("%d point(s) still at the predicted position.", npred))
-    notify(msg, type = if (ok) "message" else "error")
+    # Points never looked at are the quality risk worth surfacing, and a seeded
+    # point is the worse of the two: it was measured on no specimen at all.
+    unchecked <- c(seeded = sum(df$status == "seeded"),
+                   predicted = sum(df$status == "predicted"))
+    if (any(unchecked > 0))
+      msg <- paste(msg, sprintf("%d still seeded, %d still predicted -- unchecked.",
+                                unchecked[["seeded"]], unchecked[["predicted"]]))
+    notify(msg, type = if (any(unchecked > 0)) "warning" else "message")
+    if (!ok) showNotification(sprintf("Could not write %s.", AUTOSAVE),
+                              type = "error", duration = 8)
     # move on to the next photograph when working through a folder
     if (length(rv$dir_files) && rv$dir_i < length(rv$dir_files))
       load_dir_photo(rv$dir_i + 1L)
@@ -1058,29 +1328,33 @@ server <- function(input, output, session) {
 
   ## ---- prediction -----------------------------------------------------------
   observeEvent(input$predict, {
-    if (length(rv$clicks) < 2) {
-      notify("At least the snout and the caudal-fin basis are required.", "error"); return() }
+    P <- rv$pred
+    if (is.null(P) || !fin_row(P, 1L) || !fin_row(P, 2L)) {
+      notify("Place at least the snout (LM1) and the caudal-fin basis (LM2) first.",
+             "error"); return() }
     if (!length(PRED_CHOICES)) { notify("No model available.", "error"); return() }
     out <- tempfile(fileext = ".csv")
-    xy <- function(i) paste0(rv$clicks[[i]][1], ",", rv$clicks[[i]][2])
+    # Calibration coordinates now come straight from the landmark matrix, so the
+    # points fed to the model are exactly the ones shown on screen.
+    has <- function(i) fin_row(P, i)
+    xy  <- function(i) paste0(P[i, 1], ",", P[i, 2])
     # training set matching the chosen model (identical bounding box):
     # mlmorph_run_app -> mlmorph_dataset_app, and so on.
     ds_dir <- file.path(ML, sub("mlmorph_run", "mlmorph_dataset",
                                 basename(dirname(input$pred))))
     if (!dir.exists(ds_dir)) ds_dir <- DATASET
-    si <- scale_click_idx(input$pin)          # indices of the two scale clicks
     img_path <- worker_path()
     args <- c(shQuote(WORKER), "--image", shQuote(img_path),
-              "--snout", xy(1), "--caudal", xy(2),
-              if (length(rv$clicks) >= 3) c("--dorsal", xy(3)),   # = LM3 in pin mode
-              if (isTRUE(input$pin) && length(rv$clicks) >= 4) c("--lm4",  xy(4)),
-              if (isTRUE(input$pin) && length(rv$clicks) >= 5) c("--lm7",  xy(5)),
-              if (isTRUE(input$pin) && length(rv$clicks) >= 6) c("--lm10", xy(6)),
-              if (isTRUE(input$pin) && length(rv$clicks) >= 7) c("--lm12", xy(7)),
-              if (isTRUE(input$pin) && length(rv$clicks) >= 8) c("--lm16", xy(8)),
-              if (isTRUE(input$pin) && length(rv$clicks) >= 9) c("--lm18", xy(9)),
-              if (isTRUE(input$pin) && length(rv$clicks) >= 10) c("--lm15", xy(10)),
-              if (length(rv$clicks) >= si[2]) c("--scale1", xy(si[1]), "--scale2", xy(si[2])),
+              "--snout", xy(1L), "--caudal", xy(2L),
+              if (has(3L)) c("--dorsal", xy(3L)),   # orientation; = LM3 in pin mode
+              if (isTRUE(input$pin) && has(4L))  c("--lm4",  xy(4L)),
+              if (isTRUE(input$pin) && has(7L))  c("--lm7",  xy(7L)),
+              if (isTRUE(input$pin) && has(10L)) c("--lm10", xy(10L)),
+              if (isTRUE(input$pin) && has(12L)) c("--lm12", xy(12L)),
+              if (isTRUE(input$pin) && has(16L)) c("--lm16", xy(16L)),
+              if (isTRUE(input$pin) && has(18L)) c("--lm18", xy(18L)),
+              if (isTRUE(input$pin) && has(15L)) c("--lm15", xy(15L)),
+              if (has(20L) && has(21L)) c("--scale1", xy(20L), "--scale2", xy(21L)),
               if (!isTRUE(input$pin)) "--no-pin-clicks",
               "--scale-mm", { v <- num1(input$scale_mm); if (is.finite(v)) v else 0 },
               "--dataset-dir", shQuote(ds_dir),
@@ -1092,17 +1366,22 @@ server <- function(input, output, session) {
     if (!identical(img_path, rv$orig)) try(unlink(img_path), silent = TRUE)
     if (file.exists(out)) {
       d <- utils::read.csv(out)
-      # Always N_TOT rows: the scale points 20-21 (and any point not predicted,
-      # including the hinges) stay NA and can be placed by hand afterwards.
-      M <- matrix(NA_real_, N_TOT, 2, dimnames = list(seq_len(N_TOT), c("X", "Y")))
-      keep <- d$landmark >= 1 & d$landmark <= N_TOT
+      # Start from the points already on screen, so the scale bar, the curvature
+      # point and the hinges placed during calibration SURVIVE the prediction --
+      # the model only fills in the anatomical landmarks it was asked for.
+      M <- rv$pred
+      keep <- d$landmark >= 1 & d$landmark <= N_ANAT
       M[as.character(d$landmark[keep]), ] <- as.matrix(d[keep, c("X", "Y")])
       # Pin mode: 1, 2, 3, 4, 7 are already frozen on the clicks by the worker;
       # propagate the FISHMORPH conventions to the dependants (8, 9, 11, 5, 6, 13, 14).
       if (isTRUE(input$pin)) M <- apply_conventions(M)
       rv$pred <- M
-      rv$na <- integer(0); rv$edited <- c(1L, 2L)   # the calibration clicks
-      rv$sel <- next_review(0L, input$pin)
+      rv$seeded <- setdiff(rv$seeded, as.integer(d$landmark[keep]))
+      # Provenance: every landmark the model wrote over becomes "predicted"
+      # again, except those the worker froze on the operator's clicks.
+      rv$edited <- union(setdiff(rv$edited, as.integer(d$landmark[keep])),
+                         intersect(pinned_clicks(input$pin), rv$placed_order))
+      rv$sel <- ANAT_ORDER[1]   # first anatomical point to review
       notify(paste0("Prediction done. Review the points; scale bar 20-21: ",
                     if (any(is.na(M[c("20", "21"), ]))) "still to place."
                     else "in place."))
@@ -1122,7 +1401,19 @@ server <- function(input, output, session) {
     cx <- min(max(cx, hw), rv$w - hw); cy <- min(max(cy, hh), rv$h - hh)
     plot(NA, xlim = c(cx - hw, cx + hw), ylim = c(cy + hh, cy - hh), asp = 1,
          xaxs = "i", yaxs = "i", xlab = "", ylab = "", axes = FALSE)
-    graphics::rasterImage(rv$img, 0, rv$h, rv$w, 0)
+    # Draw ONLY the visible crop of the raster. Handing the whole image to
+    # rasterImage() and letting the device clip means the full bitmap is
+    # rasterized on every redraw -- and the plot redraws on every click. At 8x
+    # the visible crop is about 1/64 of the pixels.
+    rr <- rv$img
+    dh <- nrow(rr); dw <- ncol(rr)
+    c0 <- max(1L, floor((cx - hw) / rv$w * dw)); c1 <- min(dw, ceiling((cx + hw) / rv$w * dw))
+    r0 <- max(1L, floor((cy - hh) / rv$h * dh)); r1 <- min(dh, ceiling((cy + hh) / rv$h * dh))
+    if (c1 >= c0 && r1 >= r0)
+      graphics::rasterImage(rr[r0:r1, c0:c1, drop = FALSE],
+                            (c0 - 1) / dw * rv$w, r1 / dh * rv$h,
+                            c1 / dw * rv$w, (r0 - 1) / dh * rv$h,
+                            interpolate = FALSE)
 
     P <- rv$pred
     # alignment guides: a faint grid on every landmark, a cross on the active one
@@ -1199,12 +1490,6 @@ server <- function(input, output, session) {
         }
       }
     }
-    # calibration clicks
-    if (length(rv$clicks)) {
-      cl <- do.call(rbind, rv$clicks)
-      points(cl, col = "yellow", pch = 3, cex = 2, lwd = 2)
-      text(cl[, 1], cl[, 2], seq_len(nrow(cl)), col = "yellow", pos = 3, cex = 1.2)
-    }
     # landmarks
     if (!is.null(P)) {
       lm_show <- c(seq_len(N_ANAT), SCALE_PTS)
@@ -1274,18 +1559,18 @@ server <- function(input, output, session) {
   })
 
   output$status <- renderText({
-    lab <- if (rv$sel == 1L) "SNOUT (LM1)"
-           else if (rv$sel == 2L) "CAUDAL-FIN BASIS (LM2)"
-           else if (rv$sel == 20L) "SCALE BAR, start (LM20)"
-           else if (rv$sel == 21L) "SCALE BAR, end (LM21)"
-           else if (rv$sel == CURVE_PT) "CURVATURE POINT (LM22, exported)"
-           else if (rv$sel %in% EXTRA_HINGES) paste0("HINGE ", rv$sel, " (entry aid, not exported)")
-           else paste0("LM", rv$sel)
-    npred <- if (!is.null(rv$pred)) sum(point_status(seq_len(N_ANAT)) == "predicted") else 0L
-    paste0(rv$msg, "\n\nActive landmark: ", lab,
-           if (!is.null(rv$pred))
-             sprintf("\n%d of the %d anatomical landmarks are still at their predicted position.",
-                     npred, N_ANAT) else "")
+    if (is.null(rv$pred)) return("Load a photograph or a folder to begin.")
+    st <- point_status(seq_len(N_ANAT))
+    step <- if (!fin_row(rv$pred, 1L) || !fin_row(rv$pred, 2L))
+      paste("Draw the axis first: 1, 22, 23, 2. The hinges go on the bends of a",
+            "curved specimen, anywhere along the midline if it is straight.",
+            "Every other landmark is placed for you as soon as LM2 is down.")
+      else "Reposition each landmark in turn, then 'Save & next'."
+    paste0(rv$msg, "\n\n", step,
+           "\nActive landmark: ", point_label(rv$sel),
+           sprintf("\n%d placed by hand | %d still seeded | %d still predicted | %d NA | %d not placed.",
+                   sum(st == "clicked"), sum(st == "seeded"), sum(st == "predicted"),
+                   sum(st == "na"), sum(st == "missing")))
   })
 
   ## ---- single-specimen export -----------------------------------------------

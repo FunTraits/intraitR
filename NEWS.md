@@ -6,19 +6,52 @@ The Shiny application behind `digitize_landmarks()` has been rebuilt along the
 lines of the FISHMORPH digitizer, and its interface and comments are now
 entirely in English.
 
-* **Active-landmark model.** One point is active at a time; a click places it
-  and the selection advances to the next point that actually needs review,
-  skipping calibration clicks and derived points. The numbered button bar
+* **Active-landmark model, from the first click.** The separate "calibration
+  clicks" list is gone: a coordinate matrix exists as soon as a photograph is
+  loaded, so the numbered bar is usable immediately and any landmark can be
+  selected and placed at any moment. The calibration points are simply the
+  landmarks the predictor needs. Previously the bar only appeared *after*
+  `Predict`, which left the first five clicks with no way to revisit a
+  mis-placed point except starting over, and made the scale bar and the
+  curvature point unreachable until the model had run. A prediction now also
+  preserves the points already placed instead of replacing the whole matrix.
+* One point is active at a time; a click places it and the selection advances.
+  The numbered button bar
   doubles as a status display: active, placed by hand, marked `NA`, automatic
   or derived, hinge, scale bar, and *not yet placed* are now distinguishable at
   a glance. An unreviewed point is therefore visible **before** it is exported
   rather than after — which is the whole point of the change.
-* The bar is laid out as in the FISHMORPH digitizer: the broken axis first
-  (1, 22, 23, 2), then the anatomical points in **entry order** — head, body,
-  caudal — then the derived points, the spare hinge and the scale bar. The
-  auto-advance follows the same sequence, generated from one definition so the
-  two cannot drift apart. Numeric order would have made the eye jump back and
-  forth between body regions.
+* **One auto-advance sequence**, printed in the help from its own definition so
+  the two cannot drift apart:
+
+      1 > 22 > 23 > 2 > 3 ... 19 > 20 > 21
+
+  The axis first and complete, then the anatomical landmarks in numeric order,
+  then the scale bar. The only numbers skipped are the derived points 8, 9 and
+  11 — stopping on them would invite a click that the next derivation
+  immediately undoes — and LM24, the spare hinge; both stay reachable from the
+  button bar, which is laid out in the same order. Hinges are ordinary stops in
+  that sequence — a special case that skipped them left the selection stuck on
+  LM22.
+* **Placing by hand is the default, not a mode.** The seed fires the moment LM2
+  goes down, so from there the work is repositioning; there is no button to
+  press to get into that state and no calibration/review phase distinction
+  left. `Predict` stays available throughout as an optional accelerator over
+  the seeded configuration, rather than a step to get past first — which also
+  means the app is fully usable with no trained predictor at all.
+* **One action bar above the photograph**, as in the FISHMORPH digitizer:
+  Previous / Next, Mark NA, Clear point, Save & next, Skip, Write the table and
+  the jump-to-photograph field, all on one row where the eye already is. These
+  used to be split between the side panel and a phase-dependent block, which
+  meant a trip across the window for actions taken once per specimen. Only the
+  editing *modes* (move the block, auto constraints) stay below, since they
+  change how the next click is interpreted.
+* `Skip` advances to the next photograph **not yet saved**, wrapping round to
+  earlier gaps, rather than simply the next one — which is what skipping is for
+  in a batch, and is what distinguishes it from `Next`.
+* The bar is laid out as in the FISHMORPH digitizer, and in the same order as
+  the auto-advance: the broken axis first (1, 22, 23, 2), then the anatomical
+  points, then the derived points, the spare hinge and the scale bar.
 * **Per-point provenance.** The exported table gains a `status` column
   (`"clicked"`, `"predicted"`, `"derived"`, `"na"`, `"missing"`).
   `"predicted"` flags a landmark still sitting exactly where the model put it,
@@ -26,6 +59,24 @@ entirely in English.
   specimen is saved. A coordinate table cannot carry this distinction, and
   without it a measurement and a plausible guess are indistinguishable
   downstream.
+
+## The configuration is seeded, not placed point by point
+
+* The calibration sequence is now the **axis, complete and first**: 1, 22, 23, 2
+  (the hinges on the bends; anywhere on the midline if the fish is straight).
+  Every convention downstream is expressed in the frame of a body segment, so
+  defining the axis last meant seeding everything against the wrong reference.
+* As soon as that axis is placed, **every remaining landmark is dropped onto the
+  median FISHMORPH proportion** of the body (medians of segment/`Bl` over 6,492
+  to 7,706 species) and the conventions are applied, so the operator repositions
+  points instead of placing them one by one on a bare photograph. Sliders expose
+  what the ratios do not fix — position along the body, dorsal/ventral split,
+  fin and jaw angles — and a dorsal/ventral switch. **A point moved by hand is
+  never re-seeded.**
+* New per-point status `"seeded"`, distinct from `"predicted"`: a seeded point
+  was measured on *no* specimen, which is worse than one the model guessed from
+  this image. Both are reported on screen and again when a specimen is saved,
+  and seeded points are amber in the button bar.
 
 ## Broken axis for curved specimens
 
@@ -35,10 +86,40 @@ entirely in English.
   segments and each convention is applied in the frame of the segment it
   belongs to: head on 1-22, body depth and pectoral fin on 22-23, caudal
   peduncle and fin on 23-2.
+* Fixed an ordering fault in the derivation of the ventral points 8, 9 and 11:
+  their abscissas were set *after* their heights had been propagated, and since
+  moving a point changes its coordinate in the other segment's frame, this
+  pulled 8 and 9 off the belly line — by 9.8 px on a fish bent 35 degrees.
+  Abscissas are now fixed first; the residual is at machine precision up to at
+  least 55 degrees of bend.
 * Landmark **22 is exported** — `fishmorph_segments()` already used it to split
   the standard length into (1-22) + (22-2) — while 23 and 24 are entry aids and
   are never written out. Placing no hinge reproduces the previous straight-axis
   behaviour exactly, so nothing changes for straight specimens.
+
+## Large photographs no longer make the app unusable
+
+Field photographs are routinely 12 to 24 Mpx, and the plot redraws on *every*
+click, slider and checkbox. Three changes, none of which touch the coordinates
+— landmarks stay in original-pixel space, so nothing downstream is affected:
+
+* The image is **downsampled once at load and the full-resolution array is
+  dropped**. A `Display` selector above the photograph offers 800 / 1200 /
+  1600 / 2400 px or full resolution; 1200 px is the default. The predictor
+  still receives the file itself, at full resolution.
+* The display bitmap is **converted to a raster once**, instead of handing
+  `rasterImage()` a numeric array that it re-converts to colours on every
+  redraw.
+* **Only the visible crop is drawn** when zoomed, rather than rasterizing the
+  whole bitmap and letting the device clip it: 8.8 % of the pixels at 3.4x,
+  1.8 % at 7.6x. The crop arithmetic was checked against the full-image draw
+  over 105 view windows — the sub-image lands on exactly the same coordinates
+  and always covers the view.
+
+Zoom moved to a bar directly above the photograph: at high magnification the
+operator alternates between placing a point and re-framing, and a trip to the
+side panel between the two breaks that loop. The seed sliders moved to the
+bottom of the side panel, being set once per batch and then left alone.
 
 ## Robustness and quality control
 

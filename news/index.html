@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.14.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +33,16 @@
       <small>Source: <a href="https://github.com/FunTraits/intraitR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.14.0" id="intraitr-1140">intraitR 1.14.0<a class="anchor" aria-label="anchor" href="#intraitr-1140"></a></h2>
+<div class="section level3">
+<h3 id="extreme-point-convention-checked-on-save-1-14-0">Extreme-point convention checked on save<a class="anchor" aria-label="anchor" href="#extreme-point-convention-checked-on-save-1-14-0"></a></h3>
+<ul><li>The <code><a href="../reference/digitize_landmarks.html">digitize_landmarks()</a></code> app now verifies, when “Save &amp; next” is pressed, that <strong>LM3 is the most dorsal and LM4 the most ventral</strong> landmark of the body outline – the definition of <code>Bd</code> as the maximum body depth. Nothing is written until the specimen passes or the operator decides. A dialog offers three routes: <strong>measure again</strong> (the offending landmark becomes active and the view centres on it), <strong>auto-correct</strong> (LM3, resp. LM4, takes the height of the point overshooting it while keeping its position along the axis, so <code>Bd</code> grows and the 3-4 perpendicularity is preserved), or <strong>save without correcting</strong>. Toggled by the new “Check LM3 / LM4 (extremes) on save” box, on by default.</li>
+<li>Heights are perpendicular coordinates read <strong>in each point’s own body segment</strong> (the frames <code>propagate_conventions()</code> already uses), so a specimen photographed bent or tilted is not flagged for its posture, and the dorsal side is inferred from the relative position of LM3 and LM4 rather than from the image – the test holds head left or right, photograph flipped, “Flip dorsal / ventral” ticked.</li>
+<li>Excluded from the comparison: the caudal peduncle and fin (16-19), outside the outline by definition; the appendage tips (12, 15); and the <strong>derived ventral points 8, 9 and 11</strong>, which are computed from LM4 itself, so testing LM4 against them is circular. That last exclusion was settled on the data: over the 1,036 digitized T-26 specimens, including 8/9/11 flags 20.6% of the batch (198 of 213 flags are those three points, median overshoot 0.5% of <code>Bl</code> – belly-line noise); excluding them flags 1.5%, median overshoot 6.8% of <code>Bl</code>, and the rate is flat from 0.003 to 0.02 <code>Bl</code>, so what remains is gross error cleanly separated from noise.</li>
+<li>New export status <strong><code>"adjusted"</code></strong> for landmarks moved by that correction, distinct from <code>"clicked"</code>: an auto-corrected <code>Bd</code> stays auditable in the measurement table, is counted on the status line and in the save message, and the landmark shows mauve in the numbered bar.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.13.0" id="intraitr-1130">intraitR 1.13.0<a class="anchor" aria-label="anchor" href="#intraitr-1130"></a></h2>
 <div class="section level3">

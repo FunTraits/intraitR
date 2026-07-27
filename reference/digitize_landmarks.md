@@ -181,14 +181,39 @@ Each exported row carries a `status`: `"clicked"` for a point placed or
 moved by hand, `"seeded"` for one still at the median FISHMORPH
 proportion the app used to lay out the configuration, `"predicted"` for
 one still sitting exactly where the model put it, `"derived"` for the
-geometrically computed ventral points 8, 9 and 11, `"na"` for a point
-declared non-measurable and `"missing"` for one never placed. This is
-the piece of information a coordinate table cannot carry, and it is what
-distinguishes a measurement from a plausible guess: a `"predicted"`
-point was at least inferred from this image, whereas a `"seeded"` one
-was measured on no specimen at all. Both are counted on screen and again
-when a specimen is saved, and both are worth auditing before the
-coordinates are analysed.
+geometrically computed ventral points 8, 9 and 11, `"adjusted"` for one
+snapped onto the body outline by the extreme-point check below, `"na"`
+for a point declared non-measurable and `"missing"` for one never
+placed. This is the piece of information a coordinate table cannot
+carry, and it is what distinguishes a measurement from a plausible
+guess: a `"predicted"` point was at least inferred from this image,
+whereas a `"seeded"` one was measured on no specimen at all. Both are
+counted on screen and again when a specimen is saved, and both are worth
+auditing before the coordinates are analysed.
+
+## The extreme-point check
+
+FISHMORPH defines `Bd` as the MAXIMUM body depth, so LM3 must be the
+most dorsal and LM4 the most ventral landmark of the body outline. No
+per-pair convention catches a breach of that – each pair stays
+internally consistent while `Bd` is quietly under-measured – so the app
+tests it when the specimen is saved (box "Check LM3 / LM4 (extremes) on
+save", on by default) and offers to measure the landmark again, to snap
+it onto the true extreme, or to save as is. Auto-correction keeps the
+landmark's position along the axis and only changes its height, so `Bd`
+grows without disturbing the perpendicularity of the 3-4 segment; the
+points it moves are exported as `"adjusted"`.
+
+Heights are perpendicular coordinates taken in each point's own body
+segment, so posture is not mistaken for error, and the dorsal side is
+read off the relative position of LM3 and LM4 rather than assumed from
+the image. The caudal peduncle and fin (16-19), the appendage tips (12,
+15) and the derived ventral points (8, 9, 11 – computed from LM4, so
+circular as a test of LM4) are excluded. On the 1,036 digitized T-26
+specimens the check flags 1.5 % of the batch at a median overshoot of
+6.8 % of `Bl`, and the flagged specimens have a median `Bd/Bl` of 0.14
+against a FISHMORPH median of 0.248 – that is, they are genuinely
+under-measured, and correction brings them back into the expected range.
 
 Once the axis (LM1, the hinges, LM2) is in place the app seeds every
 remaining landmark at the median proportion of the body – medians of

@@ -1,5 +1,42 @@
 # Changelog
 
+## intraitR 1.14.0
+
+### Extreme-point convention checked on save
+
+- The
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  app now verifies, when “Save & next” is pressed, that **LM3 is the
+  most dorsal and LM4 the most ventral** landmark of the body outline –
+  the definition of `Bd` as the maximum body depth. Nothing is written
+  until the specimen passes or the operator decides. A dialog offers
+  three routes: **measure again** (the offending landmark becomes active
+  and the view centres on it), **auto-correct** (LM3, resp. LM4, takes
+  the height of the point overshooting it while keeping its position
+  along the axis, so `Bd` grows and the 3-4 perpendicularity is
+  preserved), or **save without correcting**. Toggled by the new “Check
+  LM3 / LM4 (extremes) on save” box, on by default.
+- Heights are perpendicular coordinates read **in each point’s own body
+  segment** (the frames `propagate_conventions()` already uses), so a
+  specimen photographed bent or tilted is not flagged for its posture,
+  and the dorsal side is inferred from the relative position of LM3 and
+  LM4 rather than from the image – the test holds head left or right,
+  photograph flipped, “Flip dorsal / ventral” ticked.
+- Excluded from the comparison: the caudal peduncle and fin (16-19),
+  outside the outline by definition; the appendage tips (12, 15); and
+  the **derived ventral points 8, 9 and 11**, which are computed from
+  LM4 itself, so testing LM4 against them is circular. That last
+  exclusion was settled on the data: over the 1,036 digitized T-26
+  specimens, including 8/9/11 flags 20.6% of the batch (198 of 213 flags
+  are those three points, median overshoot 0.5% of `Bl` – belly-line
+  noise); excluding them flags 1.5%, median overshoot 6.8% of `Bl`, and
+  the rate is flat from 0.003 to 0.02 `Bl`, so what remains is gross
+  error cleanly separated from noise.
+- New export status **`"adjusted"`** for landmarks moved by that
+  correction, distinct from `"clicked"`: an auto-corrected `Bd` stays
+  auditable in the measurement table, is counted on the status line and
+  in the save message, and the landmark shows mauve in the numbered bar.
+
 ## intraitR 1.13.0
 
 ### The landmarking app rewritten around the operator

@@ -355,6 +355,109 @@ enforce_caudal <- function(P, moved) {
   P
 }
 
+## =============================================================================
+## Extreme-point convention: LM3 the most DORSAL, LM4 the most VENTRAL
+## =============================================================================
+## FISHMORPH defines Bd as the MAXIMUM body depth, so LM3 must be the most
+## dorsal and LM4 the most ventral point of the body outline. A head top (LM5)
+## above LM3, or a belly point (LM11) below LM4, silently under-measures Bd --
+## an error no per-pair convention catches, since each pair is internally
+## consistent. Checked when the specimen is saved.
+##
+## EXCLUDED from the comparison:
+##   8, 9, 11 DERIVED ventral points. They are computed FROM LM4 (belly line),
+##          so testing whether LM4 is the lowest point against them is circular.
+##          Measured on the 1,036 digitized T-26 specimens, including them
+##          flags 20.6 % of the batch -- 198 of those 213 flags are 8, 9 or 11,
+##          at a median overshoot of 0.5 % of Bl, i.e. belly-line noise, not a
+##          Bd error. Excluding them leaves 1.5 % flagged (16 specimens), 12 of
+##          which are the LM5-above-LM3 case, at a median overshoot of 7.8 % of
+##          Bl. The flag rate is then flat from 0.003 to 0.02 Bl, so what is
+##          left is gross error cleanly separated from noise, not a threshold
+##          artefact;
+##   16-19  caudal peduncle and fin: outside the body outline by definition,
+##          and routinely deeper than Bd;
+##   12, 15 pectoral-fin and jaw tips: appendages, which legitimately overshoot
+##          the outline (and, being the belly master's neighbours, would drag
+##          the whole ventral line down if LM4 were snapped onto them);
+##   20-21  scale bar; 22-24 midline curvature point and hinges.
+## Compared with 3/4, therefore: 1, 2, 5, 6, 7, 10, 13, 14 -- every landmark
+## that is an independent MEASUREMENT on the body outline.
+EXTREME_EXCLUDE <- c(8L, 9L, 11L, 12L, 15L, 16L, 17L, 18L, 19L,
+                     20L, 21L, 22L, 23L, 24L)
+EXTREME_CAND    <- setdiff(seq_len(N_TOT), c(3L, 4L, EXTREME_EXCLUDE))
+
+## Tolerance, as a FRACTION of body length: below 0.003 of Bl (3 px on a
+## 1000 px fish) the discrepancy is click noise, not a digitizing error.
+EXTREME_TOL <- 0.003
+
+## Which body segment each point is measured in -- the same assignment
+## propagate_conventions() uses, so a bent specimen is read segment by segment
+## instead of against one straight axis. Heights are then local body
+## half-depths, which is what makes them comparable across the fish.
+EXTREME_FRAME <- list(head = c(1L, 5L, 6L, 7L, 8L, 9L, 13L, 14L),
+                      mid  = c(3L, 4L, 10L, 11L, 12L),
+                      tail = c(2L, 16L, 17L, 18L, 19L))
+frame_of <- function(i, fr) {
+  if (i %in% EXTREME_FRAME$mid)  return(fr$mid)
+  if (i %in% EXTREME_FRAME$tail) return(fr$tail)
+  fr$head
+}
+
+## Signed DORSAL height of each point: its perpendicular coordinate in its own
+## segment frame, oriented so that "greater = more dorsal". The dorsal side is
+## read off the relative position of LM3 and LM4 rather than assumed from the
+## image, so the test holds whatever the orientation -- head left or right,
+## flipped photograph, "Flip dorsal / ventral" ticked.
+dorsal_heights <- function(P) {
+  fr <- seg_frames(P); if (is.null(fr)) return(NULL)
+  if (!fin_row(P, 3L) || !fin_row(P, 4L)) return(NULL)
+  sgn <- sign(fr$mid$pe(P["3", ]) - fr$mid$pe(P["4", ]))
+  if (sgn == 0) return(NULL)                       # 3 and 4 at the same height
+  h <- rep(NA_real_, nrow(P))
+  for (i in seq_len(nrow(P)))
+    if (fin_row(P, i)) h[i] <- sgn * frame_of(i, fr)$pe(P[i, ])
+  list(fr = fr, sgn = sgn, h = h, len = fr$len)
+}
+
+## Violations of the convention. NULL when the specimen is compliant, otherwise
+## a data.frame: `point` (3 or 4), `culprit` (the point overshooting it),
+## `delta` (the overshoot, in pixels).
+extreme_violations <- function(P, tol_frac = EXTREME_TOL) {
+  g <- dorsal_heights(P); if (is.null(g)) return(NULL)
+  if (!is.finite(g$len) || g$len <= 0) return(NULL)
+  tol  <- max(1, tol_frac * g$len)
+  cand <- EXTREME_CAND[is.finite(g$h[EXTREME_CAND])]
+  if (!length(cand)) return(NULL)
+  out <- list()
+  d <- g$h[cand] - g$h[3L]                          # dorsal overshoot
+  k <- which.max(d)
+  if (d[k] > tol) out[[length(out) + 1L]] <-
+    data.frame(point = 3L, culprit = cand[k], delta = unname(d[k]))
+  d <- g$h[4L] - g$h[cand]                          # ventral overshoot
+  k <- which.max(d)
+  if (d[k] > tol) out[[length(out) + 1L]] <-
+    data.frame(point = 4L, culprit = cand[k], delta = unname(d[k]))
+  if (!length(out)) return(NULL)
+  do.call(rbind, out)
+}
+
+## Correction: LM3 (resp. LM4) takes the HEIGHT of the point overshooting it,
+## keeping its own position along the axis. Bd therefore grows, and the "3-4
+## perpendicular to the axis" convention is preserved. No other point is moved
+## here; the belly line is re-derived by the caller through
+## propagate_conventions() when the auto constraints are on.
+fix_extremes <- function(P, viol) {
+  g <- dorsal_heights(P); if (is.null(g)) return(P)
+  for (r in seq_len(nrow(viol))) {
+    i <- viol$point[r]; j <- viol$culprit[r]
+    if (!fin_row(P, i) || !is.finite(g$h[j])) next
+    f <- frame_of(i, g$fr)
+    P[i, ] <- f$at(f$ax(P[i, ]), g$sgn * g$h[j])
+  }
+  P
+}
+
 ## Propagate the FISHMORPH conventions after landmark `sel` has been moved.
 ## Each convention is applied in the frame of the body segment it belongs to,
 ## so a curved specimen with hinges placed is handled correctly; with no hinge
@@ -594,6 +697,17 @@ ui <- fluidPage(
       checkboxInput("pin", "Pin the reliable landmarks (LM1,2,3,4,7) on the clicks",
                     value = FALSE),
       tags$hr(),
+      tags$strong("Quality control"),
+      checkboxInput("check_extremes",
+                    "Check LM3 / LM4 (extremes) on save", value = TRUE),
+      helpText("Bd is the MAXIMUM body depth: on save, checks that LM3 is the",
+               "most dorsal and LM4 the most ventral landmark of the body",
+               "outline. Heights are taken perpendicular to the body axis,",
+               "segment by segment, so posture is not flagged. Excluded: the",
+               "caudal peduncle and fin (16-19), the appendage tips (12, 15)",
+               "and the derived ventral points (8, 9, 11). On a breach, offers",
+               "to measure again or to correct automatically."),
+      tags$hr(),
       tags$strong("Display"),
       checkboxInput("showlines", "Reference lines (outline / belly / eye)", value = TRUE),
       checkboxInput("guides", "Alignment guides", value = FALSE),
@@ -718,6 +832,8 @@ server <- function(input, output, session) {
     saved = NULL,                       # cumulative table of every specimen done
     na = integer(0),                    # landmarks declared non-measurable
     edited = integer(0),                # landmarks moved by hand this session
+    adjusted = integer(0),              # landmarks snapped by the extreme-point
+                                        # convention (3/4), exported as "adjusted"
     zoom = 1, cx = NULL, cy = NULL,     # zoom state / view centre
     dir_files = NULL, dir_i = 0L,       # photograph folder + current index
     loaded = NULL, loaded_sel = NULL)   # measurement table being reviewed
@@ -838,7 +954,7 @@ server <- function(input, output, session) {
     rv$img <- make_disp()
     rv$pred <- empty_coords(); rv$sel <- 1L
     rv$na <- integer(0); rv$edited <- integer(0); rv$placed_order <- integer(0)
-    rv$seeded <- integer(0)
+    rv$seeded <- integer(0); rv$adjusted <- integer(0)
     rv$zoom <- 1; rv$cx <- NULL; rv$cy <- NULL
   }
 
@@ -992,7 +1108,7 @@ server <- function(input, output, session) {
     # Reloaded points count as already digitized, so the review phase applies.
     rv$pred <- M
     rv$na <- integer(0); rv$edited <- integer(0); rv$placed_order <- integer(0)
-    rv$seeded <- integer(0)
+    rv$seeded <- integer(0); rv$adjusted <- integer(0)
     rv$sel <- ANAT_ORDER[1]   # first anatomical point to review
     updateTextInput(session, "specimen_id", value = input$load_specimen)
     nt <- if ("note" %in% names(d)) d$note[!is.na(d$note)] else integer(0)
@@ -1060,6 +1176,7 @@ server <- function(input, output, session) {
     rv$na     <- setdiff(rv$na, just)              # re-placed -> no longer NA
     rv$edited <- union(rv$edited, just)            # placed by hand
     rv$seeded <- setdiff(rv$seeded, just)          # no longer at its seed
+    rv$adjusted <- setdiff(rv$adjusted, just)      # measured, not snapped
     rv$placed_order <- c(setdiff(rv$placed_order, just), just)
     # Points that define the reference frames rather than sit in them: the axis
     # (1, 2 and the hinges) and LM3, which settles which side is dorsal. Moving
@@ -1148,6 +1265,7 @@ server <- function(input, output, session) {
              else if (i %in% rv$na) "background:#f8d7da;color:#a00;text-decoration:line-through;"
              else if (i %in% HINGES) "background:#ffd24d;color:#000;font-weight:bold;"
              else if (i %in% SCALE_PTS) "background:#d9f2e6;color:#065;font-weight:bold;"
+             else if (i %in% rv$adjusted) "background:#e6d9f2;color:#4a2d6b;font-weight:bold;"
              else if (i %in% rv$edited) "background:#cfe8ff;"
              else if (i %in% auto || i %in% DERIVED_LM) "background:#eee;color:#999;"
              else if (i %in% rv$seeded) "background:#faeeda;color:#854f0b;"
@@ -1166,7 +1284,8 @@ server <- function(input, output, session) {
           "Green = active; blue = placed by hand; amber = still at its seed",
           "(median FISHMORPH proportion -- never checked on this specimen);",
           "pink struck through = NA; grey = automatic or derived; gold = HINGES;",
-          "pale green = SCALE BAR (20/21); dashed border = not placed yet.",
+          "pale green = SCALE BAR (20/21); mauve = snapped onto the body outline",
+          "by the LM3/LM4 check; dashed border = not placed yet.",
           tags$br(),
           "Broken axis 1 -> 22 -> 23 -> 2: place 22 then 23 on the bends of a curved",
           "specimen. Head conventions apply on 1-22, body depth and pectoral fin",
@@ -1189,6 +1308,7 @@ server <- function(input, output, session) {
     rv$pred[rv$sel, ] <- NA_real_
     rv$na <- union(rv$na, rv$sel); rv$edited <- setdiff(rv$edited, rv$sel)
     rv$seeded <- setdiff(rv$seeded, rv$sel)
+    rv$adjusted <- setdiff(rv$adjusted, rv$sel)
     s <- rv$sel
     rv$placed_order <- setdiff(rv$placed_order, s)
     rv$sel <- if (s %in% HINGES) s else next_point(s)
@@ -1199,6 +1319,7 @@ server <- function(input, output, session) {
     rv$pred[rv$sel, ] <- NA_real_
     rv$na <- setdiff(rv$na, rv$sel); rv$edited <- setdiff(rv$edited, rv$sel)
     rv$seeded <- setdiff(rv$seeded, rv$sel)
+    rv$adjusted <- setdiff(rv$adjusted, rv$sel)
     rv$placed_order <- setdiff(rv$placed_order, rv$sel)
     rv$msg <- paste(point_label(rv$sel), "cleared.")
   })
@@ -1217,7 +1338,7 @@ server <- function(input, output, session) {
   observeEvent(input$restart, {
     rv$pred <- empty_coords()
     rv$na <- integer(0); rv$edited <- integer(0); rv$placed_order <- integer(0)
-    rv$seeded <- integer(0)
+    rv$seeded <- integer(0); rv$adjusted <- integer(0)
     rv$sel <- 1L
     rv$msg <- "Cleared. Click the snout (LM1)."
   })
@@ -1230,6 +1351,10 @@ server <- function(input, output, session) {
     st <- vapply(points, function(p) {
       if (p %in% rv$na) "na"
       else if (!fin_row(rv$pred, p)) "missing"
+      # BEFORE "clicked": a point snapped by the extreme-point convention was
+      # not pointed at by the operator, and the distinction has to survive into
+      # the exported table. Re-clicking it makes it a measurement again.
+      else if (p %in% rv$adjusted) "adjusted"
       else if (p %in% rv$edited) "clicked"
       else if (p %in% rv$seeded && !(p %in% DERIVED_LM)) "seeded"
       else if (p %in% DERIVED_LM) "derived"
@@ -1282,10 +1407,92 @@ server <- function(input, output, session) {
            type = if (ok) "message" else "error")
   })
 
+  ## ---- extreme-point check, on save -----------------------------------------
+  ## "Save & next" goes through this check before anything is written. When LM3
+  ## is not the most dorsal point (or LM4 the most ventral), the operator is
+  ## offered the two ways out that matter: measure it again, or let the app
+  ## snap the point onto the true extreme.
+  extreme_modal <- function(v) {
+    showModal(modalDialog(
+      title = "FISHMORPH conventions: Bd (3-4) is not the maximum body depth",
+      tags$ul(lapply(seq_len(nrow(v)), function(r) {
+        i <- v$point[r]; j <- v$culprit[r]
+        tags$li(sprintf(
+          "LM%d must be the most %s point: LM%d overshoots it by %.0f px.",
+          i, if (i == 3L) "DORSAL" else "VENTRAL", j, v$delta[r]))
+      })),
+      tags$p(tags$em(
+        "Heights are measured perpendicular to the body axis, segment by",
+        "segment, so a bent or tilted specimen is not flagged for its posture.",
+        "The caudal peduncle and fin (16-19), the appendage tips (12, 15) and",
+        "the derived ventral points (8, 9, 11 -- computed from LM4 itself) are",
+        "excluded from the test.")),
+      tags$p("Auto-correct gives the landmark the height of the point",
+             "overshooting it, keeping its position along the axis; corrected",
+             "points are exported with status \"adjusted\"."),
+      footer = tagList(
+        actionButton("extreme_remeasure", "Measure again", class = "btn-primary"),
+        actionButton("extreme_fix", "Auto-correct and save"),
+        actionButton("extreme_asis", "Save without correcting")),
+      easyClose = FALSE, size = "l"))
+  }
+
+  ## Apply the correction. propagate_conventions() may move the belly line once
+  ## LM4 has changed height, so the check is iterated to a fixed point -- three
+  ## passes is ample, and the bound rules out a loop on a pathological case.
+  ## LM4 alone drives the propagation: LM3 keeps its abscissa, so the 3-4
+  ## perpendicular is already satisfied, and LM3 is a FRAME point whose click
+  ## handler would re-seed the whole configuration.
+  apply_extreme_fix <- function() {
+    for (it in 1:3) {
+      P <- rv$pred
+      v <- extreme_violations(P)
+      if (is.null(v)) return(TRUE)
+      P <- fix_extremes(P, v)
+      if (isTRUE(input$auto_constraints) && 4L %in% v$point &&
+          fin_row(P, 1L) && fin_row(P, 2L))
+        P <- propagate_conventions(P, 4L)
+      rv$pred     <- P
+      rv$na       <- setdiff(rv$na, v$point)
+      rv$seeded   <- setdiff(rv$seeded, v$point)
+      rv$adjusted <- union(rv$adjusted, v$point)
+    }
+    is.null(extreme_violations(rv$pred))
+  }
+
   observeEvent(input$save_specimen, {
     if (is.null(rv$pred)) {
       notify("Nothing to save yet: predict, or start manual placement first.",
              "warning"); return() }
+    if (isTRUE(input$check_extremes)) {
+      v <- extreme_violations(rv$pred)
+      if (!is.null(v)) { extreme_modal(v); return() }
+    }
+    save_specimen()
+  })
+
+  ## Measure again: close, select the offending landmark and centre the view.
+  observeEvent(input$extreme_remeasure, {
+    removeModal()
+    v <- extreme_violations(rv$pred)
+    if (!is.null(v)) {
+      rv$sel <- v$point[1]; zoom_to_sel()
+      rv$msg <- sprintf("%s -- click its true position (the most %s point).",
+                        point_label(v$point[1]),
+                        if (v$point[1] == 3L) "dorsal" else "ventral")
+    }
+  })
+  observeEvent(input$extreme_fix, {
+    removeModal()
+    if (!isTRUE(apply_extreme_fix()))
+      showNotification(paste("LM3/LM4 still breach the convention after",
+                             "correction: check the placement."),
+                       type = "warning", duration = 8)
+    save_specimen()
+  })
+  observeEvent(input$extreme_asis, { removeModal(); save_specimen() })
+
+  save_specimen <- function() {
     df <- current_table()
     id <- df$specimen[1]
     if (!is.null(rv$saved)) {
@@ -1307,13 +1514,17 @@ server <- function(input, output, session) {
     if (any(unchecked > 0))
       msg <- paste(msg, sprintf("%d still seeded, %d still predicted -- unchecked.",
                                 unchecked[["seeded"]], unchecked[["predicted"]]))
+    n_adj <- sum(df$status == "adjusted")
+    if (n_adj > 0)
+      msg <- paste(msg, sprintf("%d snapped to the body outline (status adjusted).",
+                                n_adj))
     notify(msg, type = if (any(unchecked > 0)) "warning" else "message")
     if (!ok) showNotification(sprintf("Could not write %s.", AUTOSAVE),
                               type = "error", duration = 8)
     # move on to the next photograph when working through a folder
     if (length(rv$dir_files) && rv$dir_i < length(rv$dir_files))
       load_dir_photo(rv$dir_i + 1L)
-  })
+  }
   observeEvent(input$clear_all, { rv$saved <- NULL
     if (file.exists(AUTOSAVE)) try(file.remove(AUTOSAVE), silent = TRUE)
     notify("Table cleared.") })
@@ -1381,6 +1592,9 @@ server <- function(input, output, session) {
       # again, except those the worker froze on the operator's clicks.
       rv$edited <- union(setdiff(rv$edited, as.integer(d$landmark[keep])),
                          intersect(pinned_clicks(input$pin), rv$placed_order))
+      # a landmark the model has just rewritten is no longer the one the
+      # extreme-point convention had snapped
+      rv$adjusted <- setdiff(rv$adjusted, as.integer(d$landmark[keep]))
       rv$sel <- ANAT_ORDER[1]   # first anatomical point to review
       notify(paste0("Prediction done. Review the points; scale bar 20-21: ",
                     if (any(is.na(M[c("20", "21"), ]))) "still to place."
@@ -1568,9 +1782,10 @@ server <- function(input, output, session) {
       else "Reposition each landmark in turn, then 'Save & next'."
     paste0(rv$msg, "\n\n", step,
            "\nActive landmark: ", point_label(rv$sel),
-           sprintf("\n%d placed by hand | %d still seeded | %d still predicted | %d NA | %d not placed.",
+           sprintf(paste("\n%d placed by hand | %d still seeded | %d still",
+                         "predicted | %d snapped | %d NA | %d not placed."),
                    sum(st == "clicked"), sum(st == "seeded"), sum(st == "predicted"),
-                   sum(st == "na"), sum(st == "missing")))
+                   sum(st == "adjusted"), sum(st == "na"), sum(st == "missing")))
   })
 
   ## ---- single-specimen export -----------------------------------------------

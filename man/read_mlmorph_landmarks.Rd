@@ -50,10 +50,14 @@ identify the source of the digitization (the predictor, an app session,
 an operator name). Treating a set of predicted landmarks as one
 "operator" mirrors \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}} and makes it easy to
 compare predicted against hand-digitized trait spaces. Defaults to
-\code{"ml_morph"}.}
+\code{"ml_morph"}. The special value \code{"parse"} instead reads the operator
+off each specimen identifier (see Details).}
 
 \item{replicate}{Integer scalar recorded in \code{metadata$replicate} (one
-digitization per individual by default). Defaults to \code{1L}.}
+digitization per individual by default). Defaults to \code{1L}. The special
+value \code{"parse"} instead reads the replicate number off each specimen
+identifier (see Details), which is what a table produced by the repeat
+mode of \code{\link[=digitize_landmarks]{digitize_landmarks()}} carries.}
 
 \item{save_to}{Optional character path; when supplied, the resulting
 object is also written there with \code{\link[=saveRDS]{saveRDS()}} (a convenience for the
@@ -96,6 +100,40 @@ pixel distances to length units downstream with the \code{scale_cm} argument of
 \code{\link[=fishmorph_segments]{fishmorph_segments()}}, and impute what is missing with
 \code{\link[=impute_landmarks]{impute_landmarks()}} if a complete configuration is required.
 }
+\section{Replicated digitizations}{
+A measure table in which the same physical individual was digitized more
+than once -- the repeat mode of \code{\link[=digitize_landmarks]{digitize_landmarks()}}, used to quantify
+measurement error and operator bias -- distinguishes the passes by their
+identifier rather than by a column, since the exported schema is one row
+per specimen and landmark. The convention, shared with the T-26
+repeatability set of \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}, is
+\code{"<individual>_rep<N>"}, optionally with an operator token before the
+suffix: \code{"<individual>_<operator>_rep<N>"}. The replicate number is always
+the last underscore-separated token, so an identifier is decomposed
+unambiguously from the right, and the operator label carries no underscore.
+
+Because a bare identifier cannot be told apart from an individual whose
+name merely happens to end in \verb{_rep2}, the decomposition is never
+attempted silently: it is requested with \code{replicate = "parse"} (and, when
+several operators share one table, \code{operator = "parse"}). \code{metadata$individual}
+then holds the physical individual, \code{metadata$replicate} the pass number,
+and \code{metadata$operator} the operator, which is the grouping
+\code{\link[=measurement_error]{measurement_error()}} (\code{method = "procrustes"}, argument \code{individual}) and
+\code{\link[=operator_disagreement]{operator_disagreement()}} expect. Identifiers carrying no suffix are left
+alone (\code{replicate = 1}), so a table mixing single and repeated
+digitizations imports correctly.
+
+One ambiguity is irreducible and worth stating: \code{operator = "parse"} takes
+the token before the suffix as the operator, so an individual whose own code
+contains an underscore and which was digitized \emph{without} an operator label
+(\code{"fish_01_rep2"}) would be split into individual \code{"fish"} and operator
+\code{"01"}. Use \code{operator = "parse"} only on tables where the operator was
+actually recorded in the identifier -- the case it exists for -- and
+\code{replicate = "parse"} alone otherwise, which never touches the individual's
+name beyond the suffix. Identifiers with a suffix but no operator token are
+reported, and keep \code{operator = NA}.
+}
+
 \examples{
 # A minimal ml-morph / app-style export (long format, with a scale):
 mes <- data.frame(
@@ -114,6 +152,20 @@ ident <- data.frame(code = c("fish_01", "fish_02"),
                      species = c("Gobio occitaniae", "Squalius cephalus"))
 lm2 <- read_mlmorph_landmarks(mes, metadata = ident, by = "code")
 table(lm2$metadata$species, useNA = "ifany")
+
+# A table from the repeat mode of digitize_landmarks(): the same two fish,
+# each digitized twice by operator "AT". Ask for the identifiers to be
+# decomposed into individual / operator / replicate.
+rep_tab <- data.frame(
+  specimen = rep(c("fish_01_AT_rep1", "fish_01_AT_rep2",
+                   "fish_02_AT_rep1", "fish_02_AT_rep2"), each = 3),
+  landmark = rep(1:3, times = 4),
+  X = c(10, 15, 20, 10.4, 15.2, 19.6, 11, 16, 21, 11.3, 15.7, 21.2),
+  Y = c(20, 25, 20, 20.3, 24.6, 20.2, 21, 26, 21, 20.8, 26.4, 20.9)
+)
+lm3 <- read_mlmorph_landmarks(rep_tab, scale_col = NULL,
+                              replicate = "parse", operator = "parse")
+lm3$metadata[c("specimen", "individual", "operator", "replicate")]
 
 }
 \seealso{

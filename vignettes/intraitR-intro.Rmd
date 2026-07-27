@@ -74,21 +74,43 @@ plot_landmarks(fish, specimen = 1, background_image = "specimen1.jpg")
 ```
 
 If landmarks have not yet been digitized, [digitize_landmarks()] launches
-a bundled Shiny application for predictor-assisted digitization: a trained
-ml-morph model proposes the 19 FISHMORPH landmarks from a few calibration
-clicks per specimen, which are then reviewed, corrected and exported to
-`CSV`/`tpsDig`. It requires a live interactive session (and an external
-ml-morph resource directory holding the trained predictor and a
+a bundled Shiny application for predictor-assisted digitization. The
+session is declared at the console -- the photograph folder, the output
+workbook, the operator, the working queue -- and everything it produces
+goes to one workbook (a `measurements` sheet, a `bias` sheet holding the
+repeated digitizations, and a `bias_summary` sheet quantifying them),
+backed by an append-only journal that survives a crash. A trained ml-morph
+model can propose the 19 FISHMORPH landmarks from a few clicks per
+specimen, which are then reviewed and corrected. It requires a live
+interactive session (and, for the prediction step only, an external
+ml-morph resource directory with the trained predictor and a
 `dlib`-enabled Python environment), so it cannot be run inside this
 vignette, but the intended usage is:
 
 ```{r, eval = FALSE}
-# Open the app (auto-detecting an "ml_morph/" resource directory):
-digitize_landmarks()
+# Digitize a folder of photographs into one workbook:
+digitize_landmarks(
+  photo_dir        = "T26/photos",
+  xlsx_path        = "T26/T26_landmarks.xlsx",
+  journal_dir      = "T26/landmark_journal",   # default
+  operator         = "AT",
+  xlsx_flush_every = 10,
+  mode             = "new"
+)
 
-# Import the exported table into an "intrait_landmarks" object:
-lm <- read_mlmorph_landmarks("mesures.csv")
+# Read the measurements back into an "intrait_landmarks" object:
+lm <- read_landmarks_xlsx("T26/T26_landmarks.xlsx", sheet = "measurements",
+                          n_landmarks = 22, x_pattern = "{i}_X",
+                          y_pattern = "{i}_Y", id_cols = "specimen")
+
+# After a crash, the workbook is rebuilt from the journals:
+consolidate_landmarks("T26/landmark_journal")
 ```
+
+Digitization error and operator bias are measured with the same call and
+`mode = "repeat"`, which keeps the app on the same photograph and saves
+each blind pass to the `bias` sheet; the result feeds
+[measurement_error()] and [operator_disagreement()] directly.
 
 ## 2. Generalised Procrustes Analysis
 

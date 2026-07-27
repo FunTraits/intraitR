@@ -1,30 +1,85 @@
 ## =============================================================================
 ## app.R -- Interactive predictor-assisted landmarking (intraitR)
 ##
-## Workflow: load a photograph (or a folder of photographs) -> a handful of
-## calibration clicks (snout, caudal-fin basis, a dorsal orientation point and
-## the two scale-bar points) -> the ml-morph shape predictor proposes the 19
-## anatomical FISHMORPH landmarks -> manual review and correction -> export to
-## CSV / tpsDig.
+## Workflow: a folder of photographs declared AT THE CONSOLE -> a handful of
+## clicks per specimen (snout, hinges, caudal-fin basis, then the anatomical
+## points) -> optionally the ml-morph shape predictor -> review and correction
+## -> one append-only journal line per landmark, and one workbook.
 ##
-## Launched from the package with intraitR::digitize_landmarks(), which locates
-## the ml-morph resources and sets the INTRAITR_MLMORPH_* environment variables
-## read below, then calls shiny::runApp() on this folder. The app also runs
-## standalone with shiny::runApp("ml_morph/landmarking_app"), in which case it
-## falls back to paths relative to the parent "ml_morph" folder.
+## Launched from the package with intraitR::digitize_landmarks(), which
+## validates the session, locates the ml-morph resources and hands everything
+## over through the `intraitR.digitizer` option (see CFG below) plus the
+## INTRAITR_MLMORPH_* environment variables, then calls shiny::runApp() on this
+## folder. The app also runs standalone with
+## shiny::runApp("inst/shiny/landmarking_app"), in which case it falls back to
+## the working directory and to paths relative to a parent "ml_morph" folder.
+##
+## THREE QUEUES, switchable from the action bar (argument `mode`):
+##   new     : photographs not yet in the workbook          -> measurements sheet
+##   correct : specimens already digitized, points reloaded -> measurements sheet
+##   repeat  : the same photograph digitized n times        -> bias sheet
+##
+## PERSISTENCE, in two layers with different jobs:
+##   * the JOURNAL (one TSV per session, append-only, one line per landmark) is
+##     the source of truth. It is written FIRST, at every save, and never
+##     rewritten -- a crash costs at most the specimen in hand.
+##   * the WORKBOOK is an export, rewritten in full every `xlsx_flush_every`
+##     records and atomically (temporary file + rename). Losing it costs
+##     nothing: intraitR::consolidate_landmarks() rebuilds it from the journals.
 ##
 ## Requires: a Python environment (.venv_mlmorph) with dlib/opencv, a trained
 ## predictor (mlmorph_run_*/predictor.dat) and the aligned training set
-## (mlmorph_dataset_aligned) inside the ml-morph directory. See ml_morph/README.md.
+## (mlmorph_dataset_aligned) inside the ml-morph directory, for the OPTIONAL
+## prediction step. See ml_morph/README.md.
 ##
-## R dependencies: shiny, jpeg, png (magick optional, for images whose real
-## format does not match their file extension).
+## R dependencies: shiny, jpeg, png, writexl (readxl to resume from a workbook;
+## magick for images whose real format does not match their extension; bslib
+## for the themed interface -- all optional, the app degrades gracefully).
 ## =============================================================================
 
 library(shiny)
 
 ## shiny's %||% is not exported by every version this app may run under.
 `%||%` <- function(x, y) if (is.null(x)) y else x
+
+## ---- Session configuration --------------------------------------------------
+## Handed over by intraitR::digitize_landmarks() in ONE option rather than a
+## dozen environment variables: runApp() evaluates this file in the SAME R
+## process as the launcher, so the option is simply visible from here. The
+## defaults keep the app runnable standalone, for development.
+CFG <- local({
+  d <- getOption("intraitR.digitizer", NULL)
+  if (!is.list(d)) d <- list()
+  def <- list(
+    photo_dir = getwd(), photos = character(0),
+    xlsx_path = file.path(getwd(), "intraitR_landmarks.xlsx"),
+    journal_dir = file.path(getwd(), "landmark_journal"),
+    operator = NULL, mode = "new", n_repeats = 3L, ruler_mm = 10,
+    xlsx_flush_every = 10L, sheet_measurements = "measurements",
+    sheet_bias = "bias", sheet_summary = "bias_summary", app_version = "dev")
+  for (nm in names(def)) if (is.null(d[[nm]])) d[[nm]] <- def[[nm]]
+  if (!length(d$photos) && dir.exists(d$photo_dir))
+    d$photos <- sort(list.files(d$photo_dir, full.names = TRUE,
+                                ignore.case = TRUE,
+                                pattern = "\\.(jpe?g|png|gif|bmp|tiff?)$"))
+  d
+})
+OPERATOR <- local({
+  o <- CFG$operator
+  if (is.null(o) || !nzchar(o))
+    tryCatch(unname(Sys.info()[["user"]]), error = function(e) "unknown") else o
+})
+## Codes of the queue, in the order of the photographs: the file name without
+## its extension IS the specimen code, here and in the workbook.
+PHOTO_CODES <- tools::file_path_sans_ext(basename(CFG$photos))
+
+## The package supplies the journal and the atomic workbook write. Required:
+## without them a save would have nowhere durable to go, and running on
+## degraded persistence is exactly what this app must not do.
+if (!requireNamespace("intraitR", quietly = TRUE))
+  stop("The intraitR package must be installed and loadable: the app writes ",
+       "through intraitR::landmark_journal_append() and ",
+       "intraitR::write_xlsx_atomic().", call. = FALSE)
 
 ## ---- Resource paths (absolute, robust to the sub-process working directory) --
 ## Resolved by intraitR::digitize_landmarks() through the INTRAITR_MLMORPH_*
@@ -60,14 +115,6 @@ PRED_CHOICES <- {
     app     = file.path(ML, "mlmorph_run_app",     "predictor.dat"),
     aligned = file.path(ML, "mlmorph_run_aligned", "predictor.dat")))
 }
-## Autosave: a WRITABLE path (the app folder is read-only once the package is
-## installed in the library). Set by the launcher (INTRAITR_MLMORPH_AUTOSAVE);
-## otherwise in the current working directory.
-AUTOSAVE <- {
-  a <- Sys.getenv("INTRAITR_MLMORPH_AUTOSAVE", "")
-  if (!nzchar(a)) a <- file.path(getwd(), "intraitR_landmarking_autosave.csv")
-  a
-}
 
 ## ---- Landmark scheme --------------------------------------------------------
 ## 1-19  anatomical FISHMORPH landmarks (Brosse et al. 2021)
@@ -76,16 +123,27 @@ AUTOSAVE <- {
 ##       fishmorph_segments() splits the standard length into (1-22) + (22-2)
 ##       when it is present, so a fish photographed with a bent body is not
 ##       under-measured. Exported like any other point.
-## 23-24 EXTRA HINGES. Entry aids only: they extend the broken axis to up to
-##       four segments for strongly curved specimens, so that the FISHMORPH
+## 23-24 EXTRA HINGES. Entry aids: they extend the broken axis to up to four
+##       segments for strongly curved specimens, so that the FISHMORPH
 ##       perpendicularity conventions are applied segment by segment instead of
-##       against a single straight axis. They are NEVER exported.
+##       against a single straight axis. They are NOT anatomical landmarks and
+##       have no place in a shape analysis -- but they ARE recorded, because
+##       they define the frames every convention was applied in: without them a
+##       specimen reopened for correction comes back with a straight axis and
+##       the geometry silently stops matching the one it was digitized under.
 N_ANAT    <- 19L
 SCALE_PTS <- c(20L, 21L)
-CURVE_PT  <- 22L                       # exported (Bl curvature correction)
-EXTRA_HINGES <- c(23L, 24L)            # entry aids, never exported
+CURVE_PT  <- 22L                       # a genuine landmark (Bl curvature correction)
+EXTRA_HINGES <- c(23L, 24L)            # entry aids: recorded, never analysed
 HINGES    <- c(CURVE_PT, EXTRA_HINGES) # every point that can break the axis
-SAVE_PTS  <- 1:22                      # rows written to CSV / TPS
+## Two lists, because "recorded" and "is a landmark" are not the same statement:
+##   SAVE_PTS : the landmarks proper (1-22) -- what a TPS file and any shape
+##              analysis may contain.
+##   WB_PTS   : everything written to the workbook and the journal, hinges
+##              included. Reading the sheet for an analysis therefore means
+##              taking the first 22 points, not every column that ends in _X.
+SAVE_PTS  <- 1:22
+WB_PTS    <- c(SAVE_PTS, EXTRA_HINGES)
 N_TOT     <- 24L                       # rows carried in the coordinate matrix
 
 ## Automatically placed landmarks (not corrected by hand).
@@ -97,15 +155,32 @@ AUTO_LM_PIN <- c(1L, 2L, 3L, 4L, 7L, 8L, 9L, 10L, 11L, 12L, 15L, 16L, 18L)
 ## Points whose position is computed, never measured.
 DERIVED_LM  <- c(8L, 9L, 11L)
 
-## Anatomical points in numeric order, minus the three derived ones.
-ANAT_ORDER <- setdiff(3:19, DERIVED_LM)
+## Anatomical points in ANATOMICAL order, minus the three derived ones -- not in
+## numeric order, which the FISHMORPH numbering does not follow. The sequence
+## walks the specimen the way the eye does, and groups the points that are read
+## against one another:
+##
+##   3, 4       maximum body depth, dorsal then ventral (the Bd pair)
+##   7, 5, 6    eye height, then the head-depth pair -- all three on the head
+##   13, 14     eye diameter, once the head frame is set
+##   15         jaw tip, read against the snout
+##   10, 12     pectoral fin: insertion then tip
+##   16, 17, 18, 19  caudal peduncle, then caudal fin
+##
+## Placing an isolated point far from the one before it costs a saccade and a
+## re-zoom each time; a path that stays in one region until it is finished does
+## not. This is also the order the button bar shows, so what is read and what is
+## entered are the same sequence.
+ANAT_ORDER <- c(3L, 4L, 7L, 5L, 6L, 13L, 14L, 15L, 10L, 12L,
+                16L, 17L, 18L, 19L)
+stopifnot(setequal(ANAT_ORDER, setdiff(3:19, DERIVED_LM)))
 
 ## ONE auto-advance sequence, from the axis to the scale bar. There is no
 ## separate calibration list: every point is an ordinary landmark, and the ones
 ## the predictor needs (LM1, LM2, the dorsal point LM3, the scale bar) are
 ## simply the ones that come first.
 ##
-##   1 -> 22 -> 23 -> 2 -> 3 ... 19 -> 20 -> 21
+##   1 -> 22 -> 23 -> 2 -> 3, 4, 7, 5, 6, 13, 14, 15, 10, 12, 16..19 -> 20 -> 21
 ##
 ## The axis comes FIRST and complete: snout, the two hinges, caudal basis. Every
 ## convention downstream is expressed in the frame of a body segment, so
@@ -114,8 +189,8 @@ ANAT_ORDER <- setdiff(3:19, DERIVED_LM)
 ## a hinge on the line leaves the chain straight, and LM22 then also gives
 ## fishmorph_segments() its curvature correction for free.
 ##
-## Then the anatomical landmarks in plain numeric order, and finally the scale
-## bar. The three derived points (8, 9, 11) are the only numbers skipped: they
+## Then the anatomical landmarks in the anatomical order above, and finally the
+## scale bar. The three derived points (8, 9, 11) are the only ones skipped: they
 ## are computed from LM1, LM7, LM10 and LM4, so stopping on them would invite a
 ## click that the next derivation immediately undoes. They stay reachable from
 ## the button bar. LM24, the spare hinge, is likewise on demand only.
@@ -153,6 +228,182 @@ point_label <- function(i) {
     "23" = "LM23 -- hinge (entry aid, not exported)",
     "24" = "LM24 -- hinge (entry aid, not exported)",
     paste0("LM", i))
+}
+
+## ---- Repeated digitization (measurement error / operator bias) --------------
+## In "repeat" mode the SAME photograph is digitized several times and each pass
+## is saved under an identifier of its own, so that measurement_error() and
+## operator_disagreement() have replicate configurations to partition variance
+## over. The identifier follows the convention already used by the T-26
+## repeatability set (load_t26_saudrune_landmarks(source = "repeatability")):
+##
+##   <code>_rep<N>              one operator, N-th digitization
+##   <code>_<operator>_rep<N>   several operators sharing one table
+##
+## The replicate number is always the LAST underscore-separated token, so an
+## identifier is parsed unambiguously from the right; the operator label is
+## sanitized to hold no underscore, which keeps the token before "rep" readable
+## as the operator. read_mlmorph_landmarks(replicate = "parse", operator =
+## "parse") reverses the construction.
+REP_RE <- "_rep([0-9]+)$"
+
+## Strip an underscore, whitespace or anything else that would make the operator
+## token ambiguous when the identifier is parsed back.
+clean_operator <- function(op) {
+  op <- trimws(as.character(op %||% ""))
+  if (!nzchar(op)) return("")
+  gsub("[^A-Za-z0-9.-]+", "-", op)
+}
+## Build the saved identifier. `rep_n = NULL` gives the plain code (standard
+## mode); otherwise the operator token and the _rep<N> suffix are appended.
+make_id <- function(code, operator = "", rep_n = NULL) {
+  code <- trimws(as.character(code %||% ""))
+  if (!nzchar(code)) code <- "specimen"
+  if (is.null(rep_n) || !is.finite(rep_n)) return(code)
+  # A code reloaded from a measurement table may already carry a suffix; rebuild
+  # it rather than nesting "_rep2_rep3".
+  code <- sub(REP_RE, "", code)
+  op <- clean_operator(operator)
+  paste0(code, if (nzchar(op)) paste0("_", op) else "", "_rep", as.integer(rep_n))
+}
+## The physical individual behind a saved identifier: drop the _rep<N> suffix
+## and, when one is present, the operator token before it. Identifiers with no
+## suffix (standard mode) are returned unchanged, so the same helper serves the
+## progress display and the "skip to the next unsaved photograph" logic.
+base_code <- function(id, operator = "") {
+  id <- as.character(id)
+  has <- grepl(REP_RE, id)
+  out <- sub(REP_RE, "", id)
+  op <- clean_operator(operator)
+  # `x[i] <- character(0)` is an error in R, so the empty case is guarded rather
+  # than left to the vectorized assignment.
+  if (nzchar(op) && any(has)) {
+    tok <- paste0("_", op, "$")
+    out[has] <- sub(tok, "", out[has])
+  }
+  out
+}
+## Replicate number carried by an identifier (NA when it carries none).
+rep_of <- function(id) {
+  id <- as.character(id)
+  out <- rep(NA_integer_, length(id))
+  hit <- grepl(REP_RE, id)
+  if (!any(hit)) return(out)
+  out[hit] <- as.integer(sub(paste0("^.*", REP_RE), "\\1", id[hit]))
+  out
+}
+
+## ---- The workbook: one file, three sheets -----------------------------------
+## `measurements` and `bias` share the WIDE FISHMORPH layout -- one row per
+## digitization, "1_X, 1_Y, ... 22_X, 22_Y" -- which is what
+## read_landmarks_xlsx(x_pattern = "{i}_X", y_pattern = "{i}_Y") reads back and
+## what the published FISHMORPH tables use. What a wide table cannot carry, the
+## per-point status, is kept twice over: as counts here (n_seeded, n_predicted,
+## ...) and point by point in the journal.
+WB_ID_COLS <- c("specimen", "individual", "replicate", "operator", "mode",
+                "photo_file", "img_w", "img_h", "quality", "ruler_mm",
+                "mm_per_px", "n_clicked", "n_seeded", "n_predicted",
+                "n_adjusted", "n_na", "app_version", "timestamp")
+WB_COORD_COLS <- as.vector(rbind(paste0(WB_PTS, "_X"), paste0(WB_PTS, "_Y")))
+WB_COLS <- c(WB_ID_COLS, WB_COORD_COLS)
+
+WB_CHR_COLS <- c("specimen", "individual", "operator", "mode", "photo_file",
+                 "app_version", "timestamp")
+wb_empty <- function() {
+  d <- data.frame(matrix(nrow = 0, ncol = 0))
+  for (cc in WB_COLS)
+    d[[cc]] <- if (cc %in% WB_CHR_COLS) character(0) else numeric(0)
+  d
+}
+## Bring a sheet read from disk up to the current schema: missing columns added
+## as NA, unknown columns dropped, order fixed. A workbook written by an earlier
+## version therefore reopens instead of erroring.
+wb_normalise <- function(d) {
+  if (is.null(d) || !nrow(d)) return(wb_empty())
+  d <- as.data.frame(d, stringsAsFactors = FALSE)
+  for (cc in setdiff(WB_COLS, names(d))) d[[cc]] <- NA
+  d <- d[, WB_COLS, drop = FALSE]
+  for (cc in WB_CHR_COLS) d[[cc]] <- as.character(d[[cc]])
+  for (cc in setdiff(WB_COLS, WB_CHR_COLS))
+    d[[cc]] <- suppressWarnings(as.numeric(d[[cc]]))
+  rownames(d) <- NULL
+  d
+}
+wb_read_sheet <- function(path, sheet) {
+  if (!file.exists(path) || !requireNamespace("readxl", quietly = TRUE))
+    return(wb_empty())
+  nms <- tryCatch(readxl::excel_sheets(path), error = function(e) character(0))
+  if (!sheet %in% nms) return(wb_empty())
+  d <- tryCatch(as.data.frame(readxl::read_excel(path, sheet = sheet,
+                                                 .name_repair = "minimal"),
+                              stringsAsFactors = FALSE),
+                error = function(e) NULL)
+  wb_normalise(d)
+}
+
+## ---- bias_summary: where the protocol is imprecise --------------------------
+## For each individual and each landmark, the distance from every repeat to the
+## MEAN position of that landmark over the individual's repeats, summarised by
+## its median. Reported in pixels and, more usefully, as a percentage of the
+## standard length (Bl = 1-2) of the same individual: pixels are not comparable
+## between a 900 px and a 4000 px photograph, so the percentage is the only
+## figure that can be read across a batch. The "(all)" block gives, per
+## landmark, the median of the per-individual medians -- the one number that
+## says which points the protocol places reproducibly and which it does not.
+##
+## Deliberately not an %ME: that requires a Procrustes fit and a model
+## (measurement_error(), operator_disagreement()), which belong in R and not in
+## a digitizing loop. This is the descriptive view that can be read while the
+## session is still open, and which tells the operator whether to keep going.
+bias_summary <- function(bias_df, points = 1:22) {
+  if (is.null(bias_df) || !nrow(bias_df)) {
+    out <- data.frame(individual = character(0), landmark = integer(0),
+                      n_replicates = integer(0), median_dev_px = numeric(0),
+                      median_dev_pct_bl = numeric(0), max_dev_px = numeric(0),
+                      stringsAsFactors = FALSE)
+    return(out)
+  }
+  ind <- bias_df$individual
+  ind[is.na(ind) | !nzchar(ind)] <- bias_df$specimen[is.na(ind) | !nzchar(ind)]
+  per <- lapply(split(seq_len(nrow(bias_df)), ind), function(idx) {
+    d <- bias_df[idx, , drop = FALSE]
+    if (nrow(d) < 2L) return(NULL)          # a single pass says nothing
+    # Standard length of this individual, averaged over its repeats: the size
+    # reference the deviations are expressed against.
+    bl <- sqrt((d[["1_X"]] - d[["2_X"]])^2 + (d[["1_Y"]] - d[["2_Y"]])^2)
+    bl <- suppressWarnings(mean(bl[is.finite(bl)]))
+    rows <- lapply(points, function(p) {
+      x <- suppressWarnings(as.numeric(d[[paste0(p, "_X")]]))
+      y <- suppressWarnings(as.numeric(d[[paste0(p, "_Y")]]))
+      ok <- is.finite(x) & is.finite(y)
+      if (sum(ok) < 2L) return(NULL)
+      dev <- sqrt((x[ok] - mean(x[ok]))^2 + (y[ok] - mean(y[ok]))^2)
+      data.frame(landmark = p, n_replicates = sum(ok),
+                 median_dev_px = stats::median(dev),
+                 median_dev_pct_bl = if (is.finite(bl) && bl > 0)
+                   100 * stats::median(dev) / bl else NA_real_,
+                 max_dev_px = max(dev), stringsAsFactors = FALSE)
+    })
+    rows <- rows[!vapply(rows, is.null, logical(1))]
+    if (!length(rows)) return(NULL)
+    do.call(rbind, rows)
+  })
+  per <- per[!vapply(per, is.null, logical(1))]
+  if (!length(per)) return(bias_summary(NULL))
+  out <- do.call(rbind, lapply(names(per), function(k)
+    cbind(individual = k, per[[k]], stringsAsFactors = FALSE)))
+  # per-landmark overview across individuals, first in the sheet
+  ov <- do.call(rbind, lapply(split(out, out$landmark), function(d)
+    data.frame(individual = "(all)", landmark = d$landmark[1],
+               n_replicates = sum(d$n_replicates),
+               median_dev_px = stats::median(d$median_dev_px),
+               median_dev_pct_bl = suppressWarnings(
+                 stats::median(d$median_dev_pct_bl, na.rm = TRUE)),
+               max_dev_px = max(d$max_dev_px), stringsAsFactors = FALSE)))
+  out <- rbind(ov[order(ov$landmark), , drop = FALSE],
+               out[order(out$individual, out$landmark), , drop = FALSE])
+  rownames(out) <- NULL
+  out
 }
 
 ## FISHMORPH segments, for the on-screen control table. Same battery as
@@ -390,6 +641,14 @@ EXTREME_CAND    <- setdiff(seq_len(N_TOT), c(3L, 4L, EXTREME_EXCLUDE))
 ## Tolerance, as a FRACTION of body length: below 0.003 of Bl (3 px on a
 ## 1000 px fish) the discrepancy is click noise, not a digitizing error.
 EXTREME_TOL <- 0.003
+## Absolute FLOOR, in pixels. On a small photograph the relative tolerance falls
+## below click noise (0.003 * 600 px = 1.8 px) and a 2 px overshoot would raise
+## the alert -- noise, not an error. Set to 5 px on the T-26 data: compliant
+## specimens top out at -0.4 px of overshoot (p98) while the smallest REAL
+## breach is 11.8 px. Anywhere between a 1 px and an 8 px floor the count of
+## flagged specimens is unchanged (16): the band is empty, so 5 px sits in the
+## middle of it and costs no detection.
+EXTREME_FLOOR <- 5
 
 ## Which body segment each point is measured in -- the same assignment
 ## propagate_conventions() uses, so a bent specimen is read segment by segment
@@ -426,7 +685,7 @@ dorsal_heights <- function(P) {
 extreme_violations <- function(P, tol_frac = EXTREME_TOL) {
   g <- dorsal_heights(P); if (is.null(g)) return(NULL)
   if (!is.finite(g$len) || g$len <= 0) return(NULL)
-  tol  <- max(1, tol_frac * g$len)
+  tol  <- max(EXTREME_FLOOR, tol_frac * g$len)
   cand <- EXTREME_CAND[is.finite(g$h[EXTREME_CAND])]
   if (!length(cand)) return(NULL)
   out <- list()
@@ -653,51 +912,185 @@ flip_array <- function(a, mode) {
 
 ## =============================================================================
 ## UI
+##
+## The side panel is a TABSET, not a scroll. The controls fall into groups that
+## are touched at different rhythms -- once per specimen (identity, quality),
+## once per repeatability batch, once per photograph (flips, guides), once per
+## session (the seeding sliders, the extreme-point check) -- and stacking them
+## in one column made the ones used constantly sit below the ones used never.
+## Tabs put each rhythm one click away and leave the photograph the full width.
+##
+## With bslib installed the page uses a Bootstrap 5 theme; without it, the same
+## content is laid out with the standard Shiny sidebar. No feature depends on
+## bslib: only the appearance does.
 ## =============================================================================
-ui <- fluidPage(
-  # holding the right button down on the photo pans the view (sends deltas to Shiny)
-  tags$head(tags$script(HTML(paste(
-    "(function(){var dg=false,lx=0,ly=0,adx=0,ady=0,c=0,raf=null;",
-    "function el(){return document.getElementById('img');}",
-    "function flush(){raf=null;if(adx===0&&ady===0)return;Shiny.setInputValue('pan',{dx:adx,dy:ady,n:++c},{priority:'event'});adx=0;ady=0;}",
-    "document.addEventListener('contextmenu',function(e){var m=el();if(m&&m.contains(e.target))e.preventDefault();});",
-    "document.addEventListener('mousedown',function(e){var m=el();if(m&&m.contains(e.target)&&e.button===2){dg=true;lx=e.clientX;ly=e.clientY;e.preventDefault();}});",
-    "document.addEventListener('mousemove',function(e){if(!dg)return;var m=el();if(!m)return;var r=m.getBoundingClientRect();adx+=(e.clientX-lx)/r.width;ady+=(e.clientY-ly)/r.height;lx=e.clientX;ly=e.clientY;if(!raf)raf=requestAnimationFrame(flush);});",
-    "document.addEventListener('mouseup',function(e){if(e.button===2){dg=false;if(!raf)raf=requestAnimationFrame(flush);}});",
-    "})();", sep = "\n"))),
-    # the action bar is one row: kill the form-group margin the selectize would
-    # otherwise add, and keep the checkbox labels on the baseline of the buttons
-    tags$style(HTML(paste0(
-      ".actionbar .form-group{margin-bottom:0;}",
-      ".actionbar .btn{margin-right:3px;}",
-      ".actionbar .selectize-control{margin-bottom:0;}",
-      ".phasebar .form-group{margin-bottom:0;}",
-      ".phasebar .checkbox{margin:0;}")))),
-  titlePanel("Predictor-assisted landmarking -- ml-morph"),
-  sidebarLayout(
-    sidebarPanel(width = 3,
-      uiOutput("progress"),
-      tags$hr(),
-      tags$strong("Photograph folder"),
-      textInput("photo_dir", NULL, placeholder = "folder path..."),
-      actionButton("load_dir", "Load folder", class = "btn-primary"),
-      helpText("Navigation and the save actions live in the action bar above",
-               "the photograph, where the eye already is."),
-      tags$hr(),
-      fileInput("photo", "...or a single photograph (jpg/png)",
-                accept = c(".jpg", ".jpeg", ".png")),
+HAS_BSLIB <- requireNamespace("bslib", quietly = TRUE) &&
+  utils::packageVersion("bslib") >= "0.5.0"
+
+APP_CSS <- paste0(
+  # the action bars are single rows: kill the form-group margins the selectize
+  # and the checkboxes would otherwise add
+  ".actionbar .form-group{margin-bottom:0;}",
+  ".actionbar .btn{margin-right:4px;}",
+  ".actionbar .selectize-control{margin-bottom:0;}",
+  ".phasebar .form-group{margin-bottom:0;}",
+  ".phasebar .checkbox{margin:0;}",
+  # a denser side panel: the tabs already separate the groups, so the vertical
+  # rhythm inside a tab can be tighter than Bootstrap's default
+  ".sidetabs .tab-content{padding-top:10px;}",
+  ".sidetabs .form-group{margin-bottom:10px;}",
+  ".sidetabs .shiny-input-container{width:100% !important;}",
+  ".sidetabs .irs{margin-bottom:0;}",
+  ".sidetabs .help-block{font-size:11.5px;line-height:1.35;color:#6b7280;}",
+  ".sidetabs .nav-link{padding:5px 9px;font-size:12.5px;}",
+  # the header strip: what the session IS, always visible, never in the way
+  ".sessionbar{font-size:12px;color:#6b7280;padding:2px 0 8px 0;",
+  "border-bottom:1px solid #e5e7eb;margin-bottom:10px;}",
+  ".sessionbar code{font-size:11.5px;color:#374151;background:#f3f4f6;",
+  "padding:1px 5px;border-radius:4px;}",
+  ".progressbox{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;",
+  "padding:8px 10px;font-size:13px;line-height:1.5;}",
+  ".statusline{font-size:12px;}",
+  # The landmark bar is the app's real navigation. One flex row, never wrapped:
+  # the buttons share the available width (flex:1 1 0) and shrink together, so a
+  # given landmark keeps its position on the screen whatever the window size.
+  # overflow-x is a floor, not a plan: below ~700 px the row scrolls rather than
+  # collapsing the digits.
+  ".lmrow{display:flex;flex-wrap:nowrap;gap:3px;align-items:stretch;",
+  "overflow-x:auto;margin-bottom:6px;padding-bottom:2px;}",
+  ".lmrow .lmbtn{flex:1 1 0;min-width:30px;padding:7px 0;font-size:14px;",
+  "line-height:1.1;text-align:center;border:1px solid #ccc;border-radius:6px;",
+  "cursor:pointer;}",
+  ".lmbar .btn{margin:2px 2px 0 0;padding:2px 7px;font-size:12px;",
+  "border-radius:6px;}",
+  # a floor under the photograph: a plot device narrower than this cannot draw
+  # anything useful, and a collapsed one cannot draw at all
+  "#img{min-width:360px;min-height:360px;}",
+  # the queue selector heads the side panel: boxed, so it reads as the state of
+  # the session rather than as one more control
+  ".modebar{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;",
+  "padding:6px 10px 0 10px;margin-bottom:10px;}",
+  ".modebar .form-group{margin-bottom:4px;}",
+  ".modebar .control-label{font-size:12px;color:#6b7280;margin-bottom:2px;}",
+  # the title. A system stack rather than a web font: it renders identically
+  # offline, which a field session may well be, and matches the platform.
+  ".app-title{font-family:'Inter','SF Pro Display','Segoe UI Variable',",
+  "'Helvetica Neue',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;",
+  "letter-spacing:-0.015em;}",
+  ".app-title-name{font-weight:800;}",
+  ".app-title-sub{font-weight:600;opacity:0.62;}",
+  # Mark NA is destructive-ish and pressed with the eye on the photograph: give
+  # it a colour of its own so it is never hit for 'Clear point'
+  "#set_na{font-weight:600;}")
+
+## Right-button drag on the photograph pans the view (deltas sent to Shiny).
+PAN_JS <- paste(
+  "(function(){var dg=false,lx=0,ly=0,adx=0,ady=0,c=0,raf=null;",
+  "function el(){return document.getElementById('img');}",
+  "function flush(){raf=null;if(adx===0&&ady===0)return;Shiny.setInputValue('pan',{dx:adx,dy:ady,n:++c},{priority:'event'});adx=0;ady=0;}",
+  "document.addEventListener('contextmenu',function(e){var m=el();if(m&&m.contains(e.target))e.preventDefault();});",
+  "document.addEventListener('mousedown',function(e){var m=el();if(m&&m.contains(e.target)&&e.button===2){dg=true;lx=e.clientX;ly=e.clientY;e.preventDefault();}});",
+  "document.addEventListener('mousemove',function(e){if(!dg)return;var m=el();if(!m)return;var r=m.getBoundingClientRect();adx+=(e.clientX-lx)/r.width;ady+=(e.clientY-ly)/r.height;lx=e.clientX;ly=e.clientY;if(!raf)raf=requestAnimationFrame(flush);});",
+  "document.addEventListener('mouseup',function(e){if(e.button===2){dg=false;if(!raf)raf=requestAnimationFrame(flush);}});",
+  "})();", sep = "\n")
+
+## A card when bslib is available, a bordered div otherwise. Used for the two
+## panels under the photograph, which read better boxed than free-floating.
+## A card when bslib is available, a bordered div otherwise. `fill = FALSE` on
+## purpose: a filling card inside a flex column negotiates its height with its
+## siblings, and the plot above it loses the argument -- which is how a 700 px
+## photograph ends up in a device too small for its own margins.
+card_box <- function(title, ...) {
+  if (HAS_BSLIB)
+    bslib::card(bslib::card_header(title), bslib::card_body(..., gap = "6px"),
+                fill = FALSE)
+  else
+    div(class = "well", style = "padding:10px;", tags$strong(title), ...)
+}
+
+## ---- side panel: one tab per rhythm of use ----------------------------------
+side_tabs <- function() {
+  tabsetPanel(
+    id = "sidetab", type = if (HAS_BSLIB) "pills" else "tabs",
+
+    tabPanel(
+      "Specimen",
       textInput("specimen_id", "Specimen code", ""),
       radioButtons("quality", "Quality score (1 = very good -> 5 = poor)",
                    choices = c("1" = 1, "2" = 2, "3" = 3, "4" = 4, "5" = 5),
                    selected = 3, inline = TRUE),
+      numericInput("scale_mm", "Scale bar 20-21: real length (mm)",
+                   CFG$ruler_mm, min = 0),
+      helpText("Optional. Place 20 and 21 at the two ends of the reference:",
+               "mm_per_px = real length / their distance in pixels. Left",
+               "unplaced, mm_per_px stays NA and the coordinates stay in pixels."),
       if (length(PRED_CHOICES))
-        selectInput("pred", "Model", choices = PRED_CHOICES)
-      else div(style = "color:red", "No predictor.dat found in ml_morph/"),
-      numericInput("scale_mm", "Scale-bar distance 20-21 (mm)", 10, min = 0),
+        selectInput("pred", "Predictor model", choices = PRED_CHOICES)
+      else div(class = "text-danger", style = "font-size:12px;",
+               "No predictor.dat found: the prediction step is disabled."),
       checkboxInput("pin", "Pin the reliable landmarks (LM1,2,3,4,7) on the clicks",
                     value = FALSE),
       tags$hr(),
-      tags$strong("Quality control"),
+      # --- how the next click is interpreted -----------------------------------
+      # Set once and left alone for a whole batch, so they belong here rather
+      # than in a bar the eye crosses on every point.
+      tags$strong("Click behaviour"),
+      checkboxInput("move_all", "Move the whole block (on click)", FALSE),
+      helpText("The click translates the entire configuration instead of the",
+               "active landmark -- for re-framing a whole set at once."),
+      checkboxInput("auto_constraints",
+                    "Auto constraints (adapt the other points)", TRUE),
+      helpText("Moving a landmark propagates the FISHMORPH conventions to the",
+               "points that depend on it: the 3-4 segment stays perpendicular",
+               "to the body axis, the eye group on one vertical, the ventral",
+               "group on one line. Unticked, each point moves alone."),
+      tags$hr(),
+      tags$strong("This specimen"),
+      div(class = "actionbar", style = "margin-top:6px;",
+          downloadButton("dl_csv", "CSV"), downloadButton("dl_tps", "TPS")),
+      helpText("A side export of the configuration on screen. The session's",
+               "real output is the workbook and the journal.")),
+
+    tabPanel(
+      "Repeats",
+      uiOutput("rep_info"),
+      numericInput("rep_target", "Repeats per individual", CFG$n_repeats,
+                   min = 2, step = 1),
+      numericInput("rep_i", "Current repeat", 1, min = 1, step = 1),
+      checkboxInput("rep_blind",
+                    "Blind repeat (clear the landmarks after each save)",
+                    value = TRUE),
+      helpText("Active in mode 'repeat'. The same photograph is digitized",
+               "several times and each pass is saved to the bias sheet as",
+               "individual + operator + replicate. Keep the repeats BLIND: a",
+               "pass started from the previous configuration measures how",
+               "little the operator moved the points, not how reproducibly",
+               "they place them, and collapses %ME towards zero."),
+      tags$hr(),
+      tags$strong("Bias so far"),
+      tableOutput("bias_tab"),
+      helpText("Median distance of the repeats to their own mean position, per",
+               "landmark, as a percentage of standard length. Written in full",
+               "to the bias_summary sheet.")),
+
+    tabPanel(
+      "Display",
+      checkboxInput("showlines", "Reference lines (outline / belly / eye)", TRUE),
+      checkboxInput("guides", "Alignment guides", FALSE),
+      checkboxInput("fishguides", "FISHMORPH geometry check", FALSE),
+      radioButtons("flip_mode", "Flip photograph (+ landmarks)",
+                   c("None" = "none", "Horizontal" = "h", "Vertical" = "v",
+                     "180" = "hv"), inline = TRUE),
+      radioButtons("flip_disp", "Flip the photograph ONLY (landmarks fixed)",
+                   c("None" = "none", "Horizontal" = "h", "Vertical" = "v",
+                     "180" = "hv"), inline = TRUE),
+      helpText("The first option moves the landmarks with the image, so points",
+               "already placed stay on the specimen. The second changes the",
+               "display only -- useful when reloaded points are mirrored",
+               "relative to the photograph. It persists between photographs.")),
+
+    tabPanel(
+      "Checks",
       checkboxInput("check_extremes",
                     "Check LM3 / LM4 (extremes) on save", value = TRUE),
       helpText("Bd is the MAXIMUM body depth: on save, checks that LM3 is the",
@@ -708,48 +1101,27 @@ ui <- fluidPage(
                "and the derived ventral points (8, 9, 11). On a breach, offers",
                "to measure again or to correct automatically."),
       tags$hr(),
-      tags$strong("Display"),
-      checkboxInput("showlines", "Reference lines (outline / belly / eye)", value = TRUE),
-      checkboxInput("guides", "Alignment guides", value = FALSE),
-      checkboxInput("fishguides", "FISHMORPH geometry check", value = FALSE),
-      radioButtons("flip_mode", "Flip photograph (+ landmarks)",
-                   c("None" = "none", "Horizontal" = "h", "Vertical" = "v", "180" = "hv"),
-                   inline = TRUE),
-      radioButtons("flip_disp", "Flip the photograph ONLY (landmarks fixed)",
-                   c("None" = "none", "Horizontal" = "h", "Vertical" = "v", "180" = "hv"),
-                   inline = TRUE),
-      helpText("The first option moves the landmarks with the image, so points",
-               "already placed stay on the specimen. The second changes the",
-               "display only -- useful when loaded points are mirrored relative",
-               "to the photograph. It persists from one photograph to the next."),
-      tags$hr(),
-      # --- review measurements already made (CSV specimen,landmark,X,Y[,mm_per_px]) ---
-      tags$strong("Review existing measurements"),
-      fileInput("measures_file", "Measurement table (CSV)",
-                accept = c(".csv", ".tsv", ".txt")),
-      uiOutput("load_specimen_ui"),
-      helpText("Load a photograph, then pick the matching specimen to check or",
-               "correct its landmarks. Coordinates are expected in image pixels",
-               "(the same as the export). Keep 'Flip photograph' on None."),
-      tags$hr(),
-      tags$strong("This specimen:"),
-      downloadButton("dl_csv", "CSV"), downloadButton("dl_tps", "TPS"),
-      tags$hr(),
-      tags$strong("Multi-specimen table"),
-      textOutput("saved_info"),
-      downloadButton("dl_all", "Export all measurements"),
-      actionButton("clear_all", "Clear the table"),
-      # --- seeding, last: set once for a batch, then rarely touched ------------
-      tags$hr(),
-      tags$strong("Seed (initial placement)"),
+      tags$strong("Workbook"),
+      verbatimTextOutput("saved_info"),
+      div(class = "actionbar",
+          actionButton("flush", "Write the workbook now", class = "btn-primary"),
+          actionButton("rebuild", "Rebuild from the journal")),
+      helpText("The workbook is written every", CFG$xlsx_flush_every,
+               "record(s), atomically. The journal is written at every save and",
+               "is the source of truth: 'Rebuild' reconstructs the sheets from",
+               "it, which is the recovery path after a crash.")),
+
+    tabPanel(
+      "Seed",
       helpText("Once the axis 1 - 22 - 23 - 2 is placed, every other landmark is",
                "put at the MEDIAN FISHMORPH proportion of the body, so there is",
-               "only repositioning left to do. These sliders set what the segment",
-               "ratios do not fix: where a segment sits along the body, how it",
-               "splits dorsal/ventral, and two fin angles. A point you have moved",
-               "is never re-seeded."),
+               "only repositioning left to do. These sliders set what the",
+               "segment ratios do not fix: where a segment sits along the body,",
+               "how it splits dorsal/ventral, and two fin angles. A point you",
+               "have moved is never re-seeded."),
       checkboxInput("flipdorsal", "Flip dorsal / ventral", FALSE),
       actionButton("reseed", "Re-seed the unplaced landmarks"),
+      tags$hr(),
       sliderInput("f_Bd",    "Bd position",              0, 1,  0.47, 0.01),
       sliderInput("o_Bd",    "Bd dorsal share",          0, 1,  0.50, 0.01),
       sliderInput("f_Hd",    "Hd position",              0, 1,  0.10, 0.01),
@@ -760,64 +1132,126 @@ ui <- fluidPage(
       sliderInput("o_PF",    "Pectoral dorsal share",   -1, 1, -0.69, 0.01),
       sliderInput("f_CP",    "Peduncle position",      0.5, 1,  0.93, 0.01),
       sliderInput("ang_PFl", "Pectoral fin angle",       0, 90, 35,   1),
-      sliderInput("ang_Jl",  "Jaw angle",              -30, 90, 20,   1)
-    ),
-    mainPanel(width = 9,
-      # ---- action bar, directly above the photograph -------------------------
-      # Every action taken once per specimen sits on one row, where the eye
-      # already is: navigating the queue, declaring a point unmeasurable, saving.
-      # Nothing here requires a trip back to the side panel mid-specimen.
-      div(class = "actionbar", style = "margin-bottom:6px;",
-        actionButton("prev_photo", "< Previous"),
-        actionButton("next_photo", "Next >"),
-        span(style = "display:inline-block;width:14px;"),
-        actionButton("set_na", "Mark NA"),
-        actionButton("clear_pt", "Clear point"),
-        span(style = "display:inline-block;width:14px;"),
-        actionButton("save_specimen", "Save & next", class = "btn-primary"),
-        actionButton("skip", "Skip"),
-        span(style = "display:inline-block;width:14px;"),
-        actionButton("flush", "Write the table"),
-        span(style = "display:inline-block;width:14px;"),
-        div(style = "display:inline-block;vertical-align:middle;min-width:280px;",
-            selectizeInput("goto_file", NULL, choices = NULL, selected = NULL,
-                           width = "280px",
-                           options = list(placeholder = "Jump to a photograph...")))),
-      uiOutput("click_help"),
-      uiOutput("auto_help"),
-      uiOutput("phase_ui"),     # phase-dependent controls (Predict / corrections)
-      uiOutput("lm_buttons"),   # active-landmark bar, above the photograph
-      # ---- view bar, immediately above the photograph ------------------------
-      # Zoom belongs next to what it zooms: at high magnification the operator
-      # alternates between placing a point and re-framing, and a trip to the
-      # side panel between the two breaks that loop.
-      div(class = "actionbar", style = "margin-bottom:4px;",
-        actionButton("zoom_in", "Zoom +"),
-        actionButton("zoom_out", "Zoom -"),
-        actionButton("zoom_reset", "Whole view"),
-        span(style = "display:inline-block;width:14px;"),
-        div(style = "display:inline-block;vertical-align:middle;",
-            selectInput("dispmax", NULL,
-                        choices = c("Display 800 px (fastest)"  = 800,
-                                    "Display 1200 px"           = 1200,
-                                    "Display 1600 px"           = 1600,
-                                    "Display 2400 px"           = 2400,
-                                    "Display full resolution"   = 0),
-                        selected = 1200, width = "215px")),
-        span(style = "font-size:12px;color:#666;margin-left:10px;",
-             "Right-click and drag to pan; double-click for the whole view;",
-             "zoom centres on the active landmark. No wheel zoom.")),
-      plotOutput("img", click = "click",
-                 dblclick = "img_dblclick", height = "700px"),
-      fluidRow(
-        column(7,
-               h5("Control: FISHMORPH segments as digitized"),
-               tableOutput("qc")),
-        column(5, verbatimTextOutput("status"))
-      )
-    )
+      sliderInput("ang_Jl",  "Jaw angle",              -30, 90, 20,   1))
   )
+}
+
+## The queue selector sits at the top of the side panel, above the tabs: it
+## decides what the whole session is doing -- which photographs are offered and
+## what "Save & next" means -- so it belongs with the state of the session, not
+## in the row of per-specimen actions where it was one click away from "Save".
+side_panel <- function()
+  div(class = "sidetabs",
+      div(class = "modebar",
+          radioButtons("session_mode", "Queue",
+                       c("New" = "new", "Correct" = "correct",
+                         "Repeats" = "repeat"),
+                       selected = CFG$mode, inline = TRUE)),
+      uiOutput("progress"), tags$br(), side_tabs())
+
+## ---- main panel -------------------------------------------------------------
+main_panel <- function() tagList(
+  # what this session IS, on one line: paths are declared at the console, so
+  # they belong in a header strip and not in editable fields.
+  div(class = "sessionbar", uiOutput("session_info")),
+  # ---- action bar, directly above the photograph -----------------------------
+  # Every action taken once per specimen sits on one row, where the eye already
+  # is: the queue, declaring a point unmeasurable, saving. Nothing here requires
+  # a trip back to the side panel mid-specimen.
+  div(class = "actionbar", style = "margin-bottom:6px;",
+      actionButton("prev_photo", "< Previous"),
+      actionButton("next_photo", "Next >"),
+      span(style = "display:inline-block;width:14px;"),
+      actionButton("save_specimen", "Save & next", class = "btn-primary"),
+      actionButton("skip", "Skip"),
+      span(style = "display:inline-block;width:14px;"),
+      div(style = "display:inline-block;vertical-align:middle;min-width:280px;",
+          selectizeInput("goto_file", NULL, choices = NULL, selected = NULL,
+                         width = "280px",
+                         options = list(placeholder = "Jump to a photograph...")))),
+  # ---- point bar: what acts on the ACTIVE landmark ---------------------------
+  # Declaring a point unmeasurable, clearing it, undoing, starting over: these
+  # act on the point under the cursor, so they belong beside the landmark bar
+  # rather than beside "Save & next", where a slip of one button was a saved
+  # specimen. Static, not a renderUI: re-rendering an actionButton resets its
+  # counter, which fires its observer as if it had been pressed.
+  div(class = "actionbar phasebar", style = "margin-bottom:4px;",
+      actionButton("set_na", "Mark NA", class = "btn-warning"),
+      actionButton("clear_pt", "Clear point"),
+      span(style = "display:inline-block;width:14px;"),
+      actionButton("predict", "Predict the 19 landmarks"),
+      actionButton("undo", "Undo last point"),
+      actionButton("restart", "Start over")),
+  div(class = "lmbar", uiOutput("lm_buttons")),   # active-landmark bar, bare
+  # ---- view bar, immediately above the photograph ----------------------------
+  # Zoom belongs next to what it zooms: at high magnification the operator
+  # alternates between placing a point and re-framing, and a trip to the side
+  # panel between the two breaks that loop.
+  div(class = "actionbar", style = "margin:6px 0 4px 0;",
+      actionButton("zoom_in", "Zoom +"),
+      actionButton("zoom_out", "Zoom -"),
+      actionButton("zoom_reset", "Whole view"),
+      span(style = "display:inline-block;width:14px;"),
+      div(style = "display:inline-block;vertical-align:middle;",
+          selectInput("dispmax", NULL,
+                      choices = c("Display 800 px (fastest)" = 800,
+                                  "Display 1200 px"          = 1200,
+                                  "Display 1600 px"          = 1600,
+                                  "Display 2400 px"          = 2400,
+                                  "Display full resolution"  = 0),
+                      selected = 1200, width = "215px")),
+      span(style = "font-size:12px;color:#6b7280;margin-left:10px;",
+           "Right-click and drag to pan; double-click for the whole view;",
+           "zoom centres on the active landmark. No wheel zoom.")),
+  plotOutput("img", click = "click", dblclick = "img_dblclick", height = "700px"),
+  fluidRow(
+    column(7, card_box("Control: FISHMORPH segments as digitized",
+                       tableOutput("qc"))),
+    column(5, card_box("Status",
+                       div(class = "statusline",
+                           verbatimTextOutput("status"))))),
+  # ---- reference, at the foot of the page ------------------------------------
+  # The entry order, the conventions and the colour code are read on the first
+  # specimen and never again. Above the photograph they cost three lines of
+  # scroll on every one of the following thousand; here they cost nothing and
+  # are still one page-end away.
+  card_box("Entry order, conventions and colour code",
+           uiOutput("click_help"),
+           uiOutput("auto_help"),
+           uiOutput("lm_legend"))
 )
+
+head_tags <- tags$head(tags$script(HTML(PAN_JS)), tags$style(HTML(APP_CSS)))
+
+## The title, once, as a tag rather than a string: the package name carries the
+## capitals it is written with, and the rest of the line is a subtitle, not part
+## of the name -- so it is set lighter instead of being run together with it.
+APP_TITLE <- tags$span(
+  class = "app-title",
+  tags$span(class = "app-title-name", "InTraitR"),
+  tags$span(class = "app-title-sub", " — predictor-assisted landmarking"))
+
+## `fillable = FALSE`: this page is a scrolling document, not a dashboard. In a
+## fillable page every child negotiates a share of the viewport height, so the
+## photograph -- asked for 700 px -- is squeezed by the bars above and the two
+## panels below, and on a short window the plot device ends up smaller than its
+## own margins. Ordinary document flow gives the plot the height it asks for and
+## lets the rest scroll.
+ui <- if (HAS_BSLIB) {
+  bslib::page_sidebar(
+    title = APP_TITLE,
+    theme = bslib::bs_theme(version = 5, primary = "#2563eb",
+                            "border-radius" = "0.5rem"),
+    fillable = FALSE,
+    sidebar = bslib::sidebar(width = 360, open = "desktop", side_panel()),
+    head_tags, main_panel())
+} else {
+  fluidPage(
+    head_tags,
+    titlePanel(APP_TITLE, windowTitle = "InTraitR landmarking"),
+    sidebarLayout(sidebarPanel(width = 3, side_panel()),
+                  mainPanel(width = 9, main_panel())))
+}
 
 ## =============================================================================
 ## Server
@@ -829,43 +1263,58 @@ server <- function(input, output, session) {
     pred = NULL, sel = 1L, msg = "",
     placed_order = integer(0),          # points in the order they were placed (for Undo)
     seeded = integer(0),                # points still at their median-proportion seed
-    saved = NULL,                       # cumulative table of every specimen done
     na = integer(0),                    # landmarks declared non-measurable
     edited = integer(0),                # landmarks moved by hand this session
     adjusted = integer(0),              # landmarks snapped by the extreme-point
                                         # convention (3/4), exported as "adjusted"
     zoom = 1, cx = NULL, cy = NULL,     # zoom state / view centre
-    dir_files = NULL, dir_i = 0L,       # photograph folder + current index
-    loaded = NULL, loaded_sel = NULL)   # measurement table being reviewed
+    meas = NULL, bias = NULL,           # the two workbook sheets, in memory
+    q = integer(0), qi = 0L,            # current queue (photo indices) + position
+    pending = 0L)                       # records not yet written to the workbook
 
-  ## Bring a saved table up to the current schema. Tables written before LM22
-  ## (the curvature point) was exported hold 21 rows per specimen; mixing them
-  ## with 22-row specimens would make read_landmarks_csv() refuse the file,
-  ## since it requires one common landmark configuration. Missing rows are added
-  ## as NA rather than dropped: an absent curvature point means "straight fish",
-  ## which fishmorph_segments() already handles.
-  normalise_saved <- function(df) {
-    if (is.null(df) || !nrow(df) || !all(c("specimen", "landmark") %in% names(df)))
-      return(df)
-    for (cc in c("mm_per_px", "note", "status"))
-      if (!cc %in% names(df)) df[[cc]] <- if (cc == "status") NA_character_ else NA
-    full <- do.call(rbind, lapply(split(df, df$specimen), function(d) {
-      miss <- setdiff(SAVE_PTS, d$landmark)
-      if (!length(miss)) return(d[d$landmark %in% SAVE_PTS, , drop = FALSE])
-      add <- d[rep(1L, length(miss)), , drop = FALSE]
-      add$landmark <- miss; add$X <- NA_real_; add$Y <- NA_real_
-      add$status <- "missing"
-      rbind(d[d$landmark %in% SAVE_PTS, , drop = FALSE], add)
-    }))
-    full <- full[order(full$specimen, full$landmark), , drop = FALSE]
-    rownames(full) <- NULL
-    full
+  ## ---- persistence ----------------------------------------------------------
+  ## Resume from the workbook if there is one. The two sheets are held in
+  ## memory: they are small (one row per digitization) and having them here is
+  ## what lets the queues, the progress display and the bias summary be computed
+  ## without touching the disk on every interaction.
+  rv$meas <- wb_read_sheet(CFG$xlsx_path, CFG$sheet_measurements)
+  rv$bias <- wb_read_sheet(CFG$xlsx_path, CFG$sheet_bias)
+
+  ## The journal is opened BEFORE any digitizing can happen, and every save goes
+  ## there first. It is the source of truth; the workbook is an export.
+  journal <- intraitR::landmark_journal_open(
+    CFG$journal_dir, operator = OPERATOR, app_version = CFG$app_version)
+
+  ## Write the workbook when enough records have accumulated (or when forced).
+  ## On failure NOTHING is overwritten and the operator is told: the journal is
+  ## already written, so no data is lost -- consolidate_landmarks() finds it.
+  flush_xlsx <- function(force = FALSE, quiet = TRUE) {
+    if (rv$pending == 0L && !force) return(invisible(FALSE))
+    if (!force && rv$pending < CFG$xlsx_flush_every) return(invisible(FALSE))
+    sheets <- list(rv$meas, rv$bias, bias_summary(rv$bias, WB_PTS))
+    names(sheets) <- c(CFG$sheet_measurements, CFG$sheet_bias, CFG$sheet_summary)
+    ok <- tryCatch({ intraitR::write_xlsx_atomic(sheets, CFG$xlsx_path); TRUE },
+                   error = function(e) { rv$msg <- conditionMessage(e); FALSE })
+    if (ok) {
+      rv$pending <- 0L
+      if (!quiet) showNotification(
+        sprintf("Workbook written: %s (%d + %d row(s)).",
+                basename(CFG$xlsx_path), nrow(rv$meas), nrow(rv$bias)),
+        type = "message", duration = 4)
+    } else {
+      showNotification(
+        paste0("Could not write the workbook (open in Excel? locked by the ",
+               "sync client?). Nothing is lost: every record is in the journal ",
+               journal$path, "."), type = "error", duration = 12)
+    }
+    invisible(ok)
   }
-
-  # Resume: reload the autosave file if one exists
-  if (file.exists(AUTOSAVE))
-    try(rv$saved <- normalise_saved(
-      utils::read.csv(AUTOSAVE, stringsAsFactors = FALSE)), silent = TRUE)
+  ## Last-chance write: closing the browser tab ends the session, and the
+  ## records accumulated since the last flush would otherwise wait in memory
+  ## until they were rebuilt from the journal.
+  session$onSessionEnded(function() {
+    isolate(if (rv$pending > 0L) try(flush_xlsx(force = TRUE), silent = TRUE))
+  })
 
   notify <- function(text, type = "message") {
     rv$msg <- text
@@ -886,6 +1335,103 @@ server <- function(input, output, session) {
     d <- sqrt(sum((P["21", ] - P["20", ])^2))
     if (!is.finite(d) || d <= 0) NA_real_ else mm / d
   }
+
+  ## ---- repeated digitization ------------------------------------------------
+  ## The code typed in the side panel names the PHYSICAL INDIVIDUAL throughout;
+  ## the saved identifier is derived from it. In standard mode the two coincide,
+  ## in repeat mode the identifier carries the operator and the repeat number, so
+  ## a second pass never overwrites the first (save_specimen() drops rows sharing
+  ## the identifier, which is exactly what must NOT happen between repeats).
+  rep_mode <- function() identical(input$session_mode, "repeat")
+  cur_mode <- function() input$session_mode %||% CFG$mode
+
+  cur_code <- function() {
+    id <- trimws(input$specimen_id %||% "")
+    if (nzchar(id)) id else "specimen"
+  }
+  rep_target <- function() {
+    t <- suppressWarnings(as.integer(input$rep_target))
+    if (!length(t) || is.na(t) || t < 1L) as.integer(CFG$n_repeats) else t
+  }
+  ## Repeat numbers already saved for this individual, by THIS operator. The
+  ## bias sheet carries `individual` and `replicate` as columns, so nothing has
+  ## to be parsed back out of the identifier here -- the identifier convention
+  ## exists for the exports that only have one string to work with.
+  saved_reps <- function(code = cur_code()) {
+    b <- rv$bias
+    if (is.null(b) || !nrow(b)) return(integer(0))
+    hit <- !is.na(b$individual) & b$individual == code &
+      (is.na(b$operator) | b$operator == OPERATOR)
+    if (!any(hit)) return(integer(0))
+    r <- suppressWarnings(as.integer(b$replicate[hit]))
+    sort(unique(r[is.finite(r)]))
+  }
+  ## Specimens already in the measurements sheet: the "new" queue is what is NOT
+  ## here, the "correct" queue is what IS.
+  saved_specimens <- function() {
+    m <- rv$meas
+    if (is.null(m) || !nrow(m)) return(character(0))
+    unique(m$specimen[!is.na(m$specimen)])
+  }
+  ## Individuals that need no further work in the CURRENT mode: anything already
+  ## measured (new/correct), or carrying its full complement of repeats.
+  done_codes <- function() {
+    if (isTRUE(rep_mode())) {
+      b <- rv$bias
+      if (is.null(b) || !nrow(b)) return(character(0))
+      ind <- unique(b$individual[!is.na(b$individual)])
+      tgt <- rep_target()
+      return(ind[vapply(ind, function(c0) length(saved_reps(c0)) >= tgt,
+                        logical(1))])
+    }
+    saved_specimens()
+  }
+  next_rep <- function(code = cur_code()) {
+    done <- saved_reps(code)
+    if (!length(done)) 1L else max(done) + 1L
+  }
+  ## Re-point the repeat counter at the first free slot for the individual now
+  ## on screen: reopening a photograph half-way through its repeats must
+  ## continue the series rather than restart it.
+  sync_rep <- function() {
+    if (!isTRUE(rep_mode())) return(invisible(NULL))
+    updateNumericInput(session, "rep_i", value = next_rep())
+    invisible(NULL)
+  }
+  ## The identifier the current configuration will be saved under.
+  save_id <- function() {
+    if (!isTRUE(rep_mode())) return(make_id(cur_code()))
+    n <- suppressWarnings(as.integer(input$rep_i))
+    if (!length(n) || is.na(n) || n < 1L) n <- 1L
+    make_id(cur_code(), OPERATOR, n)
+  }
+  observeEvent(input$specimen_id, sync_rep(), ignoreInit = TRUE)
+
+  output$rep_info <- renderUI({
+    done <- saved_reps(); tgt <- rep_target()
+    cls <- if (!isTRUE(rep_mode())) "text-muted" else ""
+    div(class = paste("progressbox", cls),
+        HTML(sprintf(
+          "<b>%s</b><br>%d / %d repeat(s) saved%s<br>Next save: <code>%s</code>%s",
+          cur_code(), length(done), tgt,
+          if (length(done)) paste0(" (rep ", paste(done, collapse = ", "), ")")
+          else "", save_id(),
+          if (!isTRUE(rep_mode()))
+            "<br><i>Switch the mode to 'Repeats' to use this tab.</i>" else "")))
+  })
+
+  ## Per-landmark reproducibility of what has been repeated so far. Shown while
+  ## the session is open, because it is the number that tells the operator
+  ## whether the protocol is holding -- not something to discover a month later.
+  output$bias_tab <- renderTable({
+    s <- bias_summary(rv$bias, WB_PTS)
+    if (!nrow(s)) return(data.frame(`No repeat saved yet` = character(0),
+                                    check.names = FALSE))
+    s <- s[s$individual == "(all)", c("landmark", "n_replicates",
+                                      "median_dev_px", "median_dev_pct_bl")]
+    names(s) <- c("LM", "n", "px", "% Bl")
+    s
+  }, digits = 2, na = "-", width = "100%")
 
   ## ---- image display --------------------------------------------------------
   ## PERFORMANCE. A 24 Mpx photograph makes the app unusable for clicking unless
@@ -958,48 +1504,134 @@ server <- function(input, output, session) {
     rv$zoom <- 1; rv$cx <- NULL; rv$cy <- NULL
   }
 
-  observeEvent(input$photo, {
-    rv$orig <- input$photo$datapath
-    rv$dir_files <- NULL; rv$dir_i <- 0L        # single photo -> leave folder mode
-    updateSelectizeInput(session, "goto_file", choices = character(0), server = TRUE)
-    updateTextInput(session, "specimen_id",
-                    value = tools::file_path_sans_ext(input$photo$name))
-    load_working()
-    rv$msg <- "Image loaded. Click the snout (point 1)."
-  })
-
-  ## ---- folder navigation ----------------------------------------------------
-  load_dir_photo <- function(i) {
-    n <- length(rv$dir_files)
-    if (!n) return()
-    i <- max(1L, min(as.integer(i), n)); rv$dir_i <- i
-    p <- rv$dir_files[i]
-    rv$orig <- p
-    updateTextInput(session, "specimen_id",
-                    value = tools::file_path_sans_ext(basename(p)))
-    updateSelectizeInput(session, "goto_file", selected = i)
-    load_working()
-    rv$msg <- sprintf("Photograph %d/%d loaded. Click the snout (point 1).", i, n)
+  ## ---- the queues -----------------------------------------------------------
+  ## A queue is a set of INDICES into CFG$photos, so switching mode never
+  ## reloads the folder and the photograph on screen keeps its identity.
+  ##   new     : photographs not yet in the measurements sheet
+  ##   correct : those that are (their points are reloaded on arrival)
+  ##   repeat  : every photograph, until each has its complement of repeats
+  queue_of <- function(m = cur_mode()) {
+    done <- saved_specimens()
+    switch(m,
+           new     = which(!(PHOTO_CODES %in% done)),
+           correct = which(PHOTO_CODES %in% done),
+           `repeat` = seq_along(CFG$photos),
+           seq_along(CFG$photos))
   }
-  observeEvent(input$load_dir, {
-    d <- trimws(input$photo_dir)
-    if (!nzchar(d) || !dir.exists(d)) { notify("Folder not found.", "error"); return() }
-    files <- sort(list.files(d, pattern = "\\.(jpe?g|png|gif|bmp|tiff?)$",
-                             full.names = TRUE, ignore.case = TRUE))
-    if (!length(files)) { notify("No image in this folder.", "error"); return() }
-    rv$dir_files <- files
-    # server-side choices: the list is never rendered whole in the browser
-    updateSelectizeInput(session, "goto_file",
-                         choices = stats::setNames(seq_along(files), basename(files)),
-                         selected = 1L, server = TRUE)
-    load_dir_photo(1L)
-    notify(sprintf("%d photograph(s) loaded.", length(files)))
-  })
-  observeEvent(input$next_photo, if (length(rv$dir_files)) load_dir_photo(rv$dir_i + 1L))
-  observeEvent(input$prev_photo, if (length(rv$dir_files)) load_dir_photo(rv$dir_i - 1L))
+  ## Points already saved for a specimen, put back on the photograph. This is
+  ## the whole of "correct" mode: the operator sees what was digitized, moves
+  ## what is wrong, and saves over it.
+  ##
+  ## Provenance survives the round trip. A row this app wrote comes back as
+  ## "clicked" -- a human placed those points at least once. A row whose `mode`
+  ## says it was SEEDED from elsewhere (an import, another operator's table)
+  ## comes back as "seeded": nobody has yet checked it against THIS photograph,
+  ## which is exactly what that status means. Without the distinction, importing
+  ## a starting configuration and pressing Save would silently relabel it as
+  ## hand-placed measurement -- the one thing the status column exists to
+  ## prevent. Each point the operator actually moves becomes "clicked" through
+  ## the normal click path.
+  seed_from_sheet <- function(code) {
+    m <- rv$meas
+    if (is.null(m) || !nrow(m)) return(FALSE)
+    i <- match(code, m$specimen)
+    if (is.na(i)) return(FALSE)
+    imported <- !is.na(m$mode[i]) && grepl("^seed", m$mode[i])
+    P <- empty_coords()
+    got <- integer(0)
+    for (p in WB_PTS) {
+      x <- suppressWarnings(as.numeric(m[[paste0(p, "_X")]][i]))
+      y <- suppressWarnings(as.numeric(m[[paste0(p, "_Y")]][i]))
+      if (is.finite(x) && is.finite(y)) { P[p, ] <- c(x, y); got <- c(got, p) }
+    }
+    if (!length(got)) return(FALSE)
+    rv$pred <- P
+    if (imported) {
+      rv$seeded <- setdiff(got, DERIVED_LM); rv$edited <- integer(0)
+    } else {
+      rv$edited <- setdiff(got, DERIVED_LM); rv$seeded <- integer(0)
+    }
+    rv$adjusted <- integer(0); rv$na <- integer(0)
+    rv$placed_order <- got
+    rv$sel <- if (22L %in% got) 22L else got[1]
+    q <- suppressWarnings(as.numeric(m$quality[i]))
+    if (is.finite(q)) updateRadioButtons(session, "quality",
+                                         selected = as.character(round(q)))
+    TRUE
+  }
+  load_queue_photo <- function(k) {
+    n <- length(rv$q)
+    if (!n) { rv$qi <- 0L; return(invisible(NULL)) }
+    k <- max(1L, min(as.integer(k), n)); rv$qi <- k
+    i <- rv$q[k]
+    rv$orig <- CFG$photos[i]
+    code <- PHOTO_CODES[i]
+    updateTextInput(session, "specimen_id", value = code)
+    updateSelectizeInput(session, "goto_file", selected = i)
+    load_working()                                  # resets every point
+    reloaded <- if (identical(cur_mode(), "correct")) seed_from_sheet(code) else FALSE
+    if (isTRUE(rep_mode())) updateNumericInput(session, "rep_i",
+                                               value = next_rep(code))
+    rv$msg <- sprintf(
+      "%s (%d/%d in the '%s' queue). %s",
+      code, k, n, cur_mode(),
+      if (!reloaded) "Click the snout (point 1)."
+      else if (length(rv$seeded))
+        paste("Configuration SEEDED from elsewhere, checked by nobody on this",
+              "photograph: go through every point before saving.")
+      else "Points reloaded from the workbook: check and correct.")
+    invisible(NULL)
+  }
+  ## Rebuild the queue for a mode and land on the first photograph that still
+  ## needs work -- not simply the first one, which in a resumed session is
+  ## almost always already done.
+  set_mode <- function(m, keep_photo = TRUE) {
+    cur <- if (keep_photo && rv$qi > 0L && length(rv$q)) rv$q[rv$qi] else NA_integer_
+    rv$q <- queue_of(m)
+    if (!length(rv$q)) {
+      # An empty queue at launch is the normal state of a finished batch, not an
+      # error: fall back to the first queue that has work, and say so.
+      alt <- setdiff(c("new", "correct", "repeat"), m)
+      alt <- alt[vapply(alt, function(x) length(queue_of(x)) > 0, logical(1))]
+      if (length(alt)) {
+        notify(sprintf("The '%s' queue is empty -- switching to '%s'.", m, alt[1]),
+               "warning")
+        updateRadioButtons(session, "session_mode", selected = alt[1])
+        return(invisible(NULL))       # the observer re-enters with the new mode
+      }
+      rv$qi <- 0L
+      notify(sprintf("The '%s' queue is empty.", m), "warning")
+      return(invisible(NULL))
+    }
+    k <- if (!is.na(cur) && cur %in% rv$q) match(cur, rv$q) else {
+      todo <- which(!(PHOTO_CODES[rv$q] %in% done_codes()))
+      if (length(todo)) todo[1] else 1L
+    }
+    load_queue_photo(k)
+  }
+
+  ## The photograph jump list is the whole folder, once, server-side: the list
+  ## is never rendered in full in the browser.
+  updateSelectizeInput(session, "goto_file",
+                       choices = stats::setNames(seq_along(CFG$photos),
+                                                 basename(CFG$photos)),
+                       selected = character(0), server = TRUE)
+  observeEvent(input$session_mode, set_mode(cur_mode()), ignoreInit = FALSE)
+  observeEvent(input$next_photo, if (length(rv$q)) load_queue_photo(rv$qi + 1L))
+  observeEvent(input$prev_photo, if (length(rv$q)) load_queue_photo(rv$qi - 1L))
   observeEvent(input$goto_file, {
     i <- suppressWarnings(as.integer(input$goto_file))
-    if (!is.na(i) && length(rv$dir_files) && i != rv$dir_i) load_dir_photo(i)
+    if (is.na(i) || !length(rv$q)) return()
+    if (rv$qi > 0L && identical(rv$q[rv$qi], i)) return()
+    k <- match(i, rv$q)
+    if (is.na(k)) {
+      # the photograph is outside the current queue: follow the operator rather
+      # than refuse, and say which queue they have landed in.
+      notify(sprintf("%s is not in the '%s' queue -- opened anyway.",
+                     PHOTO_CODES[i], cur_mode()), "warning")
+      rv$q <- sort(unique(c(rv$q, i))); k <- match(i, rv$q)
+    }
+    load_queue_photo(k)
   }, ignoreInit = TRUE)
 
   ## ---- flips ----------------------------------------------------------------
@@ -1054,67 +1686,6 @@ server <- function(input, output, session) {
     if (is.null(rv$cy)) rv$cy <- rv$h / 2
     rv$cx <- rv$cx - input$pan$dx * (rv$w / rv$zoom)
     rv$cy <- rv$cy - input$pan$dy * (rv$h / rv$zoom)
-  })
-
-  ## ---- reviewing an existing measurement table ------------------------------
-  ## Reads a CSV (specimen, landmark, X, Y[, mm_per_px, note]; X and Y in image
-  ## pixels) and places one specimen's landmarks on the photograph.
-  observeEvent(input$measures_file, {
-    df <- tryCatch(utils::read.csv(input$measures_file$datapath,
-                                   stringsAsFactors = FALSE, check.names = FALSE),
-                   error = function(e) NULL)
-    if (is.null(df) || !ncol(df)) { notify("Could not read the CSV.", "error"); return() }
-    names(df) <- tolower(names(df))
-    pick <- function(cands) { h <- intersect(cands, names(df)); if (length(h)) h[1] else NA }
-    spc <- pick(c("specimen", "code", "id")); lmc <- pick(c("landmark", "lm"))
-    xc  <- pick("x"); yc <- pick("y")
-    ntc <- pick(c("note", "quality"))
-    if (any(is.na(c(spc, lmc, xc, yc)))) {
-      notify("Invalid CSV: expected columns specimen, landmark, X, Y.", "error"); return()
-    }
-    d <- data.frame(specimen = as.character(df[[spc]]),
-                    landmark = suppressWarnings(as.integer(df[[lmc]])),
-                    X = suppressWarnings(as.numeric(df[[xc]])),
-                    Y = suppressWarnings(as.numeric(df[[yc]])),
-                    note = if (!is.na(ntc)) suppressWarnings(as.integer(df[[ntc]]))
-                           else NA_integer_,
-                    stringsAsFactors = FALSE)
-    d <- d[!is.na(d$landmark), , drop = FALSE]
-    if (!nrow(d)) { notify("Empty CSV, or non-numeric columns.", "error"); return() }
-    rv$loaded <- d
-    sp <- sort(unique(d$specimen))
-    rv$loaded_sel <- if (nzchar(input$specimen_id) && input$specimen_id %in% sp)
-                       input$specimen_id else sp[1]
-    notify(sprintf("Table loaded: %d specimen(s). Pick one, then 'Load onto the photograph'.",
-                   length(sp)))
-  })
-
-  output$load_specimen_ui <- renderUI({
-    if (is.null(rv$loaded)) return(NULL)
-    sp <- sort(unique(rv$loaded$specimen))
-    tagList(
-      selectInput("load_specimen", "Specimen from the table", choices = sp,
-                  selected = rv$loaded_sel),
-      actionButton("load_measures_btn", "Load onto the photograph", class = "btn-primary"))
-  })
-
-  observeEvent(input$load_measures_btn, {
-    req(rv$loaded, input$load_specimen)
-    d <- rv$loaded[rv$loaded$specimen == input$load_specimen, , drop = FALSE]
-    if (!nrow(d)) { notify("No row for this specimen.", "error"); return() }
-    M <- matrix(NA_real_, N_TOT, 2, dimnames = list(seq_len(N_TOT), c("X", "Y")))
-    ok <- d$landmark >= 1 & d$landmark <= N_TOT
-    M[as.character(d$landmark[ok]), ] <- as.matrix(d[ok, c("X", "Y")])
-    # Reloaded points count as already digitized, so the review phase applies.
-    rv$pred <- M
-    rv$na <- integer(0); rv$edited <- integer(0); rv$placed_order <- integer(0)
-    rv$seeded <- integer(0); rv$adjusted <- integer(0)
-    rv$sel <- ANAT_ORDER[1]   # first anatomical point to review
-    updateTextInput(session, "specimen_id", value = input$load_specimen)
-    nt <- if ("note" %in% names(d)) d$note[!is.na(d$note)] else integer(0)
-    if (length(nt)) updateRadioButtons(session, "quality", selected = as.character(nt[1]))
-    notify(sprintf("Landmarks of '%s' loaded (%d points), with no re-derivation.",
-                   input$load_specimen, sum(ok)))
   })
 
   ## ---- seeding --------------------------------------------------------------
@@ -1227,24 +1798,6 @@ server <- function(input, output, session) {
                "dorsal side up and is re-predicted.")
   })
 
-  ## One fixed bar. Placing by hand is the DEFAULT way to work -- the seed puts
-  ## every landmark down as soon as the axis is drawn -- so it is not a mode to
-  ## switch into. `Predict` stays available throughout: the model is an optional
-  ## accelerator over the seeded configuration, not a step to get past first.
-  ## Mark NA / Clear point / Save live in the action bar above; only the editing
-  ## MODES belong here, since they change how the next click is interpreted.
-  output$phase_ui <- renderUI({
-    div(class = "phasebar", style = "margin-bottom:4px;",
-      div(style = "display:inline-block;margin-right:16px;",
-          checkboxInput("move_all", "Move the whole block (on click)", FALSE)),
-      div(style = "display:inline-block;margin-right:16px;",
-          checkboxInput("auto_constraints",
-                        "Auto constraints (adapt the other points)", TRUE)),
-      actionButton("predict", "Predict the 19 landmarks"),
-      actionButton("undo", "Undo last point"),
-      actionButton("restart", "Start over"))
-  })
-
   ## ---- active-landmark bar --------------------------------------------------
   ## Faster than a drop-down, and it doubles as a status display: green = active,
   ## blue = placed by hand, pink struck through = NA, grey = derived, gold =
@@ -1272,27 +1825,38 @@ server <- function(input, output, session) {
              else "background:#f7f7f7;"
       if (!fin_row(rv$pred, i) && !(i %in% rv$na))
         col <- paste0(col, "border-style:dashed;")
-      tags$button(type = "button", i,
+      tags$button(type = "button", i, class = "lmbtn",
         onclick = sprintf("Shiny.setInputValue('sel_btn', %d, {priority:'event'});", i),
-        style = paste0("margin:2px;padding:6px 12px;min-width:42px;font-size:15px;",
-                       "border:1px solid #ccc;border-radius:4px;cursor:pointer;", col))
+        style = col)
     }
-    div(style = "margin-bottom:8px;line-height:2.4;",
-        tags$strong("Active landmark (click the photograph to place it -> auto-advance): "),
-        lapply(order_show, btn),
-        tags$div(style = "font-size:11px;color:#666;line-height:1.5;",
-          "Green = active; blue = placed by hand; amber = still at its seed",
-          "(median FISHMORPH proportion -- never checked on this specimen);",
-          "pink struck through = NA; grey = automatic or derived; gold = HINGES;",
-          "pale green = SCALE BAR (20/21); mauve = snapped onto the body outline",
-          "by the LM3/LM4 check; dashed border = not placed yet.",
-          tags$br(),
-          "Broken axis 1 -> 22 -> 23 -> 2: place 22 then 23 on the bends of a curved",
-          "specimen. Head conventions apply on 1-22, body depth and pectoral fin",
-          "(10, 11, 12) on 22-23, caudal (16-17, 18-19) on 23-2. LM24 (end of the",
-          "list) adds a fourth axis segment, without conventions. LM22 is a genuine",
-          "landmark -- fishmorph_segments() uses it to correct the standard length --",
-          "whereas 23 and 24 are entry aids and are NOT exported."))
+    # Nothing but the buttons, and all of them on ONE line: the bar is a map of
+    # the specimen, read at a glance dozens of times per fish, and a wrap turns
+    # that glance into a search -- the point that moves to the second row is at a
+    # different place on every window size. The flex row shares the width out
+    # instead (see .lmbar in APP_CSS). Its meaning is carried by the colours,
+    # which the legend at the foot of the page states once.
+    div(class = "lmrow", lapply(order_show, btn))
+  })
+
+  ## The colour legend, at the foot of the page: read once, then never again.
+  output$lm_legend <- renderUI({
+    tags$div(style = "font-size:11.5px;color:#6b7280;line-height:1.6;",
+      tags$b("Landmark bar: "),
+      "green = active; blue = placed by hand; amber = still at its seed",
+      "(median FISHMORPH proportion -- never checked on this specimen);",
+      "pink struck through = NA; grey = automatic or derived; gold = HINGES;",
+      "pale green = SCALE BAR (20/21); mauve = snapped onto the body outline",
+      "by the LM3/LM4 check; dashed border = not placed yet.",
+      tags$br(),
+      "Broken axis 1 -> 22 -> 23 -> 2: place 22 then 23 on the bends of a curved",
+      "specimen. Head conventions apply on 1-22, body depth and pectoral fin",
+      "(10, 11, 12) on 22-23, caudal (16-17, 18-19) on 23-2. LM24 (end of the",
+      "list) adds a fourth axis segment, without conventions. LM22 is a genuine",
+      "landmark -- fishmorph_segments() uses it to correct the standard length.",
+      "LM23 and LM24 are entry aids, not landmarks: they are written to the",
+      "workbook and the journal, so that reopening a specimen restores the axis",
+      "it was digitized under, but they must be left out of any shape analysis",
+      "(read the first 22 points, not every _X column).")
   })
   observeEvent(input$sel_btn, { rv$sel <- as.integer(input$sel_btn); zoom_to_sel() })
 
@@ -1335,11 +1899,18 @@ server <- function(input, output, session) {
     rv$sel <- last
     rv$msg <- paste0(point_label(last), " cleared -- place it again.")
   })
-  observeEvent(input$restart, {
+  ## Drop every point and its status, keeping the photograph, the zoom and the
+  ## flips as they are. Shared by "Start over" and by the blind repeat, which
+  ## must leave the operator facing the same image with nothing already placed.
+  reset_points <- function() {
     rv$pred <- empty_coords()
     rv$na <- integer(0); rv$edited <- integer(0); rv$placed_order <- integer(0)
     rv$seeded <- integer(0); rv$adjusted <- integer(0)
     rv$sel <- 1L
+    invisible(NULL)
+  }
+  observeEvent(input$restart, {
+    reset_points()
     rv$msg <- "Cleared. Click the snout (LM1)."
   })
 
@@ -1364,47 +1935,87 @@ server <- function(input, output, session) {
     stats::setNames(st, as.character(points))
   }
 
-  ## ---- multi-specimen table -------------------------------------------------
+  ## ---- the record: one row for the workbook, one line per point for the journal
+  ## The long form is what goes to the journal (it carries the per-point status);
+  ## the wide form is the workbook row. They are built from the same state, so
+  ## the two layers can never disagree about what was saved.
   current_table <- function() {
-    id <- trimws(input$specimen_id); if (id == "") id <- "specimen"
+    id <- save_id()                       # code, or code[_operator]_rep<N>
     P <- rv$pred
-    mmpp <- mm_per_px(P)                            # scale from the final 20-21
-    note <- suppressWarnings(as.integer(input$quality))
-    data.frame(specimen = id, landmark = SAVE_PTS,
-               X = P[SAVE_PTS, 1], Y = P[SAVE_PTS, 2],
-               mm_per_px = mmpp,
-               note = note,                         # repeated on every row
-               status = unname(point_status(SAVE_PTS)),
+    data.frame(specimen = id, landmark = WB_PTS,
+               X = P[WB_PTS, 1], Y = P[WB_PTS, 2],
+               mm_per_px = mm_per_px(P),            # scale from the final 20-21
+               note = suppressWarnings(as.integer(input$quality)),
+               status = unname(point_status(WB_PTS)),
                row.names = NULL)
   }
+  current_row <- function(st) {
+    P <- rv$pred
+    row <- data.frame(
+      specimen = save_id(), individual = cur_code(),
+      replicate = if (isTRUE(rep_mode()))
+        suppressWarnings(as.integer(input$rep_i)) else 1L,
+      operator = OPERATOR, mode = cur_mode(),
+      photo_file = if (!is.null(rv$orig)) basename(rv$orig) else NA_character_,
+      img_w = rv$w %||% NA_real_, img_h = rv$h %||% NA_real_,
+      quality = suppressWarnings(as.numeric(input$quality)),
+      ruler_mm = num1(input$scale_mm), mm_per_px = mm_per_px(P),
+      n_clicked = sum(st == "clicked"), n_seeded = sum(st == "seeded"),
+      n_predicted = sum(st == "predicted"), n_adjusted = sum(st == "adjusted"),
+      n_na = sum(st == "na"),
+      app_version = CFG$app_version,
+      timestamp = format(as.POSIXct(Sys.time(), tz = "UTC"),
+                         "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+      stringsAsFactors = FALSE)
+    for (p in WB_PTS) {
+      row[[paste0(p, "_X")]] <- if (fin_row(P, p)) P[p, 1] else NA_real_
+      row[[paste0(p, "_Y")]] <- if (fin_row(P, p)) P[p, 2] else NA_real_
+    }
+    row[, WB_COLS, drop = FALSE]
+  }
 
-  ## Skip: jump to the next photograph NOT yet in the saved table, rather than
-  ## simply the next one. In a batch that is what "skip" is actually for --
+  ## Skip: jump to the next photograph of the queue that still NEEDS work,
+  ## rather than simply the next one. In a batch that is what skip is for --
   ## coming back to the gaps after a first pass, without stepping through the
   ## specimens already done.
   observeEvent(input$skip, {
-    n <- length(rv$dir_files)
-    if (!n) { notify("No folder loaded.", "warning"); return() }
-    done <- if (!is.null(rv$saved)) unique(rv$saved$specimen) else character(0)
-    codes <- tools::file_path_sans_ext(basename(rv$dir_files))
-    cand <- setdiff(seq_len(n), which(codes %in% done))
-    nxt <- cand[cand > rv$dir_i]
+    if (!length(rv$q)) { notify("The queue is empty.", "warning"); return() }
+    done <- done_codes()
+    cand <- which(!(PHOTO_CODES[rv$q] %in% done))
+    nxt <- cand[cand > rv$qi]
     if (!length(nxt)) nxt <- cand              # wrap around to the earlier gaps
-    if (!length(nxt)) { notify("Every photograph in the folder is saved.");  return() }
-    load_dir_photo(nxt[1])
+    if (!length(nxt)) {
+      notify(sprintf("Nothing left to do in the '%s' queue.", cur_mode()))
+      return()
+    }
+    load_queue_photo(nxt[1])
   })
 
-  ## Rewrite the cumulative table now. It is already written on every save, so
-  ## this is a belt-and-braces action for a long session.
+  ## Write the workbook now. It is written every `xlsx_flush_every` records
+  ## anyway, so this is the belt-and-braces action for a long session -- and the
+  ## one to press before opening the file in Excel.
   observeEvent(input$flush, {
-    if (is.null(rv$saved) || !nrow(rv$saved)) {
+    if (is.null(rv$meas) && is.null(rv$bias)) {
       notify("Nothing to write yet.", "warning"); return() }
-    ok <- tryCatch({ utils::write.csv(rv$saved, AUTOSAVE, row.names = FALSE); TRUE },
-                   error = function(e) FALSE)
-    notify(if (ok) sprintf("Table written to %s (%d specimen(s)).",
-                           basename(AUTOSAVE), length(unique(rv$saved$specimen)))
-           else sprintf("Could not write %s.", AUTOSAVE),
-           type = if (ok) "message" else "error")
+    flush_xlsx(force = TRUE, quiet = FALSE)
+  })
+
+  ## Recovery: rebuild both sheets from the journals and take them as the state.
+  ## The journal is the source of truth, so this is not an import -- it is the
+  ## workbook catching up with what was actually recorded.
+  observeEvent(input$rebuild, {
+    j <- tryCatch(intraitR::consolidate_landmarks(CFG$journal_dir, points = WB_PTS),
+                  error = function(e) NULL)
+    if (is.null(j) || !nrow(j)) {
+      notify("No record found in the journal directory.", "warning"); return() }
+    is_bias <- !is.na(j$target_sheet) & j$target_sheet == CFG$sheet_bias
+    rv$meas <- wb_normalise(j[!is_bias, , drop = FALSE])
+    rv$bias <- wb_normalise(j[is_bias, , drop = FALSE])
+    rv$pending <- rv$pending + 1L
+    flush_xlsx(force = TRUE, quiet = FALSE)
+    notify(sprintf("Rebuilt from the journals: %d measurement(s), %d repeat(s).",
+                   nrow(rv$meas), nrow(rv$bias)))
+    set_mode(cur_mode())
   })
 
   ## ---- extreme-point check, on save -----------------------------------------
@@ -1493,20 +2104,47 @@ server <- function(input, output, session) {
   observeEvent(input$extreme_asis, { removeModal(); save_specimen() })
 
   save_specimen <- function() {
-    df <- current_table()
-    id <- df$specimen[1]
-    if (!is.null(rv$saved)) {
-      rv$saved <- rv$saved[rv$saved$specimen != id, , drop = FALSE]
-      for (cc in setdiff(names(df), names(rv$saved)))   # tables saved by older versions
-        rv$saved[[cc]] <- NA
-      rv$saved <- rv$saved[, names(df), drop = FALSE]
+    df  <- current_table()
+    id  <- df$specimen[1]
+    st  <- stats::setNames(df$status, as.character(df$landmark))
+    row <- current_row(df$status)
+    is_bias <- isTRUE(rep_mode())
+    sheet <- if (is_bias) CFG$sheet_bias else CFG$sheet_measurements
+
+    ## 1. THE JOURNAL FIRST, always. It is append-only, so this cannot destroy
+    ##    anything already recorded, and once it has returned the record exists
+    ##    whatever happens to the workbook, to R or to the machine.
+    jok <- tryCatch({
+      intraitR::landmark_journal_append(
+        journal, row_key = id, coords = rv$pred, points = WB_PTS, status = st,
+        specimen = id, individual = row$individual, replicate = row$replicate,
+        photo_file = row$photo_file, mode = row$mode, target_sheet = sheet,
+        img_w = row$img_w, img_h = row$img_h, quality = row$quality,
+        ruler_mm = row$ruler_mm, mm_per_px = row$mm_per_px)
+      TRUE
+    }, error = function(e) { rv$msg <- conditionMessage(e); FALSE })
+    if (!jok) {
+      showNotification(
+        paste("JOURNAL WRITE FAILED -- nothing was saved. Check that",
+              journal$path, "is writable before going on."),
+        type = "error", duration = NULL)
+      return(invisible(NULL))
     }
-    rv$saved <- rbind(rv$saved, df)
-    ok <- tryCatch({ utils::write.csv(rv$saved, AUTOSAVE, row.names = FALSE); TRUE },
-                   error = function(e) FALSE)
-    msg <- sprintf("Specimen '%s' saved (score %s/5; %d in total; %s).",
-                   id, df$note[1], length(unique(rv$saved$specimen)),
-                   if (ok) "autosaved" else "AUTOSAVE FAILED")
+
+    ## 2. Then the in-memory sheet. Same identifier = same row: a corrected
+    ##    specimen replaces itself, while a repeat -- whose identifier carries
+    ##    its number -- never can.
+    # `x != id` would yield NA on an NA identifier and slip a row of NAs into
+    # the sheet; the negated equality keeps those rows instead.
+    drop_id <- function(d) d[!(!is.na(d$specimen) & d$specimen == id), ,
+                             drop = FALSE]
+    if (is_bias) rv$bias <- rbind(drop_id(rv$bias), row)
+    else         rv$meas <- rbind(drop_id(rv$meas), row)
+    rv$pending <- rv$pending + 1L
+    flush_xlsx()                                   # writes every N records
+
+    msg <- sprintf("'%s' saved to %s (score %s/5; %d measurement(s), %d repeat(s)).",
+                   id, sheet, df$note[1], nrow(rv$meas), nrow(rv$bias))
     # Points never looked at are the quality risk worth surfacing, and a seeded
     # point is the worse of the two: it was measured on no specimen at all.
     unchecked <- c(seeded = sum(df$status == "seeded"),
@@ -1519,23 +2157,49 @@ server <- function(input, output, session) {
       msg <- paste(msg, sprintf("%d snapped to the body outline (status adjusted).",
                                 n_adj))
     notify(msg, type = if (any(unchecked > 0)) "warning" else "message")
-    if (!ok) showNotification(sprintf("Could not write %s.", AUTOSAVE),
-                              type = "error", duration = 8)
-    # move on to the next photograph when working through a folder
-    if (length(rv$dir_files) && rv$dir_i < length(rv$dir_files))
-      load_dir_photo(rv$dir_i + 1L)
+
+    ## 3. What "next" means depends on the queue. In repeat mode it is the SAME
+    ##    photograph again until the individual has its complement -- and, by
+    ##    default, with the landmarks cleared, because a pass resumed from the
+    ##    configuration just saved measures how little the operator moved the
+    ##    points rather than how reproducibly they place them, which drives %ME
+    ##    to zero.
+    if (is_bias) {
+      tgt <- rep_target()
+      done <- length(saved_reps())
+      if (done < tgt) {
+        updateNumericInput(session, "rep_i", value = next_rep())
+        if (isTRUE(input$rep_blind)) {
+          reset_points()
+          notify(sprintf(paste("Repeat %d/%d of '%s' saved. Landmarks cleared:",
+                               "measure again from the snout."),
+                         done, tgt, cur_code()))
+        } else {
+          notify(sprintf(paste("Repeat %d/%d of '%s' saved. The previous",
+                               "configuration is still on screen -- these",
+                               "repeats are NOT independent."),
+                         done, tgt, cur_code()), "warning")
+        }
+        return(invisible(NULL))
+      }
+      notify(sprintf("'%s' complete: %d repeat(s).", cur_code(), done))
+    }
+    if (length(rv$q) && rv$qi < length(rv$q)) load_queue_photo(rv$qi + 1L)
+    invisible(NULL)
   }
-  observeEvent(input$clear_all, { rv$saved <- NULL
-    if (file.exists(AUTOSAVE)) try(file.remove(AUTOSAVE), silent = TRUE)
-    notify("Table cleared.") })
+
   output$saved_info <- renderText({
-    if (is.null(rv$saved) || !nrow(rv$saved)) "No specimen saved yet."
-    else paste0(length(unique(rv$saved$specimen)), " specimen(s): ",
-                paste(unique(rv$saved$specimen), collapse = ", "))
+    nm <- if (is.null(rv$meas)) 0L else nrow(rv$meas)
+    nb <- if (is.null(rv$bias)) 0L else nrow(rv$bias)
+    ni <- if (nb) length(unique(rv$bias$individual)) else 0L
+    paste0(
+      sprintf("%s\n", basename(CFG$xlsx_path)),
+      sprintf("%s: %d specimen(s)\n", CFG$sheet_measurements, nm),
+      sprintf("%s: %d digitization(s) of %d individual(s)\n",
+              CFG$sheet_bias, nb, ni),
+      sprintf("%d record(s) not yet written (flush every %d)",
+              rv$pending, CFG$xlsx_flush_every))
   })
-  output$dl_all <- downloadHandler(
-    filename = function() paste0("measurements_", Sys.Date(), ".csv"),
-    content = function(f) { req(rv$saved); utils::write.csv(rv$saved, f, row.names = FALSE) })
 
   ## ---- prediction -----------------------------------------------------------
   observeEvent(input$predict, {
@@ -1607,8 +2271,12 @@ server <- function(input, output, session) {
 
   ## ---- plot -----------------------------------------------------------------
   output$img <- renderPlot({
-    if (is.null(rv$img)) { plot.new(); text(.5, .5, "Load a photograph"); return() }
+    # The margins go to zero FIRST, before anything is drawn: with the default
+    # 5.1/4.1/4.1/2.1 lines, plot.new() errors with "figure margins too large"
+    # as soon as the device is narrow (a collapsed layout, a small window),
+    # which would replace the photograph with a stack trace.
     par(mar = c(0, 0, 0, 0))
+    if (is.null(rv$img)) { plot.new(); text(.5, .5, "Load a photograph"); return() }
     cx <- if (is.null(rv$cx)) rv$w / 2 else rv$cx
     cy <- if (is.null(rv$cy)) rv$h / 2 else rv$cy
     hw <- (rv$w / 2) / rv$zoom; hh <- (rv$h / 2) / rv$zoom
@@ -1753,27 +2421,44 @@ server <- function(input, output, session) {
   }, digits = 3, na = "-")
 
   ## ---- progress and status --------------------------------------------------
+  ## Counted in the unit the operator is actually working in: photographs of the
+  ## CURRENT queue, and -- in repeat mode -- individuals that still owe repeats,
+  ## not rows. A batch is finished when nothing is left in the queue, which is
+  ## not the same statement as "n rows have been written".
   output$progress <- renderUI({
-    n <- length(rv$dir_files)
-    photo <- if (n) tools::file_path_sans_ext(basename(rv$dir_files[rv$dir_i]))
+    n <- length(rv$q)
+    photo <- if (n && rv$qi > 0L) PHOTO_CODES[rv$q[rv$qi]]
              else if (!is.null(rv$orig)) tools::file_path_sans_ext(basename(rv$orig))
              else "-"
-    done <- if (!is.null(rv$saved) && "specimen" %in% names(rv$saved))
-              length(unique(rv$saved$specimen)) else 0L
     left <- if (n) {
-      todo <- setdiff(tools::file_path_sans_ext(basename(rv$dir_files)),
-                      if (!is.null(rv$saved)) rv$saved$specimen else character(0))
-      sprintf("Photograph %d / %d &nbsp;.&nbsp; %d not yet saved", rv$dir_i, n, length(todo))
-    } else "No folder loaded."
+      todo <- sum(!(PHOTO_CODES[rv$q] %in% done_codes()))
+      sprintf("Photograph %d / %d &nbsp;&middot;&nbsp; %d still to do",
+              rv$qi, n, todo)
+    } else sprintf("The '%s' queue is empty.", cur_mode())
     mpp  <- mm_per_px(rv$pred)
     scal <- if (is.finite(mpp)) sprintf("%.4f mm/px", mpp)
             else "scale bar 20-21 not placed"
-    HTML(sprintf("<b>%s</b><br>%s<br>Saved: %d<br>Scale: %s",
-                 photo, left, done, scal))
+    rep_line <- if (isTRUE(rep_mode()))
+      sprintf("<br>Repeats: %d / %d for this individual",
+              length(saved_reps()), rep_target()) else ""
+    div(class = "progressbox",
+        HTML(sprintf("<b>%s</b><br>%s<br>Queue: <code>%s</code>%s<br>Scale: %s",
+                     photo, left, cur_mode(), rep_line, scal)))
+  })
+
+  ## The session in one line: the paths were declared at the console and cannot
+  ## be changed from here, so they are shown, not offered.
+  output$session_info <- renderUI({
+    HTML(sprintf(paste("Photographs <code>%s</code> (%d) &nbsp;&middot;&nbsp;",
+                       "workbook <code>%s</code> &nbsp;&middot;&nbsp;",
+                       "journal <code>%s</code> &nbsp;&middot;&nbsp;",
+                       "operator <code>%s</code>"),
+                 CFG$photo_dir, length(CFG$photos), basename(CFG$xlsx_path),
+                 basename(journal$path), OPERATOR))
   })
 
   output$status <- renderText({
-    if (is.null(rv$pred)) return("Load a photograph or a folder to begin.")
+    if (is.null(rv$pred)) return("Load a photograph to begin.")
     st <- point_status(seq_len(N_ANAT))
     step <- if (!fin_row(rv$pred, 1L) || !fin_row(rv$pred, 2L))
       paste("Draw the axis first: 1, 22, 23, 2. The hinges go on the bends of a",
@@ -1790,21 +2475,23 @@ server <- function(input, output, session) {
 
   ## ---- single-specimen export -----------------------------------------------
   fname <- reactive({
-    id <- trimws(input$specimen_id %||% "")
-    if (nzchar(id)) id else "specimen"
+    save_id()                              # carries _rep<N> in repeat mode
   })
   output$dl_csv <- downloadHandler(
     filename = function() paste0(fname(), "_landmarks.csv"),
     content = function(f) {
       req(rv$pred)
-      # All SAVE_PTS rows are kept: an unmeasurable point is written NA, so the
-      # scheme stays complete for downstream imputation.
+      # Every WB_PTS row is kept, hinges included: an unmeasurable point is
+      # written NA, so the scheme stays complete for downstream imputation.
       utils::write.csv(current_table(), f, row.names = FALSE) })
   output$dl_tps <- downloadHandler(
     filename = function() paste0(fname(), ".tps"),
     content = function(f) {
       req(rv$pred)
       con <- file(f, "w"); on.exit(close(con))
+      # SAVE_PTS and not WB_PTS: a TPS file is read as a shape, and the entry
+      # hinges 23-24 are not landmarks -- letting them into a configuration
+      # would put two arbitrary points into every Procrustes fit downstream.
       keep <- SAVE_PTS[vapply(SAVE_PTS, function(i) fin_row(rv$pred, i), logical(1))]
       writeLines(sprintf("LM=%d", length(keep)), con)
       for (i in keep)                                       # TPS: bottom-left origin

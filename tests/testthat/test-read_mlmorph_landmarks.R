@@ -79,6 +79,89 @@ test_that("missing coordinate columns are reported", {
   expect_error(read_mlmorph_landmarks(bad), "Missing column")
 })
 
+## ---- replicated identifiers ------------------------------------------------
+## The repeat mode of digitize_landmarks() distinguishes passes over the same
+## individual by the identifier, "<individual>[_<operator>]_rep<N>", since the
+## exported schema is one row per specimen and landmark.
+make_repeats <- function(ids) {
+  data.frame(
+    specimen = rep(ids, each = 3),
+    landmark = rep(1:3, times = length(ids)),
+    X = rep(c(10, 15, 20), times = length(ids)),
+    Y = rep(c(20, 25, 20), times = length(ids)),
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("replicate = 'parse' splits <individual>_rep<N>", {
+  ids <- c("fish_01_rep1", "fish_01_rep2", "fish_02_rep1")
+  lm <- suppressMessages(
+    read_mlmorph_landmarks(make_repeats(ids), scale_col = NULL,
+                           replicate = "parse")
+  )
+  # specimen ids are sorted: fish_01_rep1, fish_01_rep2, fish_02_rep1
+  expect_equal(lm$metadata$individual, c("fish_01", "fish_01", "fish_02"))
+  expect_equal(lm$metadata$replicate, c(1L, 2L, 1L))
+  # a scalar operator is still recycled untouched
+  expect_equal(lm$metadata$operator, rep("ml_morph", 3))
+})
+
+test_that("operator = 'parse' takes the token before the replicate suffix", {
+  ids <- c("fish_01_AT_rep1", "fish_01_GH_rep1", "fish_02_AT_rep2")
+  lm <- suppressMessages(
+    read_mlmorph_landmarks(make_repeats(ids), scale_col = NULL,
+                           replicate = "parse", operator = "parse")
+  )
+  expect_equal(lm$metadata$individual, c("fish_01", "fish_01", "fish_02"))
+  expect_equal(lm$metadata$operator, c("AT", "GH", "AT"))
+  expect_equal(lm$metadata$replicate, c(1L, 1L, 2L))
+})
+
+test_that("identifiers with no suffix are left alone (replicate 1)", {
+  ids <- c("fish_01_rep1", "fish_01_rep2", "fish_03")
+  lm <- suppressMessages(
+    read_mlmorph_landmarks(make_repeats(ids), scale_col = NULL,
+                           replicate = "parse")
+  )
+  expect_equal(lm$metadata$individual, c("fish_01", "fish_01", "fish_03"))
+  expect_equal(lm$metadata$replicate, c(1L, 2L, 1L))
+})
+
+test_that("parsing is never silent: unsuffixed tables warn and stay unchanged", {
+  expect_warning(
+    lm <- read_mlmorph_landmarks(make_repeats(c("fish_01", "fish_02")),
+                                 scale_col = NULL, replicate = "parse"),
+    "ends in"
+  )
+  expect_equal(lm$metadata$individual, lm$metadata$specimen)
+  expect_equal(lm$metadata$replicate, c(1L, 1L))
+})
+
+test_that("a replicate suffix without an operator token keeps operator = NA", {
+  expect_warning(
+    lm <- suppressMessages(
+      read_mlmorph_landmarks(make_repeats(c("fish01_rep1", "fish01_rep2")),
+                             scale_col = NULL, replicate = "parse",
+                             operator = "parse")
+    ),
+    "no operator token"
+  )
+  expect_equal(lm$metadata$individual, c("fish01", "fish01"))
+  expect_true(all(is.na(lm$metadata$operator)))
+})
+
+test_that("the defaults are unchanged and bad values are rejected", {
+  lm <- read_mlmorph_landmarks(make_repeats(c("fish_01_rep1", "fish_01_rep2")),
+                               scale_col = NULL)
+  expect_equal(lm$metadata$individual, lm$metadata$specimen)   # no parsing
+  expect_equal(lm$metadata$replicate, c(1L, 1L))
+  expect_error(
+    read_mlmorph_landmarks(make_repeats("fish_01_rep1"), scale_col = NULL,
+                           replicate = "toutes"),
+    "single integer"
+  )
+})
+
 test_that("save_to writes a readable .rds", {
   path <- tempfile(fileext = ".rds")
   lm <- suppressWarnings(read_mlmorph_landmarks(make_measures(), save_to = path))

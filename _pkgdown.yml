@@ -27,6 +27,11 @@ reference:
       - read_landmarks_xlsx
       - read_mlmorph_landmarks
       - digitize_landmarks
+      - landmark_journal_open
+      - landmark_journal_append
+      - landmark_journal_read
+      - consolidate_landmarks
+      - write_xlsx_atomic
       - plot_landmarks
       - print.intrait_landmarks
 

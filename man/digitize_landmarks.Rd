@@ -5,195 +5,274 @@
 \title{Launch the interactive ml-morph landmarking application}
 \usage{
 digitize_landmarks(
+  photo_dir,
+  xlsx_path = NULL,
+  journal_dir = NULL,
+  operator = NULL,
+  mode = c("new", "correct", "repeat"),
+  n_repeats = 3L,
+  ruler_mm = 10,
+  xlsx_flush_every = 10L,
   mlmorph_dir = NULL,
   predictor = NULL,
   python = NULL,
-  autosave = NULL,
+  sheets = c(measurements = "measurements", bias = "bias", summary = "bias_summary"),
   launch.browser = getOption("shiny.launch.browser", interactive()),
   ...
 )
 }
 \arguments{
+\item{photo_dir}{Directory of specimen photographs. Every image in it forms
+the working queue (\code{jpg}, \code{jpeg}, \code{png}, \code{gif}, \code{bmp}, \code{tif}, \code{tiff}); the
+file name without its extension is the specimen code. Photographs stay
+where they are -- only their name and pixel size are ever recorded.}
+
+\item{xlsx_path}{Path of the single output workbook. \code{NULL} (default) uses
+\code{intraitR_landmarks.xlsx} next to \code{photo_dir}. Created if absent; an
+existing workbook is resumed from (its specimens are excluded from the
+\code{"new"} queue and are the \code{"correct"} queue).}
+
+\item{journal_dir}{Directory of the append-only JOURNAL (see
+\code{\link[=landmark_journal_open]{landmark_journal_open()}}). Every record goes there BEFORE any workbook
+write: it is the source of truth, and it survives a crash --
+\code{\link[=consolidate_landmarks]{consolidate_landmarks()}} rebuilds the workbook from it at any time.
+Defaults to \verb{landmark_journal/} next to the workbook.}
+
+\item{operator}{Operator identifier, traced in the journal, in the workbook
+and in the identifiers of repeated digitizations. \code{NULL} (default) uses
+the system user.}
+
+\item{mode}{Starting queue, switchable at any moment from the app:
+\code{"new"} (photographs not yet in the workbook), \code{"correct"} (specimens
+already digitized, whose points are reloaded onto the photograph for
+review) or \code{"repeat"} (the same photograph digitized several times, to
+measure digitization error and operator bias). If the requested queue is
+empty the app starts on another one.}
+
+\item{n_repeats}{Number of digitizations per individual in \code{mode = "repeat"}. Defaults to \code{3}.}
+
+\item{ruler_mm}{Real length, in millimetres, of the scale bar digitized by
+landmarks 20-21. Changeable in the app, specimen by specimen. Defaults to
+\code{10}.}
+
+\item{xlsx_flush_every}{Number of records between two workbook writes. The
+workbook is REWRITTEN IN FULL each time, so taking it out of the
+digitizing loop removes both the wait and the risk; unwritten records stay
+in memory, are written when the session ends or on demand, and are in the
+journal in any case. \code{1} writes after every specimen. Defaults to \code{10}.}
+
 \item{mlmorph_dir}{Path to the ml-morph resource directory holding the
 trained predictor(s) (\code{mlmorph_run_app/predictor.dat},
 \code{mlmorph_run_aligned/predictor.dat}), the aligned dataset
-(\verb{mlmorph_dataset_aligned/}) and, optionally, a Python virtual
-environment (\verb{.venv_mlmorph/}). If \code{NULL} (default), the location is
-auto-detected from the \code{INTRAITR_MLMORPH_DIR} environment variable and
-then from a small set of conventional locations relative to the current
-working directory (\verb{ml_morph/}, \verb{../ml_morph/}, and the working
-directory itself). A directory "looks like" an ml-morph directory when
-it contains a trained predictor, the worker script, or the aligned
-dataset.}
+(\verb{mlmorph_dataset_aligned/}) and, optionally, a Python virtual environment
+(\verb{.venv_mlmorph/}). \code{NULL} (default) auto-detects it from the
+\code{INTRAITR_MLMORPH_DIR} environment variable, then from \verb{ml_morph/},
+\verb{../ml_morph/} and the working directory. The app runs without a
+predictor; only the prediction step is then disabled.}
 
-\item{predictor}{Optional path to a specific trained predictor
-(\code{.dat}) file to offer first in the app's model selector, in addition
-to any predictors auto-discovered under \code{mlmorph_dir}.}
+\item{predictor}{Optional path to a specific trained predictor (\code{.dat}) to
+offer first in the app's model selector.}
 
-\item{python}{Optional path to (or name of) the Python interpreter used
-to run the prediction worker. It must have \code{numpy}, \code{opencv-python}
-and \code{dlib} available (typically the \code{.venv_mlmorph} environment). If
-\code{NULL} (default), the interpreter is resolved from the
-\code{INTRAITR_MLMORPH_PY}/\code{PY} environment variables, then from
-\verb{~/.venv_mlmorph/bin/python}, then from a \verb{.venv_mlmorph/} inside
-\code{mlmorph_dir}, falling back to \code{python3} on the search path.}
+\item{python}{Optional path to (or name of) the Python interpreter running
+the prediction worker; it needs \code{numpy}, \code{opencv-python} and \code{dlib}
+(typically \code{.venv_mlmorph}). \code{NULL} (default) resolves it from
+\code{INTRAITR_MLMORPH_PY}/\code{PY}, then \verb{~/.venv_mlmorph/bin/python}, then
+\verb{.venv_mlmorph/} inside \code{mlmorph_dir}, then \code{python3} on the search path.}
 
-\item{autosave}{Path to the writable \code{CSV} file the app uses to
-auto-save the cumulative multi-specimen table (reloaded on start-up).
-If \code{NULL} (default), a file \code{intraitR_landmarking_autosave.csv} is
-used in the working directory \emph{from which this function is called}
-(necessary because \code{\link[shiny:runApp]{shiny::runApp()}} switches the working directory to
-the read-only installed app folder while the app runs).}
+\item{sheets}{Named character vector giving the three sheet names. Defaults
+to \code{c(measurements = "measurements", bias = "bias", summary = "bias_summary")}.}
 
-\item{launch.browser}{Passed to \code{\link[shiny:runApp]{shiny::runApp()}}; whether to open the
-app in a browser. Defaults to the \code{shiny.launch.browser} option, or to
-\code{\link[=interactive]{interactive()}}.}
+\item{launch.browser}{Passed to \code{\link[shiny:runApp]{shiny::runApp()}}. Defaults to the
+\code{shiny.launch.browser} option, or to \code{\link[=interactive]{interactive()}}.}
 
-\item{...}{Further arguments passed on to \code{\link[shiny:runApp]{shiny::runApp()}} (for example
-\code{port} or \code{host}). Do not pass \code{appDir}; the packaged app directory is
-used automatically.}
+\item{...}{Further arguments passed to \code{\link[shiny:runApp]{shiny::runApp()}} (for example \code{port}
+or \code{host}). Do not pass \code{appDir}; the packaged app directory is used.}
 }
 \value{
-Invisibly \code{NULL}. Called for its side effect of running the
-Shiny application (a blocking call in an interactive session).
-Landmark tables produced by the app are written to disk (\code{CSV}/\code{TPS})
-and imported separately with \code{\link[=read_mlmorph_landmarks]{read_mlmorph_landmarks()}} or
-\code{\link[=read_tps]{read_tps()}}.
+Invisibly, the path of the workbook. Called for its side effect of
+running the Shiny application (a blocking call in an interactive session).
 }
 \description{
-Opens the bundled Shiny application for semi-automatic digitization of
-fish landmarks. The user loads a specimen photograph (or a folder of
-photographs), places a handful of calibration clicks (snout, caudal-fin
-base, a dorsal orientation point and the two scale-bar points), and a
-trained ml-morph shape predictor (Porto & Voje, 2020) proposes the 19
-anatomical FISHMORPH landmarks (Brosse et al., 2021); the remaining
-points can then be reviewed and corrected by hand, quality-scored, and
-exported to \code{CSV}/\code{tpsDig}. The exported \code{CSV}
-(\verb{specimen, landmark, X, Y, mm_per_px, note, status}) is read back into an
-\code{"intrait_landmarks"} object with \code{\link[=read_mlmorph_landmarks]{read_mlmorph_landmarks()}}.
+Opens the bundled Shiny application for semi-automatic digitization of fish
+landmarks. Everything the session needs is declared \strong{at the console} --
+the photograph folder, the output workbook, the operator, the working queue
+-- and everything it produces goes to \strong{one workbook} with a
+\code{measurements} sheet, a \code{bias} sheet holding the repeated digitizations, and
+a \code{bias_summary} sheet quantifying them, backed by an append-only journal
+that survives a crash. The operator loads a photograph, places a handful of
+clicks, and a trained ml-morph shape predictor (Porto & Voje, 2020) proposes
+the 19 anatomical FISHMORPH landmarks (Brosse et al., 2021); the remaining
+points are reviewed and corrected by hand, quality-scored, and saved.
 }
 \details{
-This function replaces the former point-and-click wrapper around
-\code{\link[geomorph:digitize2d]{geomorph::digitize2d()}}: rather than digitizing every landmark manually,
-it drives a predictor-assisted workflow with far fewer clicks per
-specimen and an active-learning loop (corrected specimens can be fed
-back into training; see the \code{ml_morph/README.md} pipeline).
+The workbook is read back into an \code{"intrait_landmarks"} object with
+\code{\link[=read_landmarks_xlsx]{read_landmarks_xlsx()}}, and the journal with \code{\link[=consolidate_landmarks]{consolidate_landmarks()}}.
 
 The Shiny application is shipped inside the package
-(\code{system.file("shiny/landmarking_app", package = "intraitR")}) together
-with its Python worker (\code{system.file("mlmorph", package = "intraitR")}).
-The heavier ml-morph assets — the trained predictor(s), the aligned
-training dataset, and the Python virtual environment with \code{dlib} — are
-\emph{not} bundled (they are large and platform-specific) and must live in an
-external ml-morph directory located via \code{mlmorph_dir}. When no predictor
-is found the app still launches, but the prediction step is disabled
-until a valid predictor is supplied.
+(\code{system.file("shiny/landmarking_app", package = "intraitR")}) together with
+its Python worker (\code{system.file("mlmorph", package = "intraitR")}). The
+heavier ml-morph assets -- the trained predictor(s), the aligned training
+set, the Python environment with \code{dlib} -- are \emph{not} bundled (they are large
+and platform-specific) and must live in an external directory located via
+\code{mlmorph_dir}.
 
-Resource locations are handed to the app through environment variables
-(\code{INTRAITR_MLMORPH_DIR}, \code{INTRAITR_MLMORPH_WORKER}, \code{INTRAITR_MLMORPH_PY},
-\code{INTRAITR_MLMORPH_PREDICTOR}, \code{INTRAITR_MLMORPH_AUTOSAVE}); these are set
-for the duration of the call and restored on exit, so the app can also be
-launched directly with \code{shiny::runApp("ml_morph/landmarking_app")}, in
-which case it falls back to paths relative to the \verb{ml_morph/} folder.
+The session configuration is handed to the app through the
+\code{intraitR.digitizer} option (and the \verb{INTRAITR_MLMORPH_*} environment
+variables for the ml-morph paths); both are set for the duration of the call
+and restored on exit.
 }
+\section{One workbook, three sheets}{
+\code{measurements} holds one row per specimen, in the wide FISHMORPH layout
+(\verb{1_X, 1_Y, ... 22_X, 22_Y}) read back by \code{\link[=read_landmarks_xlsx]{read_landmarks_xlsx()}}
+(\code{x_pattern = "{i}_X"}, \code{y_pattern = "{i}_Y"}), together with the operator,
+the photograph, its pixel size, the quality score, \code{mm_per_px}, and the
+per-record status counts (\code{n_seeded}, \code{n_predicted}, ...) that say how much
+of the configuration was actually looked at.
+
+\code{bias} has the same layout but one row per \emph{repeated} digitization, with
+\code{individual}, \code{operator} and \code{replicate} columns: it is the input of
+\code{\link[=measurement_error]{measurement_error()}} and \code{\link[=operator_disagreement]{operator_disagreement()}}. \code{bias_summary} is
+computed from it at each write -- per individual and per landmark, the
+median distance of the repeats to their own mean position, in pixels and as
+a percentage of the standard length (\code{Bl}, landmarks 1-2) -- which is the
+one-number-per-landmark view that says where the protocol is imprecise
+before any modelling.
+
+The workbook is an EXPORT. The journal is the source of truth: every record
+is appended to it first, as one immutable line per landmark, so an
+interrupted session costs at most the specimen being digitized. See
+\code{\link[=landmark_journal_open]{landmark_journal_open()}} and \code{\link[=consolidate_landmarks]{consolidate_landmarks()}}.
+}
+
 \section{Working in the app}{
-Everything follows one \emph{active-landmark} model, from the first click to
-the last: a single point is active, a click on the photograph places it,
-and the selection advances along one sequence,
-\verb{1, 22, 23, 2, 3 ... 19, 20, 21} -- the axis first and complete, then the
-anatomical landmarks, then the scale bar. Only the derived points 8, 9 and
-11 and the spare hinge 24 are skipped, and they stay reachable from the
-button bar, as does any other landmark at any moment.
+Everything follows one \emph{active-landmark} model, from the first click to the
+last: a single point is active, a click on the photograph places it, and the
+selection advances along one sequence, \verb{1, 22, 23, 2, 3 ... 19, 20, 21} --
+the axis first and complete, then the anatomical landmarks, then the scale
+bar. Only the derived points 8, 9 and 11 and the spare hinge 24 are skipped,
+and they stay reachable from the button bar, as does any other landmark at
+any moment.
 
 The moment LM2 goes down the whole configuration is seeded, so placing by
-hand is the default way to work rather than a mode to switch into, and
-there is no calibration/review distinction. Running the predictor is
-optional and available throughout: it refines the anatomical landmarks
-over the seeded configuration. The app is therefore fully usable with no
-trained predictor at all. The button
-bar above the photograph is also a status display -- active, placed by
-hand, marked \code{NA}, automatic or derived, hinge, scale bar, and not yet
-placed are all distinguishable at a glance, which makes an unreviewed
-point visible before it is exported rather than after.
+hand is the default way to work rather than a mode to switch into. Running
+the predictor is optional and available throughout: it refines the
+anatomical landmarks over the seeded configuration. The button bar above the
+photograph is also a status display -- active, placed by hand, marked \code{NA},
+automatic or derived, hinge, scale bar, and not yet placed are all
+distinguishable at a glance, which makes an unreviewed point visible before
+it is exported rather than after.
+
+The side panel is organised in tabs -- \code{Specimen}, \code{Repeats}, \code{Display},
+\code{Checks}, \code{Seed} -- so that what is set once per batch (the seeding sliders,
+the quality controls) does not stand between the operator and what is set
+once per specimen. With \code{bslib} installed the app uses a Bootstrap 5 theme;
+without it, it falls back to the standard Shiny layout, unchanged in
+function.
 
 Field photographs of 12 to 24 Mpx would otherwise make clicking sluggish,
 since the plot redraws on every interaction. The image is therefore
-downsampled once when it is loaded and the full-resolution array is
-dropped, the display bitmap is converted to a raster once rather than on
-every redraw, and only the visible crop is drawn when zoomed. A \code{Display}
-selector above the photograph trades sharpness against speed (800 to 2400
-px, or full resolution; 1200 px by default). None of this touches the
-coordinates -- landmarks are always recorded in original image pixels --
-and the predictor is still handed the file itself at full resolution.
+downsampled once when it is loaded and the full-resolution array is dropped,
+the display bitmap is converted to a raster once rather than on every
+redraw, and only the visible crop is drawn when zoomed. A \code{Display} selector
+trades sharpness against speed (800 to 2400 px, or full resolution; 1200 px
+by default). None of this touches the coordinates -- landmarks are always
+recorded in original image pixels -- and the predictor is still handed the
+file itself at full resolution.
 
 Flipping the photograph remaps the points already placed instead of
 discarding them, and a separate display-only flip mirrors the image while
-leaving the coordinates untouched (useful when a reloaded table is
-mirrored relative to its photograph). Images are routed by their magic
-bytes rather than their file extension, so the \code{.jpg} files that are in
-fact \code{PNG}, \code{GIF} or \code{BMP} -- common in specimen archives -- open
-correctly, through \code{magick} when it is installed.
+leaving the coordinates untouched (useful when a reloaded configuration is
+mirrored relative to its photograph). Images are routed by their magic bytes
+rather than their file extension, so the \code{.jpg} files that are in fact
+\code{PNG}, \code{GIF} or \code{BMP} -- common in specimen archives -- open correctly,
+through \code{magick} when it is installed.
 }
 
 \section{Curved specimens: the broken axis}{
-The FISHMORPH conventions (segment 3-4 perpendicular to the body axis,
-the eye group on one vertical, the ventral group on one line) are defined
-against the antero-posterior axis. On a fish photographed with a bent
-body a single straight axis 1-2 misstates all of them at once. The app
-therefore accepts \emph{hinge} points that break the axis into up to four
-segments, each convention being applied in the frame of the segment it
-belongs to: head conventions on 1-22, body depth and pectoral fin on
-22-23, caudal peduncle and fin on 23-2. Landmark 22 is a genuine landmark
--- \code{\link[=fishmorph_segments]{fishmorph_segments()}} already uses it to split the standard length
-into (1-22) + (22-2) -- and is exported; landmarks 23 and 24 are entry
-aids and are never written out. Placing no hinge reproduces exactly the
-straight-axis behaviour.
+The FISHMORPH conventions (segment 3-4 perpendicular to the body axis, the
+eye group on one vertical, the ventral group on one line) are defined
+against the antero-posterior axis. On a fish photographed with a bent body a
+single straight axis 1-2 misstates all of them at once. The app therefore
+accepts \emph{hinge} points that break the axis into up to four segments, each
+convention being applied in the frame of the segment it belongs to: head
+conventions on 1-22, body depth and pectoral fin on 22-23, caudal peduncle
+and fin on 23-2. Landmark 22 is a genuine landmark -- \code{\link[=fishmorph_segments]{fishmorph_segments()}}
+already uses it to split the standard length into (1-22) + (22-2) -- and is
+exported; landmarks 23 and 24 are entry aids and are never written out.
+Placing no hinge reproduces exactly the straight-axis behaviour.
 }
 
 \section{Auditing a batch}{
-Each exported row carries a \code{status}: \code{"clicked"} for a point placed or
-moved by hand, \code{"seeded"} for one still at the median FISHMORPH proportion
-the app used to lay out the configuration, \code{"predicted"} for one still
-sitting exactly where the model put it, \code{"derived"} for the geometrically
-computed ventral points 8, 9 and 11, \code{"adjusted"} for one snapped onto the
-body outline by the extreme-point check below, \code{"na"} for a point declared
-non-measurable and \code{"missing"} for one never placed. This is the piece of
-information a coordinate table cannot carry, and it is what distinguishes a
-measurement from a plausible guess: a \code{"predicted"} point was at least
-inferred from this image, whereas a \code{"seeded"} one was measured on no
-specimen at all. Both are counted on screen and again when a specimen is
-saved, and both are worth auditing before the coordinates are analysed.
+Each record carries, per point, a \code{status}: \code{"clicked"} for a point placed
+or moved by hand, \code{"seeded"} for one still at the median FISHMORPH
+proportion the app used to lay out the configuration, \code{"predicted"} for one
+still sitting exactly where the model put it, \code{"derived"} for the
+geometrically computed ventral points 8, 9 and 11, \code{"adjusted"} for one
+snapped onto the body outline by the extreme-point check below, \code{"na"} for a
+point declared non-measurable and \code{"missing"} for one never placed. This is
+the piece of information a coordinate table cannot carry, and it is what
+distinguishes a measurement from a plausible guess: a \code{"predicted"} point
+was at least inferred from this image, whereas a \code{"seeded"} one was measured
+on no specimen at all. The journal keeps them point by point; the workbook
+keeps the counts per specimen. Both are worth auditing before the
+coordinates are analysed.
+}
+
+\section{Repeated digitization: measurement error and operator bias}{
+A landmark coordinate is a measurement, and like any measurement it has a
+technical variance that has to be estimated before a biological one is
+interpreted: the same operator does not click twice in exactly the same
+place, and two operators disagree more than one operator with themselves. In
+\code{mode = "repeat"} the app saves the pass and stays on the same photograph,
+until the individual has \code{n_repeats} digitizations.
+
+Each pass is saved under an identifier of its own -- \code{"<code>_rep<N>"}, or
+\code{"<code>_<operator>_rep<N>"} when an operator is named, the convention of
+the T-26 repeatability set (\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}, \code{source = "repeatability"}). The replicate number is always the last
+underscore-separated token and the operator label is stripped of
+underscores, so an identifier decomposes unambiguously from the right;
+\code{\link[=read_mlmorph_landmarks]{read_mlmorph_landmarks()}} reverses it with \code{replicate = "parse"} and
+\code{operator = "parse"}, and the \code{bias} sheet carries \code{individual}, \code{operator}
+and \code{replicate} as columns anyway.
+
+Repeats are cleared by default (\verb{Blind repeat}): the app wipes the
+configuration after each save so the next pass starts from the snout. This
+is not a convenience setting. A pass resumed from the configuration just
+saved measures how far the operator chose to move points they had already
+placed, not how reproducibly they place them; the replicate variance then
+reflects the operator's reluctance to revise rather than the precision of
+the protocol, and \verb{\%ME} collapses towards zero.
 }
 
 \section{The extreme-point check}{
 FISHMORPH defines \code{Bd} as the MAXIMUM body depth, so LM3 must be the most
 dorsal and LM4 the most ventral landmark of the body outline. No per-pair
 convention catches a breach of that -- each pair stays internally consistent
-while \code{Bd} is quietly under-measured -- so the app tests it when the specimen
-is saved (box "Check LM3 / LM4 (extremes) on save", on by default) and offers
-to measure the landmark again, to snap it onto the true extreme, or to save
-as is. Auto-correction keeps the landmark's position along the axis and only
-changes its height, so \code{Bd} grows without disturbing the perpendicularity of
-the 3-4 segment; the points it moves are exported as \code{"adjusted"}.
+while \code{Bd} is quietly under-measured -- so the app tests it when the
+specimen is saved (box "Check LM3 / LM4 (extremes) on save", on by default)
+and offers to measure the landmark again, to snap it onto the true extreme,
+or to save as is. Auto-correction keeps the landmark's position along the
+axis and only changes its height, so \code{Bd} grows without disturbing the
+perpendicularity of the 3-4 segment; the points it moves are exported as
+\code{"adjusted"}.
 
-Heights are perpendicular coordinates taken in each point's own body segment,
-so posture is not mistaken for error, and the dorsal side is read off the
-relative position of LM3 and LM4 rather than assumed from the image. The
-caudal peduncle and fin (16-19), the appendage tips (12, 15) and the derived
-ventral points (8, 9, 11 -- computed from LM4, so circular as a test of LM4)
-are excluded. On the 1,036 digitized T-26 specimens the check flags 1.5 \% of
-the batch at a median overshoot of 6.8 \% of \code{Bl}, and the flagged specimens
-have a median \code{Bd/Bl} of 0.14 against a FISHMORPH median of 0.248 -- that is,
-they are genuinely under-measured, and correction brings them back into the
-expected range.
+Heights are perpendicular coordinates taken in each point's own body
+segment, so posture is not mistaken for error, and the dorsal side is read
+off the relative position of LM3 and LM4 rather than assumed from the image.
+The caudal peduncle and fin (16-19), the appendage tips (12, 15) and the
+derived ventral points (8, 9, 11 -- computed from LM4, so circular as a test
+of LM4) are excluded. On the 1,036 digitized T-26 specimens the check flags
+1.5 \% of the batch at a median overshoot of 6.8 \% of \code{Bl}, and the flagged
+specimens have a median \code{Bd/Bl} of 0.14 against a FISHMORPH median of 0.248
+-- that is, they are genuinely under-measured, and correction brings them
+back into the expected range.
 
 Once the axis (LM1, the hinges, LM2) is in place the app seeds every
 remaining landmark at the median proportion of the body -- medians of
 segment over standard length across 6,492 to 7,706 FISHMORPH species -- so
 the work is repositioning rather than placing from nothing. Sliders expose
-the quantities those ratios leave free: where a segment sits along the body,
-how it splits dorsal to ventral, and the pectoral-fin and jaw angles. A
-landmark moved by hand is never re-seeded.
+the quantities those ratios leave free. A landmark moved by hand is never
+re-seeded.
 
 Digitizing points out of order silently produces wrong measurements
 downstream in \code{\link[=fishmorph_segments]{fishmorph_segments()}}; always spot-check immediately with
@@ -203,20 +282,36 @@ downstream in \code{\link[=fishmorph_segments]{fishmorph_segments()}}; always sp
 
 \examples{
 \dontrun{
-# Auto-detect the ml-morph resources (e.g. an "ml_morph/" folder in the
-# working directory) and open the landmarking app:
-digitize_landmarks()
-
-# Point explicitly at the ml-morph directory, a specific predictor and
-# the dlib-enabled Python environment:
+# A digitizing session: photographs in, one workbook out.
 digitize_landmarks(
-  mlmorph_dir = "~/projects/fish/ml_morph",
-  predictor   = "~/projects/fish/ml_morph/mlmorph_run_app/predictor.dat",
-  python      = "~/.venv_mlmorph/bin/python"
+  photo_dir        = "T26/photos",
+  xlsx_path        = "T26/T26_landmarks.xlsx",
+  journal_dir      = "T26/landmark_journal",   # default
+  operator         = "AT",
+  xlsx_flush_every = 10,
+  mode             = "new"
 )
 
-# Import the CSV exported from the app into an "intrait_landmarks" object:
-lm <- read_mlmorph_landmarks("mesures.csv")
+# A repeatability session on the same photographs: 5 blind passes each.
+digitize_landmarks(
+  photo_dir = "T26/photos", xlsx_path = "T26/T26_landmarks.xlsx",
+  operator  = "AT", mode = "repeat", n_repeats = 5
+)
+
+# Read the workbook back, one object per sheet.
+lm <- read_landmarks_xlsx("T26/T26_landmarks.xlsx", sheet = "measurements",
+                          n_landmarks = 22, x_pattern = "{i}_X",
+                          y_pattern = "{i}_Y", id_cols = "specimen")
+rep_lm <- read_landmarks_xlsx("T26/T26_landmarks.xlsx", sheet = "bias",
+                              n_landmarks = 22, x_pattern = "{i}_X",
+                              y_pattern = "{i}_Y",
+                              id_cols = c("individual", "operator", "replicate"))
+measurement_error(gpa_fish(rep_lm), individual = rep_lm$metadata$individual,
+                  method = "procrustes")
+
+# After a crash: rebuild the workbook from the journals.
+consolidate_landmarks("T26/landmark_journal",
+                      xlsx_path = "T26/T26_landmarks_rebuilt.xlsx")
 }
 
 }
@@ -232,6 +327,8 @@ images. Methods in Ecology and Evolution, 11(4), 500-512.
 \doi{10.1111/2041-210X.13373}
 }
 \seealso{
-\code{\link[=read_mlmorph_landmarks]{read_mlmorph_landmarks()}}, \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}},
-\code{\link[=read_tps]{read_tps()}}, \code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=detect_outliers]{detect_outliers()}}
+\code{\link[=read_landmarks_xlsx]{read_landmarks_xlsx()}}, \code{\link[=consolidate_landmarks]{consolidate_landmarks()}},
+\code{\link[=landmark_journal_open]{landmark_journal_open()}}, \code{\link[=read_mlmorph_landmarks]{read_mlmorph_landmarks()}},
+\code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}, \code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=detect_outliers]{detect_outliers()}},
+\code{\link[=measurement_error]{measurement_error()}}, \code{\link[=operator_disagreement]{operator_disagreement()}}
 }

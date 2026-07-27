@@ -46,15 +46,54 @@
 #'   an operator name). Treating a set of predicted landmarks as one
 #'   "operator" mirrors [load_t26_saudrune_landmarks()] and makes it easy to
 #'   compare predicted against hand-digitized trait spaces. Defaults to
-#'   `"ml_morph"`.
+#'   `"ml_morph"`. The special value `"parse"` instead reads the operator
+#'   off each specimen identifier (see Details).
 #' @param replicate Integer scalar recorded in `metadata$replicate` (one
-#'   digitization per individual by default). Defaults to `1L`.
+#'   digitization per individual by default). Defaults to `1L`. The special
+#'   value `"parse"` instead reads the replicate number off each specimen
+#'   identifier (see Details), which is what a table produced by the repeat
+#'   mode of [digitize_landmarks()] carries.
 #' @param save_to Optional character path; when supplied, the resulting
 #'   object is also written there with [saveRDS()] (a convenience for the
 #'   common "predict, convert, cache" workflow). Defaults to `NULL` (return
 #'   only, the standard behaviour of the package's `read_*()` importers).
 #' @param ... Additional arguments passed to [utils::read.csv()] when `file`
 #'   (or `metadata`) is a path.
+#'
+#' @details
+#' # Replicated digitizations
+#'
+#' A measure table in which the same physical individual was digitized more
+#' than once -- the repeat mode of [digitize_landmarks()], used to quantify
+#' measurement error and operator bias -- distinguishes the passes by their
+#' identifier rather than by a column, since the exported schema is one row
+#' per specimen and landmark. The convention, shared with the T-26
+#' repeatability set of [load_t26_saudrune_landmarks()], is
+#' `"<individual>_rep<N>"`, optionally with an operator token before the
+#' suffix: `"<individual>_<operator>_rep<N>"`. The replicate number is always
+#' the last underscore-separated token, so an identifier is decomposed
+#' unambiguously from the right, and the operator label carries no underscore.
+#'
+#' Because a bare identifier cannot be told apart from an individual whose
+#' name merely happens to end in `_rep2`, the decomposition is never
+#' attempted silently: it is requested with `replicate = "parse"` (and, when
+#' several operators share one table, `operator = "parse"`). `metadata$individual`
+#' then holds the physical individual, `metadata$replicate` the pass number,
+#' and `metadata$operator` the operator, which is the grouping
+#' [measurement_error()] (`method = "procrustes"`, argument `individual`) and
+#' [operator_disagreement()] expect. Identifiers carrying no suffix are left
+#' alone (`replicate = 1`), so a table mixing single and repeated
+#' digitizations imports correctly.
+#'
+#' One ambiguity is irreducible and worth stating: `operator = "parse"` takes
+#' the token before the suffix as the operator, so an individual whose own code
+#' contains an underscore and which was digitized *without* an operator label
+#' (`"fish_01_rep2"`) would be split into individual `"fish"` and operator
+#' `"01"`. Use `operator = "parse"` only on tables where the operator was
+#' actually recorded in the identifier -- the case it exists for -- and
+#' `replicate = "parse"` alone otherwise, which never touches the individual's
+#' name beyond the suffix. Identifiers with a suffix but no operator token are
+#' reported, and keep `operator = NA`.
 #'
 #' @return An object of class `"intrait_landmarks"` (a `p x k x n`
 #'   coordinate array plus a `metadata` data.frame), in the same format as
@@ -87,6 +126,20 @@
 #'                      species = c("Gobio occitaniae", "Squalius cephalus"))
 #' lm2 <- read_mlmorph_landmarks(mes, metadata = ident, by = "code")
 #' table(lm2$metadata$species, useNA = "ifany")
+#'
+#' # A table from the repeat mode of digitize_landmarks(): the same two fish,
+#' # each digitized twice by operator "AT". Ask for the identifiers to be
+#' # decomposed into individual / operator / replicate.
+#' rep_tab <- data.frame(
+#'   specimen = rep(c("fish_01_AT_rep1", "fish_01_AT_rep2",
+#'                    "fish_02_AT_rep1", "fish_02_AT_rep2"), each = 3),
+#'   landmark = rep(1:3, times = 4),
+#'   X = c(10, 15, 20, 10.4, 15.2, 19.6, 11, 16, 21, 11.3, 15.7, 21.2),
+#'   Y = c(20, 25, 20, 20.3, 24.6, 20.2, 21, 26, 21, 20.8, 26.4, 20.9)
+#' )
+#' lm3 <- read_mlmorph_landmarks(rep_tab, scale_col = NULL,
+#'                               replicate = "parse", operator = "parse")
+#' lm3$metadata[c("specimen", "individual", "operator", "replicate")]
 #'
 #' @export
 read_mlmorph_landmarks <- function(file, specimen = "specimen",
@@ -136,14 +189,22 @@ read_mlmorph_landmarks <- function(file, specimen = "specimen",
     }
   }
 
+  # -- Individual / operator / replicate carried in the identifier ----------
+  #    Requested explicitly (see Details): an identifier ending in "_rep2" is
+  #    indistinguishable from an individual named that way, so parsing is never
+  #    silent. Decomposition is done from the RIGHT, the replicate number being
+  #    the last token and the operator (when asked for) the one before it.
+  ids <- .parse_replicate_ids(specimen_names, replicate = replicate,
+                              operator = operator)
+
   # -- Assemble specimen-level metadata in the intraitR convention. ---------
   meta <- data.frame(
     specimen   = specimen_names,
-    individual = specimen_names,
+    individual = ids$individual,
     species    = NA_character_,
     population = NA_character_,
-    replicate  = as.integer(replicate),
-    operator   = as.character(operator),
+    replicate  = ids$replicate,
+    operator   = ids$operator,
     stringsAsFactors = FALSE
   )
 
@@ -199,4 +260,84 @@ read_mlmorph_landmarks <- function(file, specimen = "specimen",
                     normalizePath(save_to, mustWork = FALSE)))
   }
   lm
+}
+
+# Decompose specimen identifiers of the form "<individual>_rep<N>" or
+# "<individual>_<operator>_rep<N>" -- the convention written by the repeat mode
+# of digitize_landmarks() and by the T-26 repeatability set -- into the three
+# metadata columns intraitR groups replicated digitizations by.
+#
+# Parsing happens only when asked for (replicate = "parse", operator = "parse"),
+# since "fish_rep2" is a perfectly valid individual name and guessing would
+# silently split a data set that was never replicated. Identifiers carrying no
+# suffix keep replicate 1 and their own name as `individual`, so a table mixing
+# single and repeated digitizations is handled in one pass.
+#
+# Returns a list of three vectors, each of length(ids).
+.parse_replicate_ids <- function(ids, replicate = 1L, operator = "ml_morph") {
+  n <- length(ids)
+  parse_rep <- is.character(replicate) && length(replicate) == 1L &&
+    identical(replicate, "parse")
+  parse_op  <- is.character(operator) && length(operator) == 1L &&
+    identical(operator, "parse")
+
+  if (!parse_rep) {
+    rep_num <- suppressWarnings(as.integer(replicate))
+    if (length(rep_num) != 1L || is.na(rep_num)) {
+      stop("`replicate` must be a single integer, or \"parse\" to read the ",
+           "replicate number off the specimen identifiers.", call. = FALSE)
+    }
+  }
+  if (!parse_op && (!is.character(operator) || length(operator) != 1L)) {
+    stop("`operator` must be a single character string, or \"parse\" to read ",
+         "the operator off the specimen identifiers.", call. = FALSE)
+  }
+
+  individual <- as.character(ids)
+  rep_out <- if (parse_rep) rep(1L, n) else rep(as.integer(replicate), n)
+  op_out  <- if (parse_op) rep(NA_character_, n) else rep(as.character(operator), n)
+
+  if (!parse_rep && !parse_op) {
+    return(list(individual = individual, replicate = rep_out, operator = op_out))
+  }
+
+  suffix <- "_rep([0-9]+)$"
+  has <- grepl(suffix, individual)
+  if (!any(has)) {
+    warning("No specimen identifier ends in \"_rep<N>\"; nothing to parse. ",
+            "Identifiers are left as they are (replicate 1).", call. = FALSE)
+    return(list(individual = individual, replicate = rep_out, operator = op_out))
+  }
+
+  if (parse_rep) {
+    rep_out[has] <- as.integer(sub(paste0("^.*", suffix), "\\1", individual[has]))
+  }
+  prefix <- sub(suffix, "", individual[has])
+
+  if (parse_op) {
+    # The operator is the last underscore-separated token of the prefix. A
+    # prefix with no underscore carries no operator: keep NA rather than
+    # amputating the individual's name.
+    tok <- grepl("_", prefix, fixed = TRUE)
+    if (any(tok)) {                       # `x[i] <- character(0)` is an error
+      op_out[has][tok] <- sub("^.*_", "", prefix[tok])
+      prefix[tok] <- sub("_[^_]+$", "", prefix[tok])
+    }
+    if (any(!tok)) {
+      warning(sum(!tok), " identifier(s) with a \"_rep<N>\" suffix carry no ",
+              "operator token and keep operator = NA: ",
+              paste(utils::head(individual[has][!tok], 5), collapse = ", "),
+              if (sum(!tok) > 5) ", ..." else "", call. = FALSE)
+    }
+  }
+  individual[has] <- prefix
+
+  if (parse_rep) {
+    n_ind <- length(unique(individual))
+    message(sprintf(
+      "Parsed %d replicated identifier(s): %d individual(s), %d replicate(s) per individual (median).",
+      sum(has), n_ind,
+      as.integer(stats::median(as.integer(table(individual))))))
+  }
+  list(individual = individual, replicate = rep_out, operator = op_out)
 }

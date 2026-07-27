@@ -244,6 +244,88 @@
 #' -- that is, they are genuinely under-measured, and correction brings them
 #' back into the expected range.
 #'
+#' # Coincident landmarks: a measurement of zero
+#'
+#' A bar under the photograph declares the segments that are ZERO on the
+#' specimen in view. A zero is a measurement like any other -- neither a missing
+#' value nor a placement error -- and the FISHMORPH ratios are defined to take
+#' it: `OGp = 0` for a mouth opening on the ventral profile, `PFv = 0` for a
+#' pectoral fin inserted on the belly. Four rules are offered:
+#'
+#' \describe{
+#'   \item{`Mo = 0`}{LM9 takes the coordinates of LM1 -- the mouth sits on the
+#'     ventral profile.}
+#'   \item{`LM6 = LM8`}{LM6 takes the coordinates of LM8 -- the bottom of the
+#'     head is the body underside.}
+#'   \item{`PFi = 0`}{LM10 takes the coordinates of LM11 -- the pectoral fin
+#'     inserts on the belly.}
+#'   \item{`LM5 = LM13`}{LM5 takes the coordinates of LM13 -- the eye reaches
+#'     the top of the head.}
+#' }
+#'
+#' **Nothing is deleted.** Both landmarks keep a position, both are drawn on the
+#' photograph and both are written to the workbook; one simply takes the
+#' coordinates of the other, so the segment between them measures zero. A
+#' coincidence is a measurement, an absence is `NA`, and the two must not be
+#' confused downstream.
+#'
+#' Clicking two landmarks onto the same pixel would express the same thing but
+#' would not SURVIVE: the conventions re-derive the ventral points on the belly
+#' line and the head order re-separates the eye group by its margin, so the zero
+#' would be undone at the next click. A declared rule is re-applied after every
+#' propagation, every re-seed and every prediction, which is what makes a zero a
+#' stable statement about the fish rather than a position that drifts.
+#'
+#' Which landmark moves is a protocol decision, not an aesthetic one, and it is
+#' not the same for every rule. For the mouth the fixed point is LM1, the snout,
+#' an anatomical landmark that must not move. For the two ventral rules the
+#' BELLY LINE holds: LM8 and LM11 are its intersections with the eye and the
+#' pectoral verticals, so the head bottom and the fin insertion come onto them
+#' rather than the reverse -- the ventral profile is a global fit, steadier than
+#' a single click. For the eye at the top of the head, LM5 (the head outline)
+#' comes onto LM13, since moving LM13 would change `Ed`, the eye diameter, which
+#' is a measurement in its own right.
+#'
+#' Landmarks moved by a rule are exported with status `"adjusted"` -- placed by
+#' a rule the operator invoked, neither pointed at by hand nor left at a seed.
+#' The declarations are reset for every specimen, since they are statements
+#' about one fish, and read back from the coordinates when a specimen is
+#' reopened in the `"correct"` queue: two coincident landmarks re-tick their
+#' box, so a zero saved yesterday is still visibly a zero today.
+#'
+#' # The eye vertical, in order
+#'
+#' The same box checks a second convention, on the six landmarks the FISHMORPH
+#' conventions put on ONE vertical: 5, 13, 7, 14, 6, 8. Being on a vertical says
+#' nothing about their ORDER along it, and the order is anatomy rather than a
+#' choice -- top of the head, top of the eye, centre of the eye, bottom of the
+#' eye, bottom of the head, body underside, read from the back downwards. Two
+#' things are tested, and they are not the same statement: that **LM5 tops the
+#' group** (the `Hd` analogue of the LM3/LM4 rule for `Bd`), and that **every
+#' consecutive pair is in order**, which catches a local swap the first cannot
+#' see.
+#'
+#' This is the failure no other check catches, because each pair stays
+#' internally consistent: with 13 and 14 exchanged -- the eye clicked
+#' bottom-first -- `Ed` (13-14) keeps its exact length while `Eh` (7-8) silently
+#' measures to the wrong edge of the eye. Nothing in a coordinate table shows
+#' it, and no Procrustes fit will either.
+#'
+#' Settled on the data, like the extreme-point rule. The expected order already
+#' holds for 98.6 % of the 1,036 digitized T-26 configurations (13 above 5 in 9
+#' specimens, 0.87 %, the same nine as "LM5 does not top the group"; 7 above 13
+#' in 4; 14 above 7 in 1; 8 above 6 in 1) and for 100 % of the 250 repeatability
+#' configurations. An order a hand-digitized corpus already satisfies to that
+#' degree is a convention, not a preference, and what is left is worth looking
+#' at one specimen at a time.
+#'
+#' An inversion is reported but **never auto-corrected**: moving a landmark to
+#' satisfy the order would invent a measurement rather than repair one. The
+#' dialog offers *Measure again* -- which selects the landmark found on the
+#' wrong side, not the reference it was compared with -- and *Save without
+#' correcting*; *Auto-correct* only appears when there is an extreme-point
+#' violation, the only kind a snap can repair.
+#'
 #' Once the axis (LM1, the hinges, LM2) is in place the app seeds every
 #' remaining landmark at the median proportion of the body -- medians of
 #' segment over standard length across 6,492 to 7,706 FISHMORPH species -- so

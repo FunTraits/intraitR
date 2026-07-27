@@ -1,3 +1,76 @@
+# intraitR 1.17.0
+
+## Coincident landmarks: a measurement of zero
+
+* A bar under the photograph declares the segments that are ZERO on the
+  specimen in view. A zero is a measurement like any other -- neither a missing
+  value nor a placement error -- and the FISHMORPH ratios are defined to take
+  it: `OGp = 0` for a mouth opening on the ventral profile, `PFv = 0` for a
+  pectoral fin inserted on the belly. Four rules: **`Mo = 0`** (LM9 takes the
+  coordinates of LM1), **`LM6 = LM8`** (the bottom of the head is the body
+  underside), **`PFi = 0`** (LM10 takes the coordinates of LM11) and
+  **`LM5 = LM13`** (an eye reaching the top of the head).
+* **Nothing is deleted.** Both landmarks keep a position, both are drawn on the
+  photograph and both are written to the workbook; one simply takes the
+  coordinates of the other, so the segment between them measures zero. A
+  coincidence is a measurement, an absence is `NA`, and the two must not be
+  confused downstream.
+* Clicking two landmarks onto the same pixel expresses the same thing but does
+  not SURVIVE: the conventions re-derive the ventral points on the belly line
+  and `enforce_head_order()` re-separates the eye group by its margin, so the
+  zero was undone at the next click. A declared rule is re-applied after every
+  propagation, every re-seed and every prediction -- which is what makes a zero
+  a stable statement about the fish rather than a position that drifts.
+* Which landmark moves is a protocol decision and is not the same for every
+  rule. For the mouth the fixed point is LM1, the snout, which must not move.
+  For the two ventral rules the BELLY LINE holds: LM8 and LM11 are its
+  intersections with the eye and the pectoral verticals, so the head bottom and
+  the fin insertion come onto them -- a global fit is steadier than a single
+  click. For the eye at the top of the head, LM5 comes onto LM13, since moving
+  LM13 would change `Ed`, a measurement in its own right.
+* Landmarks moved by a rule are exported with status `"adjusted"`, whose meaning
+  widens accordingly: placed by a rule the operator invoked, neither pointed at
+  by hand nor left at a seed.
+* Declarations are reset for every specimen, and read back from the coordinates
+  when one is reopened in the `"correct"` queue: two coincident landmarks
+  re-tick their box, so a zero saved yesterday is still visibly a zero today.
+
+## The eye vertical is checked, in order
+
+* The save-time check of `digitize_landmarks()` now also verifies the ORDER of
+  the six landmarks the FISHMORPH conventions put on one vertical -- 5, 13, 7,
+  14, 6, 8, read from the back downwards: top of the head, top of the eye,
+  centre of the eye, bottom of the eye, bottom of the head, body underside. Two
+  things are tested and they are not the same statement: that **LM5 tops the
+  group** (the `Hd` analogue of the LM3/LM4 rule for `Bd`), and that **every
+  consecutive pair is in order**, which catches a local swap the first cannot
+  see.
+* This is the failure no other check catches, because each pair stays
+  internally consistent: with 13 and 14 exchanged -- the eye clicked
+  bottom-first -- `Ed` (13-14) keeps its exact length while `Eh` (7-8) silently
+  measures to the wrong edge of the eye. Neither a coordinate table nor a
+  Procrustes fit shows it.
+* Settled on the data, like the extreme-point rule. The expected order already
+  holds for **98.6 %** of the 1,036 digitized T-26 configurations (13 above 5 in
+  9 specimens, 0.87 %, the same nine as "LM5 does not top the group"; 7 above 13
+  in 4; 14 above 7 in 1; 8 above 6 in 1) and for **100 %** of the 250
+  repeatability configurations. An order a hand-digitized corpus already
+  satisfies to that degree is a convention, not a preference.
+* An inversion is reported but **never auto-corrected**: moving a landmark to
+  satisfy the order would invent a measurement rather than repair one. The
+  dialog offers *Measure again* -- which selects the landmark found on the wrong
+  side, not the reference it was compared with -- and *Save without correcting*;
+  *Auto-correct* only appears when there is an extreme-point violation, the only
+  kind a snap can repair.
+* Same tolerance as the extremes, `max(5 px, 0.003 * Bl)`, and the same
+  invariances: heights are read perpendicular to the body axis, segment by
+  segment on a curved specimen, and the dorsal side from the relative position
+  of LM3 and LM4 -- so the test holds head left or right, photograph flipped or
+  mirrored. A landmark left out is stepped over rather than breaking the chain.
+* New internals `eye_order_violations()` and `convention_violations()` in the
+  bundled app; the violation tables gain a `kind` column (`"extreme"` /
+  `"order"`).
+
 # intraitR 1.16.0
 
 ## `digitize_landmarks()` is now a console-declared session

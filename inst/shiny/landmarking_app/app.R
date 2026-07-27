@@ -681,7 +681,7 @@ dorsal_heights <- function(P) {
 
 ## Violations of the convention. NULL when the specimen is compliant, otherwise
 ## a data.frame: `point` (3 or 4), `culprit` (the point overshooting it),
-## `delta` (the overshoot, in pixels).
+## `delta` (the overshoot, in pixels) and `kind` ("extreme").
 extreme_violations <- function(P, tol_frac = EXTREME_TOL) {
   g <- dorsal_heights(P); if (is.null(g)) return(NULL)
   if (!is.finite(g$len) || g$len <= 0) return(NULL)
@@ -692,13 +692,140 @@ extreme_violations <- function(P, tol_frac = EXTREME_TOL) {
   d <- g$h[cand] - g$h[3L]                          # dorsal overshoot
   k <- which.max(d)
   if (d[k] > tol) out[[length(out) + 1L]] <-
-    data.frame(point = 3L, culprit = cand[k], delta = unname(d[k]))
+    data.frame(point = 3L, culprit = cand[k], delta = unname(d[k]),
+               kind = "extreme", stringsAsFactors = FALSE)
   d <- g$h[4L] - g$h[cand]                          # ventral overshoot
   k <- which.max(d)
   if (d[k] > tol) out[[length(out) + 1L]] <-
-    data.frame(point = 4L, culprit = cand[k], delta = unname(d[k]))
+    data.frame(point = 4L, culprit = cand[k], delta = unname(d[k]),
+               kind = "extreme", stringsAsFactors = FALSE)
   if (!length(out)) return(NULL)
   do.call(rbind, out)
+}
+
+## ---- The eye vertical, in order ---------------------------------------------
+## The six points 5, 13, 7, 14, 6, 8 are put on ONE vertical by the conventions
+## (propagate_conventions aligns their abscissa in the head frame). That says
+## nothing about their ORDER along it -- and the order is anatomy, not a choice:
+## top of the head, top of the eye, centre of the eye, bottom of the eye, bottom
+## of the head, body underside. Read from the back downwards, 5 > 13 > 7 > 14 >
+## 6 > 8.
+##
+## This catches the failure no other check can, because every pair stays
+## internally consistent: with 13 and 14 exchanged -- the eye clicked
+## bottom-first -- `Ed` (13-14) keeps its exact length while `Eh` (7-8) silently
+## measures to the wrong edge of the eye. And 5 no longer topping the group
+## under-measures `Hd` exactly as a misplaced LM3 under-measures `Bd`.
+##
+## Settled on the data, like the extreme-point rule. Over the T-26 corpus the
+## expected order already holds for 98.6 % of the 1,036 digitized configurations
+## (13 above 5 in 9 specimens, 0.87 %, the same nine as "5 does not top the
+## group"; 7 above 13 in 4; 14 above 7 in 1; 8 above 6 in 1) and for 100 % of
+## the 250 repeatability configurations. What is left is gross error, not noise.
+EYE_ORDER <- c(5L, 13L, 7L, 14L, 6L, 8L)            # dorsal -> ventral
+
+## Same schema as extreme_violations(), with `kind = "order"`: `point` is the
+## one that should sit ABOVE, `culprit` the one found above it, `delta` the
+## inversion in pixels.
+eye_order_violations <- function(P, tol_frac = EXTREME_TOL) {
+  g <- dorsal_heights(P); if (is.null(g)) return(NULL)
+  if (!is.finite(g$len) || g$len <= 0) return(NULL)
+  tol <- max(EXTREME_FLOOR, tol_frac * g$len)
+  pts <- EYE_ORDER[EYE_ORDER <= length(g$h)]
+  h   <- g$h[pts]
+  ok  <- is.finite(h)
+  if (sum(ok) < 2L) return(NULL)
+  out <- list()
+  # 1. the top of the head must top the whole group
+  if (ok[1]) {
+    d <- h[-1] - h[1]
+    d[!is.finite(d)] <- -Inf
+    k <- which.max(d)
+    if (is.finite(d[k]) && d[k] > tol) out[[length(out) + 1L]] <-
+      data.frame(point = pts[1], culprit = pts[-1][k], delta = unname(d[k]),
+                 kind = "order", stringsAsFactors = FALSE)
+  }
+  # 2. consecutive pairs, over the points actually placed: a landmark left out
+  #    must be stepped over, not treated as breaking the chain.
+  sq <- pts[ok]; hh <- h[ok]
+  for (i in seq_len(length(sq) - 1L)) {
+    d <- hh[i + 1L] - hh[i]                         # > 0 = the lower one is above
+    if (d > tol) out[[length(out) + 1L]] <-
+      data.frame(point = sq[i], culprit = sq[i + 1L], delta = unname(d),
+                 kind = "order", stringsAsFactors = FALSE)
+  }
+  if (!length(out)) return(NULL)
+  out <- do.call(rbind, out)
+  # "5 tops the group" and the first consecutive pair can name one inversion
+  # twice; one line per (point, culprit) is enough.
+  out[!duplicated(out[, c("point", "culprit")]), , drop = FALSE]
+}
+
+## Everything checked on save, in one table. Extremes first, deliberately: they
+## are the only ones the automatic correction can repair -- an inversion is
+## repaired by measuring again, never by moving a point.
+convention_violations <- function(P, tol_frac = EXTREME_TOL) {
+  v <- rbind(extreme_violations(P, tol_frac), eye_order_violations(P, tol_frac))
+  if (is.null(v) || !nrow(v)) NULL else v
+}
+
+## ---- Coincident landmarks: a measurement of zero ----------------------------
+## Some segments are legitimately ZERO on some species, and a zero is a
+## measurement like any other -- not a missing value and not a placement error.
+## The FISHMORPH heights read from the ventral profile vanish when the structure
+## sits ON that profile (`OGp = 0` for a mouth at the bottom, `PFv = 0` for a
+## pectoral fin inserted on the belly); the bottom of the head can be exactly the
+## body underside; an eye reaching the top of the head puts LM5 on LM13.
+##
+## NOTHING IS DELETED. Both landmarks keep a position, both are drawn on the
+## photograph and both are written to the workbook -- one simply takes the
+## coordinates of the other, so the segment between them measures zero. A
+## coincidence is a measurement; an absence is `NA`, and the two must not be
+## confused downstream.
+##
+## Clicking two landmarks onto the same pixel would express the same thing but
+## does not SURVIVE: the conventions re-derive the ventral points on the belly
+## line and enforce_head_order() re-separates the eye group by its margin, so the
+## zero is undone at the next click. These rules are therefore declared once per
+## specimen and RE-APPLIED after every propagation, which is what makes a zero a
+## stable statement about the fish rather than a position that drifts.
+##
+## Which landmark moves is a protocol decision, not an aesthetic one, and it is
+## not the same for every rule. For the mouth the fixed point is LM1, the snout,
+## an anatomical landmark that must not move. For the two ventral rules it is
+## the BELLY LINE that holds: LM8 and LM11 are its intersections with the eye and
+## the pectoral verticals, so the head bottom (LM6) and the fin insertion (LM10)
+## come onto them rather than the reverse -- the ventral profile is a global fit,
+## steadier than a single click. And for the eye at the top of the head, LM5 (the
+## head outline) comes onto LM13, because moving LM13 would change `Ed`, the eye
+## diameter, which is a measurement in its own right.
+COLLAPSE_RULES <- list(
+  Mo  = list(from =  9L, to =  1L, label = "Mo = 0 (mouth on the belly)",
+             tip = "LM9 takes the coordinates of LM1: mouth height nil, OGp = 0"),
+  Hd6 = list(from =  6L, to =  8L, label = "LM6 = LM8 (head bottom on the belly)",
+             tip = "LM6 takes the coordinates of LM8: the head ends on the ventral profile"),
+  PFi = list(from = 10L, to = 11L, label = "PFi = 0 (pectoral on the belly)",
+             tip = "LM10 takes the coordinates of LM11: insertion on the ventral profile, PFv = 0"),
+  EyeTop = list(from = 5L, to = 13L, label = "LM5 = LM13 (eye at the head top)",
+                tip = "LM5 takes the coordinates of LM13: the eye reaches the dorsal profile")
+)
+
+## Apply the active rules. Silently skips a rule whose reference is not placed:
+## a zero is only meaningful once the landmark it is measured from exists.
+apply_collapse <- function(P, active) {
+  if (is.null(P) || !length(active)) return(P)
+  for (nm in intersect(active, names(COLLAPSE_RULES))) {
+    r <- COLLAPSE_RULES[[nm]]
+    if (fin_row(P, r$to)) for (f in r$from) P[f, ] <- P[r$to, ]
+  }
+  P
+}
+## The landmarks a set of rules moves -- their status has to say they were
+## placed by a rule and not pointed at.
+collapse_points <- function(active) {
+  if (!length(active)) return(integer(0))
+  unlist(lapply(COLLAPSE_RULES[intersect(active, names(COLLAPSE_RULES))],
+                function(r) r$from), use.names = FALSE)
 }
 
 ## Correction: LM3 (resp. LM4) takes the HEIGHT of the point overshooting it,
@@ -966,6 +1093,11 @@ APP_CSS <- paste0(
   # a floor under the photograph: a plot device narrower than this cannot draw
   # anything useful, and a collapsed one cannot draw at all
   "#img{min-width:360px;min-height:360px;}",
+  # the zero-segment bar, directly under the photograph
+  ".collapsebar{margin:8px 0 10px 0;padding:6px 10px;background:#fffbeb;",
+  "border:1px solid #fde68a;border-radius:8px;font-size:13px;}",
+  ".collapsebar .form-group{margin-bottom:0;}",
+  ".collapsebar .checkbox-inline{margin-right:14px;font-size:12.5px;}",
   # the queue selector heads the side panel: boxed, so it reads as the state of
   # the session rather than as one more control
   ".modebar{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;",
@@ -1092,7 +1224,8 @@ side_tabs <- function() {
     tabPanel(
       "Checks",
       checkboxInput("check_extremes",
-                    "Check LM3 / LM4 (extremes) on save", value = TRUE),
+                    "Check the conventions on save (LM3/LM4, eye vertical)",
+                    value = TRUE),
       helpText("Bd is the MAXIMUM body depth: on save, checks that LM3 is the",
                "most dorsal and LM4 the most ventral landmark of the body",
                "outline. Heights are taken perpendicular to the body axis,",
@@ -1100,6 +1233,14 @@ side_tabs <- function() {
                "caudal peduncle and fin (16-19), the appendage tips (12, 15)",
                "and the derived ventral points (8, 9, 11). On a breach, offers",
                "to measure again or to correct automatically."),
+      helpText("Also checks the ORDER of the eye vertical -- 5, 13, 7, 14, 6, 8",
+               "from the back downwards -- and that LM5 tops the group. An",
+               "inversion (the eye clicked bottom-first, LM7 outside 13-14, LM5",
+               "below 13) leaves every pair internally consistent, so Ed keeps",
+               "its length while Hd or Eh refers to the wrong landmark. It is",
+               "never auto-corrected: moving a point to satisfy the order would",
+               "invent a measurement. The T-26 corpus already satisfies the",
+               "order for 98.6 % of its 1,036 configurations."),
       tags$hr(),
       tags$strong("Workbook"),
       verbatimTextOutput("saved_info"),
@@ -1204,6 +1345,22 @@ main_panel <- function() tagList(
            "Right-click and drag to pan; double-click for the whole view;",
            "zoom centres on the active landmark. No wheel zoom.")),
   plotOutput("img", click = "click", dblclick = "img_dblclick", height = "700px"),
+  # ---- coincident landmarks, immediately under the photograph -----------------
+  # A zero is a measurement, and it is decided while looking at the fish -- so
+  # the switch belongs under the photograph, not in a settings tab. It is reset
+  # for every specimen: a mouth on the belly is a statement about THIS fish.
+  # Neither landmark is removed: one takes the coordinates of the other, both
+  # stay on the photograph and both are written to the workbook.
+  div(class = "collapsebar",
+      div(style = "display:inline-block;vertical-align:middle;margin-right:10px;",
+          tags$strong("Coincident landmarks:")),
+      div(style = "display:inline-block;vertical-align:middle;",
+          checkboxGroupInput(
+            "collapse", NULL, inline = TRUE,
+            choiceNames = unname(vapply(COLLAPSE_RULES, function(r)
+              paste0(r$label), character(1))),
+            choiceValues = names(COLLAPSE_RULES))),
+      uiOutput("collapse_help")),
   fluidRow(
     column(7, card_box("Control: FISHMORPH segments as digitized",
                        tableOutput("qc"))),
@@ -1268,6 +1425,7 @@ server <- function(input, output, session) {
     adjusted = integer(0),              # landmarks snapped by the extreme-point
                                         # convention (3/4), exported as "adjusted"
     zoom = 1, cx = NULL, cy = NULL,     # zoom state / view centre
+    collapse = character(0),            # segments declared zero on THIS specimen
     meas = NULL, bias = NULL,           # the two workbook sheets, in memory
     q = integer(0), qi = 0L,            # current queue (photo indices) + position
     pending = 0L)                       # records not yet written to the workbook
@@ -1502,6 +1660,10 @@ server <- function(input, output, session) {
     rv$na <- integer(0); rv$edited <- integer(0); rv$placed_order <- integer(0)
     rv$seeded <- integer(0); rv$adjusted <- integer(0)
     rv$zoom <- 1; rv$cx <- NULL; rv$cy <- NULL
+    # A declared zero is a statement about ONE fish: it never carries over to
+    # the next photograph.
+    rv$collapse <- character(0)
+    updateCheckboxGroupInput(session, "collapse", selected = character(0))
   }
 
   ## ---- the queues -----------------------------------------------------------
@@ -1557,6 +1719,18 @@ server <- function(input, output, session) {
     q <- suppressWarnings(as.numeric(m$quality[i]))
     if (is.finite(q)) updateRadioButtons(session, "quality",
                                          selected = as.character(round(q)))
+    # A zero recorded earlier comes back as two coincident landmarks: read the
+    # rules off the coordinates rather than lose them, so that reopening a
+    # specimen shows the same statement it was saved with.
+    act <- names(COLLAPSE_RULES)[vapply(COLLAPSE_RULES, function(r)
+      fin_row(P, r$to) && all(vapply(r$from, function(f)
+        fin_row(P, f) && isTRUE(all.equal(unname(P[f, ]), unname(P[r$to, ]),
+                                          tolerance = 1e-6)), logical(1))),
+      logical(1))]
+    rv$collapse <- act
+    updateCheckboxGroupInput(session, "collapse", selected = act)
+    rv$adjusted <- union(rv$adjusted, collapse_points(act))
+    rv$edited   <- setdiff(rv$edited, collapse_points(act))
     TRUE
   }
   load_queue_photo <- function(k) {
@@ -1708,7 +1882,7 @@ server <- function(input, output, session) {
     keep <- Reduce(union, list(rv$edited, rv$na, c(1L, 2L), HINGES))
     P2 <- seed_configuration(P, seed_params(), isTRUE(input$flipdorsal), keep = keep)
     if (is.null(P2)) return(invisible(FALSE))
-    rv$pred <- P2
+    rv$pred <- collapse_pred(P2)
     rv$seeded <- setdiff(seq_len(N_ANAT), keep)
     if (!quiet)
       notify(sprintf("%d landmark(s) seeded at the median FISHMORPH proportions -- reposition them.",
@@ -1757,7 +1931,7 @@ server <- function(input, output, session) {
     if (isTRUE(input$auto_constraints) && !frame_pt &&
         fin_row(P, 1L) && fin_row(P, 2L))
       P <- propagate_conventions(P, just)
-    rv$pred <- P
+    rv$pred <- collapse_pred(P)          # a declared zero survives the conventions
     # ALWAYS advance -- hinges included. They are stops in the sequence like any
     # other point; treating them as a special case is what left the selection
     # stuck on 22.
@@ -1899,6 +2073,51 @@ server <- function(input, output, session) {
     rv$sel <- last
     rv$msg <- paste0(point_label(last), " cleared -- place it again.")
   })
+  ## ---- collapsed segments ---------------------------------------------------
+  ## Re-applied after everything that could undo them: the conventions put LM9
+  ## and LM11 back on the belly line and enforce_head_order() re-separates the
+  ## eye group, so without this the zero would last exactly until the next
+  ## click. The points a rule moves are marked "adjusted" -- placed by a rule the
+  ## operator invoked, neither pointed at by hand nor left at their seed.
+  collapse_pred <- function(P = rv$pred) {
+    act <- rv$collapse
+    if (is.null(P) || !length(act)) return(P)
+    P <- apply_collapse(P, act)
+    moved <- collapse_points(act)
+    moved <- moved[vapply(moved, function(i) fin_row(P, i), logical(1))]
+    rv$seeded   <- setdiff(rv$seeded, moved)
+    rv$na       <- setdiff(rv$na, moved)
+    rv$edited   <- setdiff(rv$edited, moved)
+    rv$adjusted <- union(rv$adjusted, moved)
+    P
+  }
+  ## Ticking a box applies it at once, unticking releases the point: it goes back
+  ## to being derived by the conventions, which is what it was before.
+  observeEvent(input$collapse, {
+    rv$collapse <- input$collapse %||% character(0)
+    if (is.null(rv$pred)) return()
+    released <- setdiff(collapse_points(names(COLLAPSE_RULES)),
+                        collapse_points(rv$collapse))
+    rv$adjusted <- setdiff(rv$adjusted, released)
+    P <- collapse_pred(rv$pred)
+    if (length(released) && isTRUE(input$auto_constraints) &&
+        fin_row(P, 1L) && fin_row(P, 2L))
+      P <- propagate_conventions(P, 4L)          # re-derive the belly line
+    rv$pred <- collapse_pred(P)
+  }, ignoreNULL = FALSE, ignoreInit = TRUE)
+
+  output$collapse_help <- renderUI({
+    act <- rv$collapse
+    txt <- if (!length(act))
+      paste("A segment that is genuinely zero on this fish -- a mouth on the",
+            "ventral profile, a head ending on it. One landmark takes the",
+            "coordinates of the other: both stay on the photograph and in the",
+            "workbook. Re-applied after every click, reset for each specimen.")
+    else paste("Active:", paste(vapply(COLLAPSE_RULES[act], function(r) r$tip,
+                                       character(1)), collapse = " | "))
+    div(style = "font-size:11.5px;color:#92400e;margin-top:2px;", txt)
+  })
+
   ## Drop every point and its status, keeping the photograph, the zoom and the
   ## flips as they are. Shared by "Start over" and by the blind repeat, which
   ## must leave the operator facing the same image with nothing already placed.
@@ -2018,32 +2237,56 @@ server <- function(input, output, session) {
     set_mode(cur_mode())
   })
 
-  ## ---- extreme-point check, on save -----------------------------------------
+  ## ---- convention check, on save --------------------------------------------
   ## "Save & next" goes through this check before anything is written. When LM3
-  ## is not the most dorsal point (or LM4 the most ventral), the operator is
-  ## offered the two ways out that matter: measure it again, or let the app
-  ## snap the point onto the true extreme.
+  ## is not the most dorsal point (or LM4 the most ventral), or when the eye
+  ## vertical is out of order, the operator is offered the ways out that matter:
+  ## measure it again, or -- for the extremes only -- let the app snap the point
+  ## onto the true extreme.
   extreme_modal <- function(v) {
+    has_ext <- any(v$kind == "extreme")
+    has_ord <- any(v$kind == "order")
     showModal(modalDialog(
-      title = "FISHMORPH conventions: Bd (3-4) is not the maximum body depth",
+      title = if (has_ext && has_ord)
+        "FISHMORPH conventions: Bd (3-4) and the eye vertical (5, 13, 7, 14, 6, 8)"
+      else if (has_ord)
+        "FISHMORPH conventions: the eye vertical (5, 13, 7, 14, 6, 8) is out of order"
+      else "FISHMORPH conventions: Bd (3-4) is not the maximum body depth",
       tags$ul(lapply(seq_len(nrow(v)), function(r) {
         i <- v$point[r]; j <- v$culprit[r]
-        tags$li(sprintf(
+        tags$li(if (identical(v$kind[r], "extreme")) sprintf(
           "LM%d must be the most %s point: LM%d overshoots it by %.0f px.",
-          i, if (i == 3L) "DORSAL" else "VENTRAL", j, v$delta[r]))
+          i, if (i == 3L) "DORSAL" else "VENTRAL", j, v$delta[r])
+        else sprintf(
+          "Eye vertical out of order: LM%d must sit ABOVE LM%d, and is %.0f px below it.",
+          i, j, v$delta[r]))
       })),
       tags$p(tags$em(
         "Heights are measured perpendicular to the body axis, segment by",
         "segment, so a bent or tilted specimen is not flagged for its posture.",
         "The caudal peduncle and fin (16-19), the appendage tips (12, 15) and",
         "the derived ventral points (8, 9, 11 -- computed from LM4 itself) are",
-        "excluded from the test.")),
-      tags$p("Auto-correct gives the landmark the height of the point",
-             "overshooting it, keeping its position along the axis; corrected",
-             "points are exported with status \"adjusted\"."),
+        "excluded from the Bd test.")),
+      if (has_ord) tags$p(tags$em(
+        "The six points 5, 13, 7, 14, 6, 8 lie on one vertical, in that order",
+        "from the back downwards: top of the head, top of the eye, centre,",
+        "bottom of the eye, bottom of the head, body underside. An inversion",
+        "leaves every pair internally consistent -- Ed keeps its length -- while",
+        "Hd or Eh silently refers to the wrong point, which is why no other",
+        "check sees it.")),
+      tags$p(
+        if (has_ext) tags$span(
+          "Auto-correct gives LM3 or LM4 the height of the point overshooting",
+          "it, keeping its position along the axis; corrected points are",
+          "exported with status \"adjusted\".") else NULL,
+        if (has_ord) tags$span(
+          tags$b(" An inversion is never auto-corrected:"),
+          "moving a point to satisfy the order would invent a measurement",
+          "rather than repair one. Measure the points again, or save as is if",
+          "the order is real.") else NULL),
       footer = tagList(
         actionButton("extreme_remeasure", "Measure again", class = "btn-primary"),
-        actionButton("extreme_fix", "Auto-correct and save"),
+        if (has_ext) actionButton("extreme_fix", "Auto-correct and save"),
         actionButton("extreme_asis", "Save without correcting")),
       easyClose = FALSE, size = "l"))
   }
@@ -2063,7 +2306,7 @@ server <- function(input, output, session) {
       if (isTRUE(input$auto_constraints) && 4L %in% v$point &&
           fin_row(P, 1L) && fin_row(P, 2L))
         P <- propagate_conventions(P, 4L)
-      rv$pred     <- P
+      rv$pred     <- collapse_pred(P)
       rv$na       <- setdiff(rv$na, v$point)
       rv$seeded   <- setdiff(rv$seeded, v$point)
       rv$adjusted <- union(rv$adjusted, v$point)
@@ -2076,29 +2319,47 @@ server <- function(input, output, session) {
       notify("Nothing to save yet: predict, or start manual placement first.",
              "warning"); return() }
     if (isTRUE(input$check_extremes)) {
-      v <- extreme_violations(rv$pred)
+      v <- convention_violations(rv$pred)
       if (!is.null(v)) { extreme_modal(v); return() }
     }
     save_specimen()
   })
 
   ## Measure again: close, select the offending landmark and centre the view.
+  ## For an inversion the landmark to re-measure is the CULPRIT -- the one found
+  ## on the wrong side -- not the reference it was compared with.
   observeEvent(input$extreme_remeasure, {
     removeModal()
-    v <- extreme_violations(rv$pred)
+    v <- convention_violations(rv$pred)
     if (!is.null(v)) {
-      rv$sel <- v$point[1]; zoom_to_sel()
-      rv$msg <- sprintf("%s -- click its true position (the most %s point).",
-                        point_label(v$point[1]),
-                        if (v$point[1] == 3L) "dorsal" else "ventral")
+      ord <- identical(v$kind[1], "order")
+      rv$sel <- if (ord) v$culprit[1] else v$point[1]
+      zoom_to_sel()
+      rv$msg <- if (ord)
+        sprintf("%s -- click its true position: it must sit below %s.",
+                point_label(v$culprit[1]), point_label(v$point[1]))
+      else
+        sprintf("%s -- click its true position (the most %s point).",
+                point_label(v$point[1]),
+                if (v$point[1] == 3L) "dorsal" else "ventral")
     }
   })
+  ## Auto-correct applies to the extremes only. An inversion of the eye vertical
+  ## is reported again on the way out rather than saved in silence: it is the one
+  ## error the check exists for.
   observeEvent(input$extreme_fix, {
     removeModal()
     if (!isTRUE(apply_extreme_fix()))
       showNotification(paste("LM3/LM4 still breach the convention after",
                              "correction: check the placement."),
                        type = "warning", duration = 8)
+    ord <- eye_order_violations(rv$pred)
+    if (!is.null(ord))
+      showNotification(
+        sprintf(paste("Eye vertical still out of order (%s): not auto-corrected,",
+                      "saved as is."),
+                paste(sprintf("%d/%d", ord$point, ord$culprit), collapse = ", ")),
+        type = "warning", duration = 10)
     save_specimen()
   })
   observeEvent(input$extreme_asis, { removeModal(); save_specimen() })
@@ -2252,6 +2513,9 @@ server <- function(input, output, session) {
       if (isTRUE(input$pin)) M <- apply_conventions(M)
       rv$pred <- M
       rv$seeded <- setdiff(rv$seeded, as.integer(d$landmark[keep]))
+      # The model knows nothing of a zero the operator declared on this fish:
+      # re-assert it over the prediction, exactly as after the conventions.
+      rv$pred <- collapse_pred(rv$pred)
       # Provenance: every landmark the model wrote over becomes "predicted"
       # again, except those the worker froze on the operator's clicks.
       rv$edited <- union(setdiff(rv$edited, as.integer(d$landmark[keep])),
@@ -2380,7 +2644,24 @@ server <- function(input, output, session) {
         bg <- ifelse(ok %in% DERIVED_LM, "grey70",
                      ifelse(ok %in% SCALE_PTS, "#00a06a", "red"))
         points(P[ok, 1], P[ok, 2], pch = 21, bg = bg, col = "white", cex = 1.2)
-        text(P[ok, 1], P[ok, 2], ok, col = "white", pos = 3, cex = 0.9)
+        # COINCIDENT LANDMARKS. Two points at the same pixel draw one circle on
+        # top of the other and one label over the other, so a legitimate zero
+        # LOOKS like a lost landmark. Both are here; the drawing has to say so.
+        # A group is marked by a wider ring and labelled once, with every number
+        # it holds ("10+11"), instead of stacking illegible labels.
+        key <- paste(round(P[ok, 1], 1), round(P[ok, 2], 1))
+        grp <- split(ok, key)
+        multi <- grp[lengths(grp) > 1L]
+        single <- unlist(grp[lengths(grp) == 1L], use.names = FALSE)
+        if (length(single))
+          text(P[single, 1], P[single, 2], single, col = "white", pos = 3, cex = 0.9)
+        for (g in multi) {
+          xy <- P[g[1], ]
+          points(xy[1], xy[2], pch = 1, col = "white", cex = 2.6, lwd = 2)
+          points(xy[1], xy[2], pch = 1, col = "black", cex = 3.2, lwd = 1)
+          text(xy[1], xy[2], paste(sort(g), collapse = "+"),
+               col = "white", pos = 3, cex = 0.95, font = 2)
+        }
       }
       if (fin_row(P, SCALE_PTS[1]) && fin_row(P, SCALE_PTS[2]))
         segments(P["20", 1], P["20", 2], P["21", 1], P["21", 2],

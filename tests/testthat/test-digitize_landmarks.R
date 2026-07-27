@@ -112,6 +112,147 @@ test_that("the bundled landmarking app parses", {
   expect_silent(invisible(parse(app_file())))
 })
 
+## ---- the conventions checked on save ----------------------------------------
+## The geometry helpers form a chain (body_axis -> axis_chain -> make_frame ->
+## seg_frames -> dorsal_heights), so the whole chain is evaluated out of the app
+## file and exercised on a synthetic fish. Straight axis, head on the left, back
+## towards the negative Y -- the frame the app records in.
+conv_env <- function() {
+  app_helpers(c("N_TOT", "CURVE_PT", "EXTRA_HINGES", "HINGES", "fin_row",
+                "body_axis", "axis_chain", "make_frame", "seg_frames",
+                "EXTREME_EXCLUDE", "EXTREME_CAND", "EXTREME_TOL",
+                "EXTREME_FLOOR", "EXTREME_FRAME", "frame_of", "dorsal_heights",
+                "extreme_violations", "EYE_ORDER", "eye_order_violations",
+                "convention_violations", "fix_extremes"))
+}
+conv_fish <- function() {
+  P <- matrix(NA_real_, 24, 2, dimnames = list(1:24, c("X", "Y")))
+  pts <- list("1" = c(0, 0), "2" = c(1000, 0), "3" = c(470, -120),
+              "4" = c(470, 130), "5" = c(100, -100), "6" = c(100, 90),
+              "7" = c(100, 20), "8" = c(100, 100), "9" = c(0, 60),
+              "10" = c(250, -30), "11" = c(250, 110), "12" = c(400, 90),
+              "13" = c(100, -10), "14" = c(100, 50), "15" = c(60, 40),
+              "16" = c(930, -55), "17" = c(930, 55), "18" = c(1000, -130),
+              "19" = c(1000, 130), "22" = c(500, 0))
+  for (k in names(pts)) P[as.integer(k), ] <- pts[[k]]
+  P
+}
+
+test_that("a compliant configuration raises no violation", {
+  env <- conv_env()
+  P <- conv_fish()
+  expect_null(env$extreme_violations(P))
+  expect_null(env$eye_order_violations(P))
+  expect_null(env$convention_violations(P))
+})
+
+test_that("LM5 must top the eye vertical", {
+  env <- conv_env()
+  P <- conv_fish(); P[5, 2] <- 0            # top of the head below 13 and 7
+  v <- env$eye_order_violations(P)
+  expect_false(is.null(v))
+  expect_true(all(v$kind == "order"))
+  expect_true(any(v$point == 5L & v$culprit == 13L))
+})
+
+test_that("a swapped pair of the eye vertical is detected where it happens", {
+  env <- conv_env()
+  # the eye clicked bottom-first: 13 and 14 exchanged. Ed keeps its length,
+  # which is exactly why no other check sees this.
+  P <- conv_fish(); P[13, ] <- c(100, 50); P[14, ] <- c(100, -10)
+  v <- env$eye_order_violations(P)
+  expect_true(any(v$point == 13L & v$culprit == 7L))
+  expect_true(any(v$point == 7L  & v$culprit == 14L))
+  expect_true(all(v$delta > 0))
+  expect_equal(sqrt(sum((P[13, ] - P[14, ])^2)),
+               sqrt(sum((conv_fish()[13, ] - conv_fish()[14, ])^2)))
+
+  Q <- conv_fish(); Q[7, 2] <- -60          # eye centre above the top of the eye
+  expect_true(any(env$eye_order_violations(Q)$point == 13L))
+})
+
+test_that("a landmark left out is stepped over, not read as an inversion", {
+  env <- conv_env()
+  P <- conv_fish(); P[13, ] <- NA_real_
+  expect_null(env$eye_order_violations(P))
+  P[14, ] <- NA_real_; P[7, ] <- NA_real_
+  expect_null(env$eye_order_violations(P))
+})
+
+test_that("the eye order uses the tolerance of the extreme-point check", {
+  env <- conv_env()
+  P <- conv_fish()
+  P[13, 2] <- P[5, 2] - 2                   # 2 px above LM5: click noise
+  expect_null(env$eye_order_violations(P))
+  P[13, 2] <- P[5, 2] - 20
+  expect_false(is.null(env$eye_order_violations(P)))
+})
+
+test_that("a declared zero collapses its own segment and nothing else", {
+  env <- app_helpers(c("fin_row", "COLLAPSE_RULES", "apply_collapse",
+                       "collapse_points"))
+  P <- conv_fish()
+  seg <- function(P, a, b) sqrt(sum((P[a, ] - P[b, ])^2))
+  base <- c(Mo = seg(P, 1, 9), Hd6 = seg(P, 6, 8), PFi = seg(P, 10, 11),
+            Eye = seg(P, 5, 13), Ed = seg(P, 13, 14), Bd = seg(P, 3, 4))
+  expect_true(all(base > 0))
+
+  Q <- env$apply_collapse(P, "Mo")
+  expect_equal(seg(Q, 1, 9), 0)
+  expect_equal(Q[1, ], P[1, ])                          # the snout never moves
+  expect_equal(seg(Q, 10, 11), unname(base[["PFi"]]))   # the others untouched
+  expect_equal(seg(Q, 3, 4), unname(base[["Bd"]]))
+
+  # the belly line holds: LM6 and LM10 come onto LM8 and LM11, not the reverse
+  R <- env$apply_collapse(P, "Hd6")
+  expect_equal(seg(R, 6, 8), 0); expect_equal(R[8, ], P[8, ])
+  S <- env$apply_collapse(P, "PFi")
+  expect_equal(seg(S, 10, 11), 0); expect_equal(S[11, ], P[11, ])
+  # the eye at the top of the head moves LM5, never LM13: Ed is a measurement
+  U <- env$apply_collapse(P, "EyeTop")
+  expect_equal(seg(U, 5, 13), 0)
+  expect_equal(U[13, ], P[13, ])
+  expect_equal(seg(U, 13, 14), unname(base[["Ed"]]))
+
+  # NOTHING is deleted: every landmark keeps a position, with every rule on
+  V <- env$apply_collapse(P, names(env$COLLAPSE_RULES))
+  for (i in c(1, 5, 6, 8, 9, 10, 11, 13)) expect_true(all(is.finite(V[i, ])))
+  expect_equal(c(seg(V, 1, 9), seg(V, 6, 8), seg(V, 10, 11), seg(V, 5, 13)),
+               c(0, 0, 0, 0))
+
+  expect_setequal(env$collapse_points(c("Mo", "PFi")), c(9L, 10L))
+  expect_equal(env$collapse_points(character(0)), integer(0))
+  # a rule whose reference is not placed is skipped rather than propagating NA
+  W <- P; W[11, ] <- NA_real_
+  expect_equal(env$apply_collapse(W, "PFi")[10, ], P[10, ])
+})
+
+test_that("an equality is not read as an inversion of the eye vertical", {
+  env <- app_helpers(c("N_TOT", "CURVE_PT", "EXTRA_HINGES", "HINGES", "fin_row",
+                       "body_axis", "axis_chain", "make_frame", "seg_frames",
+                       "EXTREME_TOL", "EXTREME_FLOOR", "EXTREME_FRAME",
+                       "frame_of", "dorsal_heights", "EYE_ORDER",
+                       "eye_order_violations", "COLLAPSE_RULES",
+                       "apply_collapse"))
+  P <- env$apply_collapse(conv_fish(), "EyeTop")   # LM5 exactly on LM13
+  expect_null(env$eye_order_violations(P))
+})
+
+test_that("both families come back in one table, extremes first", {
+  env <- conv_env()
+  P <- conv_fish()
+  P[5, 2] <- -190                                 # LM5 above the back -> extreme
+  P[13, ] <- c(100, 50); P[14, ] <- c(100, -10)   # eye swapped        -> order
+  v <- env$convention_violations(P)
+  expect_setequal(unique(v$kind), c("extreme", "order"))
+  expect_equal(v$kind[1], "extreme")
+  # the auto-correction repairs the extreme and leaves the inversion standing:
+  # a snap cannot repair an order without inventing a measurement.
+  fixed <- env$fix_extremes(P, v[v$kind == "extreme", , drop = FALSE])
+  expect_null(env$extreme_violations(fixed))
+  expect_false(is.null(env$eye_order_violations(fixed)))
+})
+
 test_that("the app builds replicate identifiers the importer can parse back", {
   env <- app_helpers(c("REP_RE", "clean_operator", "make_id", "base_code",
                        "rep_of"))

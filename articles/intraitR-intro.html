@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.14.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -131,19 +131,41 @@ was placed off the body outline:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_landmarks.html">plot_landmarks</a></span><span class="op">(</span><span class="va">fish</span>, specimen <span class="op">=</span> <span class="fl">1</span>, background_image <span class="op">=</span> <span class="st">"specimen1.jpg"</span><span class="op">)</span></span></code></pre></div>
 <p>If landmarks have not yet been digitized, [digitize_landmarks()]
 launches a bundled Shiny application for predictor-assisted
-digitization: a trained ml-morph model proposes the 19 FISHMORPH
-landmarks from a few calibration clicks per specimen, which are then
-reviewed, corrected and exported to
-<code>CSV</code>/<code>tpsDig</code>. It requires a live interactive
-session (and an external ml-morph resource directory holding the trained
-predictor and a <code>dlib</code>-enabled Python environment), so it
-cannot be run inside this vignette, but the intended usage is:</p>
+digitization. The session is declared at the console – the photograph
+folder, the output workbook, the operator, the working queue – and
+everything it produces goes to one workbook (a <code>measurements</code>
+sheet, a <code>bias</code> sheet holding the repeated digitizations, and
+a <code>bias_summary</code> sheet quantifying them), backed by an
+append-only journal that survives a crash. A trained ml-morph model can
+propose the 19 FISHMORPH landmarks from a few clicks per specimen, which
+are then reviewed and corrected. It requires a live interactive session
+(and, for the prediction step only, an external ml-morph resource
+directory with the trained predictor and a <code>dlib</code>-enabled
+Python environment), so it cannot be run inside this vignette, but the
+intended usage is:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Open the app (auto-detecting an "ml_morph/" resource directory):</span></span>
-<span><span class="fu"><a href="../reference/digitize_landmarks.html">digitize_landmarks</a></span><span class="op">(</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Digitize a folder of photographs into one workbook:</span></span>
+<span><span class="fu"><a href="../reference/digitize_landmarks.html">digitize_landmarks</a></span><span class="op">(</span></span>
+<span>  photo_dir        <span class="op">=</span> <span class="st">"T26/photos"</span>,</span>
+<span>  xlsx_path        <span class="op">=</span> <span class="st">"T26/T26_landmarks.xlsx"</span>,</span>
+<span>  journal_dir      <span class="op">=</span> <span class="st">"T26/landmark_journal"</span>,   <span class="co"># default</span></span>
+<span>  operator         <span class="op">=</span> <span class="st">"AT"</span>,</span>
+<span>  xlsx_flush_every <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  mode             <span class="op">=</span> <span class="st">"new"</span></span>
+<span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Import the exported table into an "intrait_landmarks" object:</span></span>
-<span><span class="va">lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_mlmorph_landmarks.html">read_mlmorph_landmarks</a></span><span class="op">(</span><span class="st">"mesures.csv"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Read the measurements back into an "intrait_landmarks" object:</span></span>
+<span><span class="va">lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_landmarks_xlsx.html">read_landmarks_xlsx</a></span><span class="op">(</span><span class="st">"T26/T26_landmarks.xlsx"</span>, sheet <span class="op">=</span> <span class="st">"measurements"</span>,</span>
+<span>                          n_landmarks <span class="op">=</span> <span class="fl">22</span>, x_pattern <span class="op">=</span> <span class="st">"{i}_X"</span>,</span>
+<span>                          y_pattern <span class="op">=</span> <span class="st">"{i}_Y"</span>, id_cols <span class="op">=</span> <span class="st">"specimen"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># After a crash, the workbook is rebuilt from the journals:</span></span>
+<span><span class="fu"><a href="../reference/consolidate_landmarks.html">consolidate_landmarks</a></span><span class="op">(</span><span class="st">"T26/landmark_journal"</span><span class="op">)</span></span></code></pre></div>
+<p>Digitization error and operator bias are measured with the same call
+and <code>mode = "repeat"</code>, which keeps the app on the same
+photograph and saves each blind pass to the <code>bias</code> sheet; the
+result feeds [measurement_error()] and [operator_disagreement()]
+directly.</p>
 </div>
 <div class="section level2">
 <h2 id="generalised-procrustes-analysis">2. Generalised Procrustes Analysis<a class="anchor" aria-label="anchor" href="#generalised-procrustes-analysis"></a>

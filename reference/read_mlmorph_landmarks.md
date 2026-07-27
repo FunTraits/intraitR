@@ -77,12 +77,17 @@ read_mlmorph_landmarks(
   name). Treating a set of predicted landmarks as one "operator" mirrors
   [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
   and makes it easy to compare predicted against hand-digitized trait
-  spaces. Defaults to `"ml_morph"`.
+  spaces. Defaults to `"ml_morph"`. The special value `"parse"` instead
+  reads the operator off each specimen identifier (see Details).
 
 - replicate:
 
   Integer scalar recorded in `metadata$replicate` (one digitization per
-  individual by default). Defaults to `1L`.
+  individual by default). Defaults to `1L`. The special value `"parse"`
+  instead reads the replicate number off each specimen identifier (see
+  Details), which is what a table produced by the repeat mode of
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  carries.
 
 - save_to:
 
@@ -129,6 +134,45 @@ and impute what is missing with
 [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
 if a complete configuration is required.
 
+## Replicated digitizations
+
+A measure table in which the same physical individual was digitized more
+than once – the repeat mode of
+[`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md),
+used to quantify measurement error and operator bias – distinguishes the
+passes by their identifier rather than by a column, since the exported
+schema is one row per specimen and landmark. The convention, shared with
+the T-26 repeatability set of
+[`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md),
+is `"<individual>_rep<N>"`, optionally with an operator token before the
+suffix: `"<individual>_<operator>_rep<N>"`. The replicate number is
+always the last underscore-separated token, so an identifier is
+decomposed unambiguously from the right, and the operator label carries
+no underscore.
+
+Because a bare identifier cannot be told apart from an individual whose
+name merely happens to end in `_rep2`, the decomposition is never
+attempted silently: it is requested with `replicate = "parse"` (and,
+when several operators share one table, `operator = "parse"`).
+`metadata$individual` then holds the physical individual,
+`metadata$replicate` the pass number, and `metadata$operator` the
+operator, which is the grouping
+[`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
+(`method = "procrustes"`, argument `individual`) and
+[`operator_disagreement()`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md)
+expect. Identifiers carrying no suffix are left alone (`replicate = 1`),
+so a table mixing single and repeated digitizations imports correctly.
+
+One ambiguity is irreducible and worth stating: `operator = "parse"`
+takes the token before the suffix as the operator, so an individual
+whose own code contains an underscore and which was digitized *without*
+an operator label (`"fish_01_rep2"`) would be split into individual
+`"fish"` and operator `"01"`. Use `operator = "parse"` only on tables
+where the operator was actually recorded in the identifier – the case it
+exists for – and `replicate = "parse"` alone otherwise, which never
+touches the individual's name beyond the suffix. Identifiers with a
+suffix but no operator token are reported, and keep `operator = NA`.
+
 ## See also
 
 [`read_landmarks_csv()`](https://funtraits.github.io/intraitR/reference/read_landmarks_csv.md),
@@ -168,4 +212,25 @@ table(lm2$metadata$species, useNA = "ifany")
 #> 
 #>  Gobio occitaniae Squalius cephalus 
 #>                 1                 1 
+
+# A table from the repeat mode of digitize_landmarks(): the same two fish,
+# each digitized twice by operator "AT". Ask for the identifiers to be
+# decomposed into individual / operator / replicate.
+rep_tab <- data.frame(
+  specimen = rep(c("fish_01_AT_rep1", "fish_01_AT_rep2",
+                   "fish_02_AT_rep1", "fish_02_AT_rep2"), each = 3),
+  landmark = rep(1:3, times = 4),
+  X = c(10, 15, 20, 10.4, 15.2, 19.6, 11, 16, 21, 11.3, 15.7, 21.2),
+  Y = c(20, 25, 20, 20.3, 24.6, 20.2, 21, 26, 21, 20.8, 26.4, 20.9)
+)
+lm3 <- read_mlmorph_landmarks(rep_tab, scale_col = NULL,
+                              replicate = "parse", operator = "parse")
+#> Measure table: 4 individual(s) x 3 landmark(s) (12 rows).
+#> Parsed 4 replicated identifier(s): 2 individual(s), 2 replicate(s) per individual (median).
+lm3$metadata[c("specimen", "individual", "operator", "replicate")]
+#>                        specimen individual operator replicate
+#> fish_01_AT_rep1 fish_01_AT_rep1    fish_01       AT         1
+#> fish_01_AT_rep2 fish_01_AT_rep2    fish_01       AT         2
+#> fish_02_AT_rep1 fish_02_AT_rep1    fish_02       AT         1
+#> fish_02_AT_rep2 fish_02_AT_rep2    fish_02       AT         2
 ```

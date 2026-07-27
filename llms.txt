@@ -502,6 +502,21 @@ interactive digitizer; visualise a single configuration.
 - [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
   : Launch the interactive ml-morph landmarking application
 
+- [`landmark_journal_open()`](https://funtraits.github.io/intraitR/reference/landmark_journal_open.md)
+  : Open a session landmark journal (append-only)
+
+- [`landmark_journal_append()`](https://funtraits.github.io/intraitR/reference/landmark_journal_append.md)
+  : Append one record (one digitization) to a landmark journal
+
+- [`landmark_journal_read()`](https://funtraits.github.io/intraitR/reference/landmark_journal_read.md)
+  : Read and concatenate every journal in a directory
+
+- [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
+  : Rebuild the landmark table from the journals
+
+- [`write_xlsx_atomic()`](https://funtraits.github.io/intraitR/reference/write_xlsx_atomic.md)
+  : Write a workbook atomically
+
 - [`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md)
   : Plot a single landmark configuration
 

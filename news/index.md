@@ -1,5 +1,162 @@
 # Changelog
 
+## intraitR 1.16.0
+
+### `digitize_landmarks()` is now a console-declared session
+
+- The whole session is declared **at the console** and nothing about it
+  can be changed by hand once the app is open: `photo_dir`, `xlsx_path`,
+  `journal_dir`, `operator`, `mode`, `n_repeats`, `xlsx_flush_every`.
+  The folder text box, the single-photograph upload and the CSV
+  re-import are gone with it. A digitizing session is a piece of a
+  protocol, not a set of choices to re-make every morning: written down
+  in a script it is reproducible, and it stops being one of the things
+  that can silently differ between two operators.
+
+``` r
+
+digitize_landmarks(
+  photo_dir        = "T26/photos",
+  xlsx_path        = "T26/T26_landmarks.xlsx",
+  journal_dir      = "T26/landmark_journal",   # default
+  operator         = "AT",
+  xlsx_flush_every = 10,
+  mode             = "new")
+```
+
+- The **entry hinges 23 and 24 are now recorded** (`23_X ... 24_Y`), in
+  the workbook and in the journal. They are not landmarks and belong in
+  no shape analysis – `n_landmarks = 22` still reads a configuration,
+  and the TPS export still contains 22 points – but they define the
+  frames every FISHMORPH convention was applied in. Without them, a
+  specimen reopened for correction came back with a straight axis, and
+  its geometry silently stopped matching the one it had been digitized
+  under.
+  [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
+  now defaults to `points = 1:24` accordingly.
+- **One workbook, three sheets.** `measurements` (one row per specimen)
+  and `bias` (one row per repeated digitization, with `individual`,
+  `operator` and `replicate` columns) share the wide FISHMORPH layout
+  `1_X, 1_Y, ... 22_X, 22_Y`, read back by
+  `read_landmarks_xlsx(x_pattern = "{i}_X", y_pattern = "{i}_Y")`.
+  `bias_summary` is recomputed at every write: per individual and per
+  landmark, the median distance of the repeats to their own mean
+  position, in pixels and as a percentage of standard length, plus a
+  per-landmark overview across individuals. It says which points the
+  protocol places reproducibly while the session is still open, rather
+  than a month later.
+- **Three queues**, switchable from the action bar: `new` (photographs
+  absent from the workbook), `correct` (specimens already digitized,
+  whose points are reloaded onto the photograph for review – this
+  replaces the old CSV re-import) and `repeat` (the same photograph,
+  blind, until the individual has its complement of repeats).
+
+### An append-only journal behind the workbook
+
+- Every save is written FIRST to a session journal
+  (`landmarks_<operator>_<timestamp>.tsv`, one immutable line per
+  landmark, never rewritten), and only then to the in-memory sheets; the
+  workbook itself is rewritten in full every `xlsx_flush_every` records
+  and **atomically** (temporary file, then rename, keeping one
+  generation as `.prev.xlsx`). The previous design rewrote a single
+  table on every specimen, in a cloud-synced folder: a crash, a sync
+  lock or a power cut during that rewrite could cost the whole file
+  rather than the last specimen. The volume was never the problem; the
+  write pattern was.
+- New exported functions
+  [`landmark_journal_open()`](https://funtraits.github.io/intraitR/reference/landmark_journal_open.md),
+  [`landmark_journal_append()`](https://funtraits.github.io/intraitR/reference/landmark_journal_append.md),
+  [`landmark_journal_read()`](https://funtraits.github.io/intraitR/reference/landmark_journal_read.md),
+  [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
+  and
+  [`write_xlsx_atomic()`](https://funtraits.github.io/intraitR/reference/write_xlsx_atomic.md).
+  [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
+  rebuilds the wide sheets from the journals – keeping the last record
+  per specimen, or every record with `history = TRUE`, which makes each
+  correction auditable – and can write the workbook itself. It is the
+  recovery path, and the app exposes it as a button.
+- A line truncated mid-write is detected and dropped on read; journals
+  from two workstations merge by plain concatenation; a journal written
+  by an earlier version is filled with `NA` rather than refused.
+
+### A tabbed, themed interface
+
+- The side panel is a **tabset** – `Specimen`, `Repeats`, `Display`,
+  `Checks`, `Seed` – instead of one long scroll. The controls fall into
+  groups touched at different rhythms (once per specimen, once per
+  batch, once per session), and stacking them in one column put the ones
+  used constantly below the ones used never.
+- With `bslib` (new, in `Suggests`) the app uses a Bootstrap 5 theme,
+  cards and a wider sidebar; without it, the same content falls back to
+  the standard Shiny layout. No feature depends on `bslib`, only the
+  appearance does.
+- The header strip shows what the session IS – photograph folder,
+  workbook, journal, operator – since those are declared at the console
+  and are no longer editable. The `Repeats` tab shows the running
+  per-landmark bias table.
+
+### Breaking changes
+
+- [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  now requires `photo_dir`; `autosave` is gone (the workbook and the
+  journal replace the CSV autosave), and `mlmorph_dir`, `predictor` and
+  `python` are still available but are no longer the first arguments.
+- `writexl` is required by
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  (it writes the workbook), and `readxl` as soon as an existing workbook
+  is resumed from. Both were already in `Suggests`.
+
+## intraitR 1.15.0
+
+### Repeated digitization in the landmarking app
+
+- The
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  app gains a **`Session type`** selector. Alongside `New photographs` –
+  the previous behaviour, unchanged and still the default – a
+  `Repeats (measurement error / operator bias)` mode keeps “Save & next”
+  on the **same photograph** and saves each pass separately, until the
+  individual carries the number of repeats asked for. This is what turns
+  a digitization batch into an estimate of its own technical variance,
+  which
+  [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
+  and
+  [`operator_disagreement()`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md)
+  need and which no amount of care in a single pass can supply.
+- Each pass is written under `"<code>_rep<N>"`, or
+  `"<code>_<operator>_rep<N>"` when the optional operator field is
+  filled – the convention already carried by the T-26 repeatability set.
+  The replicate number is always the last underscore-separated token and
+  the operator label is stripped of underscores, so identifiers
+  decompose unambiguously from the right. The exported CSV schema is
+  unchanged.
+- Repeats are **blind by default**: the configuration is cleared after
+  each save, so the next pass starts from the snout. A pass resumed from
+  the one just saved measures the operator’s reluctance to revise their
+  own points rather than the precision of the protocol, and drives `%ME`
+  towards zero. The box can be unticked, with a standing warning on
+  screen that the repeats are then not independent.
+- Progress, the `Skip` action and the saved-table summary now count
+  **individuals** rather than rows: an individual is done once it has
+  its full complement of repeats, and reopening a photograph half-way
+  through its series continues it instead of overwriting it.
+
+### Replicated identifiers read back by the importer
+
+- [`read_mlmorph_landmarks()`](https://funtraits.github.io/intraitR/reference/read_mlmorph_landmarks.md)
+  gains `replicate = "parse"` and `operator = "parse"`, which decompose
+  `"<individual>[_<operator>]_rep<N>"` identifiers into
+  `metadata$individual`, `metadata$operator` and `metadata$replicate` –
+  the grouping
+  [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
+  (`method = "procrustes"`) and
+  [`operator_disagreement()`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md)
+  expect. Parsing is never silent: `"fish_rep2"` is a valid individual
+  name, so the decomposition must be asked for. Identifiers without a
+  suffix keep `replicate = 1`, so a table mixing single and repeated
+  digitizations imports in one pass. The defaults (`replicate = 1L`,
+  `operator = "ml_morph"`) are unchanged.
+
 ## intraitR 1.14.0
 
 ### Extreme-point convention checked on save
@@ -32,6 +189,10 @@
   noise); excluding them flags 1.5%, median overshoot 6.8% of `Bl`, and
   the rate is flat from 0.003 to 0.02 `Bl`, so what remains is gross
   error cleanly separated from noise.
+- Tolerance is `max(5 px, 0.003 * Bl)`. The absolute floor matters on
+  small photographs, where the relative term falls below click noise; it
+  costs no detection, since compliant T-26 specimens top out at -0.4 px
+  of overshoot (p98) while the smallest real breach is 11.8 px.
 - New export status **`"adjusted"`** for landmarks moved by that
   correction, distinct from `"clicked"`: an auto-corrected `Bd` stays
   auditable in the measurement table, is counted on the status line and

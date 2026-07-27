@@ -10,6 +10,7 @@
 <url><loc>https://funtraits.github.io/intraitR/news/index.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/compare_functional_richness.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/consolidate_landmarks.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/correct_allometry.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/correct_geometry.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/correct_geometry_conventions.html</loc></url>
@@ -31,6 +32,9 @@
 <url><loc>https://funtraits.github.io/intraitR/reference/itv_accumulation.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/itv_index.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/itv_proportion.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/landmark_journal_append.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/landmark_journal_open.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/landmark_journal_read.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/linear_distances.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/load_fishmorph_phylo_axes.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/load_fishmorph_phylogeny.html</loc></url>
@@ -73,5 +77,6 @@
 <url><loc>https://funtraits.github.io/intraitR/reference/tpd_dissimilarity.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/trait_disparity.html</loc></url>
 <url><loc>https://funtraits.github.io/intraitR/reference/trait_space.html</loc></url>
+<url><loc>https://funtraits.github.io/intraitR/reference/write_xlsx_atomic.html</loc></url>
 </urlset>
 

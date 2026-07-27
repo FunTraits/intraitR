@@ -21,7 +21,7 @@ plot_fishmorph_points(), and the rest of the intraitR pipeline.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.14.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -124,12 +124,16 @@ identify the source of the digitization (the predictor, an app session,
 an operator name). Treating a set of predicted landmarks as one
 "operator" mirrors <code><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks()</a></code> and makes it easy to
 compare predicted against hand-digitized trait spaces. Defaults to
-<code>"ml_morph"</code>.</p></dd>
+<code>"ml_morph"</code>. The special value <code>"parse"</code> instead reads the operator
+off each specimen identifier (see Details).</p></dd>
 
 
 <dt id="arg-replicate">replicate<a class="anchor" aria-label="anchor" href="#arg-replicate"></a></dt>
 <dd><p>Integer scalar recorded in <code>metadata$replicate</code> (one
-digitization per individual by default). Defaults to <code>1L</code>.</p></dd>
+digitization per individual by default). Defaults to <code>1L</code>. The special
+value <code>"parse"</code> instead reads the replicate number off each specimen
+identifier (see Details), which is what a table produced by the repeat
+mode of <code><a href="digitize_landmarks.html">digitize_landmarks()</a></code> carries.</p></dd>
 
 
 <dt id="arg-save-to">save_to<a class="anchor" aria-label="anchor" href="#arg-save-to"></a></dt>
@@ -170,6 +174,38 @@ pixel distances to length units downstream with the <code>scale_cm</code> argume
 <code><a href="impute_landmarks.html">impute_landmarks()</a></code> if a complete configuration is required.</p>
     </div>
     <div class="section level2">
+    <h2 id="replicated-digitizations">Replicated digitizations<a class="anchor" aria-label="anchor" href="#replicated-digitizations"></a></h2>
+    <p>A measure table in which the same physical individual was digitized more
+than once – the repeat mode of <code><a href="digitize_landmarks.html">digitize_landmarks()</a></code>, used to quantify
+measurement error and operator bias – distinguishes the passes by their
+identifier rather than by a column, since the exported schema is one row
+per specimen and landmark. The convention, shared with the T-26
+repeatability set of <code><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks()</a></code>, is
+<code>"&lt;individual&gt;_rep&lt;N&gt;"</code>, optionally with an operator token before the
+suffix: <code>"&lt;individual&gt;_&lt;operator&gt;_rep&lt;N&gt;"</code>. The replicate number is always
+the last underscore-separated token, so an identifier is decomposed
+unambiguously from the right, and the operator label carries no underscore.</p>
+<p>Because a bare identifier cannot be told apart from an individual whose
+name merely happens to end in <code>_rep2</code>, the decomposition is never
+attempted silently: it is requested with <code>replicate = "parse"</code> (and, when
+several operators share one table, <code>operator = "parse"</code>). <code>metadata$individual</code>
+then holds the physical individual, <code>metadata$replicate</code> the pass number,
+and <code>metadata$operator</code> the operator, which is the grouping
+<code><a href="measurement_error.html">measurement_error()</a></code> (<code>method = "procrustes"</code>, argument <code>individual</code>) and
+<code><a href="operator_disagreement.html">operator_disagreement()</a></code> expect. Identifiers carrying no suffix are left
+alone (<code>replicate = 1</code>), so a table mixing single and repeated
+digitizations imports correctly.</p>
+<p>One ambiguity is irreducible and worth stating: <code>operator = "parse"</code> takes
+the token before the suffix as the operator, so an individual whose own code
+contains an underscore and which was digitized <em>without</em> an operator label
+(<code>"fish_01_rep2"</code>) would be split into individual <code>"fish"</code> and operator
+<code>"01"</code>. Use <code>operator = "parse"</code> only on tables where the operator was
+actually recorded in the identifier – the case it exists for – and
+<code>replicate = "parse"</code> alone otherwise, which never touches the individual's
+name beyond the suffix. Identifiers with a suffix but no operator token are
+reported, and keep <code>operator = NA</code>.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="read_landmarks_csv.html">read_landmarks_csv()</a></code>, <code><a href="read_tps.html">read_tps()</a></code>,
 <code><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks()</a></code>, <code><a href="fishmorph_segments.html">fishmorph_segments()</a></code>,
@@ -206,6 +242,27 @@ pixel distances to length units downstream with the <code>scale_cm</code> argume
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Gobio occitaniae Squalius cephalus </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 1                 1 </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A table from the repeat mode of digitize_landmarks(): the same two fish,</span></span></span>
+<span class="r-in"><span><span class="co"># each digitized twice by operator "AT". Ask for the identifiers to be</span></span></span>
+<span class="r-in"><span><span class="co"># decomposed into individual / operator / replicate.</span></span></span>
+<span class="r-in"><span><span class="va">rep_tab</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  specimen <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fish_01_AT_rep1"</span>, <span class="st">"fish_01_AT_rep2"</span>,</span></span>
+<span class="r-in"><span>                   <span class="st">"fish_02_AT_rep1"</span>, <span class="st">"fish_02_AT_rep2"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  landmark <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, times <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  X <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">15</span>, <span class="fl">20</span>, <span class="fl">10.4</span>, <span class="fl">15.2</span>, <span class="fl">19.6</span>, <span class="fl">11</span>, <span class="fl">16</span>, <span class="fl">21</span>, <span class="fl">11.3</span>, <span class="fl">15.7</span>, <span class="fl">21.2</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  Y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">25</span>, <span class="fl">20</span>, <span class="fl">20.3</span>, <span class="fl">24.6</span>, <span class="fl">20.2</span>, <span class="fl">21</span>, <span class="fl">26</span>, <span class="fl">21</span>, <span class="fl">20.8</span>, <span class="fl">26.4</span>, <span class="fl">20.9</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">lm3</span> <span class="op">&lt;-</span> <span class="fu">read_mlmorph_landmarks</span><span class="op">(</span><span class="va">rep_tab</span>, scale_col <span class="op">=</span> <span class="cn">NULL</span>,</span></span>
+<span class="r-in"><span>                              replicate <span class="op">=</span> <span class="st">"parse"</span>, operator <span class="op">=</span> <span class="st">"parse"</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Measure table: 4 individual(s) x 3 landmark(s) (12 rows).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Parsed 4 replicated identifier(s): 2 individual(s), 2 replicate(s) per individual (median).</span>
+<span class="r-in"><span><span class="va">lm3</span><span class="op">$</span><span class="va">metadata</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"specimen"</span>, <span class="st">"individual"</span>, <span class="st">"operator"</span>, <span class="st">"replicate"</span><span class="op">)</span><span class="op">]</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                        specimen individual operator replicate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> fish_01_AT_rep1 fish_01_AT_rep1    fish_01       AT         1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> fish_01_AT_rep2 fish_01_AT_rep2    fish_01       AT         2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> fish_02_AT_rep1 fish_02_AT_rep1    fish_02       AT         1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> fish_02_AT_rep2 fish_02_AT_rep2    fish_02       AT         2</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

@@ -80,7 +80,7 @@ write.
 ``` r
 d <- file.path(tempdir(), "journal_demo2")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/Rtmpg1NZEF/journal_demo2/landmarks_AT_20260727T135434Z.tsv
+#> Session journal: /tmp/Rtmpz5Qhjp/journal_demo2/landmarks_AT_20260727T141154Z.tsv
 P <- cbind(X = c(10, 60), Y = c(20, 22))
 landmark_journal_append(jr, row_key = "fish_01", coords = P, points = 1:2,
                         specimen = "fish_01", individual = "fish_01")

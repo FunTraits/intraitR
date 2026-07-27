@@ -3,7 +3,7 @@
 Reconstructs, from every journal in `journal_dir`, one row per
 digitization in the "wide" layout of the workbook written by
 [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-(`1_X, 1_Y, ... 22_X, 22_Y`), keeping for each key the LAST record – so
+(`1_X, 1_Y, ... 24_X, 24_Y`), keeping for each key the LAST record – so
 a specimen digitized, then corrected, appears once, corrected. This is
 the recovery path: the workbook can be deleted, corrupted, or left
 behind by a crashed session, and the data are still there.
@@ -13,7 +13,7 @@ behind by a crashed session, and the data are still there.
 ``` r
 consolidate_landmarks(
   journal_dir,
-  points = 1:22,
+  points = 1:24,
   history = FALSE,
   xlsx_path = NULL
 )
@@ -27,9 +27,13 @@ consolidate_landmarks(
 
 - points:
 
-  Landmark numbers to lay out as columns. Defaults to `1:22` (the
-  FISHMORPH scheme plus the curvature point; see
-  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)).
+  Landmark numbers to lay out as columns. Defaults to `1:24`, what
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  records: the 19 FISHMORPH landmarks, the scale bar (20-21), the
+  curvature point (22) and the two entry hinges (23-24). The hinges are
+  not landmarks and belong in no shape analysis; they are rebuilt here
+  because they define the axis a specimen was digitized under. Pass
+  `1:22` to leave them out.
 
 - history:
 
@@ -63,7 +67,7 @@ counts (`n_clicked`, `n_seeded`, `n_predicted`, `n_adjusted`, `n_na`).
 ``` r
 d <- file.path(tempdir(), "journal_demo4")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/Rtmpg1NZEF/journal_demo4/landmarks_AT_20260727T135305Z.tsv
+#> Session journal: /tmp/Rtmpz5Qhjp/journal_demo4/landmarks_AT_20260727T140958Z.tsv
 P <- cbind(c(10, 60), c(20, 22))
 landmark_journal_append(jr, "fish_01", P, 1:2, specimen = "fish_01",
                         individual = "fish_01", target_sheet = "measurements")

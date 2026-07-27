@@ -165,13 +165,16 @@ call and restored on exit.
 ## One workbook, three sheets
 
 `measurements` holds one row per specimen, in the wide FISHMORPH layout
-(`1_X, 1_Y, ... 22_X, 22_Y`) read back by
+(`1_X, 1_Y, ... 24_X, 24_Y`) read back by
 [`read_landmarks_xlsx()`](https://funtraits.github.io/intraitR/reference/read_landmarks_xlsx.md)
-(`x_pattern = "{i}_X"`, `y_pattern = "{i}_Y"`), together with the
-operator, the photograph, its pixel size, the quality score,
-`mm_per_px`, and the per-record status counts (`n_seeded`,
+(`n_landmarks = 22`, `x_pattern = "{i}_X"`, `y_pattern = "{i}_Y"`),
+together with the operator, the photograph, its pixel size, the quality
+score, `mm_per_px`, and the per-record status counts (`n_seeded`,
 `n_predicted`, ...) that say how much of the configuration was actually
-looked at.
+looked at. The last two coordinate pairs are the entry hinges 23-24 (see
+*Curved specimens* below): recorded so that a specimen can be reopened
+in the axis it was digitized under, and deliberately outside the
+`n_landmarks = 22` an analysis reads.
 
 `bias` has the same layout but one row per *repeated* digitization, with
 `individual`, `operator` and `replicate` columns: it is the input of
@@ -248,8 +251,14 @@ belongs to: head conventions on 1-22, body depth and pectoral fin on
 landmark –
 [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
 already uses it to split the standard length into (1-22) + (22-2) – and
-is exported; landmarks 23 and 24 are entry aids and are never written
-out. Placing no hinge reproduces exactly the straight-axis behaviour.
+is exported. Landmarks 23 and 24 are entry aids rather than landmarks,
+but they are written out all the same, in their own `23_X ... 24_Y`
+columns: they define the frames every convention was applied in, so
+without them a specimen reopened for correction comes back with a
+straight axis and its geometry silently stops matching the one it was
+digitized under. They must be left out of any shape analysis – read the
+first 22 points (`n_landmarks = 22`), not every column ending in `_X`.
+Placing no hinge reproduces exactly the straight-axis behaviour.
 
 ## Auditing a batch
 

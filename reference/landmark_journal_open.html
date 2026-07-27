@@ -17,7 +17,7 @@ whole data set."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.16.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,9 +97,9 @@ and the <code>session_id</code>.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"journal_demo"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">jr</span> <span class="op">&lt;-</span> <span class="fu">landmark_journal_open</span><span class="op">(</span><span class="va">d</span>, operator <span class="op">=</span> <span class="st">"AT"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Session journal: /tmp/Rtmpz5Qhjp/journal_demo/landmarks_AT_20260727T141154Z.tsv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Session journal: /tmp/Rtmp4iyaek/journal_demo/landmarks_AT_20260727T151212Z.tsv</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">jr</span><span class="op">$</span><span class="va">path</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "landmarks_AT_20260727T141154Z.tsv"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "landmarks_AT_20260727T151212Z.tsv"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">d</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

@@ -67,7 +67,7 @@ counts (`n_clicked`, `n_seeded`, `n_predicted`, `n_adjusted`, `n_na`).
 ``` r
 d <- file.path(tempdir(), "journal_demo4")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/Rtmpz5Qhjp/journal_demo4/landmarks_AT_20260727T140958Z.tsv
+#> Session journal: /tmp/Rtmp4iyaek/journal_demo4/landmarks_AT_20260727T151019Z.tsv
 P <- cbind(c(10, 60), c(20, 22))
 landmark_journal_append(jr, "fish_01", P, 1:2, specimen = "fish_01",
                         individual = "fish_01", target_sheet = "measurements")

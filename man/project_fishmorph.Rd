@@ -8,7 +8,8 @@
 \usage{
 project_fishmorph(
   specimens,
-  reference,
+  reference = NULL,
+  source = NULL,
   traits = c("REs", "VEp", "RMl", "OGp", "BEl", "BLs", "PFv", "PFs", "CPt"),
   groups = NULL,
   select_species = NULL,
@@ -62,7 +63,19 @@ either a \code{data.frame}/\code{matrix} with (at least) the \code{traits} colum
 or a single string giving the path to a delimited file to read (a
 \verb{;}-separated, \code{.}-decimal file such as the shipped \code{fishmorph_data.csv}
 is read with \code{\link[utils:read.csv2]{utils::read.csv2()}}; a \verb{,}-separated file with
-\code{\link[utils:read.csv]{utils::read.csv()}}). One row per reference species.}
+\code{\link[utils:read.csv]{utils::read.csv()}}). One row per reference species. \code{NULL} (default)
+asks \pkg{Rfishmorph} for its bundled table -- see \code{source} -- which is
+the only way to guarantee that intraitR and Rfishmorph are looking at the
+same species pool. intraitR ships no copy of the FISHMORPH table on
+purpose: two copies on disk is exactly how the two diverge unnoticed.}
+
+\item{source}{Which FISHMORPH measurement campaign to load when \code{reference}
+is \code{NULL}: \code{"segment"} (the published table, ratios from the eleven
+segments) or \code{"landmark"} (ratios recomputed from the landmark
+re-digitization, covering only the digitized species). \code{NULL} (default)
+follows \code{getOption("fishmorph.source", "segment")}, which
+\code{Rfishmorph::set_fishmorph_source()} sets for a whole session. Requires
+\pkg{Rfishmorph}; ignored when \code{reference} is supplied.}
 
 \item{traits}{Character vector of the trait columns to use, present in
 both \code{specimens} and \code{reference}. Defaults to the nine dimensionless
@@ -309,6 +322,9 @@ if (file.exists(ref_path)) {
 
   # overlay the trait loadings as biplot arrows:
   plot(proj, style = "hull", arrows = TRUE)
+
+  # the same figure, interactive (hover a point for its identity/traits):
+  if (requireNamespace("plotly", quietly = TRUE)) plotly_fishmorph(proj)
 }
 }
 
@@ -321,5 +337,6 @@ Biogeography, 30(11), 2330-2336.
 }
 \seealso{
 \code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=trait_space]{trait_space()}},
-\code{\link[=plot.intrait_fishmorph_projection]{plot.intrait_fishmorph_projection()}}
+\code{\link[=plot.intrait_fishmorph_projection]{plot.intrait_fishmorph_projection()}}, \code{\link[=plotly_fishmorph]{plotly_fishmorph()}} (the same
+figure as an interactive widget), \code{\link[=plot_fishmorph_density]{plot_fishmorph_density()}}
 }

@@ -2,11 +2,13 @@
 % Please edit documentation in R/fishmorph_segments.R
 \name{fishmorph_segments}
 \alias{fishmorph_segments}
+\alias{print.intrait_segments}
 \title{Compute linear morphological measurements following the FISHMORPH protocol}
 \usage{
 fishmorph_segments(
   landmarks,
   scale_cm = 1,
+  scale_action = c("na", "pixels"),
   groups = NULL,
   na_action = c("keep", "omit", "impute_mean", "impute_group_mean", "missforest",
     "missforest_phylo"),
@@ -18,18 +20,30 @@ fishmorph_segments(
   species = NULL,
   phylo_axes = NULL
 )
+
+\method{print}{intrait_segments}(x, ...)
 }
 \arguments{
 \item{landmarks}{An object of class \code{"intrait_landmarks"} (from
 \code{\link[=read_tps]{read_tps()}}, \code{\link[=read_landmarks_csv]{read_landmarks_csv()}}, or \code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}),
 or a raw \verb{p x k x n} landmark array, digitized following the point
 scheme described in Details. Must contain at least 21 landmarks, in
-2 dimensions.}
+2 dimensions. Rows 22, 24 and 25, when present, are read as the
+midline hinges of the broken axis (see the section on curved
+specimens); any further row is ignored.}
 
 \item{scale_cm}{Numeric, the real-world distance, in centimetres,
 represented by the scale bar digitized at points 20-21 (typically the
 width of a 1 cm section of a ruler placed in the picture). Defaults to
 \code{1}.}
+
+\item{scale_action}{Character, what to do with a specimen whose scale bar
+(points 20-21) is missing or of zero length: \code{"na"} (default) returns
+\code{NA} for all 11 of its measurements, as previous versions did;
+\code{"pixels"} returns them in \strong{pixels} instead, and adds a
+\code{scale_units} column (\code{"cm"} / \code{"px"}) plus a \code{"pixel_specimens"}
+attribute so the two units are never confused. See the section on
+uncalibrated specimens for what this is and is not valid for.}
 
 \item{groups}{Optional factor (or character vector), one value per
 specimen, used only by \code{na_action = "impute_group_mean"} (and
@@ -99,26 +113,39 @@ categorical predictor for the forest.}
 \strong{precomputed} axes of \code{\link[=load_fishmorph_phylo_axes]{load_fishmorph_phylo_axes()}}, so that every call
 shares one and the same phylogenetic coordinate system. Supply a data frame
 (a \code{species} column plus one column per axis) to use your own.}
+
+\item{x}{An object of class \code{"intrait_segments"}, from
+\code{\link[=fishmorph_segments]{fishmorph_segments()}}.}
+
+\item{...}{Further arguments passed to \code{\link[=print.data.frame]{print.data.frame()}}.}
 }
 \value{
 A \code{data.frame} (class \code{"intrait_segments"}) with one row per
 specimen (fewer, if \code{na_action = "omit"} dropped any) and columns
 \code{Bl}, \code{Bd}, \code{Hd}, \code{Eh}, \code{Mo}, \code{PFi}, \code{PFl}, \code{Ed}, \code{Jl}, \code{CPd}, \code{CFd}
 (all in centimetres), preceded by any metadata columns carried over
-from \code{landmarks}.
+from \code{landmarks}. With \code{scale_action = "pixels"} a trailing
+\code{scale_units} column (\code{"cm"} or \code{"px"}, one value per specimen) is
+added and the identifiers of the pixel-measured specimens are stored in
+the \code{"pixel_specimens"} attribute; the column is present whenever that
+argument was used, even if every specimen turned out to be calibrated,
+so its presence depends on the call and not on the data.
+
+\code{print()} invisibly returns \code{x}.
 }
 \description{
 Computes the 11 linear morphological measurements used by Brosse et al.
-(2021) to build the FISHMORPH database, from a fixed 21- (or 22-)
-landmark digitization scheme (see Details), including automatic
-conversion from digitization (pixel) units to centimetres using a
-scale bar digitized directly on the picture.
+(2021) to build the FISHMORPH database, from a fixed 21-landmark
+digitization scheme, optionally extended with the axis hinges 22, 24 and
+25 for curved specimens (see Details), including automatic conversion
+from digitization (pixel) units to centimetres using a scale bar
+digitized directly on the picture.
 }
 \details{
 \code{fishmorph_segments()} implements the digitization scheme of Brosse
-et al. (2021) (their figure 1a), in which 21 (optionally 22) landmarks
-are placed on a lateral-view picture of a fish, in the following fixed
-order:
+et al. (2021) (their figure 1a), in which 21 landmarks -- plus, optionally,
+the midline hinges 22, 24 and 25 -- are placed on a lateral-view picture of
+a fish, in the following fixed order:
 \describe{
 \item{1}{snout tip (top of the mouth)}
 \item{2}{posterior insertion of the caudal fin (caudal fin basis)}
@@ -142,6 +169,11 @@ fin depth)}
 centimetres) on a scale bar/ruler included in the picture}
 \item{22}{optional: a point along the body midline used to correct
 standard length for body curvature in the picture (see below)}
+\item{23}{optional, and \emph{not used here}: the derived head base (the
+intersection of line (1, 9) with the parallel to the head axis
+through 6), produced by \code{\link[=digitize_landmarks]{digitize_landmarks()}}}
+\item{24-25}{optional: two further midline hinges, for a specimen too
+curved to be described by a single bend (see below)}
 }
 From these landmarks, 11 linear measurements are derived (segment names
 follow Brosse et al., 2021, table in their figure 1a): body length
@@ -157,16 +189,93 @@ using the scale bar (points 20-21), separately for every specimen, so
 that pictures with different resolutions or magnifications remain
 comparable.
 
-If body length cannot be measured as a straight line because the fish
-is curved in the picture, a 22nd landmark can be placed along the body
-midline between the snout and the caudal fin basis; \code{Bl} is then
-computed as the sum of the two segments (1-22 and 22-2) instead of the
-direct distance (1-2). This correction is applied automatically,
-specimen by specimen, whenever landmark 22 is present in \code{landmarks}
-and has non-zero, non-missing coordinates for that specimen; otherwise
-the direct distance (1-2) is used, matching the original protocol
-("+22 if needed, otherwise 22 = 0").
+The \code{print()} method is the ordinary data-frame print, plus -- and only
+when the table actually mixes units, i.e. when \code{scale_action = "pixels"}
+left some specimens uncalibrated -- a one-line note naming how many rows
+are in pixels. A mixed-unit table is safe for the ratios and wrong for
+anything absolute, and that is precisely the kind of property that must be
+visible at the console rather than only in an attribute.
 }
+\section{Specimens without a scale bar (\code{scale_action})}{
+
+A specimen whose scale bar (points 20-21) is missing or degenerate has no
+measurement in centimetres: there is no factor to convert its pixel
+distances with, and returning the pixel numbers under a column documented
+as centimetres would be a silent unit error. That is why the default
+(\code{scale_action = "na"}) sets all 11 measurements to \code{NA} -- the honest
+value for "not measured on this scale".
+
+It does, however, have a perfectly good \emph{shape}. Each of the nine
+FISHMORPH ratios divides two measurements of the \strong{same} specimen, so the
+unknown per-specimen factor cancels algebraically and the ratios computed
+from pixel distances are numerically identical to the ones the calibrated
+picture would have given. \code{scale_action = "pixels"} records that: the
+uncalibrated specimens keep their raw pixel distances (a conversion factor
+of 1), the calibrated ones stay in centimetres, and a \code{scale_units} column
+says which is which. \code{\link[=fishmorph_ratios]{fishmorph_ratios()}} then needs no special argument
+-- it treats those rows like any other, and carries \code{scale_units} through
+to its own output as a metadata column.
+
+What this does \strong{not} make comparable is anything absolute. A pixel is a
+property of one photograph's resolution and magnification, so \code{Bl} in
+pixels cannot be compared with \code{Bl} in centimetres, nor with the pixels of
+another picture, and neither can a mean, a variance or an allometric
+regression computed over a mixed set of rows. Any analysis of absolute size
+should therefore be restricted explicitly, e.g.
+\code{subset(segments, scale_units == "cm")}. The \code{\link[=print]{print()}} method states the
+mix whenever it exists, for exactly that reason.
+
+The alternative route remains available and is equivalent in result:
+compute the segments with the default \code{"na"} and pass the same landmarks to
+\code{\link[=fishmorph_ratios]{fishmorph_ratios()}}'s \code{landmarks} argument, which rescues the ratios of
+the all-\code{NA} rows from pixel distances at the ratio stage. Use that when
+the cm table itself must not contain pixel values (e.g. it is being
+archived as a calibrated measurement table); use \code{scale_action = "pixels"}
+when the ratios are the point of the table.
+}
+
+\section{Standard length on a curved specimen (the broken axis)}{
+
+If body length cannot be measured as a straight line because the fish is
+curved in the picture, hinge points can be placed along the body midline
+between the snout (1) and the caudal fin basis (2), and \code{Bl} is measured
+as the \emph{curvilinear} length of the resulting polyline instead of the
+direct distance (1-2). Three hinges are recognised, the numbering of
+\code{\link[=digitize_landmarks]{digitize_landmarks()}} and of the FISHMORPH protocol: \strong{22} (the
+curvature point proper), \strong{24} and \strong{25} (the further hinges a strongly
+bent specimen needs; entry aids in the digitizer, but genuine midline
+points geometrically, and exported as such). Landmark 23 is skipped --
+it is the derived head base, not a point on the axis.
+
+The correction is applied hinge by hinge and specimen by specimen: each
+hinge counts for a given specimen when it is present in \code{landmarks} and
+has complete, non-missing, non-all-zero coordinates for that specimen
+(the original protocol's "+22 if needed, otherwise 22 = 0" convention,
+which a table that reserves the columns for every specimen encodes as
+\verb{0, 0}). With hinges 22 and 24 placed, for instance, \code{Bl} is
+\code{d(1, 22) + d(22, 24) + d(24, 2)}; with none placed it reduces exactly to
+\code{d(1, 2)}, so a 21-landmark data set is unaffected.
+
+The hinges are chained \strong{in ascending landmark order} (1, 22, 24, 25, 2):
+the numbering \emph{is} the antero-posterior order of the protocol. A hinge
+placed out of anatomical sequence therefore yields a zig-zagging polyline
+and an inflated \code{Bl}, rather than being silently re-sorted -- which is the
+intended behaviour, since such a specimen is a digitization error to fix
+and not a measurement to keep. (Note that the on-screen \code{Bl} of
+\code{\link[=digitize_landmarks]{digitize_landmarks()}} instead orders the hinges by their projection on
+the 1-2 chord, so the two agree on every correctly digitized specimen and
+can disagree on a mis-ordered one.)
+
+A curvilinear \code{Bl} is longer than the chord it replaces, and exactly two
+of the nine FISHMORPH ratios involve it: body elongation
+(\code{BEl = Bl / Bd}) rises and pectoral fin size (\code{PFs = PFl / Bl}) falls.
+Both are biased in that same direction by an uncorrected bend -- a curved
+fish measured chord-wise is recorded as shorter, hence stubbier, than it
+is -- so the correction is what makes curved and straight specimens
+comparable, and is therefore applied automatically rather than offered as
+an option.
+}
+
 \examples{
 # real T-26 Saudrune data, in the same "intrait_landmarks" format as
 # simulate_fishmorph_points()
@@ -184,6 +293,26 @@ fishmorph_segments(fish, groups = fish$metadata$species, na_action = "impute_gro
 geom_check <- correct_landmarks(fish, rule = "check_geometry")
 fishmorph_segments(fish, geometry_check = geom_check, na_action = "impute_group_mean")
 
+# specimens with no usable scale bar: measure them in pixels instead of
+# returning NA. The 9 ratios are unaffected (the unknown factor cancels);
+# only absolute values are not comparable, hence the scale_units column.
+seg_px <- fishmorph_segments(fish, scale_action = "pixels")
+table(seg_px$scale_units)
+fishmorph_ratios(seg_px)                    # no `landmarks` argument needed
+subset(seg_px, scale_units == "cm")         # for anything absolute
+
+# the broken axis: a midline hinge makes Bl the curvilinear length. Here
+# landmark 22 is put halfway along the midline and displaced dorsally, so
+# Bl becomes d(1, 22) + d(22, 2) instead of d(1, 2) -- and is longer.
+A  <- fish$coords
+A2 <- array(0, dim = c(25, dim(A)[2], dim(A)[3]),
+            dimnames = list(NULL, NULL, dimnames(A)[[3]]))
+A2[seq_len(dim(A)[1]), , ] <- A
+A2[22, , ] <- (A[1, , ] + A[2, , ]) / 2 + c(0, 20)
+straight <- fishmorph_segments(fish)$Bl
+broken   <- fishmorph_segments(A2)$Bl     # rows 23-25 left at 0 = not placed
+head(data.frame(straight, broken))
+
 }
 \references{
 Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
@@ -194,5 +323,6 @@ Biogeography, 30(11), 2330-2336.
 \seealso{
 \code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}},
 \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}, \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}},
-\code{\link[=trait_space]{trait_space()}}, \code{\link[=impute_landmarks]{impute_landmarks()}}, \code{\link[=correct_landmarks]{correct_landmarks()}}
+\code{\link[=trait_space]{trait_space()}}, \code{\link[=impute_landmarks]{impute_landmarks()}}, \code{\link[=correct_landmarks]{correct_landmarks()}},
+\code{\link[=digitize_landmarks]{digitize_landmarks()}} (where the hinges 22/24/25 are placed)
 }

@@ -97,7 +97,7 @@ app_file <- function() {
 app_helpers <- function(wanted) {
   env <- new.env(parent = globalenv())
   env$`%||%` <- function(x, y) if (is.null(x)) y else x
-  env$SAVE_PTS <- 1:22
+  env$SAVE_PTS <- 1:23
   for (e in as.list(parse(app_file()))) {
     if (is.call(e) && identical(e[[1L]], as.name("<-")) && is.name(e[[2L]]) &&
         as.character(e[[2L]]) %in% wanted) eval(e, env)
@@ -118,15 +118,16 @@ test_that("the bundled landmarking app parses", {
 ## file and exercised on a synthetic fish. Straight axis, head on the left, back
 ## towards the negative Y -- the frame the app records in.
 conv_env <- function() {
-  app_helpers(c("N_TOT", "CURVE_PT", "EXTRA_HINGES", "HINGES", "fin_row",
-                "body_axis", "axis_chain", "make_frame", "seg_frames",
+  app_helpers(c("N_TOT", "CURVE_PT", "HEAD_PT", "EXTRA_HINGES", "HINGES",
+                "fin_row", "body_axis", "axis_chain", "make_frame", "seg_frames",
                 "EXTREME_EXCLUDE", "EXTREME_CAND", "EXTREME_TOL",
                 "EXTREME_FLOOR", "EXTREME_FRAME", "frame_of", "dorsal_heights",
                 "extreme_violations", "EYE_ORDER", "eye_order_violations",
-                "convention_violations", "fix_extremes"))
+                "convention_violations", "fix_extremes", "point23",
+                "derive_head_pt"))
 }
 conv_fish <- function() {
-  P <- matrix(NA_real_, 24, 2, dimnames = list(1:24, c("X", "Y")))
+  P <- matrix(NA_real_, 25, 2, dimnames = list(1:25, c("X", "Y")))
   pts <- list("1" = c(0, 0), "2" = c(1000, 0), "3" = c(470, -120),
               "4" = c(470, 130), "5" = c(100, -100), "6" = c(100, 90),
               "7" = c(100, 20), "8" = c(100, 100), "9" = c(0, 60),
@@ -188,6 +189,32 @@ test_that("the eye order uses the tolerance of the extreme-point check", {
   expect_false(is.null(env$eye_order_violations(P)))
 })
 
+test_that("LM23 is derived from LM1, LM6, LM9 and the head axis", {
+  env <- conv_env()
+  P <- conv_fish()
+  p23 <- env$point23(P)
+  expect_true(all(is.finite(p23)))
+  # it lies ON the line (1, 9): the cross product of (23-1) and (9-1) vanishes
+  d1 <- P[9, ] - P[1, ]; d <- p23 - P[1, ]
+  expect_equal(d[1] * d1[2] - d[2] * d1[1], 0, tolerance = 1e-8)
+  # and 23-6 is parallel to the head axis 1 -> 22
+  ax <- P[22, ] - P[1, ]; e <- P[6, ] - p23
+  expect_equal(e[1] * ax[2] - e[2] * ax[1], 0, tolerance = 1e-8)
+
+  # invariant to the orientation of the photograph
+  th <- 0.4; R <- matrix(c(cos(th), sin(th), -sin(th), cos(th)), 2, 2)
+  Q <- P %*% t(R) + matrix(c(1500, 900), nrow(P), 2, byrow = TRUE)
+  expect_equal(unname(env$point23(Q)),
+               unname(as.numeric(p23 %*% t(R) + c(1500, 900))), tolerance = 1e-6)
+
+  # rebuilt by derive_head_pt(), and empty when the construction degenerates
+  expect_equal(unname(env$derive_head_pt(P)[23, ]), unname(p23), tolerance = 1e-9)
+  D <- conv_fish(); D[9, ] <- D[1, ]          # mouth on the ventral profile
+  expect_true(all(is.na(env$point23(D))))
+  M <- conv_fish(); M[6, ] <- NA_real_
+  expect_true(all(is.na(env$point23(M))))
+})
+
 test_that("a declared zero collapses its own segment and nothing else", {
   env <- app_helpers(c("fin_row", "COLLAPSE_RULES", "apply_collapse",
                        "collapse_points"))
@@ -220,7 +247,7 @@ test_that("a declared zero collapses its own segment and nothing else", {
   expect_equal(c(seg(V, 1, 9), seg(V, 6, 8), seg(V, 10, 11), seg(V, 5, 13)),
                c(0, 0, 0, 0))
 
-  expect_setequal(env$collapse_points(c("Mo", "PFi")), c(9L, 10L))
+  expect_setequal(env$collapse_points(c("Mo", "PFi")), c(9L, 23L, 10L))
   expect_equal(env$collapse_points(character(0)), integer(0))
   # a rule whose reference is not placed is skipped rather than propagating NA
   W <- P; W[11, ] <- NA_real_
@@ -228,11 +255,11 @@ test_that("a declared zero collapses its own segment and nothing else", {
 })
 
 test_that("an equality is not read as an inversion of the eye vertical", {
-  env <- app_helpers(c("N_TOT", "CURVE_PT", "EXTRA_HINGES", "HINGES", "fin_row",
-                       "body_axis", "axis_chain", "make_frame", "seg_frames",
-                       "EXTREME_TOL", "EXTREME_FLOOR", "EXTREME_FRAME",
-                       "frame_of", "dorsal_heights", "EYE_ORDER",
-                       "eye_order_violations", "COLLAPSE_RULES",
+  env <- app_helpers(c("N_TOT", "CURVE_PT", "HEAD_PT", "EXTRA_HINGES", "HINGES",
+                       "fin_row", "body_axis", "axis_chain", "make_frame",
+                       "seg_frames", "EXTREME_TOL", "EXTREME_FLOOR",
+                       "EXTREME_FRAME", "frame_of", "dorsal_heights",
+                       "EYE_ORDER", "eye_order_violations", "COLLAPSE_RULES",
                        "apply_collapse"))
   P <- env$apply_collapse(conv_fish(), "EyeTop")   # LM5 exactly on LM13
   expect_null(env$eye_order_violations(P))
@@ -282,17 +309,21 @@ test_that("the app builds replicate identifiers the importer can parse back", {
 })
 
 test_that("the app's workbook schema matches read_landmarks_xlsx()", {
-  env <- app_helpers(c("SAVE_PTS", "EXTRA_HINGES", "WB_PTS", "WB_ID_COLS",
-                       "WB_COORD_COLS", "WB_COLS", "WB_CHR_COLS", "wb_empty",
-                       "wb_normalise"))
-  # the wide FISHMORPH layout, "{i}_X"/"{i}_Y": 22 landmarks AND the two entry
-  # hinges, which are recorded but are not part of a configuration
+  env <- app_helpers(c("SAVE_PTS", "CURVE_PT", "HEAD_PT", "EXTRA_HINGES",
+                       "WB_PTS", "WB_ID_COLS", "WB_COORD_COLS", "WB_COLS",
+                       "WB_CHR_COLS", "wb_empty", "wb_normalise"))
+  # the wide FISHMORPH layout, "{i}_X"/"{i}_Y": 23 landmarks (the derived head
+  # base included) AND the two entry hinges, recorded but not part of a
+  # configuration. This is the numbering Rfishmorph and FISHMORPH use.
   expect_identical(env$WB_COORD_COLS[1:4], c("1_X", "1_Y", "2_X", "2_Y"))
-  expect_identical(env$SAVE_PTS, 1:22)
-  expect_identical(env$WB_PTS, c(1:22, 23L, 24L))
-  expect_length(env$WB_COORD_COLS, 48L)
+  expect_identical(env$CURVE_PT, 22L)
+  expect_identical(env$HEAD_PT, 23L)
+  expect_identical(env$EXTRA_HINGES, c(24L, 25L))
+  expect_identical(env$SAVE_PTS, 1:23)
+  expect_identical(env$WB_PTS, c(1:23, 24L, 25L))
+  expect_length(env$WB_COORD_COLS, 50L)
   expect_identical(utils::tail(env$WB_COORD_COLS, 4),
-                   c("23_X", "23_Y", "24_X", "24_Y"))
+                   c("24_X", "24_Y", "25_X", "25_Y"))
   expect_true(all(c("specimen", "individual", "replicate", "operator") %in%
                     env$WB_ID_COLS))
 

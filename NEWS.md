@@ -1,3 +1,280 @@
+# intraitR 1.23.0
+
+## Une seule implementation par operation
+
+* intraitR et Rfishmorph exportaient 13 noms identiques : un script attachant
+  les deux obtenait celle du dernier `library()` charge, sans autre signal que
+  le message de demarrage. La resolution retenue est une implementation unique
+  par operation, detenue par le package dont c'est le domaine, et re-exportee
+  par l'autre. `Rfishmorph` passe de `Suggests` a `Imports`.
+* Premier lot, sans aucun changement de comportement :
+  `load_fishmorph_phylogeny()`, `load_fishmorph_phylo_axes()` et `phylo_pcoa()`
+  vivent desormais dans Rfishmorph et sont re-exportees (`R/reexports.R`). Les
+  appels non qualifies continuent de fonctionner a l'identique.
+* Corollaire : `inst/extdata/Phylogeny/` est supprime d'intraitR. Les deux
+  fichiers (852 ko) etaient des copies octet pour octet de ceux de Rfishmorph,
+  et deux copies d'une meme donnee sur le disque finissent toujours par diverger.
+* `phylo_pcoa()` renvoie maintenant un objet de classe `fishmorph_phylopcoa` et
+  non plus `intrait_phylopcoa`. Verifie : rien ne dispatchait sur cette classe
+  en dehors de sa propre methode `print()`, donc seul l'affichage change.
+
+## Reste a fusionner
+
+Les huit noms restants ne sont pas interchangeables malgre des signatures
+proches, et sont traites un par un avec un controle de non-regression. Cas le
+plus instructif : `group_colors()` et `reset_group_colors()` ont la meme
+signature et la meme sortie dans les deux packages, mais chacune est liee a son
+propre cache de couleurs de session (`.intrait_color_cache` contre
+`.fm_color_cache`). Une re-exportation naive rendrait des couleurs qu'aucune
+figure intraitR n'a jamais tracees, et `reset_group_colors()` viderait le mauvais
+cache -- silencieusement. Le cache doit etre unifie avant la fusion.
+
+# intraitR 1.22.0
+
+## The FISHMORPH reference now has a single owner
+
+* `project_fishmorph()`'s `reference` argument becomes optional. Left `NULL`,
+  it asks `Rfishmorph::load_fishmorph_reference()` for the bundled table
+  instead of requiring a path. intraitR ships no copy of the FISHMORPH data on
+  purpose: two CSVs on disk is precisely how the two packages end up describing
+  different species pools without anyone noticing. Rfishmorph moves to
+  `Suggests`, so intraitR still installs and tests without it -- the error
+  raised when it is missing says what to install and how to bypass it.
+* New `source` argument, forwarded to Rfishmorph: `"segment"` for the published
+  table (ratios from the eleven measured segments) or `"landmark"` for the
+  table recomputed from the landmark re-digitization, which covers only the
+  species digitized so far. `NULL` follows
+  `getOption("fishmorph.source", "segment")`. Ignored when `reference` is
+  supplied, so existing calls behave exactly as before.
+* Switching campaign **refits** the global PCA on the chosen table rather than
+  reprojecting into the other one. Axis order and sign may therefore differ
+  between the two, and scores are not comparable term by term.
+
+# intraitR 1.21.0
+
+## A specimen without a scale bar still has a shape
+
+* `fishmorph_segments()` gains `scale_action`. The default `"na"` is the old
+  behaviour -- no scale bar, no centimetres, 11 `NA`s -- because returning pixel
+  numbers in a column documented as centimetres is a silent unit error.
+  `scale_action = "pixels"` instead measures those specimens in **pixels**: each
+  of the nine FISHMORPH ratios divides two measurements of the *same* specimen,
+  so the unknown per-specimen factor cancels and the ratios are numerically
+  identical to the calibrated ones. `fishmorph_ratios()` then needs no
+  `landmarks` argument at all.
+* **The mixing is made visible rather than assumed harmless.** A `scale_units`
+  column (`"cm"` / `"px"`) is returned, a `"pixel_specimens"` attribute lists
+  the affected rows, `fishmorph_ratios()` carries the column through as
+  metadata, and a new `print.intrait_segments()` method states the mix at the
+  console. What stays invalid is anything absolute -- a pixel is a property of
+  one photograph's resolution, so a mean, a variance or an allometric
+  regression over mixed rows is meaningless: restrict it explicitly with
+  `subset(segments, scale_units == "cm")`.
+* The column's presence follows the *call*, not the data (it is there whenever
+  `scale_action = "pixels"` was used, even if every specimen was calibrated), so
+  downstream code can rely on it, and a default call returns exactly the columns
+  it did before.
+* The old warning now names the new option, and becomes a `message()` under
+  `scale_action = "pixels"` -- nothing is being lost there, so there is nothing
+  to warn about.
+* **Signature note:** `scale_action` sits third, right after `scale_cm`, where it
+  belongs semantically. Calls that passed `groups`, `na_action`, ... *positionally*
+  past `scale_cm` must be updated; named calls are unaffected.
+
+## Bl uses the whole broken axis, not just its first hinge
+
+* `fishmorph_segments()` now measures the standard length along **every**
+  midline hinge a specimen carries -- 22, 24 and 25 -- as the curvilinear
+  length of the polyline 1 -> hinges -> 2. Only landmark 22 was read before, so
+  a specimen digitized with two or three hinges (the case the digitizer's
+  broken axis exists for) had the rest of its bend measured as a chord, and
+  came out too short. Landmark 23 is skipped: it is the derived head base, not
+  a point on the axis.
+* A hinge counts, specimen by specimen, when its coordinates are complete and
+  not all zero -- the protocol's own "+22 if needed, otherwise 22 = 0"
+  convention, extended unchanged to 24 and 25. With no hinge placed `Bl` is
+  exactly `d(1, 2)` again, so **no 21- or 22-landmark data set changes value**.
+* **The chain follows the numbering (1, 22, 24, 25, 2), not the geometry.** The
+  numbering *is* the antero-posterior order of the protocol, so a hinge placed
+  out of anatomical sequence produces a visibly inflated `Bl` instead of being
+  silently re-sorted: that specimen is a digitization error to fix, not a
+  measurement to keep. (`digitize_landmarks()`'s on-screen `Bl` orders its
+  hinges by projection on the 1-2 chord, so the two agree on every correctly
+  digitized specimen and can disagree on a mis-ordered one.)
+* Two of the nine ratios move with it: `BEl = Bl / Bd` rises and
+  `PFs = PFl / Bl` falls. An uncorrected bend biases both the same way -- a
+  curved fish measured chord-wise is recorded as shorter, hence stubbier, than
+  it is -- which is why the correction is automatic rather than optional.
+  `fishmorph_ratios()`'s scale-bar rescue path shares the same engine
+  (`.fishmorph_pixel_segments()`) and therefore inherits it.
+* Unchanged on purpose: the shape-analysis helpers (`gpa_fish()`,
+  `fishmorph_shape_landmarks()`, `standardize_geometry()`,
+  `correct_geometry()`) still use body landmarks 1-19 plus 22 only. Hinges 24
+  and 25 are axis constructs, not homologous points, and have no place in a
+  Procrustes configuration.
+
+## An interactive FISHMORPH projection
+
+* New `plotly_fishmorph()`: the same figure as
+  `plot.intrait_fishmorph_projection()` -- reference density heatmap and/or
+  point cloud, per-species hulls / ellipses / density contours, biplot arrows,
+  the focal species' own database points -- rendered as a **plotly**
+  htmlwidget. `plot()` is untouched and stays base graphics; this is a
+  separate function, and plotly is only in `Suggests`.
+* **What the static figure cannot do is identify a point.** A ~9,000-species
+  morphospace with a few hundred individuals projected into it has no room for
+  labels, so hovering is the only practical way to ask which specimen sits at
+  a given position: each point reports its identifier, its species, its
+  coordinates and its nine ratios *on the analysis scale* (from
+  `$specimen_traits`, i.e. the same `log10(x + 1)` scale as the reference that
+  defines the space -- the tooltip would otherwise invite a comparison between
+  numbers that are not on the same scale). A hull reports its species, its `n`
+  and that species' share of the global functional volume, read from
+  `$itv_proportion`.
+* **The legend is a selection tool, not a caption.** Every trace of one
+  species shares a plotly `legendgroup`, so one click hides a species' points
+  *and* its hull together and a double-click isolates it: an overplotted cloud
+  becomes readable without recomputing anything. The reference layers sit
+  outside any group and stay put, since they are the frame the selection is
+  read against.
+* **Tooltips are sized for a morphospace, not for a number.** The trait values
+  are off by default (`hover_traits = FALSE`): nine ratios on one line produced
+  a box wider than the plotting region, which covered the very space the point
+  was being located in. Switched on, they wrap three per line. Tooltip text is
+  10 px (`hover_font_size`), the legend 10 px, and a reserved top margin keeps
+  the title clear of plotly's mode bar.
+* `axes` takes any pair of components (from the stored all-component scores,
+  no refitting), and `equal_aspect = TRUE` anchors the vertical scale to the
+  horizontal one -- both axes are in score units, and an unequal ratio
+  silently distorts every distance, hull shape and arrow direction read off
+  the figure, at every zoom step. Set it to `FALSE` for the base-graphics
+  behaviour.
+* The reference cloud is drawn with WebGL by default (`webgl = TRUE`): 9,000
+  points as one SVG trace make the widget sluggish and slow to save, while
+  the specimens stay SVG so their markers and hover boxes are unchanged.
+
+# intraitR 1.20.0
+
+## Plates: several individuals on one photograph
+
+* `digitize_landmarks()` gains `individuals_per_photo` and `individual_order`.
+  One photograph = one specimen was an assumption of the app, not a property of
+  the data: a plate of four fish over one ruler is the normal field object.
+* Each fish is saved as `"<photo>_i1"`, `"<photo>_i2"` ..., a suffix carried by
+  the INDIVIDUAL code, so the repeat convention composes on top of it unchanged
+  (`"PLATE12_i2_AT_rep3"`) and `read_mlmorph_landmarks()`, the bias sheet and
+  the operator-bias summary need no modification at all.
+* **The scale bar is placed once per plate.** Landmarks 20-21 survive the move
+  to the next individual: one ruler in one focal plane calibrates every fish
+  lying on it, and re-digitizing the pair per fish would add an independent
+  scale error to each. (Keep the ruler in the plane of the fish: an individual
+  far from it carries the plate's residual perspective and lens distortion.)
+* **The individual number is spatial, not chronological.** `_i2` has to name the
+  same fish for two operators, otherwise a repeat compares two different fish
+  and the operator bias it reports measures nothing. The numbering runs top to
+  bottom (or left to right) and is enforced ON THE CLICK THAT PLACES LM1: a
+  snout falling outside the interval left by the individuals already placed is
+  refused, so the operator is stopped before digitizing the wrong fish and no
+  identifier already in the journal ever has to be rewritten. The first fish of
+  a plate has no neighbour to be checked against, so it gets a warning instead
+  when it is not in the first band of the frame.
+* The individuals already measured are drawn faintly on the photograph with
+  their number, an individual bar in the Specimen panel gives the state of the
+  plate and the way back to a fish already saved, and the count is adjustable
+  plate by plate (`+ individual` / `- individual`, the latter refusing to orphan
+  a row already written).
+* **Bug fixed on the way.** The queues tested `PHOTO_CODES %in% saved`, which on
+  a plate is never true -- the sheet holds `_i1 ... _in` and the photo code
+  appears nowhere. A photograph is now complete when every individual declared
+  on it is, so a partly measured plate stays in the "new" queue instead of
+  either vanishing from it or never leaving it.
+
+# intraitR 1.19.0
+
+## The caudal depths are measured on the axis again
+
+* **Bug.** The caudal-peduncle pair (16-17) and the caudal-fin pair (18-19) were
+  held PARALLEL TO EACH OTHER and to nothing else. That constraint is satisfied
+  by a pair oblique to the caudal axis 24 -> 2 -- both segments simply rotate
+  together -- so as soon as the axis was adjusted the two pairs kept their old
+  absolute orientation and CPd and CFd were returned as hypotenuses rather than
+  as depths. A 15 degree obliquity inflates a depth by 3.5 %, silently and in
+  one direction only.
+* The reference is now the AXIS, not the other pair: both caudal pairs are
+  squared onto the perpendicular of the caudal segment 24 -> 2, exactly as
+  1-9 is on the head segment and 3-4 and 10-11 are on the mid segment. The five
+  perpendicular pairs are now declared in one place (`PERP_PAIRS`) and imposed
+  by one function (`enforce_perp()`), so a convention cannot hold for one pair
+  and not for another.
+* The conventions are re-imposed when the FRAME changes, not only when a point
+  moves. Clicking LM2 or a hinge triggers a re-seed, and a re-seed KEEPS every
+  hand-placed landmark -- which is how hand-placed caudal points survived under
+  an axis they no longer matched. `apply_conventions()` now squares the whole
+  battery, so the re-seed and the "pin" prediction path are covered too.
+* The FISHMORPH geometry check displays the caudal pairs against the same
+  criterion (deviation from the perpendicular to 24 -> 2, tolerance 8 degrees)
+  instead of the mutual-parallelism test it used before.
+* **This changes measurements.** Specimens digitized before this version may
+  carry caudal depths taken off the perpendicular; re-open and re-save them if
+  CPd or CFd matter to the analysis.
+
+# intraitR 1.18.1
+
+## The overlay stops hiding the specimen
+
+* `digitize_landmarks()`: every overlay drawn on the photograph is now thin,
+  black and dashed instead of thick and saturated. The point of the canvas is
+  the fish, and an operator who cannot see the fin ray cannot place the landmark
+  on it -- ink spent on the guides is ink taken from the evidence.
+* Concretely: the active landmark is a thin black ring (`cex` 3 -> 1.6, `lwd`
+  3 -> 1) rather than a heavy green disc; landmark discs go from `cex` 1.2 to
+  0.7 with smaller labels; the cyan outline, the gold broken axis, the yellow
+  alignment guides and the scale bar are thin translucent black dashes.
+* The FISHMORPH geometry check now treats **compliance as the silent state**: a
+  compliant segment is a faint black dash, only a violation is drawn loudly in
+  orange. Attention is spent on what needs fixing rather than on what is already
+  right, which is the reverse of the previous behaviour (green everywhere).
+* No measurement, landmark or export changes -- rendering only.
+
+# intraitR 1.18.0
+
+## LM23, the derived head base -- and the FISHMORPH numbering
+
+* The scheme gains **LM23, the head-base point**, derived exactly as in
+  Rfishmorph and in the published FISHMORPH database: the intersection of the
+  line (1, 9) -- the mouth-height line -- with the line through LM6 parallel to
+  the head axis (1 -> 22). Segment 23-6 is therefore parallel to that axis, and
+  1 -> 23 is the axial distance from the snout to the base of the head.
+* The numbering follows FISHMORPH from now on: **22** curvature point, **23**
+  derived head base, **24** and **25** entry hinges (they were 23 and 24). The
+  alignment is the point of the change -- landmark tables travel between
+  intraitR and Rfishmorph, and a "23" meaning the head base in one and an entry
+  hinge in the other is the kind of divergence that produces two incomparable
+  corpora without anyone noticing.
+* LM23 is COMPUTED, never clicked: it is rebuilt after every move of LM1, LM6,
+  LM9 or the axis, after every re-seed, prediction and propagation, so it cannot
+  drift out of step with the landmarks it comes from. A click on it is refused
+  with the reason rather than silently undone. It stays empty when the
+  construction is degenerate (LM1 and LM9 coincident, or the two directions
+  parallel): a derived point with a degenerate input has no value, and inventing
+  one would be worse than leaving it empty.
+* The coincident-landmark rules take it into account. `Mo = 0` now moves LM9
+  **and LM23** onto LM1 -- which is also what saves LM23 from the degeneracy it
+  would otherwise fall into. `LM6 = LM8` moves LM6 onto LM8 **and LM23 onto
+  LM9**: a consequence, not an extra convention, since the belly line is
+  parallel to the head axis, so once LM6 sits on it the parallel through LM6 IS
+  the belly line and its intersection with (1, 9) is LM9. Checked numerically,
+  tilted photograph included.
+* Consequences on the schema: `SAVE_PTS` is now `1:23` (the landmarks proper,
+  the derived point included) and the workbook carries `1_X ... 25_Y`, 50
+  coordinate columns. Read a configuration back with `n_landmarks = 23`, not 22;
+  `consolidate_landmarks()` defaults to `points = 1:25`. The auto-advance runs
+  `1, 22, 24, 2, ...`, and the landmark bar shows LM23 in the "never clicked"
+  group with the derived ventral points.
+* No data migration was needed: nothing had ever been recorded under the old
+  23/24, which were the entry hinges and had never been placed in any workbook
+  or journal. This was verified before the renumbering rather than assumed.
+
 # intraitR 1.17.0
 
 ## Coincident landmarks: a measurement of zero

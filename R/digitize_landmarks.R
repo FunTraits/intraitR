@@ -41,6 +41,16 @@
 #' @param ruler_mm Real length, in millimetres, of the scale bar digitized by
 #'   landmarks 20-21. Changeable in the app, specimen by specimen. Defaults to
 #'   `10`.
+#' @param individuals_per_photo Number of fish lying on one photograph.
+#'   Defaults to `1`. Any value above 1 turns on the plate workflow: the
+#'   individuals of a photograph are saved as `"<photo>_i1"`, `"<photo>_i2"`
+#'   ..., the scale bar is placed once and inherited by all of them, and the
+#'   photograph leaves the queue only when every individual on it is measured.
+#'   The count is adjustable photograph by photograph in the app; the value
+#'   given here is the default a photograph inherits.
+#' @param individual_order Direction the numbering of the individuals runs in:
+#'   `"top"` (top to bottom, the default) or `"left"` (left to right). The
+#'   number is SPATIAL, not chronological -- see the section on plates.
 #' @param xlsx_flush_every Number of records between two workbook writes. The
 #'   workbook is REWRITTEN IN FULL each time, so taking it out of the
 #'   digitizing loop removes both the wait and the risk; unwritten records stay
@@ -89,14 +99,14 @@
 #' # One workbook, three sheets
 #'
 #' `measurements` holds one row per specimen, in the wide FISHMORPH layout
-#' (`1_X, 1_Y, ... 24_X, 24_Y`) read back by [read_landmarks_xlsx()]
-#' (`n_landmarks = 22`, `x_pattern = "{i}_X"`, `y_pattern = "{i}_Y"`), together
+#' (`1_X, 1_Y, ... 25_X, 25_Y`) read back by [read_landmarks_xlsx()]
+#' (`n_landmarks = 23`, `x_pattern = "{i}_X"`, `y_pattern = "{i}_Y"`), together
 #' with the operator, the photograph, its pixel size, the quality score,
 #' `mm_per_px`, and the per-record status counts (`n_seeded`, `n_predicted`,
 #' ...) that say how much of the configuration was actually looked at. The last
-#' two coordinate pairs are the entry hinges 23-24 (see *Curved specimens*
+#' two coordinate pairs are the entry hinges 24-25 (see *Curved specimens*
 #' below): recorded so that a specimen can be reopened in the axis it was
-#' digitized under, and deliberately outside the `n_landmarks = 22` an analysis
+#' digitized under, and deliberately outside the `n_landmarks = 23` an analysis
 #' reads.
 #'
 #' `bias` has the same layout but one row per *repeated* digitization, with
@@ -117,11 +127,11 @@
 #'
 #' Everything follows one *active-landmark* model, from the first click to the
 #' last: a single point is active, a click on the photograph places it, and the
-#' selection advances along one sequence, `1, 22, 23, 2, 3 ... 19, 20, 21` --
+#' selection advances along one sequence, `1, 22, 24, 2, 3 ... 19, 20, 21` --
 #' the axis first and complete, then the anatomical landmarks, then the scale
-#' bar. Only the derived points 8, 9 and 11 and the spare hinge 24 are skipped,
-#' and they stay reachable from the button bar, as does any other landmark at
-#' any moment.
+#' bar. Only the derived points 8, 9, 11 and 23 and the spare hinge 25 are
+#' skipped, and they stay reachable from the button bar, as does any other
+#' landmark at any moment.
 #'
 #' The moment LM2 goes down the whole configuration is seeded, so placing by
 #' hand is the default way to work rather than a mode to switch into. Running
@@ -157,24 +167,52 @@
 #' `PNG`, `GIF` or `BMP` -- common in specimen archives -- open correctly,
 #' through `magick` when it is installed.
 #'
+#' # LM23, the head base
+#'
+#' LM23 is DERIVED, never clicked: the intersection of the line (1, 9) -- the
+#' mouth-height line -- with the line through LM6 parallel to the head axis
+#' (1 -> 22). Segment 23-6 is therefore parallel to that axis, and 1 -> 23 is
+#' the axial distance from the snout to the base of the head. It is rebuilt
+#' after every move of LM1, LM6, LM9 or the axis, so it cannot drift out of step
+#' with the landmarks it is computed from; a click on it is refused, with the
+#' reason, rather than silently undone.
+#'
+#' It returns nothing when the construction is degenerate -- LM1 and LM9
+#' coincident, or the two directions parallel -- because a derived point with a
+#' degenerate input has no value, and inventing one would be worse than leaving
+#' it empty. The `Mo = 0` rule is what then puts LM23 on LM1.
+#'
+#' This is the **FISHMORPH numbering**, the one Rfishmorph and the published
+#' database use: 22 the curvature point, 23 the derived head base, 24 and 25 the
+#' entry hinges. The alignment is deliberate -- landmark tables travel between
+#' the two packages, and a "23" meaning the head base in one and an entry hinge
+#' in the other is the kind of divergence that produces two incomparable corpora
+#' without anyone noticing.
+#'
 #' # Curved specimens: the broken axis
 #'
-#' The FISHMORPH conventions (segment 3-4 perpendicular to the body axis, the
-#' eye group on one vertical, the ventral group on one line) are defined
+#' The FISHMORPH conventions (every depth pair perpendicular to the body axis,
+#' the eye group on one vertical, the ventral group on one line) are defined
 #' against the antero-posterior axis. On a fish photographed with a bent body a
 #' single straight axis 1-2 misstates all of them at once. The app therefore
 #' accepts *hinge* points that break the axis into up to four segments, each
 #' convention being applied in the frame of the segment it belongs to: head
-#' conventions on 1-22, body depth and pectoral fin on 22-23, caudal peduncle
-#' and fin on 23-2. Landmark 22 is a genuine landmark -- [fishmorph_segments()]
+#' conventions on 1-22, body depth and pectoral fin on 22-24, caudal peduncle
+#' and fin on 24-2. The five perpendicular pairs are 1-9 (mouth height) on the
+#' head segment, 3-4 (body depth) and 10-11 (pectoral insertion) on the mid
+#' segment, and 16-17 (caudal-peduncle depth) and 18-19 (caudal-fin depth) on
+#' the caudal segment -- each is squared onto the perpendicular of ITS OWN
+#' segment, and re-squared whenever the axis itself is moved, so a depth is
+#' never returned as a hypotenuse.
+#' Landmark 22 is a genuine landmark -- [fishmorph_segments()]
 #' already uses it to split the standard length into (1-22) + (22-2) -- and is
-#' exported. Landmarks 23 and 24 are entry aids rather than landmarks, but they
-#' are written out all the same, in their own `23_X ... 24_Y` columns: they
+#' exported. Landmarks 24 and 25 are entry aids rather than landmarks, but they
+#' are written out all the same, in their own `24_X ... 25_Y` columns: they
 #' define the frames every convention was applied in, so without them a
 #' specimen reopened for correction comes back with a straight axis and its
 #' geometry silently stops matching the one it was digitized under. They must
-#' be left out of any shape analysis -- read the first 22 points
-#' (`n_landmarks = 22`), not every column ending in `_X`. Placing no hinge
+#' be left out of any shape analysis -- read the first 23 points
+#' (`n_landmarks = 23`), not every column ending in `_X`. Placing no hinge
 #' reproduces exactly the straight-axis behaviour.
 #'
 #' # Auditing a batch
@@ -192,6 +230,40 @@
 #' on no specimen at all. The journal keeps them point by point; the workbook
 #' keeps the counts per specimen. Both are worth auditing before the
 #' coordinates are analysed.
+#'
+#' # Plates: several individuals on one photograph
+#'
+#' Photographing four fish side by side over a single ruler is the normal field
+#' object; one photograph = one specimen was an assumption of the app, not a
+#' property of the data. Set `individuals_per_photo` (or the field in the
+#' Specimen panel, which is adjustable plate by plate) and the photograph
+#' becomes a queue of its own: each fish is saved as `"<photo>_i1"`,
+#' `"<photo>_i2"` and so on, the repeat convention composing on top of it
+#' unchanged (`"PLATE12_i2_AT_rep3"`). A photograph leaves the queue only when
+#' every individual declared on it has been measured, so a plate is never left
+#' with three of its four fish done because the operator was following the
+#' photograph counter.
+#'
+#' **The scale bar is placed once per plate.** Landmarks 20-21 are kept when the
+#' app moves to the next individual: one ruler in one focal plane calibrates
+#' every fish lying on it, and re-digitizing the pair for each of them would add
+#' an independent scale error to each. The caveat is worth stating -- an
+#' individual far from the ruler carries whatever residual perspective and lens
+#' distortion the plate has -- so the ruler belongs in the plane of the fish, not
+#' on the bench beside them.
+#'
+#' **The number is spatial, not chronological.** `_i2` must name the same fish
+#' for every operator: two operators digitizing one plate in opposite orders
+#' would otherwise be compared fish against fish, and the operator bias that
+#' comes out of such a comparison measures nothing. The numbering therefore runs
+#' top to bottom (`individual_order = "top"`) or left to right (`"left"`), and
+#' the app enforces it ON THE CLICK THAT PLACES LM1 -- the first click of a fish
+#' -- refusing a snout that falls outside the interval left by the individuals
+#' already placed. The operator is stopped before digitizing the wrong fish
+#' rather than told about it afterwards, and no identifier already written to
+#' the journal ever has to be rewritten. The individuals already measured are
+#' drawn faintly on the photograph, with their number, so the plate can be read
+#' at a glance.
 #'
 #' # Repeated digitization: measurement error and operator bias
 #'
@@ -374,10 +446,10 @@
 #'
 #' # Read the workbook back, one object per sheet.
 #' lm <- read_landmarks_xlsx("T26/T26_landmarks.xlsx", sheet = "measurements",
-#'                           n_landmarks = 22, x_pattern = "{i}_X",
+#'                           n_landmarks = 23, x_pattern = "{i}_X",
 #'                           y_pattern = "{i}_Y", id_cols = "specimen")
 #' rep_lm <- read_landmarks_xlsx("T26/T26_landmarks.xlsx", sheet = "bias",
-#'                               n_landmarks = 22, x_pattern = "{i}_X",
+#'                               n_landmarks = 23, x_pattern = "{i}_X",
 #'                               y_pattern = "{i}_Y",
 #'                               id_cols = c("individual", "operator", "replicate"))
 #' measurement_error(gpa_fish(rep_lm), individual = rep_lm$metadata$individual,
@@ -396,6 +468,8 @@ digitize_landmarks <- function(photo_dir,
                                mode = c("new", "correct", "repeat"),
                                n_repeats = 3L,
                                ruler_mm = 10,
+                               individuals_per_photo = 1L,
+                               individual_order = c("top", "left"),
                                xlsx_flush_every = 10L,
                                mlmorph_dir = NULL, predictor = NULL,
                                python = NULL,
@@ -442,6 +516,11 @@ digitize_landmarks <- function(photo_dir,
   ruler_mm <- suppressWarnings(as.numeric(ruler_mm))
   if (length(ruler_mm) != 1L || is.na(ruler_mm) || ruler_mm <= 0)
     stop("`ruler_mm` must be a single positive number.", call. = FALSE)
+  individuals_per_photo <- suppressWarnings(as.integer(individuals_per_photo))
+  if (length(individuals_per_photo) != 1L || is.na(individuals_per_photo) ||
+      individuals_per_photo < 1L)
+    stop("`individuals_per_photo` must be a single integer >= 1.", call. = FALSE)
+  individual_order <- match.arg(individual_order)
   xlsx_flush_every <- suppressWarnings(as.integer(xlsx_flush_every))
   if (length(xlsx_flush_every) != 1L || is.na(xlsx_flush_every))
     stop("`xlsx_flush_every` must be a single integer.", call. = FALSE)
@@ -533,6 +612,8 @@ digitize_landmarks <- function(photo_dir,
     photo_dir = photo_dir, photos = photos, xlsx_path = xlsx_path,
     journal_dir = journal_dir, operator = operator, mode = mode,
     n_repeats = n_repeats, ruler_mm = ruler_mm,
+    individuals_per_photo = individuals_per_photo,
+    individual_order = individual_order,
     xlsx_flush_every = xlsx_flush_every,
     sheet_measurements = unname(sheets[["measurements"]]),
     sheet_bias = unname(sheets[["bias"]]),

@@ -1311,6 +1311,71 @@
   )
 }
 
+#' The FISHMORPH axis hinges, and which of them each specimen actually carries
+#'
+#' Landmarks 22, 24 and 25 are the points that can break the antero-posterior
+#' axis of a curved specimen into up to four segments (the digitizer's
+#' *broken axis*: 22 is a genuine landmark, 24 and 25 are entry hinges that are
+#' nevertheless exported, since they define the frames every FISHMORPH
+#' convention was applied in). Only 22 is required to exist -- a 21- or
+#' 22-landmark table is the normal case -- so which hinges are available is a
+#' property of the array, and which are *used* is a property of each specimen.
+#'
+#' A hinge counts as placed for a specimen when its coordinates are complete
+#' (no `NA`) and not all zero. The all-zero test is the original FISHMORPH
+#' convention for the curvature point ("+22 if needed, otherwise 22 = 0"): a
+#' spreadsheet that reserves the columns for every specimen records an unused
+#' hinge as `0, 0`, which is a real coordinate as far as R is concerned and
+#' would otherwise drag the axis to the origin of the picture.
+#'
+#' @param A A `p x 2 x n` landmark coordinate array.
+#' @return An `n x h` logical matrix (`h` = number of hinge rows present in
+#'   `A`, possibly 0), one row per specimen, with the hinge landmark numbers as
+#'   column names.
+#' @noRd
+.fishmorph_hinges_placed <- function(A) {
+  n <- dim(A)[3]
+  hinges <- intersect(c(22L, 24L, 25L), seq_len(dim(A)[1]))
+  placed <- matrix(FALSE, nrow = n, ncol = length(hinges),
+                   dimnames = list(NULL, as.character(hinges)))
+  for (j in seq_along(hinges)) {
+    pt <- A[hinges[j], , ]
+    if (is.null(dim(pt))) pt <- matrix(pt, ncol = n)
+    placed[, j] <- colSums(abs(pt), na.rm = TRUE) > 0 &
+      !apply(pt, 2, function(x) any(is.na(x)))
+  }
+  placed
+}
+
+#' Ordered landmark chain of one specimen's broken antero-posterior axis
+#'
+#' Turns "which hinges did this specimen get?" into the polyline whose total
+#' length is the standard length `Bl`: landmark 1 (snout), then the hinges
+#' placed, then landmark 2 (caudal-fin basis).
+#'
+#' The hinges are chained **in ascending landmark order** (1, 22, 24, 25, 2),
+#' i.e. the numbering is taken to be the antero-posterior order of the
+#' protocol, not the order in which an operator happened to click them. This is
+#' a deliberate convention with a consequence worth knowing: a hinge placed out
+#' of anatomical sequence (25 anterior to 24, say) produces a zig-zagging
+#' polyline and therefore an inflated `Bl`, which the numbering-independent
+#' alternative -- ordering the hinges by their projection on the 1-2 chord, as
+#' the digitization app's own on-screen `Bl` does -- would silently absorb
+#' instead. Here it stays visible as an over-long standard length, and is a
+#' digitization error to fix rather than a number to average.
+#'
+#' @param placed_row Logical vector, one element per hinge available in the
+#'   array (a row of `.fishmorph_hinges_placed()`).
+#' @param hinge_names Character vector of the corresponding landmark numbers
+#'   (the column names of that matrix).
+#' @return An integer vector of landmark indices, of length
+#'   `2 + sum(placed_row)`, starting at 1 and ending at 2.
+#' @noRd
+.fishmorph_axis_chain <- function(placed_row, hinge_names) {
+  used <- as.integer(hinge_names[which(placed_row)])
+  c(1L, sort(used), 2L)
+}
+
 #' Compute the 11 FISHMORPH linear measurements directly in pixel
 #' (digitization) units, with no scale-bar conversion
 #'
@@ -1324,15 +1389,15 @@
 #' pixel distances even when no calibrated (cm) segment values exist.
 #'
 #' @param A A `p x 2 x n` landmark coordinate array (`p >= 21`), with
-#'   `dimnames(A)[[3]]` giving specimen identifiers.
+#'   `dimnames(A)[[3]]` giving specimen identifiers. Rows 22, 24 and 25, when
+#'   present, are read as the axis hinges of a curved specimen (see
+#'   `.fishmorph_axis_chain()`).
 #' @return A `data.frame`, row-named by specimen, with columns `Bl`, `Bd`,
 #'   `Hd`, `Eh`, `Mo`, `PFi`, `PFl`, `Ed`, `Jl`, `CPd`, `CFd`, all in raw
 #'   pixel (digitization) units -- *not* centimetres.
 #' @noRd
 .fishmorph_pixel_segments <- function(A) {
   n <- dim(A)[3]
-  p <- dim(A)[1]
-  has_curvature_point <- p >= 22
 
   dist_lm <- function(a, b) {
     diff_mat <- A[a, , ] - A[b, , ]
@@ -1353,15 +1418,28 @@
     CFd = c(18, 19)
   )
 
-  if (has_curvature_point) {
-    pt22 <- A[22, , ]
-    if (is.null(dim(pt22))) pt22 <- matrix(pt22, ncol = n)
-    used_curvature <- colSums(abs(pt22), na.rm = TRUE) > 0 & !apply(pt22, 2, function(x) any(is.na(x)))
-    bl_straight <- dist_lm(1, 2)
-    bl_curved <- dist_lm(1, 22) + dist_lm(22, 2)
-    Bl <- ifelse(used_curvature, bl_curved, bl_straight)
-  } else {
+  # Standard length along the broken axis: the polyline 1 -> (hinges placed for
+  # this specimen) -> 2, which reduces to the straight distance 1-2 when no
+  # hinge is present (see .fishmorph_axis_chain()).
+  placed <- .fishmorph_hinges_placed(A)
+  if (ncol(placed) == 0) {
+    # 21-landmark table: no hinge row exists at all, so the axis is the chord.
     Bl <- dist_lm(1, 2)
+  } else {
+    Bl <- rep(NA_real_, n)
+    # At most 2^3 = 8 distinct hinge patterns exist, so the specimens are
+    # grouped by pattern and each chain is evaluated once, vectorised over its
+    # specimens, rather than looping over specimens one by one.
+    pattern <- apply(placed, 1, function(r) paste(as.integer(r), collapse = ""))
+    for (key in unique(pattern)) {
+      rows <- which(pattern == key)
+      chain <- .fishmorph_axis_chain(placed[rows[1], ], colnames(placed))
+      total <- rep(0, length(rows))
+      for (k in seq_len(length(chain) - 1L)) {
+        total <- total + dist_lm(chain[k], chain[k + 1L])[rows]
+      }
+      Bl[rows] <- total
+    }
   }
 
   out <- list(Bl = Bl)
@@ -2487,4 +2565,23 @@
   ab$a <- best$a[idx]
   ab$b <- best$b[idx]
   ab
+}
+
+# ---- the FISHMORPH global table ---------------------------------------------
+# intraitR deliberately ships no copy of the FISHMORPH trait table. The data
+# belongs to Rfishmorph, which bundles it under inst/extdata and knows which
+# measurement campaign is active; duplicating the CSV here would create two
+# files that drift apart in silence. This helper is the single door through
+# which intraitR asks for it.
+#
+# `source`: "segment" (published segment measurements) or "landmark" (traits
+# recomputed from the landmark re-digitization). NULL follows
+# getOption("fishmorph.source", "segment"), which Rfishmorph::set_fishmorph_source()
+# sets for the session.
+.intrait_fishmorph_reference <- function(source = NULL) {
+  # Rfishmorph moved from Suggests to Imports in intraitR 1.23.0, when the
+  # duplicated FISHMORPH routines were merged into it: it is now a hard
+  # dependency and cannot be missing at run time, so the old availability
+  # check would be dead code pretending to guard something.
+  Rfishmorph::load_fishmorph_reference(source = source)
 }

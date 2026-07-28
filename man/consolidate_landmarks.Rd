@@ -6,7 +6,7 @@
 \usage{
 consolidate_landmarks(
   journal_dir,
-  points = 1:24,
+  points = 1:25,
   history = FALSE,
   xlsx_path = NULL
 )
@@ -14,12 +14,12 @@ consolidate_landmarks(
 \arguments{
 \item{journal_dir}{Journal directory, or a vector of directories.}
 
-\item{points}{Landmark numbers to lay out as columns. Defaults to \code{1:24},
+\item{points}{Landmark numbers to lay out as columns. Defaults to \code{1:25},
 what \code{\link[=digitize_landmarks]{digitize_landmarks()}} records: the 19 FISHMORPH landmarks, the scale
-bar (20-21), the curvature point (22) and the two entry hinges (23-24).
-The hinges are not landmarks and belong in no shape analysis; they are
-rebuilt here because they define the axis a specimen was digitized under.
-Pass \code{1:22} to leave them out.}
+bar (20-21), the curvature point (22), the derived head-base point (23)
+and the two entry hinges (24-25). The hinges are not landmarks and belong
+in no shape analysis; they are rebuilt here because they define the axis a
+specimen was digitized under. Pass \code{1:23} to leave them out.}
 
 \item{history}{Logical. \code{FALSE} (default) keeps only the last record per
 key; \code{TRUE} keeps every record, adding \code{record_id} so the successive
@@ -39,7 +39,7 @@ columns (\code{specimen}, \code{individual}, \code{replicate}, \code{operator}, 
 \description{
 Reconstructs, from every journal in \code{journal_dir}, one row per digitization
 in the "wide" layout of the workbook written by \code{\link[=digitize_landmarks]{digitize_landmarks()}}
-(\verb{1_X, 1_Y, ... 24_X, 24_Y}), keeping for each key the LAST record -- so a
+(\verb{1_X, 1_Y, ... 25_X, 25_Y}), keeping for each key the LAST record -- so a
 specimen digitized, then corrected, appears once, corrected. This is the
 recovery path: the workbook can be deleted, corrupted, or left behind by a
 crashed session, and the data are still there.

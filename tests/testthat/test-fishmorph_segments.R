@@ -71,6 +71,85 @@ test_that("fishmorph_segments() warns and returns NA for zero-length scale bars"
   A[21, , 1] <- A[20, , 1] # collapse the scale bar to zero length
   expect_warning(seg <- fishmorph_segments(A), "scale bar")
   expect_true(is.na(seg$Bl))
+  # the default output is unchanged: no unit column, no attribute
+  expect_false("scale_units" %in% names(seg))
+  expect_null(attr(seg, "pixel_specimens"))
+})
+
+# ---------------------------------------------------------------------------
+# scale_action = "pixels": uncalibrated specimens measured in pixels
+# ---------------------------------------------------------------------------
+make_mixed_scale_array <- function() {
+  # s1 calibrated (10 px = 1 cm), s2 with a collapsed scale bar
+  base <- make_minimal_fishmorph_array(scale_dist = 10)
+  A <- array(0, dim = c(21, 2, 2),
+             dimnames = list(NULL, c("X", "Y"), c("s1", "s2")))
+  A[, , 1] <- base[, , 1]
+  A[, , 2] <- base[, , 1]
+  A[21, , 2] <- A[20, , 2]
+  A
+}
+
+test_that("scale_action = \"pixels\" measures uncalibrated specimens in pixels", {
+  A <- make_mixed_scale_array()
+  expect_message(seg <- fishmorph_segments(A, scale_cm = 1, scale_action = "pixels"),
+                 "in PIXELS")
+  expect_equal(seg$scale_units, c("cm", "px"))
+  expect_equal(attr(seg, "pixel_specimens"), "s2")
+  # s1 in centimetres (40 px / 10 px per cm), s2 in raw pixels
+  expect_equal(seg$Bl, c(4, 40))
+  expect_equal(seg$Bd, c(1, 10))
+  expect_false(anyNA(seg[c("Bl", "Bd", "CFd")]))
+  # the unit column comes last, leaving the 11 measurements contiguous
+  expect_equal(tail(names(seg), 1), "scale_units")
+})
+
+test_that("the ratios of a pixel-measured specimen equal the calibrated ones", {
+  # This is the whole point of scale_action = "pixels": every FISHMORPH ratio
+  # divides two measurements of the same specimen, so the unknown scale factor
+  # cancels and the two rows -- identical fish, one calibrated, one not --
+  # must give exactly the same nine ratios.
+  A <- make_mixed_scale_array()
+  seg <- suppressMessages(fishmorph_segments(A, scale_action = "pixels"))
+  ratios <- fishmorph_ratios(seg)
+  nine <- c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")
+  expect_equal(unlist(ratios[1, nine]), unlist(ratios[2, nine]))
+  # scale_units is carried through as a metadata column
+  expect_equal(ratios$scale_units, c("cm", "px"))
+})
+
+test_that("the unit column tracks the call, not the data", {
+  A <- make_minimal_fishmorph_array(scale_dist = 10)   # fully calibrated
+  seg <- fishmorph_segments(A, scale_action = "pixels")
+  expect_equal(seg$scale_units, "cm")                  # column still present
+  expect_length(attr(seg, "pixel_specimens"), 0L)      # nothing in pixels
+  expect_silent(fishmorph_segments(A, scale_action = "pixels"))
+})
+
+test_that("scale_action = \"pixels\" survives na_action = \"omit\" row dropping", {
+  A <- make_mixed_scale_array()
+  A[5, , 1] <- NA_real_                       # s1 loses Hd -> dropped by "omit"
+  seg <- suppressMessages(
+    fishmorph_segments(A, scale_action = "pixels", na_action = "omit"))
+  expect_equal(rownames(seg), "s2")
+  expect_equal(seg$scale_units, "px")         # label followed its specimen
+  expect_equal(attr(seg, "pixel_specimens"), "s2")
+})
+
+test_that("print.intrait_segments() states a mixed-unit table", {
+  A <- make_mixed_scale_array()
+  seg <- suppressMessages(fishmorph_segments(A, scale_action = "pixels"))
+  expect_output(print(seg), "measured in PIXELS")
+  expect_output(print(seg), "scale_units == \"cm\"")
+  # a homogeneous table prints without the note
+  clean <- fishmorph_segments(make_minimal_fishmorph_array(), scale_cm = 1)
+  out <- utils::capture.output(print(clean))
+  expect_false(any(grepl("PIXELS", out, fixed = TRUE)))
+})
+
+test_that("scale_action is validated", {
+  A <- make_minimal_fishmorph_array()
+  expect_error(fishmorph_segments(A, scale_action = "px"), "should be one of")
 })
 
 test_that("fishmorph_segments() applies curvature correction via point 22 when present", {
@@ -89,6 +168,107 @@ test_that("fishmorph_segments() ignores point 22 when it is all zero", {
   # point 22 left at (0,0) -> "not used"
   seg <- fishmorph_segments(A22, scale_cm = 1)
   expect_equal(seg$Bl, 4)
+})
+
+# ---------------------------------------------------------------------------
+# The broken axis: hinges 22, 24 and 25
+# ---------------------------------------------------------------------------
+# Every case below is built on the minimal array, whose axis is 1 = (0, 0) to
+# 2 = (40, 0), i.e. Bl = 40 px = 4 cm at 10 px/cm. The hinge coordinates are
+# chosen so the curvilinear length is an exact integer: (12, 5) is 13 from
+# (0, 0), and (24, 0) is 13 from (12, 5) and 16 from (40, 0).
+make_hinged_array <- function(hinges = list(), n_lm = 25, n = 1) {
+  base <- make_minimal_fishmorph_array(scale_dist = 10)
+  A <- array(0, dim = c(n_lm, 2, n),
+             dimnames = list(NULL, c("X", "Y"), paste0("s", seq_len(n))))
+  for (i in seq_len(n)) A[seq_len(dim(base)[1]), , i] <- base[, , 1]
+  for (nm in names(hinges)) A[as.integer(nm), , ] <- hinges[[nm]]
+  A
+}
+
+test_that("Bl is the curvilinear length over every hinge placed (22, 24, 25)", {
+  # 22 only: 13 + d((12, 5), (40, 0))
+  a22 <- make_hinged_array(list("22" = c(12, 5)))
+  expect_equal(fishmorph_segments(a22, scale_cm = 1)$Bl,
+               (13 + sqrt(28^2 + 5^2)) * 0.1)
+
+  # 22 and 24: 13 + 13 + 16 = 42 px = 4.2 cm -- the case the previous
+  # implementation got wrong, since it stopped at landmark 22
+  a24 <- make_hinged_array(list("22" = c(12, 5), "24" = c(24, 0)))
+  expect_equal(fishmorph_segments(a24, scale_cm = 1)$Bl, 4.2)
+
+  # 22, 24 and 25, with 25 on the straight part of the chain: a hinge that
+  # lies on the line it splits cannot change the total length
+  a25 <- make_hinged_array(list("22" = c(12, 5), "24" = c(24, 0), "25" = c(36, 0)))
+  expect_equal(fishmorph_segments(a25, scale_cm = 1)$Bl, 4.2)
+
+  # 25 alone (22 and 24 left at the origin) is a hinge like any other
+  a25only <- make_hinged_array(list("25" = c(12, 5)))
+  expect_equal(fishmorph_segments(a25only, scale_cm = 1)$Bl,
+               (13 + sqrt(28^2 + 5^2)) * 0.1)
+})
+
+test_that("the hinge chain follows the landmark numbering, not the geometry", {
+  # 22 posterior to 24: the chain 1 -> 22 -> 24 -> 2 zig-zags along the axis
+  # (30 + 20 + 30 px), and that inflated Bl is deliberately NOT re-sorted away,
+  # because such a specimen is a digitization error to fix.
+  a <- make_hinged_array(list("22" = c(30, 0), "24" = c(10, 0)))
+  expect_equal(fishmorph_segments(a, scale_cm = 1)$Bl, 8)
+  # placed in anatomical order, the same two points leave the axis straight
+  b <- make_hinged_array(list("22" = c(10, 0), "24" = c(30, 0)))
+  expect_equal(fishmorph_segments(b, scale_cm = 1)$Bl, 4)
+})
+
+test_that("an absent hinge is one that is all-zero, missing, or not in the array", {
+  # every hinge row present but left at (0, 0)
+  expect_equal(fishmorph_segments(make_hinged_array(), scale_cm = 1)$Bl, 4)
+  # a partially digitized hinge (one coordinate NA) is not a point: ignored
+  a <- make_hinged_array(list("22" = c(12, 5)))
+  a[24, 1, 1] <- 24
+  a[24, 2, 1] <- NA_real_
+  expect_equal(fishmorph_segments(a, scale_cm = 1)$Bl,
+               (13 + sqrt(28^2 + 5^2)) * 0.1)
+  # a 21-landmark array has no hinge row at all
+  expect_equal(fishmorph_segments(make_minimal_fishmorph_array(), scale_cm = 1)$Bl, 4)
+})
+
+test_that("each specimen gets its own hinge chain", {
+  A <- make_hinged_array(n = 3)
+  A[22, , 2] <- c(12, 5)                 # s2: one hinge
+  A[22, , 3] <- c(12, 5)                 # s3: two hinges
+  A[24, , 3] <- c(24, 0)
+  seg <- fishmorph_segments(A, scale_cm = 1)
+  expect_equal(seg$Bl,
+               c(4, (13 + sqrt(28^2 + 5^2)) * 0.1, 4.2))
+  # the other ten measurements are untouched by the hinges
+  expect_equal(seg$Bd, rep(1, 3))
+  expect_equal(seg$CFd, rep(2, 3))
+})
+
+test_that("the ratios that involve Bl follow the corrected axis", {
+  straight <- fishmorph_ratios(fishmorph_segments(make_hinged_array(), scale_cm = 1))
+  curved <- fishmorph_ratios(fishmorph_segments(
+    make_hinged_array(list("22" = c(12, 5), "24" = c(24, 0))), scale_cm = 1))
+  # a longer standard length: more elongate, relatively smaller pectoral fin
+  expect_gt(curved$BEl, straight$BEl)
+  expect_lt(curved$PFs, straight$PFs)
+  # ratios that do not involve Bl are unchanged
+  expect_equal(curved$BLs, straight$BLs)
+  expect_equal(curved$CPt, straight$CPt)
+})
+
+test_that("the hinge helpers report what was placed, in chain order", {
+  A <- make_hinged_array(list("22" = c(12, 5), "25" = c(36, 0)))
+  placed <- .fishmorph_hinges_placed(A)
+  expect_equal(dim(placed), c(1L, 3L))
+  expect_equal(colnames(placed), c("22", "24", "25"))
+  expect_equal(as.vector(placed), c(TRUE, FALSE, TRUE))
+  expect_equal(.fishmorph_axis_chain(placed[1, ], colnames(placed)),
+               c(1L, 22L, 25L, 2L))
+  # no hinge row in the array: a zero-column matrix and a straight chain
+  placed21 <- .fishmorph_hinges_placed(make_minimal_fishmorph_array())
+  expect_equal(ncol(placed21), 0L)
+  expect_equal(.fishmorph_axis_chain(logical(0), character(0)), c(1L, 2L))
 })
 
 test_that("fishmorph_segments() carries over metadata", {

@@ -38,7 +38,18 @@
 #'   or a single string giving the path to a delimited file to read (a
 #'   `;`-separated, `.`-decimal file such as the shipped `fishmorph_data.csv`
 #'   is read with [utils::read.csv2()]; a `,`-separated file with
-#'   [utils::read.csv()]). One row per reference species.
+#'   [utils::read.csv()]). One row per reference species. `NULL` (default)
+#'   asks \pkg{Rfishmorph} for its bundled table -- see `source` -- which is
+#'   the only way to guarantee that intraitR and Rfishmorph are looking at the
+#'   same species pool. intraitR ships no copy of the FISHMORPH table on
+#'   purpose: two copies on disk is exactly how the two diverge unnoticed.
+#' @param source Which FISHMORPH measurement campaign to load when `reference`
+#'   is `NULL`: `"segment"` (the published table, ratios from the eleven
+#'   segments) or `"landmark"` (ratios recomputed from the landmark
+#'   re-digitization, covering only the digitized species). `NULL` (default)
+#'   follows `getOption("fishmorph.source", "segment")`, which
+#'   `Rfishmorph::set_fishmorph_source()` sets for a whole session. Requires
+#'   \pkg{Rfishmorph}; ignored when `reference` is supplied.
 #' @param traits Character vector of the trait columns to use, present in
 #'   both `specimens` and `reference`. Defaults to the nine dimensionless
 #'   FISHMORPH ratios common to [fishmorph_ratios()] output and the
@@ -120,7 +131,8 @@
 #' Biogeography, 30(11), 2330-2336.
 #'
 #' @seealso [fishmorph_ratios()], [trait_space()],
-#'   [plot.intrait_fishmorph_projection()]
+#'   [plot.intrait_fishmorph_projection()], [plotly_fishmorph()] (the same
+#'   figure as an interactive widget), [plot_fishmorph_density()]
 #'
 #' @examples
 #' \donttest{
@@ -147,11 +159,15 @@
 #'
 #'   # overlay the trait loadings as biplot arrows:
 #'   plot(proj, style = "hull", arrows = TRUE)
+#'
+#'   # the same figure, interactive (hover a point for its identity/traits):
+#'   if (requireNamespace("plotly", quietly = TRUE)) plotly_fishmorph(proj)
 #' }
 #' }
 #'
 #' @export
-project_fishmorph <- function(specimens, reference,
+project_fishmorph <- function(specimens, reference = NULL,
+                              source = NULL,
                               traits = c("REs", "VEp", "RMl", "OGp", "BEl",
                                          "BLs", "PFv", "PFs", "CPt"),
                               groups = NULL,
@@ -171,6 +187,10 @@ project_fishmorph <- function(specimens, reference,
   volume_dims <- as.integer(volume_dims)
 
   ## -- resolve the reference table (data.frame/matrix or a file path) -----
+  ## No table given: delegate to Rfishmorph, which owns the FISHMORPH data.
+  ## intraitR keeps no copy, so there is exactly one file on disk and one
+  ## answer to "which campaign am I in".
+  if (is.null(reference)) reference <- .intrait_fishmorph_reference(source)
   if (is.character(reference) && length(reference) == 1) {
     if (!file.exists(reference)) {
       stop("`reference` file does not exist: ", reference, call. = FALSE)

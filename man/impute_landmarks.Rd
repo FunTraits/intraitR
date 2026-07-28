@@ -44,7 +44,7 @@ mean, with a warning, for a group entirely missing that coordinate);
 landmark coordinates jointly, using \code{groups} (when available) as an
 additional predictor; \code{"missforest_phylo"} does the same but also
 augments the predictor matrix with phylogenetic PCoA axes (see
-\code{\link[=phylo_pcoa]{phylo_pcoa()}}, \code{tree}/\code{missforest_phylo_k}) for the species in
+\code{\link[Rfishmorph:phylo_pcoa]{phylo_pcoa()}}, \code{tree}/\code{missforest_phylo_k}) for the species in
 \code{groups}, falling back to plain \code{"missforest"} (with a warning) if
 phylogenetic axes cannot be used. Unlike \code{"tps"}/\code{"regression"}, these
 four options ignore the geometric/shape covariation among landmarks
@@ -76,7 +76,7 @@ Default to \code{missForest}'s own defaults (\code{100} and \code{10}).}
 
 \item{tree}{Used only by \code{method = "missforest_phylo"}: an object of
 class \code{"phylo"}, or \code{NULL} (default) to use the bundled
-\code{\link[=load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}} tree.}
+\code{\link[Rfishmorph:load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}} tree.}
 
 \item{missforest_phylo_k}{Used only by \code{method = "missforest_phylo"}:
 maximum number of phylogenetic PCoA axes to add as predictors.
@@ -90,7 +90,7 @@ the phylogeny needs to know which species a row belongs to, not a
 categorical predictor for the forest.}
 
 \item{phylo_axes}{Used only by \code{"missforest_phylo"}. \code{NULL} (default) uses the
-\strong{precomputed} axes of \code{\link[=load_fishmorph_phylo_axes]{load_fishmorph_phylo_axes()}}, so that every call
+\strong{precomputed} axes of \code{\link[Rfishmorph:load_fishmorph_phylo_axes]{load_fishmorph_phylo_axes()}}, so that every call
 shares one and the same phylogenetic coordinate system. Supply a data frame
 (a \code{species} column plus one column per axis) to use your own.}
 }
@@ -181,5 +181,5 @@ Bioinformatics, 28(1), 112-118. \doi{10.1093/bioinformatics/btr597}
 \seealso{
 \code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=gpa_fish]{gpa_fish()}},
 \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}, \code{\link[=plot_landmarks]{plot_landmarks()}}, \code{\link[=trait_space]{trait_space()}},
-\code{\link[=phylo_pcoa]{phylo_pcoa()}}, \code{\link[=load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}}
+\code{\link[Rfishmorph:phylo_pcoa]{phylo_pcoa()}}, \code{\link[Rfishmorph:load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}}
 }

@@ -62,7 +62,7 @@ within-species) mean instead, falling back to the column mean, with a
 warning, for a group entirely missing a segment; \code{"missforest"} uses
 random-forest-based iterative imputation (\code{missForest::missForest()});
 \code{"missforest_phylo"} does the same but additionally augments the
-predictor matrix with phylogenetic PCoA axes (see \code{\link[=phylo_pcoa]{phylo_pcoa()}},
+predictor matrix with phylogenetic PCoA axes (see \code{\link[Rfishmorph:phylo_pcoa]{phylo_pcoa()}},
 \code{tree}) for the species in \code{groups}, falling back to plain
 \code{"missforest"} (with a warning) if phylogenetic axes cannot be used.
 Same convention, options, and messages as \code{\link[=trait_space]{trait_space()}}'s
@@ -96,7 +96,7 @@ own rotation are used for this (see
 
 \item{tree}{Used only by \code{na_action = "missforest_phylo"}: an object of
 class \code{"phylo"}, or \code{NULL} (default) to use the bundled
-\code{\link[=load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}} tree.}
+\code{\link[Rfishmorph:load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}} tree.}
 
 \item{missforest_phylo_k}{Used only by \code{na_action = "missforest_phylo"}:
 maximum number of phylogenetic PCoA axes to add as predictors.
@@ -110,7 +110,7 @@ the phylogeny needs to know which species a row belongs to, not a
 categorical predictor for the forest.}
 
 \item{phylo_axes}{Used only by \code{"missforest_phylo"}. \code{NULL} (default) uses the
-\strong{precomputed} axes of \code{\link[=load_fishmorph_phylo_axes]{load_fishmorph_phylo_axes()}}, so that every call
+\strong{precomputed} axes of \code{\link[Rfishmorph:load_fishmorph_phylo_axes]{load_fishmorph_phylo_axes()}}, so that every call
 shares one and the same phylogenetic coordinate system. Supply a data frame
 (a \code{species} column plus one column per axis) to use your own.}
 

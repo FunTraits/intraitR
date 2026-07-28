@@ -87,7 +87,7 @@ a trait; \code{"missforest"} uses random-forest-based iterative imputation
 numeric trait matrix, using \code{groups} (when available) as an
 additional predictor; \code{"missforest_phylo"} does the same but also
 augments the predictor matrix with phylogenetic PCoA axes (see
-\code{\link[=phylo_pcoa]{phylo_pcoa()}}, \code{tree}/\code{missforest_phylo_k}) for the species in
+\code{\link[Rfishmorph:phylo_pcoa]{phylo_pcoa()}}, \code{tree}/\code{missforest_phylo_k}) for the species in
 \code{groups}, so that phylogenetically related species can inform each
 other's imputed values in addition to shared species identity --
 falling back to plain \code{"missforest"}, with a warning explaining why,
@@ -108,7 +108,7 @@ own defaults (\code{100} and \code{10}).}
 
 \item{tree}{Used only by \code{na_action = "missforest_phylo"}: an object of
 class \code{"phylo"} (e.g. from \code{ape::read.tree()}), or \code{NULL} (default) to
-use the bundled \code{\link[=load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}} tree.}
+use the bundled \code{\link[Rfishmorph:load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}} tree.}
 
 \item{missforest_phylo_k}{Used only by \code{na_action = "missforest_phylo"}:
 maximum number of phylogenetic PCoA axes to add as predictors.
@@ -122,7 +122,7 @@ the phylogeny needs to know which species a row belongs to, not a
 categorical predictor for the forest.}
 
 \item{phylo_axes}{Used only by \code{"missforest_phylo"}. \code{NULL} (default) uses the
-\strong{precomputed} axes of \code{\link[=load_fishmorph_phylo_axes]{load_fishmorph_phylo_axes()}}, so that every call
+\strong{precomputed} axes of \code{\link[Rfishmorph:load_fishmorph_phylo_axes]{load_fishmorph_phylo_axes()}}, so that every call
 shares one and the same phylogenetic coordinate system. Supply a data frame
 (a \code{species} column plus one column per axis) to use your own.}
 
@@ -230,7 +230,7 @@ over mean imputation once more than a few values are missing;
 it requires the \code{missForest} package (not installed by default; see
 \code{Suggests}) and is stochastic, so results vary run to run unless
 \code{set.seed()} is called beforehand. \code{na_action = "missforest_phylo"}
-extends this further with phylogenetic PCoA axes (see \code{\link[=phylo_pcoa]{phylo_pcoa()}})
+extends this further with phylogenetic PCoA axes (see \code{\link[Rfishmorph:phylo_pcoa]{phylo_pcoa()}})
 as additional predictors, so species can also borrow information from
 their close relatives, not only from shared species identity; this can
 help when a species has very few (or zero) complete specimens of its

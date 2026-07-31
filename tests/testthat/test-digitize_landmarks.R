@@ -308,6 +308,100 @@ test_that("the app builds replicate identifiers the importer can parse back", {
   expect_true(is.na(env$rep_of("T-26-0004")))
 })
 
+## ---- a coincidence with a LINE: LM4 on the mid axis 22-24 -------------------
+## The four historical rules copy one landmark onto another, so they are tested
+## by an equality of coordinates. This one puts a landmark on a LINE: what has
+## to hold is a distance to that line, an abscissa that must NOT change, and the
+## behaviour of everything the belly line derives from LM4.
+
+## A CURVED specimen: LM22 and LM24 are off the chord LM1-LM2, so the mid axis
+## is a segment of its own and a projection onto it is not a projection onto
+## LM1-LM2. On a straight fish every assertion below would pass by accident.
+proj_fish <- function() {
+  P <- matrix(NA_real_, 25, 2, dimnames = list(1:25, c("X", "Y")))
+  pts <- list("1" = c(0, 0), "2" = c(1000, 0), "22" = c(300, 20),
+              "24" = c(700, -10), "3" = c(470, -120), "4" = c(470, 130),
+              "5" = c(100, -100), "6" = c(100, 90), "7" = c(100, 20),
+              "8" = c(100, 100), "9" = c(0, 60), "10" = c(250, -30),
+              "11" = c(250, 110), "12" = c(400, 90), "13" = c(100, -10),
+              "14" = c(100, 50), "15" = c(60, 40), "16" = c(930, -55),
+              "17" = c(930, 55), "18" = c(1000, -130), "19" = c(1000, 130))
+  for (k in names(pts)) P[as.integer(k), ] <- pts[[k]]
+  P
+}
+proj_env <- function() {
+  app_helpers(c("N_TOT", "CURVE_PT", "HEAD_PT", "EXTRA_HINGES", "HINGES",
+                "fin_row", "body_axis", "axis_chain", "make_frame", "seg_frames",
+                "belly_align", "derive_ventral", "EXTREME_EXCLUDE",
+                "EXTREME_CAND", "EXTREME_TOL", "EXTREME_FLOOR", "EXTREME_FRAME",
+                "frame_of", "dorsal_heights", "extreme_violations",
+                "COLLAPSE_RULES", "project_mid", "dist_mid", "PROJ_TOL",
+                "apply_collapse", "collapse_points", "collapse_detect",
+                "collapse_skip_extreme"))
+}
+
+test_that("the rule projects LM4 onto 22-24 and keeps its abscissa", {
+  env <- proj_env()
+  P   <- proj_fish()
+  fr  <- env$seg_frames(P)$mid
+  ax_before <- fr$ax(P["4", ])
+  Q <- env$apply_collapse(P, "Bd4")
+  expect_equal(env$dist_mid(Q, 4L), 0, tolerance = 1e-9)
+  # only the height is given up: the position along the body stays the operator's
+  expect_equal(env$seg_frames(Q)$mid$ax(Q["4", ]), ax_before, tolerance = 1e-9)
+  # nothing else is touched, and replaying the rule changes nothing
+  others <- setdiff(which(is.finite(P[, 1])), 4L)
+  expect_equal(Q[others, ], P[others, ])
+  expect_equal(env$apply_collapse(Q, "Bd4"), Q)
+})
+
+test_that("the ventral chain is re-derived from the projected LM4", {
+  env <- proj_env()
+  P <- env$apply_collapse(proj_fish(), "Bd4")
+  Q <- env$derive_ventral(P, env$seg_frames(P))
+  expect_equal(env$dist_mid(Q, 4L), 0, tolerance = 1e-9)   # LM4 stays on the axis
+  expect_equal(env$dist_mid(Q, 11L), 0, tolerance = 1e-9)  # LM11 follows LM4
+  # LM8 and LM9 sit on the belly line broken at LM11, now running along the axis
+  hd <- env$seg_frames(Q)$head
+  for (i in c("8", "9"))
+    expect_equal(hd$pe(Q[i, ]), hd$pe(Q["11", ]), tolerance = 1e-6)
+})
+
+test_that("a declared projection suspends only the VENTRAL extreme check", {
+  env <- proj_env()
+  P <- env$apply_collapse(proj_fish(), "Bd4")
+  P <- env$derive_ventral(P, env$seg_frames(P))
+  # LM4 on the axis puts LM6, LM10 and LM14 below it: the rule working, not an error
+  v <- env$extreme_violations(P)
+  expect_false(is.null(v))
+  expect_true(all(v$point == 4L))
+  expect_null(env$extreme_violations(P, skip = env$collapse_skip_extreme("Bd4")))
+  # the dorsal half still holds: LM5 above LM3 is reported all the same
+  P["5", 2] <- P["3", 2] - 70
+  v <- env$extreme_violations(P, skip = env$collapse_skip_extreme("Bd4"))
+  expect_equal(v$point, 3L)
+  expect_equal(v$culprit, 5L)
+})
+
+test_that("the rule is read back off the geometry of a saved specimen", {
+  env <- proj_env()
+  P <- proj_fish()
+  expect_false("Bd4" %in% env$collapse_detect(P))   # a real belly is 122 px away
+  expect_true("Bd4" %in% env$collapse_detect(env$apply_collapse(P, "Bd4")))
+  Q <- env$apply_collapse(P, "Bd4"); Q["4", ] <- NA_real_
+  expect_false("Bd4" %in% env$collapse_detect(Q))   # not placed, nothing declared
+})
+
+test_that("only the COPIED landmarks are taken over by their rule", {
+  env <- proj_env()
+  # a projected landmark keeps the abscissa that was clicked, so it must stay a
+  # measurement; a copied one owes its partner everything
+  expect_identical(env$collapse_points("Bd4"), 4L)
+  expect_length(env$collapse_points("Bd4", kinds = "move"), 0L)
+  expect_identical(env$collapse_points("PFi", kinds = "move"), 10L)
+  expect_length(env$collapse_points("PFi", kinds = "project"), 0L)
+})
+
 test_that("the app's workbook schema matches read_landmarks_xlsx()", {
   env <- app_helpers(c("SAVE_PTS", "CURVE_PT", "HEAD_PT", "EXTRA_HINGES",
                        "WB_PTS", "WB_ID_COLS", "WB_COORD_COLS", "WB_COLS",

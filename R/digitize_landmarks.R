@@ -48,9 +48,16 @@
 #'   photograph leaves the queue only when every individual on it is measured.
 #'   The count is adjustable photograph by photograph in the app; the value
 #'   given here is the default a photograph inherits.
-#' @param individual_order Direction the numbering of the individuals runs in:
-#'   `"top"` (top to bottom, the default) or `"left"` (left to right). The
-#'   number is SPATIAL, not chronological -- see the section on plates.
+#' @param individual_order Order the numbering of the individuals runs in:
+#'   `"top"` (top to bottom, the default), `"left"` (left to right), or
+#'   `"reading"` (rows from top to bottom, and within a row from left to
+#'   right, the way text is read). The number is SPATIAL, not chronological --
+#'   see the section on plates.
+#' @param individuals_per_row Number of fish per row, used only by
+#'   `individual_order = "reading"`. Giving it makes the rows EXACT -- fish
+#'   `k` belongs to row `ceiling(k / individuals_per_row)`, whatever the
+#'   spacing. `NULL` (default) infers the rows from the snouts already placed,
+#'   which works but has to guess where one row ends.
 #' @param xlsx_flush_every Number of records between two workbook writes. The
 #'   workbook is REWRITTEN IN FULL each time, so taking it out of the
 #'   digitizing loop removes both the wait and the risk; unwritten records stay
@@ -74,8 +81,11 @@
 #' @param sheets Named character vector giving the three sheet names. Defaults
 #'   to `c(measurements = "measurements", bias = "bias", summary =
 #'   "bias_summary")`.
-#' @param launch.browser Passed to [shiny::runApp()]. Defaults to the
-#'   `shiny.launch.browser` option, or to [interactive()].
+#' @param launch.browser Where the application opens. `TRUE` (default) or
+#'   `"browser"` forces the system browser, past the RStudio Viewer pane --
+#'   which is a few hundred pixels wide and the wrong place to click landmarks
+#'   on a photograph. `"viewer"` restores the pane, `FALSE` opens nothing and
+#'   prints the URL, and a function is used as given.
 #' @param ... Further arguments passed to [shiny::runApp()] (for example `port`
 #'   or `host`). Do not pass `appDir`; the packaged app directory is used.
 #'
@@ -256,14 +266,28 @@
 #' for every operator: two operators digitizing one plate in opposite orders
 #' would otherwise be compared fish against fish, and the operator bias that
 #' comes out of such a comparison measures nothing. The numbering therefore runs
-#' top to bottom (`individual_order = "top"`) or left to right (`"left"`), and
-#' the app enforces it ON THE CLICK THAT PLACES LM1 -- the first click of a fish
+#' top to bottom (`individual_order = "top"`), left to right (`"left"`), or in
+#' READING ORDER (`"reading"`: rows from top to bottom, and within a row from
+#' left to right), and the app enforces it ON THE CLICK THAT PLACES LM1 -- the
+#' first click of a fish
 #' -- refusing a snout that falls outside the interval left by the individuals
 #' already placed. The operator is stopped before digitizing the wrong fish
 #' rather than told about it afterwards, and no identifier already written to
 #' the journal ever has to be rewritten. The individuals already measured are
 #' drawn faintly on the photograph, with their number, so the plate can be read
 #' at a glance.
+#'
+#' A plate laid out as a GRID -- four fish in two rows of two, the commonest
+#' way a tray is photographed -- cannot be ordered by one coordinate: the
+#' second fish of the first row is to the RIGHT of the first, and the third is
+#' BELOW them both. Either one-dimensional rule refuses a correct click on half
+#' such a plate, and an operator who is refused when right soon stops reading
+#' the message. `"reading"` compares both coordinates: same row, the snout must
+#' be further right; new row, it must be lower. Set `individuals_per_row` and
+#' the rows are exact whatever the spacing; leave it empty and they are
+#' inferred from the snouts already placed, two being taken to share a row when
+#' they are within a fifth of the frame height of each other -- a stated guess,
+#' which is why the exact route is offered first.
 #'
 #' # Repeated digitization: measurement error and operator bias
 #'
@@ -322,7 +346,7 @@
 #' specimen in view. A zero is a measurement like any other -- neither a missing
 #' value nor a placement error -- and the FISHMORPH ratios are defined to take
 #' it: `OGp = 0` for a mouth opening on the ventral profile, `PFv = 0` for a
-#' pectoral fin inserted on the belly. Four rules are offered:
+#' pectoral fin inserted on the belly. Five rules are offered:
 #'
 #' \describe{
 #'   \item{`Mo = 0`}{LM9 takes the coordinates of LM1 -- the mouth sits on the
@@ -333,7 +357,33 @@
 #'     inserts on the belly.}
 #'   \item{`LM5 = LM13`}{LM5 takes the coordinates of LM13 -- the eye reaches
 #'     the top of the head.}
+#'   \item{`LM4 on 22-24`}{LM4 is PROJECTED perpendicularly onto the mid axis,
+#'     the segment LM22 -> LM24: it keeps the abscissa that was clicked along
+#'     the axis and its height becomes zero.}
 #' }
+#'
+#' The last rule is of a different KIND: its partner is a LINE, not a landmark,
+#' so nothing is copied -- LM4 is projected. The line is not bounded by its two
+#' hinges; the foot of the perpendicular may fall on their prolongation, as
+#' everywhere else in the constrained editing. Three consequences follow, and
+#' they are deliberate:
+#'
+#' \itemize{
+#'   \item LM4 being the MASTER of the belly line, the projection is applied
+#'     BEFORE the conventions and the ventral chain is replayed behind it, so
+#'     LM11 and then LM8 and LM9 are re-derived from the projected LM4;
+#'   \item the VENTRAL half of the extreme-point check is suspended while the
+#'     rule is on. LM4 no longer claims to be the most ventral landmark, so
+#'     reporting LM6, LM10 or LM14 below it would flag the rule itself. The
+#'     dorsal half, on LM3, is untouched;
+#'   \item LM4 stays in `edited` rather than being taken over by the rule: only
+#'     its height is imposed, its position along the body remains the operator's
+#'     measurement and survives a re-seed. It is reported `"adjusted"` in the
+#'     journal all the same, since a rule did place it.
+#' }
+#'
+#' Unticking the rule does not restore the height LM4 had before it: that value
+#' is not stored anywhere, and LM4 stays on the axis until it is clicked again.
 #'
 #' **Nothing is deleted.** Both landmarks keep a position, both are drawn on the
 #' photograph and both are written to the workbook; one simply takes the
@@ -469,15 +519,15 @@ digitize_landmarks <- function(photo_dir,
                                n_repeats = 3L,
                                ruler_mm = 10,
                                individuals_per_photo = 1L,
-                               individual_order = c("top", "left"),
+                               individual_order = c("top", "left", "reading"),
+                               individuals_per_row = NULL,
                                xlsx_flush_every = 10L,
                                mlmorph_dir = NULL, predictor = NULL,
                                python = NULL,
                                sheets = c(measurements = "measurements",
                                           bias = "bias",
                                           summary = "bias_summary"),
-                               launch.browser = getOption("shiny.launch.browser",
-                                                          interactive()),
+                               launch.browser = TRUE,
                                ...) {
   ## ---- argument validation (runs regardless of interactivity) ---------------
   mode <- match.arg(mode)
@@ -521,6 +571,19 @@ digitize_landmarks <- function(photo_dir,
       individuals_per_photo < 1L)
     stop("`individuals_per_photo` must be a single integer >= 1.", call. = FALSE)
   individual_order <- match.arg(individual_order)
+  if (is.null(individuals_per_row)) {
+    individuals_per_row <- NA_integer_
+  } else {
+    individuals_per_row <- suppressWarnings(as.integer(individuals_per_row))
+    if (length(individuals_per_row) != 1L || is.na(individuals_per_row) ||
+        individuals_per_row < 1L)
+      stop("`individuals_per_row` must be a single integer >= 1, or NULL.",
+           call. = FALSE)
+    if (!identical(individual_order, "reading"))
+      warning("`individuals_per_row` only means anything with ",
+              "`individual_order = \"reading\"`; it is ignored here.",
+              call. = FALSE)
+  }
   xlsx_flush_every <- suppressWarnings(as.integer(xlsx_flush_every))
   if (length(xlsx_flush_every) != 1L || is.na(xlsx_flush_every))
     stop("`xlsx_flush_every` must be a single integer.", call. = FALSE)
@@ -614,6 +677,7 @@ digitize_landmarks <- function(photo_dir,
     n_repeats = n_repeats, ruler_mm = ruler_mm,
     individuals_per_photo = individuals_per_photo,
     individual_order = individual_order,
+    individuals_per_row = individuals_per_row,
     xlsx_flush_every = xlsx_flush_every,
     sheet_measurements = unname(sheets[["measurements"]]),
     sheet_bias = unname(sheets[["bias"]]),
@@ -639,7 +703,7 @@ digitize_landmarks <- function(photo_dir,
 
   message(sprintf("Workbook: %s\nJournal : %s\nMode    : %s",
                   xlsx_path, journal_dir, mode))
-  shiny::runApp(app_dir, launch.browser = launch.browser, ...)
+  shiny::runApp(app_dir, launch.browser = .intrait_browser(launch.browser), ...)
   invisible(xlsx_path)
 }
 

@@ -23,6 +23,7 @@ plotly_fishmorph(
   ellipse_level = 0.95,
   density_level = 0.95,
   hover_traits = FALSE,
+  hover_distances = TRUE,
   hover_font_size = 10,
   point_size = 7,
   fill_alpha = 0.2,
@@ -115,6 +116,19 @@ analysis scale) to its tooltip. Defaults to \code{FALSE}: nine ratios on one
 line produce a tooltip wider than the plotting region, which hides the
 very morphospace the point is being located in. When \code{TRUE} the values
 are wrapped three per line to keep the box narrow.}
+
+\item{hover_distances}{Logical, add to each specimen's tooltip its
+Euclidean distance (on the two displayed axes, as a percentage of the
+largest distance between two reference species and in score units) to the
+centroid of its species and, when a reference point layer is drawn
+(\code{reference_points} or \code{itv_reference}), to its species' own FISHMORPH
+database point; the \code{"spider"} centroid marker then also reports its own
+distance to that point. The species is matched to the database with the
+rule \code{itv_reference} uses (case-insensitive, spaces and underscores
+equivalent) and the distance is omitted for a species the database does
+not contain. The centroid is that of the specimens \emph{displayed}, so a
+\code{select_species} / \code{select_specimens} selection moves it. Defaults to
+\code{TRUE}.}
 
 \item{hover_font_size}{Numeric, font size (in pixels) of the tooltip text.
 Defaults to \code{10}, smaller than plotly's own default, since a tooltip here
@@ -213,6 +227,28 @@ ellipse reports its species, its number of specimens and, when the
 projection carries an \code{\link[=itv_proportion]{itv_proportion()}} result, that species' share of
 the global functional volume. Reference points report the reference
 species' name when the projection carries labels (\code{x$global_species}).
+
+\code{hover_distances} (on by default) adds two numbers an ordination cannot be
+read off by eye: how far a specimen sits from the centroid of its own
+species -- its contribution to the intraspecific spread -- and how far it
+sits from the single FISHMORPH morphotype of that species, i.e. the
+individual the global database represents the whole species by. The second
+is only shown when a reference point layer is actually drawn
+(\code{reference_points} or \code{itv_reference}), since it is a distance to a point
+the reader would otherwise not see; the \code{"spider"} centroid marker reports
+that same distance for the species mean.
+
+Both are reported as a \strong{percentage of the FISHMORPH span} -- the largest
+distance between two reference species on the same two axes, i.e. the
+diameter of the global morphospace -- with the value in score units in
+brackets. A distance in score units is uninterpretable on its own, since it
+depends on the traits, on the standardisation and on which components are
+displayed; the same distance as a share of the whole occupied range is
+dimensionless and can be compared between axis pairs, species and
+campaigns. They remain plain Euclidean distances \strong{on the two displayed
+axes}: they are the distances the figure shows (\code{equal_aspect = TRUE} is
+what makes them readable), they change when \code{axes} changes, and they are not
+distances in the full nine-trait space.
 }
 
 \section{Requirements}{

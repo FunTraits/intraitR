@@ -1,3 +1,233 @@
+# intraitR 1.29.0
+
+## La numerisation ne repart plus en boucle
+
+* SYMPTOME : des photographies deja mesurees reviennent dans la file « new »
+  a chaque lancement, indefiniment.
+* CAUSE PREMIERE -- le classeur pris pour la verite. Le journal EST la source
+  de verite : chaque enregistrement y va d'abord, et le classeur n'est qu'un
+  export reecrit tous les `xlsx_flush_every` enregistrements. Mais la file
+  d'attente, elle, ne lisait que le CLASSEUR. Une ecriture refusee -- fichier
+  ouvert dans Excel, dossier en cours de synchronisation -- laissait donc les
+  enregistrements dans le seul journal, et le lancement suivant remettait
+  leurs photographies dans « new ». Les remesurer ecrivait dans le meme
+  classeur qui ne pouvait pas etre ecrit : la boucle etait complete. Un
+  operateur qui remesure les memes poissons chaque matin est le symptome
+  visible d'une ecriture qui a echoue sans etre vue.
+* Le journal est desormais consulte AU DEMARRAGE et reconcilie EN MEMOIRE : la
+  file est immediatement juste, RIEN N'EST ECRIT, et un message dit combien
+  d'enregistrements manquaient au classeur et quoi faire (« Write the workbook
+  now »). Reparer le classeur reste un geste delibere.
+* CAUSE SECONDE -- le nombre d'individus par photographie. Il vit en memoire et
+  son defaut est un argument de lancement : une plaque de quatre numerisee en
+  `<photo>_i1 ... _i4` etait, au lancement suivant, cherchee sous le
+  `<photo>` nu du defaut a un, introuvable, et repartait dans « new » avec ses
+  quatre poissons deja mesures. Le compte est desormais RELU DES IDENTIFIANTS
+  eux-memes, qui le disent, au lieu d'etre suppose.
+* Les deux reconciliations sont enveloppees dans `isolate()` : elles s'executent
+  dans le CORPS de la fonction serveur, ou ECRIRE dans un `reactiveValues` est
+  permis mais le LIRE ne l'est pas (« Can't access reactive value outside of
+  reactive consumer »). Elles ne dependent de rien et n'ont lieu qu'une fois,
+  ce qui est precisement l'usage d'`isolate()`.
+
+# intraitR 1.28.0
+
+## Le zoom montre enfin les cotes
+
+* La fenetre visible etait le rectangle de la PHOTOGRAPHIE divise par le zoom.
+  Avec `asp = 1`, une photo en portrait dans un panneau large de deux mille
+  pixels etait donc dessinee en colonne etroite, toute la largeur de l'ecran
+  restant vide de part et d'autre -- et zoomer sur la tete d'un poisson
+  montrait une lamelle verticale, le corps filant hors du bord droit dans un
+  espace qui n'avait jamais servi. Le poisson est horizontal ; la fenetre etait
+  verticale.
+* La fenetre suit desormais la forme du PANNEAU, pas celle du fichier. Au zoom
+  1 c'est la plus petite fenetre de cette forme qui contient encore toute la
+  photographie -- rien n'est perdu, la vue d'ensemble est celle d'avant --, et
+  au-dela le supplement va la ou le panneau est large, c'est-a-dire sur les
+  cotes.
+* La HAUTEUR DU PANNEAU devient un reglage (« Panel 500 / 700 / 900 / 1200 px »)
+  parce qu'elle decide la forme de la vue : panneau court, bande large ;
+  panneau haut, colonne etroite. C'est a l'operateur de choisir, pas a une
+  constante ecrite dans le code.
+* Le deplacement au clic droit est converti avec la fenetre du panneau et non
+  avec le rectangle du fichier. Sans cela, un glissement d'une largeur de
+  panneau deplacait l'image d'une largeur de photographie, et le curseur
+  cessait d'avancer avec elle des que les deux formes differaient -- c'est-a-
+  dire desormais toujours.
+* DES GUIDES POUR SE DEPLACER, HORS DU CHAMP DE L'IMAGE. Une barre grise
+  verticale a droite de la photographie, une horizontale en dessous : la piste
+  claire est la photographie entiere, le rectangle sombre la portion a
+  l'ecran, et une fleche cliquable a chaque bout deplace la vue d'un CINQUIEME
+  de ce qui est visible. Un tiers avait ete choisi d'abord, et il depasse : au
+  zoom ou l'on pose reellement un point, un tiers de la fenetre fait plus que
+  la tete du poisson, et le point vise quitte l'ecran entre deux appuis. Un
+  cinquieme conserve quatre cinquiemes de la vue precedente -- l'oeil ne perd
+  jamais son reperage -- au prix d'un clic de plus par ecran, ce qui est le bon
+  cote du compromis pour un travail fait point par point.
+* Ils ont d'abord ete DESSINES DANS l'image, et c'etait une faute : le clic sur
+  le graphique pose un point de repere, donc viser un rail en posait un. Un
+  controle que l'oeil lit comme cliquable, dans une surface ou cliquer signifie
+  tout autre chose, est un piege quelle que soit la clarte de son etiquette.
+  Les guides sont donc du HTML ordinaire, hors du graphique, et ne peuvent pas
+  atteindre son gestionnaire de clic.
+* Les fleches sont STATIQUES ; seuls les rectangles sombres sont rendus par le
+  serveur. Un `actionButton` reconstruit par `renderUI` revient avec son
+  compteur remis a zero, que son observateur lit comme un nouvel appui -- et un
+  appui qui deplace la vue, qui reconstruit le bouton, qui le rappuie, est un
+  defilement infini.
+* Un clic dans le fond, a cote de la photographie, est REFUSE avec sa raison.
+  Cet arriere-plan cliquable n'existait pas tant que la region de trace etait
+  l'image elle-meme, et un point pose la aurait ete une coordonnee hors du
+  fichier.
+
+## Un troisieme sens de numerotation : l'ordre de lecture
+
+* Une plaque disposee en GRILLE -- quatre poissons en deux rangees de deux, la
+  facon la plus courante de photographier un plateau -- ne peut pas etre
+  ordonnee par une seule coordonnee : le deuxieme poisson de la premiere rangee
+  est a DROITE du premier, et le troisieme est EN DESSOUS des deux. Chacune des
+  deux regles a une dimension refusait donc un clic CORRECT sur la moitie d'une
+  telle plaque, et un operateur qu'on refuse quand il a raison cesse vite de
+  lire les messages.
+* `individual_order = "reading"` compare les DEUX coordonnees : meme rangee, le
+  museau doit etre plus a droite ; nouvelle rangee, il doit etre plus bas. Le
+  refus nomme laquelle des deux conditions a echoue et avec quelles valeurs,
+  au lieu de renvoyer « hors de l'intervalle attendu ».
+* Comment une rangee est decidee. DITE, quand `individuals_per_row` est fourni
+  (le selecteur « Individuals per row » de l'application) : la rangee de
+  l'individu k vaut `ceiling(k / individuals_per_row)`, exacte quel que soit
+  l'espacement, sans aucun parametre a regler -- l'operateur connait sa propre
+  plaque. INFEREE sinon, depuis les museaux deja places, deux d'entre eux
+  partageant une rangee lorsqu'ils sont a moins d'un cinquieme de la hauteur du
+  cadre l'un de l'autre. C'est une supposition, elle est ENONCEE, et c'est
+  pourquoi la voie exacte est proposee en premier.
+* L'avertissement sur le premier poisson suit : `i1` est attendu EN HAUT A
+  GAUCHE, et un museau hors de la premiere cellule de la grille vaut un mot,
+  jamais un refus -- une plaque n'est pas toujours rangee, et c'est l'operateur
+  qui regarde le poisson.
+* Les deux modes existants sont inchanges.
+
+## Les applications s'ouvrent dans le navigateur, pas dans le Viewer
+
+* `shiny::runApp(launch.browser = TRUE)` finit dans `utils::browseURL()`, qui
+  passe par `options("browser")` -- que RStudio REMPLACE par un gestionnaire
+  gardant les URL localhost dans l'IDE. L'application atterrissait donc dans le
+  panneau Viewer : quelques centaines de pixels de large, sans barre
+  d'adresse, sans second onglet, et avec un moteur JavaScript qui n'est pas
+  celui pour lequel l'interface a ete ecrite. Ce n'est pas une affaire de gout :
+  une carte leaflet ou une figure plotly y sont inutilisables.
+* `launch.browser` accepte desormais quatre formes, avec le meme sens dans les
+  trois packages : `TRUE` (defaut) ou `"browser"` force le navigateur du
+  systeme ; `"viewer"` restitue le panneau a qui le prefere ; `FALSE` n'ouvre
+  rien et imprime l'URL ; une fonction est utilisee telle quelle.
+* Le gestionnaire « fenetre externe » de RStudio est cherche PAR NOM dans
+  `tools:rstudio`, jamais suppose : hors RStudio, nom disparu dans une version
+  future, environnement non attache -- chaque echec retombe sur `browseURL()`.
+  Un lanceur ne doit pas s'interrompre parce qu'un nom interne d'un autre
+  programme a bouge.
+
+# intraitR 1.27.0
+
+## `impute_traits()` : l'imputation, et le masque de ce qui a ete invente
+
+* L'imputation que `trait_space()`, `fishmorph_ratios()` et
+  `fishmorph_segments()` font en interne est desormais EXPOSEE seule, pour
+  qu'une table remplie puisse etre CONSERVEE au lieu d'etre recalculee dans
+  chaque ordination -- et surtout pour que les cellules remplies voyagent
+  avec elle.
+* Le retour porte `traits` (la table remplie) ET `imputed`, une matrice
+  logique de meme forme, `TRUE` la ou une valeur a ete inventee. C'est la
+  seule chose qui distingue ensuite une valeur mesuree d'une valeur imputee :
+  une fois dans une table, la seconde a le meme type, le meme ordre de
+  grandeur, et fait passer tous les controles de completude. Une fonction qui
+  ne rendrait que la matrice remplie rendrait une table qui a discretement
+  cesse d'etre un releve de mesures.
+* Le masque est preleve AVANT l'imputation, puis intersecte avec ce qui est
+  effectivement non-manquant apres : `"impute_mean"` laisse intacte une
+  colonne entierement vide, et la declarer remplie serait l'exact contraire de
+  ce a quoi ce masque sert.
+* `method` accepte aussi `"omit"` et `"keep"`, pour qu'un appelant puisse
+  transmettre tel quel le choix de l'utilisateur.
+
+# intraitR 1.26.0
+
+## Les distances des cartouches en % de l'etendue de FISHMORPH
+
+* Les deux distances introduites en 1.25.0 sont desormais rapportees en
+  POURCENTAGE DE L'ETENDUE DE FISHMORPH -- la plus grande distance entre deux
+  especes de reference sur les deux memes axes, c'est-a-dire le diametre du
+  morphospace mondial -- la valeur en unites de scores restant entre
+  parentheses. Une distance en unites de scores ne s'interprete pas seule :
+  elle depend des traits, de la standardisation et de la paire d'axes
+  affichee. La meme distance rapportee a l'etendue occupee est sans dimension
+  et se compare entre paires d'axes, entre especes et entre campagnes.
+* Nouvelle fonction interne `.cloud_diameter()`. Le diametre d'un ensemble
+  plan est atteint par deux sommets de son enveloppe convexe, la recherche
+  quadratique ne porte donc que sur l'enveloppe : pour les ~9 500 especes de
+  FISHMORPH, quelques dizaines de sommets au lieu de 45 millions de paires.
+* L'echelle est celle du nuage de REFERENCE COMPLET, qu'il soit dessine ou non,
+  et elle est recalculee a chaque paire d'axes -- le denominateur suit donc la
+  figure. Faute d'echelle etablie (moins de deux points distincts), les
+  cartouches reviennent aux unites de scores et le disent.
+
+# intraitR 1.25.0
+
+## Deux distances dans les cartouches de `plotly_fishmorph()`
+
+* Nouvel argument `hover_distances` (TRUE par defaut). Le cartouche d'un
+  specimen porte desormais sa distance au CENTROIDE de son espece -- sa
+  contribution a la dispersion intraspecifique -- et, quand une couche de
+  points de reference est dessinee (`reference_points` ou `itv_reference`),
+  sa distance au POINT FISHMORPH de son espece, c'est-a-dire a l'individu par
+  lequel la base mondiale represente toute l'espece.
+* Le losange du style `"spider"` porte la meme seconde distance, du centroide
+  au point FISHMORPH : la lecture, par la figure, de l'ecart entre la moyenne
+  echantillonnee et le morphotype de reference.
+* Ce sont des distances euclidiennes SUR LES DEUX AXES AFFICHES, en unites de
+  scores : ce sont celles que la figure montre (`equal_aspect = TRUE` est ce
+  qui les rend lisibles), elles changent avec `axes`, et ce ne sont pas des
+  distances dans l'espace complet a neuf traits.
+* L'appariement de l'espece a la base suit la regle de `itv_reference`
+  (casse ignoree, espaces et underscores equivalents) ; une espece absente de
+  la base laisse la distance absente plutot que fausse. Le centroide est celui
+  des specimens AFFICHES, donc `select_species` / `select_specimens` le
+  deplacent -- il coincide toujours avec le losange trace.
+
+# intraitR 1.24.0
+
+## Une coincidence avec une DROITE : LM4 sur l'axe median
+
+* Nouvelle regle dans la barre *Coincident landmarks* de `digitize_landmarks()`
+  : **`LM4 on 22-24`**. LM4, l'extremite ventrale de la hauteur de corps, est
+  projete perpendiculairement sur l'axe median LM22 -> LM24. Il conserve
+  l'abscisse cliquee le long de l'axe et sa hauteur devient nulle ; la droite
+  n'est pas bornee par les deux charnieres, le pied de la perpendiculaire peut
+  tomber sur leur prolongement.
+* C'est un second GENRE de regle. Les quatre existantes enoncent que deux POINTS
+  sont confondus et s'ecrivent comme une copie de coordonnees ; celle-ci enonce
+  qu'un point appartient a une DROITE et s'ecrit comme une projection. Les
+  entrees de `COLLAPSE_RULES` portent donc `moves` (copies) et/ou `project`
+  (projections), et `apply_collapse()` recoit un argument `kinds`.
+* L'ordre d'application decoule de la geometrie. LM4 est le maitre de la ligne
+  ventrale : la projection precede les conventions et `derive_ventral()` est
+  rejoue derriere elle, de sorte que LM11, puis LM8 et LM9, soient recalcules a
+  partir du LM4 projete. Appliquee a la fin, comme les copies, elle aurait
+  laisse une ligne ventrale ne passant plus par son propre pivot.
+* Declarer la regle SUSPEND la moitie ventrale du controle des points extremes
+  a l'enregistrement (`extreme_violations(skip = )`) : LM4 ne pretend plus etre
+  le point le plus ventral, signaler LM6, LM10 ou LM14 en dessous de lui
+  reviendrait a signaler la regle elle-meme. La moitie dorsale, sur LM3, est
+  inchangee.
+* LM4 reste dans `edited` -- seule sa hauteur est imposee, sa position le long
+  du corps demeure une mesure et survit a un re-semis -- mais il est reporte
+  `"adjusted"` dans le journal, une regle l'ayant place.
+* Une projection ne laisse derriere elle aucun couple de points confondus :
+  la relecture d'un specimen la retrouve par la geometrie (`collapse_detect()`,
+  0,5 px de l'axe). Un ventre reel se situe a la moitie de la hauteur de corps
+  de l'axe median, soit environ 12 % de la longueur standard : la bande est
+  vide.
+
 # intraitR 1.23.0
 
 ## Une seule implementation par operation

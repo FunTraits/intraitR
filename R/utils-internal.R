@@ -1001,7 +1001,34 @@
       )
     }
     n_na <- sum(is.na(X))
-    df_for_rf <- as.data.frame(X)
+    # A COLUMN THAT IS ENTIRELY MISSING CANNOT BE IMPUTED, by this or by any
+    # other method: there is nothing in it to learn from, and nothing to
+    # validate a prediction against. missForest drops such a column silently
+    # ("removed variable(s) N due to the missingness of all entries"), and the
+    # re-indexing below then failed with "undefined columns selected" -- an
+    # error about a data.frame, three layers away from the fact that a trait
+    # was never measured. It is now stated, and the column travels through
+    # untouched as NA.
+    all_na <- colSums(!is.na(X)) == 0L
+    if (any(all_na)) {
+      message(sprintf(
+        paste("na_action = \"%s\": %d trait(s) are missing for EVERY row (%s)",
+              "and cannot be imputed -- there is nothing to learn from. They",
+              "stay NA, so the rows keep an incomplete trait set."),
+        na_action, sum(all_na), paste(colnames(X)[all_na], collapse = ", ")))
+    }
+    usable <- X[, !all_na, drop = FALSE]
+    # Two usable traits are the minimum for a forest that predicts one from the
+    # others; below that the method has no information and says so instead of
+    # returning the column means under a name that suggests otherwise.
+    if (ncol(usable) < 2L) {
+      warning(sprintf(
+        paste("na_action = \"%s\": only %d trait(s) hold any value, which is",
+              "not enough to predict one from the others; nothing was",
+              "imputed."), na_action, ncol(usable)), call. = FALSE)
+      return(list(X = X, keep = keep))
+    }
+    df_for_rf <- as.data.frame(usable)
     grp_note <- ""
     if (!is.null(groups)) {
       # randomForest refuses a factor with more than 53 levels. A `groups` equal
@@ -1048,12 +1075,27 @@
       verbose = FALSE
     )
     ximp <- imp$ximp
-    X <- as.matrix(ximp[, colnames(X), drop = FALSE])
-    storage.mode(X) <- "double"
+    # Only the columns the forest actually returned are taken back, and they
+    # are written INTO the original matrix rather than replacing it: the
+    # all-missing traits, and any other column missForest chose to drop, keep
+    # their place and their NAs instead of vanishing from the result.
+    got <- intersect(colnames(X), names(ximp))
+    if (length(got)) {
+      Xg <- as.matrix(ximp[, got, drop = FALSE])
+      storage.mode(Xg) <- "double"
+      X[, got] <- Xg
+    }
+    dropped <- setdiff(colnames(X)[!all_na], got)
+    if (length(dropped))
+      warning(sprintf(
+        paste("na_action = \"%s\": missForest returned no value for %s; the",
+              "column(s) keep their missing values."),
+        na_action, paste(dropped, collapse = ", ")), call. = FALSE)
+    n_done <- n_na - sum(is.na(X))
     nrmse <- if ("NRMSE" %in% names(imp$OOBerror)) imp$OOBerror[["NRMSE"]] else NA_real_
     message(sprintf(
-      "na_action = \"%s\": imputed %d missing value(s) using random-forest imputation (missForest)%s%s%s.",
-      na_action, n_na, grp_note, phylo_note,
+      "na_action = \"%s\": imputed %d of %d missing value(s) using random-forest imputation (missForest)%s%s%s.",
+      na_action, n_done, n_na, grp_note, phylo_note,
       if (!is.na(nrmse)) sprintf(" (out-of-bag NRMSE = %.3f)", nrmse) else ""
     ))
   }

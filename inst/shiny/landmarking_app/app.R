@@ -56,6 +56,7 @@ CFG <- local({
     journal_dir = file.path(getwd(), "landmark_journal"),
     operator = NULL, mode = "new", n_repeats = 3L, ruler_mm = 10,
     individuals_per_photo = 1L, individual_order = "top",
+    individuals_per_row = NA_integer_,
     xlsx_flush_every = 10L, sheet_measurements = "measurements",
     sheet_bias = "bias", sheet_summary = "bias_summary", app_version = "dev")
   for (nm in names(def)) if (is.null(d[[nm]])) d[[nm]] <- def[[nm]]
@@ -166,6 +167,23 @@ AUTO_LM     <- c(1L, 2L, 8L, 9L, 11L, 23L)
 AUTO_LM_PIN <- c(1L, 2L, 3L, 4L, 7L, 8L, 9L, 10L, 11L, 12L, 15L, 16L, 18L, 23L)
 ## Points whose position is computed, never measured.
 DERIVED_LM  <- c(8L, 9L, 11L, 23L)
+
+## THE 11 FISHMORPH SEGMENTS, as landmark pairs. Same table as Rfishmorph's
+## digitizer (.FM_PAIR_SEG), deliberately: the two applications measure the same
+## protocol and must draw it the same way, or an operator moving between them
+## reads two different pictures of one specimen.
+##
+## Bl is the exception in the drawing as it is in the computation: it follows the
+## BROKEN axis 1 -> hinges placed -> 2 (axis_chain()), not the straight 1-2
+## segment. Drawing it straight while fishmorph_segments() measures the arc would
+## show the operator a length the analysis never uses.
+PAIR_SEG <- list(
+  Bl  = c(1L, 2L),   Bd  = c(3L, 4L),   Hd  = c(5L, 6L),
+  Eh  = c(7L, 8L),   Mo  = c(1L, 9L),   PFi = c(10L, 11L),
+  PFl = c(10L, 12L), Ed  = c(13L, 14L), Jl  = c(1L, 15L),
+  CPd = c(16L, 17L), CFd = c(18L, 19L)
+)
+SEG_COLS <- grDevices::hcl.colors(length(PAIR_SEG), "Dark3")
 
 ## Anatomical points in ANATOMICAL order, minus the three derived ones -- not in
 ## numeric order, which the FISHMORPH numbering does not follow. The sequence
@@ -719,23 +737,30 @@ dorsal_heights <- function(P) {
 ## Violations of the convention. NULL when the specimen is compliant, otherwise
 ## a data.frame: `point` (3 or 4), `culprit` (the point overshooting it),
 ## `delta` (the overshoot, in pixels) and `kind` ("extreme").
-extreme_violations <- function(P, tol_frac = EXTREME_TOL) {
+## `skip` suspends the test on one side: a coincidence rule that puts LM4 on the
+## mid axis makes the ventral half of the convention meaningless, and reporting
+## it would turn a statement the operator made into an alert on every save.
+extreme_violations <- function(P, tol_frac = EXTREME_TOL, skip = integer(0)) {
   g <- dorsal_heights(P); if (is.null(g)) return(NULL)
   if (!is.finite(g$len) || g$len <= 0) return(NULL)
   tol  <- max(EXTREME_FLOOR, tol_frac * g$len)
   cand <- EXTREME_CAND[is.finite(g$h[EXTREME_CAND])]
   if (!length(cand)) return(NULL)
   out <- list()
-  d <- g$h[cand] - g$h[3L]                          # dorsal overshoot
-  k <- which.max(d)
-  if (d[k] > tol) out[[length(out) + 1L]] <-
-    data.frame(point = 3L, culprit = cand[k], delta = unname(d[k]),
-               kind = "extreme", stringsAsFactors = FALSE)
-  d <- g$h[4L] - g$h[cand]                          # ventral overshoot
-  k <- which.max(d)
-  if (d[k] > tol) out[[length(out) + 1L]] <-
-    data.frame(point = 4L, culprit = cand[k], delta = unname(d[k]),
-               kind = "extreme", stringsAsFactors = FALSE)
+  if (!(3L %in% skip)) {
+    d <- g$h[cand] - g$h[3L]                        # dorsal overshoot
+    k <- which.max(d)
+    if (d[k] > tol) out[[length(out) + 1L]] <-
+      data.frame(point = 3L, culprit = cand[k], delta = unname(d[k]),
+                 kind = "extreme", stringsAsFactors = FALSE)
+  }
+  if (!(4L %in% skip)) {
+    d <- g$h[4L] - g$h[cand]                        # ventral overshoot
+    k <- which.max(d)
+    if (d[k] > tol) out[[length(out) + 1L]] <-
+      data.frame(point = 4L, culprit = cand[k], delta = unname(d[k]),
+                 kind = "extreme", stringsAsFactors = FALSE)
+  }
   if (!length(out)) return(NULL)
   do.call(rbind, out)
 }
@@ -801,8 +826,9 @@ eye_order_violations <- function(P, tol_frac = EXTREME_TOL) {
 ## Everything checked on save, in one table. Extremes first, deliberately: they
 ## are the only ones the automatic correction can repair -- an inversion is
 ## repaired by measuring again, never by moving a point.
-convention_violations <- function(P, tol_frac = EXTREME_TOL) {
-  v <- rbind(extreme_violations(P, tol_frac), eye_order_violations(P, tol_frac))
+convention_violations <- function(P, tol_frac = EXTREME_TOL, skip = integer(0)) {
+  v <- rbind(extreme_violations(P, tol_frac, skip = skip),
+             eye_order_violations(P, tol_frac))
   if (is.null(v) || !nrow(v)) NULL else v
 }
 
@@ -897,28 +923,109 @@ COLLAPSE_RULES <- list(
              tip = "LM10 takes the coordinates of LM11: insertion on the ventral profile, PFv = 0"),
   EyeTop = list(moves = list(c(5L, 13L)),
                 label = "LM5 = LM13 (eye at the head top)",
-                tip = "LM5 takes the coordinates of LM13: the eye reaches the dorsal profile")
+                tip = "LM5 takes the coordinates of LM13: the eye reaches the dorsal profile"),
+  ## A second KIND of rule. The partner is not a landmark but a LINE -- the mid
+  ## axis 22 -> 24 -- so the statement cannot be expressed as a copy of
+  ## coordinates: LM4 is PROJECTED perpendicularly onto it. It keeps the abscissa
+  ## the operator clicked along the axis and surrenders only its height. LM4
+  ## being the master of the belly line, LM11 and then LM8 and LM9 follow it.
+  Bd4 = list(moves = list(), project = 4L,
+             label = "LM4 on 22-24 (belly on the mid axis)",
+             tip = paste("LM4 is projected perpendicularly onto the line",
+                         "(LM22, LM24): it keeps its abscissa along the axis,",
+                         "its height becomes zero, and LM11 then LM8/LM9 follow"))
 )
+
+## ---- projecting onto the mid axis -------------------------------------------
+## The mid frame is taken from seg_frames() rather than rebuilt from LM22 and
+## LM24 directly, so a projected landmark sits at height zero in the VERY frame
+## the conventions then work in -- hinge fallbacks included. Rebuilding it
+## independently would let derive_ventral() re-derive the belly line in a frame
+## where LM4 is no longer on the axis.
+project_mid <- function(P, pt) {
+  if (!fin_row(P, pt)) return(P)
+  fr <- seg_frames(P); if (is.null(fr)) return(P)
+  P[pt, ] <- fr$mid$at(fr$mid$ax(P[pt, ]), 0)
+  P
+}
+## Distance from a landmark to that axis, in pixels (NA when undefined): what a
+## projection rule is read back by on a specimen reopened later.
+dist_mid <- function(P, pt) {
+  if (!fin_row(P, pt)) return(NA_real_)
+  fr <- seg_frames(P); if (is.null(fr)) return(NA_real_)
+  abs(fr$mid$pe(P[pt, ]))
+}
+## Below this distance a landmark IS on the axis: the coordinates written to the
+## workbook are the projection itself, so only rounding separates them from it.
+## A real belly sits at half the body depth from the midline -- some 12 % of the
+## standard length -- so the band is empty by orders of magnitude.
+PROJ_TOL <- 0.5
 
 ## Apply the active rules, move by move and in order. A move whose reference is
 ## not placed is skipped: a zero is only meaningful once the landmark it is
 ## measured from exists. Order matters when several rules are on -- with `Mo`
 ## and `LM6 = LM8` both active, LM9 goes onto LM1 first, so LM23 then follows
 ## LM9 to the same place.
-apply_collapse <- function(P, active) {
+## `kinds` selects which half of a rule is applied. The PROJECTIONS have to act
+## BEFORE the conventions -- LM4 drives the belly line, so LM11, LM8 and LM9 must
+## be re-derived from the projected LM4 -- while the copies act after them, since
+## the conventions are precisely what would undo a copy.
+apply_collapse <- function(P, active, kinds = c("move", "project")) {
   if (is.null(P) || !length(active)) return(P)
-  for (nm in intersect(active, names(COLLAPSE_RULES)))
-    for (mv in COLLAPSE_RULES[[nm]]$moves)
-      if (mv[1] <= nrow(P) && fin_row(P, mv[2])) P[mv[1], ] <- P[mv[2], ]
+  for (nm in intersect(active, names(COLLAPSE_RULES))) {
+    r <- COLLAPSE_RULES[[nm]]
+    if ("project" %in% kinds && !is.null(r$project))
+      for (pt in r$project) P <- project_mid(P, pt)
+    if ("move" %in% kinds)
+      for (mv in r$moves)
+        if (mv[1] <= nrow(P) && fin_row(P, mv[2])) P[mv[1], ] <- P[mv[2], ]
+  }
   P
 }
-## The landmarks a set of rules moves -- their status has to say they were
-## placed by a rule and not pointed at.
-collapse_points <- function(active) {
+## The landmarks a set of rules places -- their status has to say they were
+## placed by a rule and not pointed at. The two families are separable, and the
+## distinction is not cosmetic: a landmark COPIED onto another owes it
+## everything, so the rule takes over its position; a PROJECTED landmark keeps
+## the abscissa that was clicked and only gives up its height, so it must stay
+## in `edited` -- dropping it would send LM4 back to its seed along the body at
+## the next reseed.
+collapse_points <- function(active, kinds = c("move", "project")) {
   if (!length(active)) return(integer(0))
-  unlist(lapply(COLLAPSE_RULES[intersect(active, names(COLLAPSE_RULES))],
-                function(r) vapply(r$moves, function(m) m[1], integer(1))),
-         use.names = FALSE)
+  pts <- unlist(lapply(COLLAPSE_RULES[intersect(active, names(COLLAPSE_RULES))],
+                       function(r) c(
+                         if ("move" %in% kinds)
+                           vapply(r$moves, function(m) m[1], integer(1))
+                         else integer(0),
+                         if ("project" %in% kinds && !is.null(r$project))
+                           as.integer(r$project) else integer(0))),
+                use.names = FALSE)
+  if (is.null(pts)) integer(0) else pts
+}
+## Read the rules back off the coordinates of a specimen saved earlier. A copy
+## rule leaves two coincident landmarks; a PROJECTION leaves no such pair, only
+## a landmark lying on a line, so it has to be recognized geometrically.
+collapse_detect <- function(P, tol = PROJ_TOL) {
+  if (is.null(P)) return(character(0))
+  names(COLLAPSE_RULES)[vapply(COLLAPSE_RULES, function(r) {
+    ok_mv <- length(r$moves) == 0L || all(vapply(r$moves, function(mv)
+      fin_row(P, mv[1]) && fin_row(P, mv[2]) &&
+        isTRUE(all.equal(unname(P[mv[1], ]), unname(P[mv[2], ]),
+                         tolerance = 1e-6)), logical(1)))
+    ok_pj <- is.null(r$project) || {
+      d <- vapply(r$project, function(pt) dist_mid(P, pt), numeric(1))
+      all(is.finite(d)) && all(d <= tol)
+    }
+    ## a rule with neither a move nor a projection is not "detected" by default
+    (length(r$moves) > 0L || !is.null(r$project)) && ok_mv && ok_pj
+  }, logical(1))]
+}
+## The extreme-point convention a rule deliberately SUSPENDS. Declaring LM4 on
+## the mid axis states that the ventral profile is not what LM4 reads on this
+## specimen; the ventral half of the 3/4 test would then flag every landmark
+## below the axis (LM6, LM10, LM14 ...) on every save -- the rule working, not an
+## error. The dorsal half, on LM3, is untouched and still holds.
+collapse_skip_extreme <- function(active) {
+  if ("Bd4" %in% active) 4L else integer(0)
 }
 
 ## Correction: LM3 (resp. LM4) takes the HEIGHT of the point overshooting it,
@@ -1232,6 +1339,13 @@ APP_CSS <- paste0(
   # it a colour of its own so it is never hit for 'Clear point'
   "#set_na{font-weight:600;}")
 
+## The navigation guides: a grey track, a darker thumb, and an arrow button at
+## each end. Defined here because the tracks and the buttons are built in the
+## UI and only the thumbs are rendered by the server.
+NAV_TRACK <- "background:#e5e7eb;border:1px solid #d1d5db;border-radius:6px;"
+NAV_THUMB <- "position:absolute;background:#6b7280;border-radius:6px;"
+NAV_BTN   <- "padding:0 8px;line-height:22px;font-size:13px;color:#374151;"
+
 ## Right-button drag on the photograph pans the view (deltas sent to Shiny).
 PAN_JS <- paste(
   "(function(){var dg=false,lx=0,ly=0,adx=0,ady=0,c=0,raf=null;",
@@ -1275,8 +1389,22 @@ side_tabs <- function() {
           actionButton("ind_drop", "- individual")),
       uiOutput("ind_bar"),
       radioButtons("ind_order", "Numbering runs",
-                   choices = c("top to bottom" = "top", "left to right" = "left"),
-                   selected = CFG$individual_order, inline = TRUE),
+                   choices = c("top to bottom" = "top",
+                               "left to right" = "left",
+                               "reading order (rows, left to right)" = "reading"),
+                   selected = CFG$individual_order),
+      conditionalPanel(
+        "input.ind_order == 'reading'",
+        div(style = "width:150px;",
+            numericInput("ind_per_row", "Individuals per row",
+                         CFG$individuals_per_row %||% NA, min = 1, step = 1)),
+        helpText("A grid: rows from top to bottom, and within a row from left",
+                 "to right, the way text is read. Give the number per row when",
+                 "the plate is regular -- 2 for a 2 x 2 -- and the rows are then",
+                 "EXACT: i3 is the first of the second row, whatever the",
+                 "spacing. Leave it empty and the rows are inferred from the",
+                 "snouts already placed, which works but has to guess where one",
+                 "row ends.")),
       helpText("A plate of several fish over one ruler. Each fish is saved as",
                tags$code("<photo>_i1, _i2 ..."), "and the scale bar 20-21 is",
                "placed ONCE and inherited by all of them -- one ruler, one",
@@ -1344,7 +1472,9 @@ side_tabs <- function() {
 
     tabPanel(
       "Display",
-      checkboxInput("showlines", "Reference lines (outline / belly / eye)", TRUE),
+      checkboxInput("showsegs", "FISHMORPH segments (the 11 measured lines)", TRUE),
+      checkboxInput("seglegend", "Segment legend", TRUE),
+      checkboxInput("showlines", "Reference lines (outline/eye/belly)", TRUE),
       checkboxInput("guides", "Alignment guides", FALSE),
       checkboxInput("fishguides", "FISHMORPH geometry check", FALSE),
       radioButtons("flip_mode", "Flip photograph (+ landmarks)",
@@ -1361,7 +1491,7 @@ side_tabs <- function() {
     tabPanel(
       "Checks",
       checkboxInput("check_extremes",
-                    "Check the conventions on save (LM3/LM4, eye vertical)",
+                    "Check the conventions on save (3/4 extremes, eye vertical)",
                     value = TRUE),
       helpText("Bd is the MAXIMUM body depth: on save, checks that LM3 is the",
                "most dorsal and LM4 the most ventral landmark of the body",
@@ -1482,10 +1612,51 @@ main_panel <- function() tagList(
                                   "Display 2400 px"          = 2400,
                                   "Display full resolution"  = 0),
                       selected = 1200, width = "200px")),
+      div(style = "min-width:170px;",
+          selectInput("panel_h", NULL,
+                      choices = c("Panel 500 px (widest)" = 500,
+                                  "Panel 700 px"          = 700,
+                                  "Panel 900 px"          = 900,
+                                  "Panel 1200 px (tallest)" = 1200),
+                      selected = 700, width = "170px")),
       div(class = "tbhint",
           "Right-click and drag to pan · double-click for the whole view ·",
-          "the zoom centres on the active landmark · no wheel zoom")),
-  plotOutput("img", click = "click", dblclick = "img_dblclick", height = "700px"),
+          "the zoom centres on the active landmark · no wheel zoom ·",
+          "a shorter panel is a wider view")),
+  # The panel's height is a control rather than a constant, because it decides
+  # the SHAPE of the zoomed view: the window shown follows the panel's aspect
+  # ratio, so a short panel is a wide band and a tall one a narrow column.
+  # The photograph, with the vertical guide beside it and the horizontal one
+  # under it. Both are ordinary HTML: they cannot reach the plot's click
+  # handler, which is the whole reason they are not drawn in the picture.
+  #
+  # THE ARROWS ARE STATIC. Only the grey thumbs are rendered, because an
+  # actionButton rebuilt by renderUI comes back with its counter reset to zero,
+  # which its observer reads as a fresh press -- and a press that moves the
+  # view, which rebuilds the button, which presses it again, is an infinite
+  # scroll. The track is a fixed div; what the server draws inside it is a
+  # rectangle.
+  div(style = "display:flex;align-items:stretch;gap:6px;",
+      div(style = "flex:1 1 auto;min-width:0;", uiOutput("img_box")),
+      div(style = paste("width:26px;display:flex;flex-direction:column;",
+                        "align-items:center;"),
+          actionButton("nav_up", "▲", class = "btn btn-light btn-sm",
+                       style = NAV_BTN),
+          div(style = paste0("position:relative;flex:1 1 auto;width:12px;",
+                             "margin:4px 0;", NAV_TRACK),
+              uiOutput("nav_v")),
+          actionButton("nav_down", "▼", class = "btn btn-light btn-sm",
+                       style = NAV_BTN))),
+  div(style = "display:flex;align-items:center;gap:6px;margin:6px 32px 0 0;",
+      actionButton("nav_left", "◀", class = "btn btn-light btn-sm",
+                   style = NAV_BTN),
+      div(style = paste0("position:relative;flex:1 1 auto;height:12px;",
+                         NAV_TRACK),
+          uiOutput("nav_h")),
+      actionButton("nav_right", "▶", class = "btn btn-light btn-sm",
+                   style = NAV_BTN),
+      div(class = "tbhint", style = "margin-left:8px;white-space:nowrap;",
+          "grey bar = the whole photograph · dark = what is on screen")),
   # ---- coincident landmarks, immediately under the photograph -----------------
   # A zero is a measurement, and it is decided while looking at the fish -- so
   # the switch belongs under the photograph, not in a settings tab. It is reset
@@ -1593,6 +1764,76 @@ server <- function(input, output, session) {
   ## without touching the disk on every interaction.
   rv$meas <- wb_read_sheet(CFG$xlsx_path, CFG$sheet_measurements)
   rv$bias <- wb_read_sheet(CFG$xlsx_path, CFG$sheet_bias)
+
+  ## THE JOURNAL IS CONSULTED AT START-UP, NOT ONLY BY THE REBUILD BUTTON.
+  ##
+  ## The workbook is written every `xlsx_flush_every` records, and the last few
+  ## of a session wait in memory until the session ends. That is fine while
+  ## nothing goes wrong -- and it is exactly what goes wrong on a synchronised
+  ## folder: a write refused because the file is open in Excel or locked by the
+  ## sync client leaves those records in the journal alone. The next launch
+  ## then read the WORKBOOK, found them missing, and put their photographs back
+  ## in the "new" queue -- for ever, since re-measuring them wrote to the same
+  ## workbook that could not be written. An operator re-measuring the same
+  ## fish every morning is the visible symptom of an invisible failed write.
+  ##
+  ## So the two are reconciled here, IN MEMORY: the journal's records are taken
+  ## as they are the source of truth, the queue is immediately right, and
+  ## NOTHING IS WRITTEN -- the workbook is repaired by "Write the workbook now"
+  ## or by "Rebuild from the journals", both of which stay a deliberate act.
+  ## `isolate()`: this runs in the body of the server function, where WRITING
+  ## to a reactiveValues is allowed but READING it is not -- rv$meas here would
+  ## abort with "Can't access reactive value outside of reactive consumer".
+  ## The reconciliation is a one-off at start-up and depends on nothing, which
+  ## is exactly what isolate() is for.
+  isolate(local({
+    j <- tryCatch(intraitR::consolidate_landmarks(CFG$journal_dir,
+                                                  points = WB_PTS),
+                  error = function(e) NULL)
+    if (is.null(j) || !nrow(j)) return(invisible(NULL))
+    is_bias <- !is.na(j$target_sheet) & j$target_sheet == CFG$sheet_bias
+    jm <- wb_normalise(j[!is_bias, , drop = FALSE])
+    jb <- wb_normalise(j[is_bias, , drop = FALSE])
+    known <- if (is.null(rv$meas) || !nrow(rv$meas)) character(0) else
+      as.character(rv$meas$specimen)
+    extra <- jm[!(as.character(jm$specimen) %in% known), , drop = FALSE]
+    if (nrow(extra)) {
+      # Both sides went through wb_normalise(), so they carry exactly WB_COLS
+      # in the same order and a plain rbind() is safe.
+      rv$meas <- if (is.null(rv$meas) || !nrow(rv$meas)) extra else
+        rbind(rv$meas, extra)
+      rv$pending <- rv$pending + nrow(extra)
+      txt <- sprintf(paste("%d digitization(s) were in the journal but NOT in",
+                           "the workbook. They are counted as done -- the",
+                           "queue is right -- but the workbook is behind:",
+                           "press \"Write the workbook now\". A write that",
+                           "failed (file open in Excel, folder being synced)",
+                           "is the usual cause."), nrow(extra))
+      rv$msg <- txt
+      try(showNotification(txt, type = "warning", duration = 15), silent = TRUE)
+    }
+    if (!is.null(jb) && nrow(jb) &&
+        (is.null(rv$bias) || nrow(jb) > nrow(rv$bias))) rv$bias <- jb
+  }))
+
+  ## HOW MANY INDIVIDUALS A PHOTOGRAPH HOLDS IS READ BACK FROM WHAT WAS SAVED.
+  ## The count lives in memory, and its default is a launch argument: a plate
+  ## of four digitized as `<photo>_i1 ... _i4` was looked up, on the next
+  ## launch, under the bare `<photo>` of the default count of one -- found
+  ## nothing, and went back into the "new" queue with its four fish already
+  ## measured. The identifiers themselves say how many there are, so they are
+  ## asked rather than assumed. `isolate()` for the same reason as above.
+  isolate(local({
+    ids <- if (is.null(rv$meas) || !nrow(rv$meas)) character(0) else
+      unique(as.character(rv$meas$specimen))
+    m <- regmatches(ids, regexec("^(.*)_i([0-9]+)$", ids))
+    hit <- vapply(m, length, integer(1)) == 3L
+    if (!any(hit)) return(invisible(NULL))
+    base <- vapply(m[hit], function(v) v[2], character(1))
+    k <- as.integer(vapply(m[hit], function(v) v[3], character(1)))
+    n <- tapply(k, base, max)
+    for (nm in names(n)) rv$n_by_photo[[nm]] <- as.integer(n[[nm]])
+  }))
 
   ## The journal is opened BEFORE any digitizing can happen, and every save goes
   ## there first. It is the source of truth; the workbook is an export.
@@ -1714,9 +1955,105 @@ server <- function(input, output, session) {
   ## to right for a plate laid out horizontally -- and the app checks it on the
   ## click that places LM1, the FIRST click of a fish, so the operator is stopped
   ## before digitizing the wrong one rather than told about it afterwards.
-  ord_j <- function() if (identical(input$ind_order %||% CFG$individual_order,
-                                    "left")) 1L else 2L
-  ord_word <- function() if (ord_j() == 1L) "left to right" else "top to bottom"
+  ord_mode <- function() {
+    m <- input$ind_order %||% CFG$individual_order
+    if (m %in% c("top", "left", "reading")) m else "top"
+  }
+  ## The 1-D modes compare ONE coordinate. "reading" compares two, and keeps
+  ## `ord_j() == 1L` so that everything written for the horizontal case -- the
+  ## wording, the first-fish hint -- stays true of the within-row half of it.
+  ord_j <- function() if (ord_mode() == "top") 2L else 1L
+  ord_word <- function() switch(ord_mode(),
+    top = "top to bottom", left = "left to right",
+    reading = "in reading order: rows from top to bottom, and within a row from left to right")
+
+  ## --- reading order -------------------------------------------------------
+  ## WHY A THIRD MODE. A plate of four fish in two rows of two cannot be ordered
+  ## by one coordinate: the second fish of the first row is to the RIGHT of the
+  ## first, and the third is BELOW them both. Either 1-D rule refuses a correct
+  ## click on half the plate, and an operator who is refused when right soon
+  ## stops reading the message.
+  ##
+  ## HOW A ROW IS DECIDED. Told, when the operator says how many fish there are
+  ## per row: row(k) = ceiling(k / per_row), exact whatever the spacing, and no
+  ## parameter to tune. Otherwise inferred from the snouts already placed, with
+  ## a tolerance that is STATED rather than hidden -- two snouts belong to the
+  ## same row when their vertical distance is under a fifth of the frame
+  ## height. It is a guess, and it is why the exact route is offered first.
+  ind_per_row <- function() {
+    v <- suppressWarnings(as.integer(input$ind_per_row %||% NA))
+    if (length(v) != 1L || is.na(v) || v < 1L) NA_integer_ else v
+  }
+  row_tol <- function() {
+    h <- rv$h
+    if (!is.finite(h) || h <= 0) Inf else h / 5
+  }
+  ## Row index of every individual, 1-based. NA where it cannot be told.
+  ind_rows <- function() {
+    n <- n_ind_of()
+    per <- ind_per_row()
+    if (!is.na(per)) return(((seq_len(n) - 1L) %/% per) + 1L)
+    A <- rv$ind_ax
+    if (is.null(A) || !nrow(A)) return(rep(NA_integer_, n))
+    y <- A[seq_len(min(n, nrow(A))), 2]
+    length(y) <- n
+    tol <- row_tol()
+    r <- rep(NA_integer_, n)
+    cur <- 1L; last <- NA_real_
+    for (k in seq_len(n)) {
+      if (is.na(y[k])) next
+      if (!is.na(last) && (y[k] - last) > tol) cur <- cur + 1L
+      r[k] <- cur; last <- y[k]
+    }
+    r
+  }
+  ## Is the snout `v = c(x, y)` acceptable for individual `k`? Returns "" when
+  ## it is, and the reason when it is not. The comparison is with the
+  ## individuals immediately before and after that are actually placed: an
+  ## unplaced neighbour constrains nothing, exactly as in the 1-D rule.
+  reading_reject <- function(k, v) {
+    n <- n_ind_of()
+    A <- rv$ind_ax
+    if (is.null(A) || !nrow(A)) return("")
+    rows <- ind_rows()
+    tol <- row_tol()
+    same_row <- function(a, b) {
+      if (!is.na(rows[a]) && !is.na(rows[b])) return(rows[a] == rows[b])
+      ya <- A[a, 2]; yb <- if (b == k) v[2] else A[b, 2]
+      if (!is.finite(ya) || !is.finite(yb)) return(NA)
+      abs(ya - yb) <= tol
+    }
+    # The previous placed individual: k must come after it.
+    prev <- NA_integer_
+    for (j in rev(seq_len(k - 1L))) if (is.finite(A[j, 1])) { prev <- j; break }
+    if (!is.na(prev)) {
+      sr <- same_row(prev, k)
+      if (isTRUE(sr) && v[1] <= A[prev, 1])
+        return(sprintf(paste("individual %d is on the same row as %d, so its",
+                             "snout must be to its RIGHT (x = %.0f is not",
+                             "greater than %.0f)"), k, prev, v[1], A[prev, 1]))
+      if (isFALSE(sr) && v[2] <= A[prev, 2])
+        return(sprintf(paste("individual %d starts a new row, so its snout must",
+                             "be BELOW individual %d (y = %.0f is not greater",
+                             "than %.0f)"), k, prev, v[2], A[prev, 2]))
+    }
+    # The next placed individual: k must come before it. Same test, mirrored.
+    nxt <- NA_integer_
+    if (k < n) for (j in seq.int(k + 1L, n)) if (is.finite(A[j, 1])) { nxt <- j; break }
+    if (!is.na(nxt)) {
+      sr <- same_row(nxt, k)
+      if (isTRUE(sr) && v[1] >= A[nxt, 1])
+        return(sprintf(paste("individual %d is on the same row as %d, so its",
+                             "snout must be to its LEFT (x = %.0f is not less",
+                             "than %.0f)"), k, nxt, v[1], A[nxt, 1]))
+      if (isFALSE(sr) && v[2] >= A[nxt, 2])
+        return(sprintf(paste("individual %d comes before %d, which is on a",
+                             "later row, so its snout must be ABOVE it",
+                             "(y = %.0f is not less than %.0f)"),
+                       k, nxt, v[2], A[nxt, 2]))
+    }
+    ""
+  }
 
   ## Ordering coordinate of every individual of the photograph on screen, NA
   ## where LM1 is not known. Held in the ORIGINAL frame of the file, never in the
@@ -2010,19 +2347,17 @@ server <- function(input, output, session) {
     q <- suppressWarnings(as.numeric(m$quality[i]))
     if (is.finite(q)) updateRadioButtons(session, "quality",
                                          selected = as.character(round(q)))
-    # A zero recorded earlier comes back as two coincident landmarks: read the
-    # rules off the coordinates rather than lose them, so that reopening a
-    # specimen shows the same statement it was saved with.
-    act <- names(COLLAPSE_RULES)[vapply(COLLAPSE_RULES, function(r)
-      all(vapply(r$moves, function(mv)
-        fin_row(P, mv[1]) && fin_row(P, mv[2]) &&
-          isTRUE(all.equal(unname(P[mv[1], ]), unname(P[mv[2], ]),
-                           tolerance = 1e-6)), logical(1))),
-      logical(1))]
+    # A zero recorded earlier comes back as two coincident landmarks -- or, for a
+    # projection, as a landmark lying on the mid axis: read the rules off the
+    # coordinates rather than lose them, so that reopening a specimen shows the
+    # same statement it was saved with.
+    act <- collapse_detect(P)
     rv$collapse <- act
     updateCheckboxGroupInput(session, "collapse", selected = act)
     rv$adjusted <- union(rv$adjusted, collapse_points(act))
-    rv$edited   <- setdiff(rv$edited, collapse_points(act))
+    # only a COPY is taken over by its rule; a projected LM4 keeps the abscissa
+    # that was clicked, so it stays a measurement
+    rv$edited   <- setdiff(rv$edited, collapse_points(act, kinds = "move"))
     TRUE
   }
   load_queue_photo <- function(k) {
@@ -2146,6 +2481,50 @@ server <- function(input, output, session) {
     rv$img <- make_disp()
   }, ignoreInit = TRUE)
 
+  ## ---- the visible window ---------------------------------------------------
+  ##
+  ## THE PROBLEM THIS SOLVES. The window used to be the photograph's own
+  ## rectangle divided by the zoom. With `asp = 1`, a PORTRAIT photograph in a
+  ## panel two thousand pixels wide is drawn as a narrow column with the whole
+  ## width of the screen left empty on either side -- and zooming in on the head
+  ## of a fish then shows a tall sliver of it, with the body running off the
+  ## right edge into space that was never used. The fish is horizontal; the
+  ## window was vertical.
+  ##
+  ## THE RULE. The window follows the PANEL's aspect ratio, not the file's. At
+  ## zoom 1 it is the smallest such window that still contains the whole
+  ## photograph, so nothing is lost and the view is what it always was; above
+  ## zoom 1 the extra room goes where the panel is wide, which is sideways. The
+  ## panel's height is a control (see "Panel ... px"), so the shape of the view
+  ## is the operator's to choose: short panel, wide band.
+  view_ar <- function() {
+    cd <- session$clientData
+    w <- cd[["output_img_width"]]; h <- cd[["output_img_height"]]
+    if (is.numeric(w) && is.numeric(h) && length(w) && length(h) &&
+        is.finite(w) && is.finite(h) && h > 0 && w > 0) return(w / h)
+    # Before the first flush the panel's size is unknown; falling back to the
+    # file's own ratio reproduces exactly the previous behaviour rather than
+    # guessing a shape.
+    if (is.finite(rv$w) && is.finite(rv$h) && rv$h > 0) rv$w / rv$h else 1
+  }
+  ## Half-width and half-height of the window, in image pixels.
+  view_half <- function() {
+    w <- rv$w; h <- rv$h
+    if (!is.finite(w) || !is.finite(h) || w <= 0 || h <= 0) return(c(1, 1))
+    ar <- view_ar()
+    hw <- w / 2; hh <- h / 2
+    if (hw / hh < ar) hw <- hh * ar else hh <- hw / ar   # contain, never crop
+    z <- max(1, rv$zoom %||% 1)
+    c(hw / z, hh / z)
+  }
+  ## Centre the window, allowing it to be WIDER than the photograph: the usual
+  ## `min(max(c, half), span - half)` inverts when `2 * half > span` and would
+  ## push the view off the image instead of centring it on it.
+  view_clamp <- function(c0, half, span) {
+    if (!is.finite(c0)) c0 <- span / 2
+    if (2 * half >= span) span / 2 else min(max(c0, half), span - half)
+  }
+
   ## ---- zoom and pan ---------------------------------------------------------
   zoom_to_sel <- function() {
     if (!is.null(rv$pred) && fin_row(rv$pred, rv$sel)) {
@@ -2160,8 +2539,14 @@ server <- function(input, output, session) {
     if (is.null(rv$img) || rv$zoom <= 1) return()
     if (is.null(rv$cx)) rv$cx <- rv$w / 2
     if (is.null(rv$cy)) rv$cy <- rv$h / 2
-    rv$cx <- rv$cx - input$pan$dx * (rv$w / rv$zoom)
-    rv$cy <- rv$cy - input$pan$dy * (rv$h / rv$zoom)
+    # The drag is expressed as a fraction of the PANEL, so it is converted with
+    # the panel's own window rather than with the file's rectangle: otherwise a
+    # pan of one panel-width moves the image by a photograph-width, and the
+    # cursor and the picture stop travelling together the moment the two shapes
+    # differ -- which, since the window now follows the panel, is always.
+    v <- view_half()
+    rv$cx <- rv$cx - input$pan$dx * (2 * v[1])
+    rv$cy <- rv$cy - input$pan$dy * (2 * v[2])
   })
 
   ## ---- seeding --------------------------------------------------------------
@@ -2209,6 +2594,15 @@ server <- function(input, output, session) {
   observeEvent(input$click, {
     if (is.null(rv$img) || is.null(rv$pred)) return()
     p <- c(input$click$x, input$click$y)
+    # The window is now allowed to be wider than the photograph, so there is
+    # clickable background beside it -- which there was not when the plot region
+    # was the image itself. A landmark placed out there would be a coordinate
+    # outside the file: refused with the reason, rather than written.
+    if (!all(is.finite(p)) || p[1] < 0 || p[2] < 0 ||
+        p[1] > rv$w || p[2] > rv$h) {
+      notify("That click is outside the photograph.", "warning")
+      return()
+    }
     if (isTRUE(input$move_all)) {                  # rigid translation of the block
       cur <- rv$pred[rv$sel, ]
       if (all(is.finite(cur))) {
@@ -2230,7 +2624,34 @@ server <- function(input, output, session) {
     # than corrected afterwards: the whole point is that the operator digitizes
     # the fish the number designates, and a renumbering after the fact would
     # rewrite identifiers that are already in the journal.
-    if (just == 1L && n_ind_of() > 1L) {
+    if (just == 1L && n_ind_of() > 1L && ord_mode() == "reading") {
+      nn <- n_ind_of(); k <- ind_i()
+      why <- reading_reject(k, to_orig(p))
+      if (nzchar(why)) {
+        notify(sprintf(paste("Individual %d of %d: the numbering runs %s -- %s.",
+                             "Pick the right fish, or select in the bar the",
+                             "individual this one really is."),
+                       k, nn, ord_word(), why), "error")
+        return()
+      }
+      # Same courtesy as the 1-D rule for the first fish of a plate, which has
+      # no placed neighbour to be checked against: i1 is expected top-left, and
+      # a snout in the wrong quarter of the frame is worth a word, not a
+      # refusal -- plates are not always tidy, and the operator is the one
+      # looking at the fish.
+      if (k == 1L && is.finite(rv$w) && is.finite(rv$h)) {
+        v <- to_orig(p)
+        per <- ind_per_row()
+        ncol_ <- if (!is.na(per)) per else max(1L, ceiling(sqrt(nn)))
+        nrow_ <- max(1L, ceiling(nn / ncol_))
+        if (v[1] > rv$w / ncol_ || v[2] > rv$h / nrow_)
+          notify(sprintf(paste("Individual 1 of %d is expected to be the",
+                               "top-left fish of the plate, and this snout is",
+                               "outside the first cell of a %d x %d grid.",
+                               "Check you are not numbering the plate",
+                               "backwards."), nn, nrow_, ncol_), "warning")
+      }
+    } else if (just == 1L && n_ind_of() > 1L) {
       nn <- n_ind_of(); k <- ind_i()
       b <- ind_bounds(k); v <- to_orig(p)[ord_j()]
       if (v <= b[1] || v >= b[2]) {
@@ -2451,12 +2872,27 @@ server <- function(input, output, session) {
     P <- derive_head_pt(P)              # LM23 is a function of 1, 6, 9 and the axis
     act <- rv$collapse
     if (!length(act)) return(P)
-    P <- apply_collapse(P, act)
+    ## PROJECTIONS FIRST, and the ventral chain re-derived behind them. LM4 is
+    ## the master of the belly line: projected after derive_ventral() it would
+    ## leave LM11 -- and through it LM8 and LM9 -- at the height LM4 had BEFORE
+    ## the projection, that is a belly line no longer passing through its own
+    ## pivot. Only the ventral chain is replayed, not the whole propagation:
+    ## nothing else depends on LM4, and enforce_perp() would be free to move it.
+    if (length(collapse_points(act, kinds = "project"))) {
+      P  <- apply_collapse(P, act, kinds = "project")
+      fr <- seg_frames(P)
+      if (isTRUE(input$auto_constraints) && !is.null(fr)) P <- derive_ventral(P, fr)
+      P  <- derive_head_pt(P)           # LM23 is built on LM9, which has just moved
+    }
+    P <- apply_collapse(P, act, kinds = "move")
     moved <- collapse_points(act)
     moved <- moved[vapply(moved, function(i) fin_row(P, i), logical(1))]
     rv$seeded   <- setdiff(rv$seeded, moved)
     rv$na       <- setdiff(rv$na, moved)
-    rv$edited   <- setdiff(rv$edited, moved)
+    ## a COPIED landmark is entirely the rule's; a PROJECTED one keeps the
+    ## abscissa that was clicked, so it stays a measurement in `edited` and
+    ## survives a reseed. Both are reported "adjusted": a rule placed them.
+    rv$edited   <- setdiff(rv$edited, collapse_points(act, kinds = "move"))
     rv$adjusted <- union(rv$adjusted, moved)
     P
   }
@@ -2473,6 +2909,12 @@ server <- function(input, output, session) {
         fin_row(P, 1L) && fin_row(P, 2L))
       P <- propagate_conventions(P, 4L)          # re-derive the belly line
     rv$pred <- collapse_pred(P)
+    ## Unticking a PROJECTION does not put LM4 back where it was: the height it
+    ## gave up is not stored anywhere, and inventing one would be worse than
+    ## saying so. The landmark stays on the axis until it is clicked again.
+    if (4L %in% released)
+      rv$msg <- paste("LM4 released: it stays on the mid axis until you place",
+                      "it again -- the height it had before the rule is not kept.")
   }, ignoreNULL = FALSE, ignoreInit = TRUE)
 
   output$collapse_help <- renderUI({
@@ -2480,8 +2922,9 @@ server <- function(input, output, session) {
     txt <- if (!length(act))
       paste("A segment that is genuinely zero on this fish -- a mouth on the",
             "ventral profile, a head ending on it. One landmark takes the",
-            "coordinates of the other: both stay on the photograph and in the",
-            "workbook. Re-applied after every click, reset for each specimen.")
+            "coordinates of the other, or is projected onto the mid axis:",
+            "both stay on the photograph and in the workbook. Re-applied after",
+            "every click, reset for each specimen.")
     else paste("Active:", paste(vapply(COLLAPSE_RULES[act], function(r) r$tip,
                                        character(1)), collapse = " | "))
     div(style = "font-size:11.5px;color:#92400e;margin-top:2px;", txt)
@@ -2752,10 +3195,14 @@ server <- function(input, output, session) {
   ## LM4 alone drives the propagation: LM3 keeps its abscissa, so the 3-4
   ## perpendicular is already satisfied, and LM3 is a FRAME point whose click
   ## handler would re-seed the whole configuration.
+  ## The checks a declared coincidence suspends -- recomputed at every call,
+  ## a rule being ticked and unticked while the specimen is on screen.
+  conv_skip <- function() collapse_skip_extreme(rv$collapse)
+
   apply_extreme_fix <- function() {
     for (it in 1:3) {
       P <- rv$pred
-      v <- extreme_violations(P)
+      v <- extreme_violations(P, skip = conv_skip())
       if (is.null(v)) return(TRUE)
       P <- fix_extremes(P, v)
       if (isTRUE(input$auto_constraints) && 4L %in% v$point &&
@@ -2766,7 +3213,7 @@ server <- function(input, output, session) {
       rv$seeded   <- setdiff(rv$seeded, v$point)
       rv$adjusted <- union(rv$adjusted, v$point)
     }
-    is.null(extreme_violations(rv$pred))
+    is.null(extreme_violations(rv$pred, skip = conv_skip()))
   }
 
   observeEvent(input$save_specimen, {
@@ -2774,7 +3221,7 @@ server <- function(input, output, session) {
       notify("Nothing to save yet: predict, or start manual placement first.",
              "warning"); return() }
     if (isTRUE(input$check_extremes)) {
-      v <- convention_violations(rv$pred)
+      v <- convention_violations(rv$pred, skip = conv_skip())
       if (!is.null(v)) { extreme_modal(v); return() }
     }
     save_specimen()
@@ -2785,7 +3232,7 @@ server <- function(input, output, session) {
   ## on the wrong side -- not the reference it was compared with.
   observeEvent(input$extreme_remeasure, {
     removeModal()
-    v <- convention_violations(rv$pred)
+    v <- convention_violations(rv$pred, skip = conv_skip())
     if (!is.null(v)) {
       ord <- identical(v$kind[1], "order")
       rv$sel <- if (ord) v$culprit[1] else v$point[1]
@@ -3000,6 +3447,16 @@ server <- function(input, output, session) {
   })
 
   ## ---- plot -----------------------------------------------------------------
+  # The plot output is rebuilt when the panel height changes. Safe for the pan
+  # handler: PAN_JS listens on `document` and looks the element up by id on
+  # every event, so it survives the element being replaced.
+  output$img_box <- renderUI({
+    h <- suppressWarnings(as.integer(input$panel_h %||% 700))
+    if (!is.finite(h) || h < 200) h <- 700
+    plotOutput("img", click = "click", dblclick = "img_dblclick",
+               height = paste0(h, "px"))
+  })
+
   output$img <- renderPlot({
     # The margins go to zero FIRST, before anything is drawn: with the default
     # 5.1/4.1/4.1/2.1 lines, plot.new() errors with "figure margins too large"
@@ -3009,8 +3466,8 @@ server <- function(input, output, session) {
     if (is.null(rv$img)) { plot.new(); text(.5, .5, "Load a photograph"); return() }
     cx <- if (is.null(rv$cx)) rv$w / 2 else rv$cx
     cy <- if (is.null(rv$cy)) rv$h / 2 else rv$cy
-    hw <- (rv$w / 2) / rv$zoom; hh <- (rv$h / 2) / rv$zoom
-    cx <- min(max(cx, hw), rv$w - hw); cy <- min(max(cy, hh), rv$h - hh)
+    v <- view_half(); hw <- v[1]; hh <- v[2]
+    cx <- view_clamp(cx, hw, rv$w); cy <- view_clamp(cy, hh, rv$h)
     plot(NA, xlim = c(cx - hw, cx + hw), ylim = c(cy + hh, cy - hh), asp = 1,
          xaxs = "i", yaxs = "i", xlab = "", ylab = "", axes = FALSE)
     # Draw ONLY the visible crop of the raster. Handing the whole image to
@@ -3071,8 +3528,41 @@ server <- function(input, output, session) {
         lines(P[7, 1] + er * cos(th), P[7, 2] + er * sin(th),
               col = adjustcolor("black", 0.45), lty = 3, lwd = 0.6)
       }
-      ch <- axis_chain(P)                                                   # broken axis
-      if (length(ch) > 2 && all(vapply(ch, function(i) fin_row(P, i), logical(1))))
+    }
+    # THE 11 FISHMORPH SEGMENTS. Ported from Rfishmorph's digitizer so that the
+    # two applications draw the protocol identically: one saturated colour per
+    # segment, plus a legend, rather than the uniform faint dashes used for the
+    # reference lines. The distinction is the point -- the reference lines are
+    # context, the segments ARE the measurement, and they should read as such
+    # without the operator having to work out which line is which.
+    #
+    # Drawn AFTER the reference lines and BEFORE the landmarks: the measurement
+    # covers the context, and the points stay on top of everything, since they
+    # are what is being aimed at.
+    if (isTRUE(input$showsegs) && !is.null(P)) {
+      for (k in seq_along(PAIR_SEG)) {
+        if (names(PAIR_SEG)[k] == "Bl") {
+          # Bl along the broken axis, exactly as fishmorph_segments() measures it.
+          ch <- axis_chain(P)
+          ch <- ch[vapply(ch, function(i) fin_row(P, i), logical(1))]
+          if (length(ch) > 1) lines(P[ch, 1], P[ch, 2], col = SEG_COLS[k], lwd = 2)
+        } else {
+          ab <- PAIR_SEG[[k]]
+          if (fin_row(P, ab[1]) && fin_row(P, ab[2]))
+            segments(P[ab[1], 1], P[ab[1], 2], P[ab[2], 1], P[ab[2], 2],
+                     col = SEG_COLS[k], lwd = 2)
+        }
+      }
+      if (isTRUE(input$seglegend))
+        legend("topright", names(PAIR_SEG), col = SEG_COLS, lwd = 2,
+               bg = "white", cex = 0.8, ncol = 2)
+    } else if (isTRUE(input$showlines) && !is.null(P)) {
+      # Segments hidden: the broken axis is still drawn faintly, otherwise the
+      # curvature correction becomes invisible and a hinge can be left in an
+      # absurd place without anything on screen saying so.
+      ch <- axis_chain(P)
+      ch <- ch[vapply(ch, function(i) fin_row(P, i), logical(1))]
+      if (length(ch) > 2)
         lines(P[ch, 1], P[ch, 2], col = adjustcolor("black", 0.7), lwd = 0.8, lty = 2)
     }
     # FISHMORPH geometry check. Compliance is the SILENT state: a thin black
@@ -3136,14 +3626,18 @@ server <- function(input, output, session) {
         grp <- split(ok, key)
         multi <- grp[lengths(grp) > 1L]
         single <- unlist(grp[lengths(grp) == 1L], use.names = FALSE)
+        # Yellow labels, as in Rfishmorph's digitizer. White was legible against
+        # a bare photograph, but the segment overlay is drawn underneath now and
+        # several of its colours are pale; yellow is the one hue that holds
+        # against both a light photograph and the palette.
         if (length(single))
-          text(P[single, 1], P[single, 2], single, col = "white", pos = 3, cex = 0.6)
+          text(P[single, 1], P[single, 2], single, col = "yellow", pos = 3, cex = 0.6)
         for (g in multi) {
           xy <- P[g[1], ]
-          points(xy[1], xy[2], pch = 1, col = "white", cex = 1.4, lwd = 0.8)
+          points(xy[1], xy[2], pch = 1, col = "yellow", cex = 1.4, lwd = 0.8)
           points(xy[1], xy[2], pch = 1, col = "black", cex = 1.8, lwd = 0.6)
           text(xy[1], xy[2], paste(sort(g), collapse = "+"),
-               col = "white", pos = 3, cex = 0.65, font = 2)
+               col = "yellow", pos = 3, cex = 0.65, font = 2)
         }
       }
       if (fin_row(P, SCALE_PTS[1]) && fin_row(P, SCALE_PTS[2]))
@@ -3161,6 +3655,68 @@ server <- function(input, output, session) {
         points(P[rv$sel, 1, drop = FALSE], P[rv$sel, 2, drop = FALSE],
                col = "black", pch = 1, cex = 1.6, lwd = 1)
     }
+
+  })
+
+  ## ---- navigation guides, OUTSIDE the photograph ----------------------------
+  ##
+  ## They were drawn inside the picture first, and that was a mistake: the plot
+  ## click places a landmark, so aiming at a rail placed one. A control the eye
+  ## reads as clickable, in a surface where clicking means something else
+  ## entirely, is a trap however clearly it is labelled.
+  ##
+  ## So the guides live outside the image: a grey track, in the browser rather
+  ## than in the graphic, with an arrow button at each end. The track SHOWS
+  ## where the view sits in the photograph, the arrows MOVE it, and neither can
+  ## reach the plot's click handler.
+  ##
+  ## The fraction of the photograph currently on screen, as percentages.
+  view_frac <- function() {
+    v <- view_half()
+    fx0 <- min(max((( (rv$cx %||% (rv$w / 2)) - v[1]) / rv$w), 0), 1)
+    fx1 <- min(max((( (rv$cx %||% (rv$w / 2)) + v[1]) / rv$w), 0), 1)
+    fy0 <- min(max((( (rv$cy %||% (rv$h / 2)) - v[2]) / rv$h), 0), 1)
+    fy1 <- min(max((( (rv$cy %||% (rv$h / 2)) + v[2]) / rv$h), 0), 1)
+    list(x = 100 * fx0, w = 100 * max(fx1 - fx0, 0.02),
+         y = 100 * fy0, h = 100 * max(fy1 - fy0, 0.02))
+  }
+  ## One arrow press moves by a FIFTH of what is on screen. A third was the
+  ## first choice and it overshoots: at the zoom where a landmark is actually
+  ## placed, a third of the window is more than the head of the fish, so the
+  ## point being aimed at leaves the screen between two presses. A fifth keeps
+  ## four fifths of the previous view -- the eye never loses its place -- at
+  ## the cost of one more click per screenful, which is the right side of that
+  ## trade for work done a point at a time.
+  NAV_FRACTION <- 1 / 5
+  nav_step <- function(k) {
+    v <- view_half()
+    if (is.null(rv$cx)) rv$cx <- rv$w / 2
+    if (is.null(rv$cy)) rv$cy <- rv$h / 2
+    if (k %in% c("l", "r")) rv$cx <- view_clamp(
+      rv$cx + (if (k == "r") 1 else -1) * (2 * v[1]) * NAV_FRACTION, v[1], rv$w)
+    else rv$cy <- view_clamp(
+      rv$cy + (if (k == "d") 1 else -1) * (2 * v[2]) * NAV_FRACTION, v[2], rv$h)
+  }
+  observeEvent(input$nav_left,  nav_step("l"))
+  observeEvent(input$nav_right, nav_step("r"))
+  observeEvent(input$nav_up,    nav_step("u"))
+  observeEvent(input$nav_down,  nav_step("d"))
+
+  ## Only the thumb is rendered -- see the note beside the tracks in the UI.
+  output$nav_v <- renderUI({
+    if (is.null(rv$img)) return(NULL)
+    f <- view_frac()
+    div(style = sprintf("%sleft:0;right:0;top:%.2f%%;height:%.2f%%;%s",
+                        NAV_THUMB, f$y, f$h,
+                        if (f$h >= 99) "opacity:.35;" else ""))
+  })
+
+  output$nav_h <- renderUI({
+    if (is.null(rv$img)) return(NULL)
+    f <- view_frac()
+    div(style = sprintf("%stop:0;bottom:0;left:%.2f%%;width:%.2f%%;%s",
+                        NAV_THUMB, f$x, f$w,
+                        if (f$w >= 99) "opacity:.35;" else ""))
   })
 
   ## ---- control table --------------------------------------------------------

@@ -35,6 +35,42 @@
   lapply(seq_len(n), function(i) list((i - 1) / (n - 1), cols[i]))
 }
 
+#' Diameter of a planar point cloud (largest distance between two points)
+#'
+#' The scale a distance read off an ordination is expressed against. A distance
+#' in score units is uninterpretable on its own -- it depends on the traits,
+#' on the standardisation and on which components are displayed -- whereas the
+#' same distance as a fraction of the largest distance the cloud contains is a
+#' dimensionless share of the occupied space, comparable between axis pairs and
+#' between figures.
+#'
+#' The diameter of a planar set is attained by two vertices of its convex hull
+#' (any interior or edge point can be pushed outwards along the segment joining
+#' the pair), so the quadratic search is run on the hull only. For the ~9,500
+#' FISHMORPH species the hull holds a few dozen vertices, which turns a 45
+#' million pair computation into a few hundred.
+#'
+#' @param x,y Numeric vectors of coordinates. Non-finite pairs are dropped.
+#' @return A single number, the largest Euclidean distance between two points,
+#'   or `NA_real_` when fewer than two distinct points remain (a scale of zero
+#'   is not a usable denominator either).
+#' @noRd
+.cloud_diameter <- function(x, y) {
+  ok <- is.finite(x) & is.finite(y)
+  x <- x[ok]; y <- y[ok]
+  n <- length(x)
+  if (n < 2) return(NA_real_)
+  # chull() can fail on degenerate input (all points equal, perfectly
+  # collinear); falling back to the full set keeps the answer exact, and the
+  # cases where it fails are the small ones.
+  h <- if (n > 3) tryCatch(grDevices::chull(x, y),
+                           error = function(e) seq_len(n)) else seq_len(n)
+  if (length(h) < 2) return(NA_real_)
+  d <- max(stats::dist(cbind(x[h], y[h])))
+  if (!is.finite(d) || d <= 0) return(NA_real_)
+  d
+}
+
 #' Interactive FISHMORPH projection plot (plotly)
 #'
 #' The interactive counterpart of [plot.intrait_fishmorph_projection()]:
@@ -75,6 +111,28 @@
 #' projection carries an [itv_proportion()] result, that species' share of
 #' the global functional volume. Reference points report the reference
 #' species' name when the projection carries labels (`x$global_species`).
+#'
+#' `hover_distances` (on by default) adds two numbers an ordination cannot be
+#' read off by eye: how far a specimen sits from the centroid of its own
+#' species -- its contribution to the intraspecific spread -- and how far it
+#' sits from the single FISHMORPH morphotype of that species, i.e. the
+#' individual the global database represents the whole species by. The second
+#' is only shown when a reference point layer is actually drawn
+#' (`reference_points` or `itv_reference`), since it is a distance to a point
+#' the reader would otherwise not see; the `"spider"` centroid marker reports
+#' that same distance for the species mean.
+#'
+#' Both are reported as a **percentage of the FISHMORPH span** -- the largest
+#' distance between two reference species on the same two axes, i.e. the
+#' diameter of the global morphospace -- with the value in score units in
+#' brackets. A distance in score units is uninterpretable on its own, since it
+#' depends on the traits, on the standardisation and on which components are
+#' displayed; the same distance as a share of the whole occupied range is
+#' dimensionless and can be compared between axis pairs, species and
+#' campaigns. They remain plain Euclidean distances **on the two displayed
+#' axes**: they are the distances the figure shows (`equal_aspect = TRUE` is
+#' what makes them readable), they change when `axes` changes, and they are not
+#' distances in the full nine-trait space.
 #'
 #' @param x An object of class `"intrait_fishmorph_projection"`, from
 #'   [project_fishmorph()].
@@ -138,6 +196,18 @@
 #'   line produce a tooltip wider than the plotting region, which hides the
 #'   very morphospace the point is being located in. When `TRUE` the values
 #'   are wrapped three per line to keep the box narrow.
+#' @param hover_distances Logical, add to each specimen's tooltip its
+#'   Euclidean distance (on the two displayed axes, as a percentage of the
+#'   largest distance between two reference species and in score units) to the
+#'   centroid of its species and, when a reference point layer is drawn
+#'   (`reference_points` or `itv_reference`), to its species' own FISHMORPH
+#'   database point; the `"spider"` centroid marker then also reports its own
+#'   distance to that point. The species is matched to the database with the
+#'   rule `itv_reference` uses (case-insensitive, spaces and underscores
+#'   equivalent) and the distance is omitted for a species the database does
+#'   not contain. The centroid is that of the specimens *displayed*, so a
+#'   `select_species` / `select_specimens` selection moves it. Defaults to
+#'   `TRUE`.
 #' @param hover_font_size Numeric, font size (in pixels) of the tooltip text.
 #'   Defaults to `10`, smaller than plotly's own default, since a tooltip here
 #'   carries an identifier and a species name rather than a single number.
@@ -244,6 +314,7 @@ plotly_fishmorph <- function(x,
                              ellipse_level = 0.95,
                              density_level = 0.95,
                              hover_traits = FALSE,
+                             hover_distances = TRUE,
                              hover_font_size = 10,
                              point_size = 7,
                              fill_alpha = 0.2,
@@ -343,6 +414,57 @@ plotly_fishmorph <- function(x,
   show_ref <- isTRUE(background)
   draw_density <- show_ref && isTRUE(reference_density)
   draw_points  <- show_ref && isTRUE(reference_points)
+
+  ## -- the two distances carried by the tooltips ---------------------------
+  # Species name normalisation, shared with the `itv_reference` layer below:
+  # the campaign writes "Squalius_cephalus", the database "Squalius cephalus",
+  # and the two must resolve to one species or the distance would be missing
+  # for purely typographic reasons.
+  norm_sp <- function(s) tolower(gsub("[ _]+", " ", trimws(as.character(s))))
+
+  # Per-species centroid of the DISPLAYED specimens (`sc`, i.e. after
+  # select_species / select_specimens), so the number in a tooltip describes
+  # the cloud on screen and coincides with the diamond the "spider" style
+  # draws. Computed once here rather than inside the style branch, because
+  # every style now needs it while only "spider" plots it.
+  cent <- vapply(sp_levels, function(g) {
+    idx <- which(as.character(gr) == g)
+    if (length(idx) == 0) return(c(NA_real_, NA_real_))
+    c(mean(sc[[1]][idx], na.rm = TRUE), mean(sc[[2]][idx], na.rm = TRUE))
+  }, numeric(2))
+
+  # The species' own row in the reference database. match() takes the first
+  # row of a species and returns NA for a species the database does not hold,
+  # which is what makes the distance absent rather than wrong.
+  ref_xy <- matrix(NA_real_, nrow = 2, ncol = length(sp_levels))
+  if (isTRUE(hover_distances) && !is.null(x$global_species)) {
+    mi <- match(norm_sp(sp_levels), norm_sp(x$global_species))
+    ref_xy[1, ] <- gsc_all[[1]][mi]
+    ref_xy[2, ] <- gsc_all[[2]][mi]
+  }
+  # A distance to a point that is not drawn invites the reader to check it
+  # against a figure it cannot be seen on, so the reference distance follows
+  # the reference point layers.
+  show_refdist <- isTRUE(hover_distances) && show_ref &&
+    (draw_points || isTRUE(itv_reference))
+
+  # The yardstick: the largest distance between two FISHMORPH species on the
+  # displayed axes, i.e. the span of the global morphospace itself. A distance
+  # in score units means nothing to a reader (it depends on the traits, the
+  # standardisation and the axis pair); the same distance as a percentage of
+  # that span is a share of the world's morphological range, and it can be
+  # compared between axis pairs, species and campaigns. The absolute value is
+  # kept in brackets, since a percentage of an unstated quantity is not a
+  # measurement.
+  ref_diam <- if (isTRUE(hover_distances))
+    .cloud_diameter(gsc_all[[1]], gsc_all[[2]]) else NA_real_
+  has_scale <- is.finite(ref_diam)
+  fmt_d <- function(d) {
+    if (has_scale) sprintf("%.1f%% (%.3f)", 100 * d / ref_diam, d)
+    else sprintf("%.3f", d)
+  }
+  dist_head <- if (has_scale)
+    "distances, in % of the FISHMORPH span:" else "distances, in score units:"
 
   xlab <- sprintf("%s (%.1f%%)", ax_names[1], var_exp[1])
   ylab <- sprintf("%s (%.1f%%)", ax_names[2], var_exp[2])
@@ -482,7 +604,7 @@ plotly_fishmorph <- function(x,
     # centroid. All spokes go into a single trace, segments separated by NA,
     # so a species costs one trace rather than one per specimen.
     if (style == "spider" && length(idx) >= 2) {
-      cx <- mean(gx); cy <- mean(gy)
+      cx <- cent[1, li]; cy <- cent[2, li]
       seg_x <- as.vector(rbind(gx, rep(cx, length(gx)), rep(NA_real_, length(gx))))
       seg_y <- as.vector(rbind(gy, rep(cy, length(gy)), rep(NA_real_, length(gy))))
       p <- plotly::add_trace(
@@ -491,11 +613,22 @@ plotly_fishmorph <- function(x,
         hoverinfo = "skip", legendgroup = g, showlegend = FALSE,
         name = paste0(lab_g, " (spokes)")
       )
+      # The centroid is the species' mean morphology as this campaign measured
+      # it; the database point is the single individual FISHMORPH represents
+      # the same species by. The distance between the two is therefore the
+      # figure's reading of how far the sample sits from the global record,
+      # and it belongs on the marker rather than in a separate table.
+      cent_txt <- sprintf("%s<br>centroid", hover_g)
+      if (show_refdist && is.finite(ref_xy[1, li])) {
+        cent_txt <- paste0(
+          cent_txt, "<br>", dist_head, "<br>to its FISHMORPH point: ",
+          fmt_d(sqrt((cx - ref_xy[1, li])^2 + (cy - ref_xy[2, li])^2)))
+      }
       p <- plotly::add_trace(
         p, type = "scatter", mode = "markers", x = cx, y = cy,
         marker = list(size = point_size + 3, color = col_g, symbol = "diamond",
                       line = list(color = "black", width = 1)),
-        text = sprintf("%s<br>centroid", hover_g), hoverinfo = "text",
+        text = cent_txt, hoverinfo = "text",
         legendgroup = g, showlegend = FALSE,
         name = paste0(lab_g, " (centroid)")
       )
@@ -511,7 +644,7 @@ plotly_fishmorph <- function(x,
       warning("`itv_reference = TRUE` needs reference species labels; recompute ",
               "the projection with project_fishmorph() (>= 1.6.0).", call. = FALSE)
     } else {
-      norm <- function(s) tolower(gsub("[ _]+", " ", trimws(as.character(s))))
+      norm <- norm_sp
       focal <- sp_levels
       gs_norm <- norm(gs)
       match_idx <- which(gs_norm %in% norm(focal))
@@ -554,6 +687,22 @@ plotly_fishmorph <- function(x,
     txt <- sprintf("<b>%s</b><br><i>%s</i><br>%s: %.3f<br>%s: %.3f",
                    ids[idx], g,
                    ax_names[1], sc[[1]][idx], ax_names[2], sc[[2]][idx])
+    # Where this individual sits relative to the two points the figure is read
+    # against: its own species' mean, and its species' entry in the global
+    # database. Placed before the trait values, so the two numbers stay on the
+    # first lines of the tooltip when `hover_traits` is on.
+    if (isTRUE(hover_distances)) {
+      txt <- paste0(
+        txt, "<br>", dist_head, "<br>to the centroid: ",
+        fmt_d(sqrt((sc[[1]][idx] - cent[1, li])^2 +
+                     (sc[[2]][idx] - cent[2, li])^2)))
+      if (show_refdist && is.finite(ref_xy[1, li])) {
+        txt <- paste0(
+          txt, "<br>to its FISHMORPH point: ",
+          fmt_d(sqrt((sc[[1]][idx] - ref_xy[1, li])^2 +
+                       (sc[[2]][idx] - ref_xy[2, li])^2)))
+      }
+    }
     if (!is.null(tr_mat)) {
       # Trait values on the analysis scale, matched by specimen identifier
       # (specimen_traits is aligned to the *unfiltered* projection, so it is

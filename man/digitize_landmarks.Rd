@@ -13,13 +13,14 @@ digitize_landmarks(
   n_repeats = 3L,
   ruler_mm = 10,
   individuals_per_photo = 1L,
-  individual_order = c("top", "left"),
+  individual_order = c("top", "left", "reading"),
+  individuals_per_row = NULL,
   xlsx_flush_every = 10L,
   mlmorph_dir = NULL,
   predictor = NULL,
   python = NULL,
   sheets = c(measurements = "measurements", bias = "bias", summary = "bias_summary"),
-  launch.browser = getOption("shiny.launch.browser", interactive()),
+  launch.browser = TRUE,
   ...
 )
 }
@@ -65,9 +66,17 @@ photograph leaves the queue only when every individual on it is measured.
 The count is adjustable photograph by photograph in the app; the value
 given here is the default a photograph inherits.}
 
-\item{individual_order}{Direction the numbering of the individuals runs in:
-\code{"top"} (top to bottom, the default) or \code{"left"} (left to right). The
-number is SPATIAL, not chronological -- see the section on plates.}
+\item{individual_order}{Order the numbering of the individuals runs in:
+\code{"top"} (top to bottom, the default), \code{"left"} (left to right), or
+\code{"reading"} (rows from top to bottom, and within a row from left to
+right, the way text is read). The number is SPATIAL, not chronological --
+see the section on plates.}
+
+\item{individuals_per_row}{Number of fish per row, used only by
+\code{individual_order = "reading"}. Giving it makes the rows EXACT -- fish
+\code{k} belongs to row \code{ceiling(k / individuals_per_row)}, whatever the
+spacing. \code{NULL} (default) infers the rows from the snouts already placed,
+which works but has to guess where one row ends.}
 
 \item{xlsx_flush_every}{Number of records between two workbook writes. The
 workbook is REWRITTEN IN FULL each time, so taking it out of the
@@ -96,8 +105,11 @@ the prediction worker; it needs \code{numpy}, \code{opencv-python} and \code{dli
 \item{sheets}{Named character vector giving the three sheet names. Defaults
 to \code{c(measurements = "measurements", bias = "bias", summary = "bias_summary")}.}
 
-\item{launch.browser}{Passed to \code{\link[shiny:runApp]{shiny::runApp()}}. Defaults to the
-\code{shiny.launch.browser} option, or to \code{\link[=interactive]{interactive()}}.}
+\item{launch.browser}{Where the application opens. \code{TRUE} (default) or
+\code{"browser"} forces the system browser, past the RStudio Viewer pane --
+which is a few hundred pixels wide and the wrong place to click landmarks
+on a photograph. \code{"viewer"} restores the pane, \code{FALSE} opens nothing and
+prints the URL, and a function is used as given.}
 
 \item{...}{Further arguments passed to \code{\link[shiny:runApp]{shiny::runApp()}} (for example \code{port}
 or \code{host}). Do not pass \code{appDir}; the packaged app directory is used.}
@@ -294,14 +306,28 @@ on the bench beside them.
 for every operator: two operators digitizing one plate in opposite orders
 would otherwise be compared fish against fish, and the operator bias that
 comes out of such a comparison measures nothing. The numbering therefore runs
-top to bottom (\code{individual_order = "top"}) or left to right (\code{"left"}), and
-the app enforces it ON THE CLICK THAT PLACES LM1 -- the first click of a fish
+top to bottom (\code{individual_order = "top"}), left to right (\code{"left"}), or in
+READING ORDER (\code{"reading"}: rows from top to bottom, and within a row from
+left to right), and the app enforces it ON THE CLICK THAT PLACES LM1 -- the
+first click of a fish
 -- refusing a snout that falls outside the interval left by the individuals
 already placed. The operator is stopped before digitizing the wrong fish
 rather than told about it afterwards, and no identifier already written to
 the journal ever has to be rewritten. The individuals already measured are
 drawn faintly on the photograph, with their number, so the plate can be read
 at a glance.
+
+A plate laid out as a GRID -- four fish in two rows of two, the commonest
+way a tray is photographed -- cannot be ordered by one coordinate: the
+second fish of the first row is to the RIGHT of the first, and the third is
+BELOW them both. Either one-dimensional rule refuses a correct click on half
+such a plate, and an operator who is refused when right soon stops reading
+the message. \code{"reading"} compares both coordinates: same row, the snout must
+be further right; new row, it must be lower. Set \code{individuals_per_row} and
+the rows are exact whatever the spacing; leave it empty and they are
+inferred from the snouts already placed, two being taken to share a row when
+they are within a fifth of the frame height of each other -- a stated guess,
+which is why the exact route is offered first.
 }
 
 \section{Repeated digitization: measurement error and operator bias}{
@@ -359,7 +385,7 @@ A bar under the photograph declares the segments that are ZERO on the
 specimen in view. A zero is a measurement like any other -- neither a missing
 value nor a placement error -- and the FISHMORPH ratios are defined to take
 it: \code{OGp = 0} for a mouth opening on the ventral profile, \code{PFv = 0} for a
-pectoral fin inserted on the belly. Four rules are offered:
+pectoral fin inserted on the belly. Five rules are offered:
 
 \describe{
 \item{\code{Mo = 0}}{LM9 takes the coordinates of LM1 -- the mouth sits on the
@@ -370,7 +396,33 @@ head is the body underside.}
 inserts on the belly.}
 \item{\code{LM5 = LM13}}{LM5 takes the coordinates of LM13 -- the eye reaches
 the top of the head.}
+\item{\verb{LM4 on 22-24}}{LM4 is PROJECTED perpendicularly onto the mid axis,
+the segment LM22 -> LM24: it keeps the abscissa that was clicked along
+the axis and its height becomes zero.}
 }
+
+The last rule is of a different KIND: its partner is a LINE, not a landmark,
+so nothing is copied -- LM4 is projected. The line is not bounded by its two
+hinges; the foot of the perpendicular may fall on their prolongation, as
+everywhere else in the constrained editing. Three consequences follow, and
+they are deliberate:
+
+\itemize{
+\item LM4 being the MASTER of the belly line, the projection is applied
+BEFORE the conventions and the ventral chain is replayed behind it, so
+LM11 and then LM8 and LM9 are re-derived from the projected LM4;
+\item the VENTRAL half of the extreme-point check is suspended while the
+rule is on. LM4 no longer claims to be the most ventral landmark, so
+reporting LM6, LM10 or LM14 below it would flag the rule itself. The
+dorsal half, on LM3, is untouched;
+\item LM4 stays in \code{edited} rather than being taken over by the rule: only
+its height is imposed, its position along the body remains the operator's
+measurement and survives a re-seed. It is reported \code{"adjusted"} in the
+journal all the same, since a rule did place it.
+}
+
+Unticking the rule does not restore the height LM4 had before it: that value
+is not stored anywhere, and LM4 stays on the axis until it is clicked again.
 
 \strong{Nothing is deleted.} Both landmarks keep a position, both are drawn on the
 photograph and both are written to the workbook; one simply takes the

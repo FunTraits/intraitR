@@ -172,7 +172,11 @@ parallel \code{\link[future:plan]{future::plan()}} is set, exactly as in
 identical results.
 }
 \examples{
-fish <- simulate_fishmorph_points(n_per_species = 25, n_replicates = 1)
+# The T-26 campaign: 494 fish of seven species, digitized once each.
+# Sampling effort is exactly what an accumulation curve is about, and it is
+# very unequal here -- 288 Gobio gobio against 4 Leuciscus burdigalensis --
+# which is the situation the curve exists to diagnose.
+fish <- load_t26_saudrune_landmarks()
 ratios <- fishmorph_ratios(fishmorph_segments(fish))
 \donttest{
 acc <- fd_accumulation(

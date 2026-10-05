@@ -1,7 +1,7 @@
 Package: intraitR
 Title: Morphological Trait Analysis Toolkit for Freshwater Fish
-Version: 1.29.0
-Date: 2026-07-31
+Version: 1.35.0
+Date: 2026-10-05
 Authors@R:
     person("Aurele", "Toussaint", , "aurele.toussaint@cnrs.fr", role = c("aut", "cre"))
 Description: A toolkit for the analysis of morphological traits in freshwater
@@ -18,11 +18,14 @@ Description: A toolkit for the analysis of morphological traits in freshwater
     <doi:10.2307/2992207> and Fruciano (2016) <doi:10.1007/s00427-016-0537-4>.
     The package also implements the specific 11-measurement, 9-ratio
     digitization and trait protocol of the FISHMORPH database (Brosse et al.,
-    2021) <doi:10.1111/geb.13395>. Alongside simulated example data sets, a
-    real landmark data set from an electrofishing survey of eight freshwater
-    fish species (T-26, La Saudrune, Adour-Garonne basin, France) is
-    included, with a complete worked pipeline demonstrating the full
-    workflow on field data.
+    2021) <doi:10.1111/geb.13395>. The reference example data set is real
+    rather than simulated: an electrofishing survey of the Saudrune
+    (Adour-Garonne basin, France), 383 fish of seven species digitized
+    specimen by specimen with the package's own predictor-assisted
+    application, together with earlier multi-operator and repeated
+    digitizations of the same survey for the measurement-error tools, and a
+    complete worked pipeline demonstrating the full workflow on field data.
+    Simulated generators are also provided.
 License: GPL-3
 URL: https://github.com/FunTraits/intraitR, https://funtraits.github.io/intraitR/
 BugReports: https://github.com/FunTraits/intraitR/issues

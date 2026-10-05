@@ -88,7 +88,7 @@ fish <- load_t26_saudrune_landmarks()
 # computed without them:
 fish_clean <- exclude_specimens(
   fish,
-  specimen = c("T-26-0050_Operator_2", "T-26-0230-1_Operator_2"),
+  specimen = fish$metadata$specimen[1:2],   # the two mismeasured specimens
   reason = "landmarks 3-4 and/or 5-6 collapsed to the same point (zero-length Bd/Hd)"
 )
 fish_clean$removed_specimens # full record: which, and why

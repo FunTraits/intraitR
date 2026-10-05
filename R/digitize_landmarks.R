@@ -71,6 +71,16 @@
 #'   `INTRAITR_MLMORPH_DIR` environment variable, then from `ml_morph/`,
 #'   `../ml_morph/` and the working directory. The app runs without a
 #'   predictor; only the prediction step is then disabled.
+#' @param provenance Where to find the record of which source image became
+#'   which specimen, used to match back photographs renamed BEFORE `photo_hash`
+#'   was recorded (see *A specimen renamed is not a specimen rediscovered*).
+#'   `NULL` (default) looks for a directory of import journals at
+#'   `<project>/journal`, alongside `<project>/measurements/<workbook>.xlsx`.
+#'   A path points at that directory explicitly; a NAMED character vector
+#'   (photograph code -> provenance key, as returned by [photo_provenance_keys()])
+#'   is used as is; `FALSE` disables the lookup. Without it, a specimen renamed
+#'   before the column existed stays in the `"new"` queue -- the behaviour of
+#'   every earlier version, and never a silent guess.
 #' @param predictor Optional path to a specific trained predictor (`.dat`) to
 #'   offer first in the app's model selector.
 #' @param python Optional path to (or name of) the Python interpreter running
@@ -132,6 +142,53 @@
 #' is appended to it first, as one immutable line per landmark, so an
 #' interrupted session costs at most the specimen being digitized. See
 #' [landmark_journal_open()] and [consolidate_landmarks()].
+#'
+#' # A specimen renamed is not a specimen rediscovered
+#'
+#' The specimen code is the photograph's file name without its extension, and
+#' that name is metadata: it carries the site, the date, the species and the
+#' specimen number, every one of which can turn out to be wrong. Correcting a
+#' determination -- *Squalius cephalus* read again as *Barbus barbus* -- renames
+#' the file, and the code with it, without moving a single pixel.
+#'
+#' Matching the queues on the name alone therefore took the measurements away
+#' from the fish: the workbook still held the row under the old code, the queue
+#' matched on the new one, and an already-digitized specimen reappeared in the
+#' `"new"` queue with nothing to say it had ever been measured -- no error, no
+#' warning, and a duplicate the day it was measured again. The bookkeeping was
+#' quietly deciding what the taxonomy was allowed to say.
+#'
+#' So each record also carries `photo_hash`, the fingerprint of the image FILE
+#' ([photo_hash()]), which changes if and only if the pixels do. At launch the
+#' sheets are reconciled against the folder on that column
+#' ([reconcile_photo_names()]): rows written before it existed are back-filled,
+#' rows whose photograph now has another name are re-keyed -- carrying the
+#' `_i<k>` of a plate and the `_<operator>_rep<N>` of a repeat across untouched
+#' -- and a renamed specimen stays out of the `"new"` queue. Ambiguities (the
+#' same image present twice, a target code already taken) are reported and left
+#' alone: a wrong automatic merge is invisible afterwards, a rename done by hand
+#' is not. The reconciliation is in memory; the journal keeps the old key, which
+#' is what makes the re-keying auditable rather than a quiet rewriting of
+#' history.
+#'
+#' # What the entry is worth, as opposed to how it was obtained
+#'
+#' The per-point `status` says how each landmark was obtained. Four further
+#' columns say what the ENTRY as a whole is worth, which only the operator
+#' looking at the photograph can decide: `quality` (1 = very good to 5 = poor),
+#' `reviewed`, `reviewed_by` and `review_date`. The score and the tick are
+#' independent on purpose -- a specimen can be checked AND poor, which is
+#' exactly the row a re-photographing list is built from -- and the author and
+#' date are stamped only when something is actually declared, so that "nobody
+#' has looked at it" stays distinguishable from "somebody looked and said
+#' nothing".
+#'
+#' `collapse_rules` records the coincidences DECLARED on the specimen
+#' (`"Mo;Hd6"`) rather than leaving them to be read back out of the geometry
+#' they produced. A declared zero is a measurement: inferring it from the
+#' coordinates cannot tell a rule that was applied from two points that happened
+#' to land on each other, and cannot see it at all once the points have been
+#' moved apart.
 #'
 #' # Working in the app
 #'
@@ -300,7 +357,7 @@
 #'
 #' Each pass is saved under an identifier of its own -- `"<code>_rep<N>"`, or
 #' `"<code>_<operator>_rep<N>"` when an operator is named, the convention of
-#' the T-26 repeatability set ([load_t26_saudrune_landmarks()], `source =
+#' the T-26 repeat trial ([load_t26_saudrune_landmarks()], `source =
 #' "repeatability"`). The replicate number is always the last
 #' underscore-separated token and the operator label is stripped of
 #' underscores, so an identifier decomposes unambiguously from the right;
@@ -522,6 +579,7 @@ digitize_landmarks <- function(photo_dir,
                                individual_order = c("top", "left", "reading"),
                                individuals_per_row = NULL,
                                xlsx_flush_every = 10L,
+                               provenance = NULL,
                                mlmorph_dir = NULL, predictor = NULL,
                                python = NULL,
                                sheets = c(measurements = "measurements",
@@ -650,6 +708,37 @@ digitize_landmarks <- function(photo_dir,
          "reinstall the package.", call. = FALSE)
   worker <- system.file("mlmorph", "predict_new_image.py", package = "intraitR")
 
+  ## ---- provenance: the bridge for renames that predate `photo_hash` ---------
+  ## Reconciling the sheet against the folder on the fingerprint works from the
+  ## moment the fingerprint is recorded. It cannot work BACKWARDS: a photograph
+  ## renamed before the column existed left a row naming a file the folder no
+  ## longer has, and hashing the folder harder will not produce that link,
+  ## because it was never written there. It was written in whatever renamed the
+  ## file. See photo_provenance_keys().
+  ##
+  ## AUTO-DETECTED, because the case it repairs is silent and an option nobody
+  ## knows to set repairs nothing. A workbook at <project>/measurements/x.xlsx
+  ## with a <project>/journal/ full of import journals is the FishInTrait
+  ## layout; the lookup costs one directory test when it is not.
+  provenance_keys <- character(0)
+  if (!identical(provenance, FALSE)) {
+    if (is.character(provenance) && length(provenance) &&
+        !is.null(names(provenance))) {
+      provenance_keys <- provenance        # already a code -> key map
+    } else {
+      pdir <- if (is.character(provenance) && length(provenance) == 1L)
+        provenance
+      else file.path(dirname(dirname(xlsx_path)), "journal")
+      provenance_keys <- tryCatch(photo_provenance_keys(pdir),
+                               error = function(e) character(0))
+      if (length(provenance_keys))
+        message(sprintf(
+          "Provenance: %d photograph(s) keyed from %s -- renames made ",
+          length(provenance_keys), pdir),
+          "before `photo_hash` existed can be matched back.")
+    }
+  }
+
   ## ---- resolve the ml-morph resource directory ------------------------------
   mlmorph_dir <- .resolve_mlmorph_dir(mlmorph_dir)
   if (is.null(mlmorph_dir))
@@ -679,6 +768,7 @@ digitize_landmarks <- function(photo_dir,
     individual_order = individual_order,
     individuals_per_row = individuals_per_row,
     xlsx_flush_every = xlsx_flush_every,
+    provenance_keys = provenance_keys,
     sheet_measurements = unname(sheets[["measurements"]]),
     sheet_bias = unname(sheets[["bias"]]),
     sheet_summary = unname(sheets[["summary"]]),

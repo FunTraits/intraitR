@@ -52,8 +52,30 @@
   "mm_per_px",      # resulting scale, or NA
   "landmark",       # point number
   "x", "y",         # coordinates in image pixels (Y downwards)
-  "status"          # clicked | seeded | predicted | adjusted | derived | na | missing
+  "status",         # clicked | seeded | predicted | adjusted | derived | na | missing
+  # ---- appended in 1.31.0; see the note above on the order of this vector ----
+  "photo_hash",     # MD5 of the image FILE: the identity a rename cannot change
+  "reviewed",       # "yes"/"no": has anyone actually looked at this entry
+  "reviewed_by",    # who declared it, stamped only when something is declared
+  "review_date",    # when, likewise
+  "collapse_rules"  # coincidences DECLARED on the specimen ("Mo;Hd6"), not inferred
 )
+
+# WHY A FILE HASH AND NOT A FILE NAME. A photograph's name is metadata: it
+# carries the site, the date, the species and the specimen number, and every one
+# of those can turn out to be wrong. Correcting a determination -- *Squalius
+# cephalus* read again as *Barbus barbus* -- renames the file, and until now
+# renamed the specimen out of its own measurements: the workbook still held the
+# row under the old name, the queue matched on the new one, and a fish already
+# digitized came back in the "new" queue as if it had never been measured. The
+# pixels, meanwhile, had not moved. `photo_hash` records what the file IS rather
+# than what it is called, so a re-determination costs a rename and nothing else.
+#
+# MD5 via tools::md5sum(): already available (tools is imported), fast on the
+# 5-40 MB files this deals with, and the collision resistance an adversary would
+# need to break is not what is being asked of it here -- two DIFFERENT
+# photographs of the same fish differ in millions of pixels and hash apart, which
+# is the only property the reconciliation relies on.
 
 # Meaning of `status` -- the information a wide coordinate sheet cannot carry,
 # and the one that separates a measurement from a plausible guess:
@@ -178,6 +200,20 @@ landmark_journal_open <- function(journal_dir, operator = NULL,
 #' @param specimen,individual,replicate,photo_file,mode,target_sheet Record-level
 #'   metadata, recycled over the points.
 #' @param img_w,img_h,quality,ruler_mm,mm_per_px Further record-level metadata.
+#' @param photo_hash Optional MD5 of the image FILE, as returned by
+#'   [photo_hash()]. This is the identity a rename cannot change: a specimen
+#'   re-determined, and therefore renamed, is matched back to its own
+#'   measurements on this column rather than on `photo_file`.
+#' @param reviewed,reviewed_by,review_date Optional review of the ENTRY as a
+#'   whole -- whether anyone has looked at it, who, and when. `quality` says how
+#'   good the entry is; these say whether the judgement has been made at all,
+#'   which is a different statement: a specimen can be checked AND poor, and
+#'   that is the state a re-photographing list is built from.
+#' @param collapse_rules Optional character string listing the coincidence
+#'   rules DECLARED on the specimen, separated by `";"` (for example
+#'   `"Mo;Hd6"`). A declared zero is a measurement, and recording only the
+#'   geometry it produced leaves a reader unable to tell it from an accidental
+#'   coincidence.
 #'
 #' @return The `record_id` written (invisibly), or `NULL` if there was nothing
 #'   to write.
@@ -200,7 +236,9 @@ landmark_journal_append <- function(journal, row_key, coords, points,
                                     photo_file = NA, mode = NA,
                                     target_sheet = NA, img_w = NA, img_h = NA,
                                     quality = NA, ruler_mm = NA,
-                                    mm_per_px = NA) {
+                                    mm_per_px = NA, photo_hash = NA,
+                                    reviewed = NA, reviewed_by = NA,
+                                    review_date = NA, collapse_rules = NA) {
   if (!inherits(journal, "intrait_journal"))
     stop("`journal` is not a journal handle from landmark_journal_open().",
          call. = FALSE)
@@ -236,7 +274,13 @@ landmark_journal_append <- function(journal, row_key, coords, points,
     landmark = as.character(points),
     x = .intraitr_num(round(coords[points, 1], 3)),
     y = .intraitr_num(round(coords[points, 2], 3)),
-    status = st, stringsAsFactors = FALSE)
+    status = st,
+    photo_hash = .intraitr_tsv_safe(photo_hash),
+    reviewed = .intraitr_tsv_safe(reviewed),
+    reviewed_by = .intraitr_tsv_safe(reviewed_by),
+    review_date = .intraitr_tsv_safe(review_date),
+    collapse_rules = .intraitr_tsv_safe(collapse_rules),
+    stringsAsFactors = FALSE)
   rows <- rows[, .INTRAITR_JOURNAL_COLS, drop = FALSE]
 
   txt <- paste(do.call(paste, c(unname(as.list(rows)), sep = "\t")), collapse = "\n")
@@ -360,8 +404,9 @@ consolidate_landmarks <- function(journal_dir, points = 1:25,
   j <- landmark_journal_read(journal_dir)
   points <- as.integer(points)
   id_cols <- c("specimen", "individual", "replicate", "operator", "mode",
-               "target_sheet", "photo_file", "img_w", "img_h", "quality",
-               "ruler_mm", "mm_per_px", "app_version")
+               "target_sheet", "photo_file", "photo_hash", "img_w", "img_h",
+               "quality", "reviewed", "reviewed_by", "review_date",
+               "collapse_rules", "ruler_mm", "mm_per_px", "app_version")
   coord_cols <- as.vector(rbind(paste0(points, "_X"), paste0(points, "_Y")))
   cnt_cols <- c("n_clicked", "n_seeded", "n_predicted", "n_adjusted", "n_na")
 

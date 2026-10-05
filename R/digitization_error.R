@@ -288,7 +288,7 @@
 #' # biological landmark, and should be excluded from the bias
 #' # decomposition (they can still be examined separately if desired, but
 #' # should not be pooled with anatomical landmarks in by_landmark/global):
-#' fish_fm <- load_t26_saudrune_landmarks(source = "repeatability")
+#' fish_fm <- load_t26_saudrune_landmarks("repeatability")
 #' derr_fm <- digitization_error(
 #'   fish_fm,
 #'   individual = fish_fm$metadata$individual,

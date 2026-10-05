@@ -67,8 +67,7 @@
 #'
 #' Shared, modular implementation of the `operator` argument of
 #' [load_t26_saudrune()] and [load_t26_saudrune_landmarks()]: matches
-#' case-insensitively (so `"operator_1"`/`"Operator_1"`/`"OPERATOR_1"` are
-#' all accepted), and is a no-op (returns `df` unchanged, with a warning)
+#' case-insensitively (so `"at"`/`"AT"` are both accepted), and is a no-op (returns `df` unchanged, with a warning)
 #' when `df` has no `operator` column at all, so the same call works
 #' whether or not the requested table happens to record operator identity.
 #'
@@ -76,7 +75,7 @@
 #' @param operator `NULL` (no filtering), or a character vector of one or
 #'   more operator labels to keep.
 #' @param dataset_label Character, used only in the warning/error messages
-#'   to name the table being filtered (e.g. `"the \"operators\" table"`).
+#'   to name the table being filtered (e.g. `"the \"landmarks\" table"`).
 #' @return `df`, filtered to the requested operator(s) if applicable.
 #' @noRd
 .filter_by_operator <- function(df, operator, dataset_label = "this table") {
@@ -107,24 +106,21 @@
 #' Left-join species identity onto a T-26 Saudrune table, if possible
 #'
 #' Shared, modular implementation of the `species` argument of
-#' [load_t26_saudrune()]: adds `species` and `id_status` columns looked up
-#' from the `"identifications"` table via `code`. Deliberately implemented
-#' with a vectorised [match()] lookup rather than [merge()]: the
-#' `"operators"`/`"repeatability"` long-format tables have many rows per
-#' `code` (one per landmark, and per operator/replicate), so a
-#' duplicate-key join must be verified to preserve the original row order
-#' exactly (`match()` guarantees this trivially, by construction, so there
-#' is nothing to verify).
+#' [load_t26_saudrune()]: adds `species` and `species_code` columns looked up
+#' from the `"specimens"` table via `code`. Implemented with a vectorised
+#' [match()] lookup rather than [merge()]: the long-format tables have many
+#' rows per `code` (one per landmark, and per replicate), and `match()`
+#' preserves the original row order by construction.
 #'
 #' @param df A `data.frame`, possibly with a `code` column.
 #' @param dataset_label Character, used only in the warning message to
-#'   name the table being joined (e.g. `"the \"operators\" table"`).
-#' @return `df`, with `species`/`id_status` columns added if possible; a
-#'   no-op if `df` already has both (e.g. the `"identifications"` table
-#'   itself), or (with a warning) if `df` has no `code` column to join on.
+#'   name the table being joined (e.g. `"the \"landmarks\" table"`).
+#' @return `df`, with `species`/`species_code` columns added if possible; a
+#'   no-op if `df` already has both (the `"specimens"` table itself), or
+#'   (with a warning) if `df` has no `code` column to join on.
 #' @noRd
 .join_species <- function(df, dataset_label = "this table") {
-  if (all(c("species", "id_status") %in% names(df))) {
+  if (all(c("species", "species_code") %in% names(df))) {
     return(df)
   }
   if (!"code" %in% names(df)) {
@@ -135,10 +131,10 @@
     )
     return(df)
   }
-  ident <- load_t26_saudrune("identifications")
-  idx <- match(df$code, ident$code)
-  df$species <- ident$species[idx]
-  df$id_status <- ident$id_status[idx]
+  spec <- load_t26_saudrune("specimens")
+  idx <- match(df$code, spec$code)
+  df$species <- spec$species[idx]
+  df$species_code <- spec$species_code[idx]
   df
 }
 

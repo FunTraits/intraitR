@@ -3,60 +3,49 @@
 #'
 #' Loads the real T-26 Saudrune electrofishing landmark data (see
 #' [load_t26_saudrune()]) directly as an object of class
-#' `"intrait_landmarks"`, in exactly the format returned by
-#' [simulate_fishmorph_points()]: a `p x k x n` coordinate array (21
-#' FISHMORPH landmarks; Brosse et al., 2021) together with a `metadata`
-#' data.frame carrying `specimen`, `individual`, `species`, `population`
-#' and `replicate` columns. This makes the real data set a drop-in
+#' `"intrait_landmarks"`, in the format returned by
+#' [simulate_fishmorph_points()]: a `p x k x n` coordinate array together with
+#' a `metadata` data.frame carrying `specimen`, `individual`, `species`,
+#' `population` and `replicate`. The real data set is therefore a drop-in
 #' replacement for `simulate_fishmorph_points()` wherever a FISHMORPH-scheme
 #' `"intrait_landmarks"` object is expected, e.g. [fishmorph_segments()],
-#' [fishmorph_ratios()], [trait_space()], [itv_index()],
-#' [trait_disparity()], and [plot_fishmorph_points()].
+#' [fishmorph_ratios()], [trait_space()], [itv_index()], [trait_disparity()]
+#' and [plot_fishmorph_points()].
 #'
-#' @param source Character, one of `"operators"` (default: 826 digitizations
-#'   of the T-26 fish across four operators -- Operator_1 and Operator_2 each
-#'   digitized the full set of 279 fish once, Operator_3 and Operator_4 a
-#'   subset) or `"repeatability"` (25 individuals, each digitized 9-10 times,
-#'   by two operators; see [digitization_error()] and [measurement_error()]).
+#' @param source Character, one of:
+#'   \describe{
+#'     \item{`"landmarks"`}{**Default.** Every specimen of the campaign,
+#'       digitized once with [digitize_landmarks()] on the 25-point scheme.
+#'       `metadata$replicate` is 1 throughout and `metadata$individual` equals
+#'       `specimen`.}
+#'     \item{`"repeatability"`}{The blind repeat trial: the same individuals
+#'       re-digitized several times in the digitizer's repeat mode.
+#'       `metadata$individual` is the fish (`code`), `metadata$replicate` the
+#'       pass; the input of [digitization_error()], [measurement_error()] and
+#'       [operator_disagreement()].}
+#'   }
 #' @param species Optional character vector of species names: if supplied,
-#'   only specimens identified (curated or preliminary) as one of these
-#'   species are kept. Defaults to `NULL` (every fish is kept, including
-#'   the single specimen with an unresolved identification, for which
-#'   `metadata$species` is `NA`; see [load_t26_saudrune()]).
-#' @param operator `NULL` (default, every operator's digitizations are
-#'   returned), or a character vector of one or more anonymous operator
-#'   labels (e.g. `"Operator_1"`; see `unique(load_t26_saudrune(source)$operator)`
-#'   for the labels available for a given `source`) to restrict to. This
-#'   is the natural way to build **two separate functional trait spaces**,
-#'   one per operator, from `source = "operators"` (each fish was
-#'   digitized once by each operator) — e.g. to check whether
-#'   [trait_space()] or [fishmorph_ratios()] results are sensitive to who
-#'   did the digitizing, complementing the landmark-level view of
-#'   [digitization_error()]. Modular by design: if the requested `source`
-#'   has no `operator` column, `operator` is ignored with a warning and
-#'   every row is returned (in practice every `source` currently offered
-#'   here does have one, but this keeps the function robust to future
-#'   `source` options that might not).
+#'   only specimens currently determined as one of these species are kept.
+#'   Defaults to `NULL` (every fish is kept).
+#' @param operator `NULL` (default, every operator's digitizations), or a
+#'   character vector of operator labels (e.g. `"AT"`; see
+#'   `unique(load_t26_saudrune(source)$operator)`) to restrict to. With two
+#'   operators in `"repeatability"` this is the natural way to build two
+#'   separate trait spaces and check whether results depend on who digitized.
 #'
-#' @return An object of class `"intrait_landmarks"`, a list with elements
-#'   `coords` (a `21 x 2 x n` array), `scale` (`NULL`; the scale bar is
-#'   embedded as landmarks 20-21, as in [simulate_fishmorph_points()]), and
-#'   `metadata` (a `data.frame` with, in addition to the five standard
-#'   columns shared with `simulate_fishmorph_points()`'s output, an
-#'   `operator` column and, for `source = "repeatability"`, a `site`
-#'   column carried over from the raw data).
+#' @return An object of class `"intrait_landmarks"`: `coords` (a `25 x 2 x n`
+#'   array), `scale` (`NULL`; the scale bar is embedded as landmarks 20-21, as
+#'   in [simulate_fishmorph_points()]) and `metadata` (the five standard
+#'   columns plus `operator`, and `species_code`, `quality`, `date` and `uid`
+#'   carried over from the `"specimens"` table).
 #'
 #' @details
-#' Unlike [simulate_fishmorph_points()], real specimens are not all fully
-#' digitized: some coordinates (chiefly landmark 5, in roughly a quarter
-#' of specimens) are missing. Functions that require a complete
-#' configuration (e.g. [gpa_fish()], which is not intended for this mixed
-#' shape/scale-bar landmark scheme in any case; see
-#' [simulate_fishmorph_points()]) should filter on complete cases first.
-#' `metadata$population` is set to `NA` throughout, because the T-26
-#' survey sampled a single electrofishing point: unlike the simulated data
-#' set, there is no genuine sub-population structure in this real sample
-#' to report, and none is fabricated here.
+#' Point 25 is reserved by the digitizer and currently always `NA`; a few
+#' specimens lack the scale bar (20-21). Functions that require a complete
+#' configuration (e.g. [gpa_fish()]) should filter on complete cases of the
+#' landmarks they use. `metadata$population` is `NA` throughout: the survey
+#' sampled one electrofishing point and no sub-population structure is
+#' fabricated.
 #'
 #' @references
 #' Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
@@ -70,51 +59,38 @@
 #' @examples
 #' fish <- load_t26_saudrune_landmarks()
 #' fish
-#' table(fish$metadata$species, useNA = "ifany")
+#' table(fish$metadata$species)
 #'
 #' # restrict to the two most abundant species
 #' gobio_squalius <- load_t26_saudrune_landmarks(
-#'   species = c("Gobio occitaniae", "Squalius cephalus")
+#'   species = c("Gobio gobio", "Squalius cephalus")
 #' )
 #' dim(gobio_squalius$coords)
 #'
-#' # build two separate functional trait spaces, one per operator, to check
-#' # whether the two digitizers' shape spaces agree:
-#' fish_op1 <- load_t26_saudrune_landmarks(operator = "Operator_1")
-#' fish_op2 <- load_t26_saudrune_landmarks(operator = "Operator_2")
-#' ratios_op1 <- fishmorph_ratios(fishmorph_segments(fish_op1))
-#' ratios_op2 <- fishmorph_ratios(fishmorph_segments(fish_op2))
-#' ts_op1 <- trait_space(ratios_op1, groups = fish_op1$metadata$species, na_action = "omit")
-#' ts_op2 <- trait_space(ratios_op2, groups = fish_op2$metadata$species, na_action = "omit")
+#' # the repeat trial: several configurations per individual
+#' rep_fish <- load_t26_saudrune_landmarks("repeatability")
+#' table(rep_fish$metadata$individual)
 #'
 #' @export
-load_t26_saudrune_landmarks <- function(source = c("operators", "repeatability"),
-                                         species = NULL, operator = NULL) {
+load_t26_saudrune_landmarks <- function(source = c("landmarks", "repeatability"),
+                                        species = NULL, operator = NULL) {
   source <- match.arg(source)
   long <- load_t26_saudrune(source, operator = operator)
-  ident <- load_t26_saudrune("identifications")
+  spec <- load_t26_saudrune("specimens")
 
-  # In the "operators" table each `specimen` id already embeds the operator
-  # (e.g. "T-26-0173_Operator_4"), so it is unique. The "repeatability" table
-  # instead reuses `specimen` ids (e.g. "T-26-0004_rep1") across the operators
-  # that redigitised the same replicate, so append the operator to keep every
-  # digitisation uniquely identified -- otherwise the coordinate array and the
-  # metadata row names would collide.
-  if (source == "repeatability") {
-    long$specimen <- paste(long$specimen, long$operator, sep = "_")
-  }
-
-  if (source == "operators") {
+  if (source == "landmarks") {
     key <- unique(long[c("specimen", "code", "operator")])
-    key$replicate <- as.integer(factor(key$operator))
+    key$replicate <- 1L
   } else {
-    key <- unique(long[c("specimen", "code", "replicate", "operator", "site")])
+    key <- unique(long[c("specimen", "code", "operator", "replicate")])
   }
   key$individual <- key$code
 
-  meta <- merge(key, ident[c("code", "species")], by = "code", all.x = TRUE, sort = FALSE)
+  meta <- merge(key, spec[c("code", "species", "species_code", "quality", "date", "uid")],
+                by = "code", all.x = TRUE, sort = FALSE)
   meta$population <- NA_character_
-  other_cols <- setdiff(names(meta), c("specimen", "individual", "species", "population", "replicate", "code"))
+  other_cols <- setdiff(names(meta), c("specimen", "individual", "species", "population",
+                                       "replicate", "code"))
   meta <- meta[c("specimen", "individual", "species", "population", "replicate", other_cols)]
   rownames(meta) <- meta$specimen
 
@@ -124,5 +100,6 @@ load_t26_saudrune_landmarks <- function(source = c("operators", "repeatability")
     meta <- meta[meta$specimen %in% keep_specimens, , drop = FALSE]
   }
 
-  read_landmarks_csv(long, specimen = "specimen", landmark = "landmark", coords = c("X", "Y"), metadata = meta)
+  read_landmarks_csv(long, specimen = "specimen", landmark = "landmark",
+                     coords = c("X", "Y"), metadata = meta)
 }

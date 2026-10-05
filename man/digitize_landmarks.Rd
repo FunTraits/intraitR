@@ -16,6 +16,7 @@ digitize_landmarks(
   individual_order = c("top", "left", "reading"),
   individuals_per_row = NULL,
   xlsx_flush_every = 10L,
+  provenance = NULL,
   mlmorph_dir = NULL,
   predictor = NULL,
   python = NULL,
@@ -83,6 +84,17 @@ workbook is REWRITTEN IN FULL each time, so taking it out of the
 digitizing loop removes both the wait and the risk; unwritten records stay
 in memory, are written when the session ends or on demand, and are in the
 journal in any case. \code{1} writes after every specimen. Defaults to \code{10}.}
+
+\item{provenance}{Where to find the record of which source image became
+which specimen, used to match back photographs renamed BEFORE \code{photo_hash}
+was recorded (see \emph{A specimen renamed is not a specimen rediscovered}).
+\code{NULL} (default) looks for a directory of import journals at
+\verb{<project>/journal}, alongside \verb{<project>/measurements/<workbook>.xlsx}.
+A path points at that directory explicitly; a NAMED character vector
+(photograph code -> provenance key, as returned by \code{\link[=photo_provenance_keys]{photo_provenance_keys()}})
+is used as is; \code{FALSE} disables the lookup. Without it, a specimen renamed
+before the column existed stays in the \code{"new"} queue -- the behaviour of
+every earlier version, and never a silent guess.}
 
 \item{mlmorph_dir}{Path to the ml-morph resource directory holding the
 trained predictor(s) (\code{mlmorph_run_app/predictor.dat},
@@ -172,6 +184,53 @@ The workbook is an EXPORT. The journal is the source of truth: every record
 is appended to it first, as one immutable line per landmark, so an
 interrupted session costs at most the specimen being digitized. See
 \code{\link[=landmark_journal_open]{landmark_journal_open()}} and \code{\link[=consolidate_landmarks]{consolidate_landmarks()}}.
+}
+
+\section{A specimen renamed is not a specimen rediscovered}{
+The specimen code is the photograph's file name without its extension, and
+that name is metadata: it carries the site, the date, the species and the
+specimen number, every one of which can turn out to be wrong. Correcting a
+determination -- \emph{Squalius cephalus} read again as \emph{Barbus barbus} -- renames
+the file, and the code with it, without moving a single pixel.
+
+Matching the queues on the name alone therefore took the measurements away
+from the fish: the workbook still held the row under the old code, the queue
+matched on the new one, and an already-digitized specimen reappeared in the
+\code{"new"} queue with nothing to say it had ever been measured -- no error, no
+warning, and a duplicate the day it was measured again. The bookkeeping was
+quietly deciding what the taxonomy was allowed to say.
+
+So each record also carries \code{photo_hash}, the fingerprint of the image FILE
+(\code{\link[=photo_hash]{photo_hash()}}), which changes if and only if the pixels do. At launch the
+sheets are reconciled against the folder on that column
+(\code{\link[=reconcile_photo_names]{reconcile_photo_names()}}): rows written before it existed are back-filled,
+rows whose photograph now has another name are re-keyed -- carrying the
+\verb{_i<k>} of a plate and the \verb{_<operator>_rep<N>} of a repeat across untouched
+-- and a renamed specimen stays out of the \code{"new"} queue. Ambiguities (the
+same image present twice, a target code already taken) are reported and left
+alone: a wrong automatic merge is invisible afterwards, a rename done by hand
+is not. The reconciliation is in memory; the journal keeps the old key, which
+is what makes the re-keying auditable rather than a quiet rewriting of
+history.
+}
+
+\section{What the entry is worth, as opposed to how it was obtained}{
+The per-point \code{status} says how each landmark was obtained. Four further
+columns say what the ENTRY as a whole is worth, which only the operator
+looking at the photograph can decide: \code{quality} (1 = very good to 5 = poor),
+\code{reviewed}, \code{reviewed_by} and \code{review_date}. The score and the tick are
+independent on purpose -- a specimen can be checked AND poor, which is
+exactly the row a re-photographing list is built from -- and the author and
+date are stamped only when something is actually declared, so that "nobody
+has looked at it" stays distinguishable from "somebody looked and said
+nothing".
+
+\code{collapse_rules} records the coincidences DECLARED on the specimen
+(\code{"Mo;Hd6"}) rather than leaving them to be read back out of the geometry
+they produced. A declared zero is a measurement: inferring it from the
+coordinates cannot tell a rule that was applied from two points that happened
+to land on each other, and cannot see it at all once the points have been
+moved apart.
 }
 
 \section{Working in the app}{
@@ -340,7 +399,7 @@ until the individual has \code{n_repeats} digitizations.
 
 Each pass is saved under an identifier of its own -- \code{"<code>_rep<N>"}, or
 \code{"<code>_<operator>_rep<N>"} when an operator is named, the convention of
-the T-26 repeatability set (\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}, \code{source = "repeatability"}). The replicate number is always the last
+the T-26 repeat trial (\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}, \code{source = "repeatability"}). The replicate number is always the last
 underscore-separated token and the operator label is stripped of
 underscores, so an identifier decomposes unambiguously from the right;
 \code{\link[=read_mlmorph_landmarks]{read_mlmorph_landmarks()}} reverses it with \code{replicate = "parse"} and

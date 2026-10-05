@@ -10,45 +10,49 @@ set.seed(2026)
 ## ----------------------------------------------------------------------
 ## 1. The survey tables (raw data.frames), and the two ways to load them
 ## ----------------------------------------------------------------------
-## Four related tables ship with the package; each is one call.
-ops    <- load_t26_saudrune("operators")        # long landmark table, 2 operators
-rep_df <- load_t26_saudrune("repeatability")    # replicate-digitization trial
-ident  <- load_t26_saudrune("identifications")  # species / id_status, one row / fish
-qc     <- load_t26_saudrune("qc_log")           # specimens excluded during data prep
+## Four related tables ship with the package; each is one call. Every
+## specimen is its photograph (SITE_YYYYMMDD_NNNN, `_iK` on a multi-fish
+## plate); the species is the campaign's current determination and lives in
+## the "specimens" table, never in a code.
+lm_df  <- load_t26_saudrune()                 # long landmark table, 25 points / fish
+spec   <- load_t26_saudrune("specimens")      # one row / fish: species, quality, scale
+rep_df <- load_t26_saudrune("repeatability")  # blind repeat trial (digitizer repeat mode)
+qc     <- load_t26_saudrune("qc_log")         # digitizations excluded during data prep
 
 ## optional arguments: subset to one operator, and/or join species on import
-op1    <- load_t26_saudrune("operators", operator = "Operator_4")
-ops_sp <- load_t26_saudrune("operators", species = TRUE)   # adds species/id_status
-stopifnot(identical(ops_sp$code, ops$code))                 # same rows, in order
+lm_sp <- load_t26_saudrune(species = TRUE)    # adds species / species_code
+stopifnot(identical(lm_sp$code, lm_df$code))  # same rows, in order
 
 cat(sprintf(
-  "operators: %d rows | repeatability: %d rows | %d identified species | %d specimen(s) pre-excluded (see qc$reason)\n",
-  nrow(ops), nrow(rep_df), length(unique(ident$species)), nrow(qc)
+  "landmarks: %d rows | %d specimens | %d species | repeat trial: %d passes on %d fish | %d excluded (see qc$reason)\n",
+  nrow(lm_df), nrow(spec), length(unique(spec$species)),
+  nrow(unique(rep_df[c("code", "replicate", "operator")])), length(unique(rep_df$code)), nrow(qc)
 ))
-print(table(ident$species, ident$id_status, useNA = "ifany"))
+print(table(spec$species, spec$date))
 
 ## read_landmarks_csv() reshapes a long (specimen, landmark, X, Y) table into
-## the p x k x n array the rest of the package expects; only carries the
-## metadata you hand it explicitly via `metadata =` (no auto-detection), so
-## build a one-row-per-specimen table first and pass species/id_status
-## through that way -- everything downstream (fishmorph_segments(),
-## fishmorph_ratios(), plot_fishmorph_shapes(), ...) then finds them
-## automatically in `lm$metadata`.
-sp_meta <- unique(ops_sp[c("specimen", "code", "species", "id_status")])
-lm      <- read_landmarks_csv(ops_sp, metadata = sp_meta)   # 21 x 2 x 558
-lm_rep  <- read_landmarks_csv(rep_df)                       # the repeatability trial
-cat("read_landmarks_csv ->", paste(dim(lm$coords), collapse = " x "), "\n")
+## the p x k x n array the rest of the package expects; it only carries the
+## metadata you hand it explicitly via `metadata =`, so build a
+## one-row-per-specimen table first -- everything downstream
+## (fishmorph_segments(), fishmorph_ratios(), plot_fishmorph_shapes(), ...)
+## then finds species in `lm$metadata` automatically.
+sp_meta <- spec[c("code", "species", "species_code", "quality")]
+names(sp_meta)[1] <- "specimen"
+lm_csv <- read_landmarks_csv(lm_df, metadata = sp_meta)         # 25 x 2 x n
+cat("read_landmarks_csv ->", paste(dim(lm_csv$coords), collapse = " x "), "\n")
 
 ## load_t26_saudrune_landmarks() is a convenience wrapper doing both steps
-## (load the table AND build the intrait_landmarks object) in one call:
-lm_op1 <- load_t26_saudrune_landmarks("operators", operator = "Operator_1")
-cat("load_t26_saudrune_landmarks ->", paste(dim(lm_op1$coords), collapse = " x "), "\n")
+## (load the table AND build the intrait_landmarks object) in one call; it is
+## what the rest of this script uses.
+lm     <- load_t26_saudrune_landmarks()
+lm_rep <- load_t26_saudrune_landmarks("repeatability")
+cat("load_t26_saudrune_landmarks ->", paste(dim(lm$coords), collapse = " x "), "\n")
 
 ## ----------------------------------------------------------------------
 ## 2. Landmark quality control: standardize_geometry(), impute_landmarks(),
 ##    correct_geometry(), and the two visual-check plots
 ## ----------------------------------------------------------------------
-spec <- "T-26-0051_Operator_4"          # same specimen shown at every step
+spec_id <- lm$metadata$specimen[1]      # same specimen shown at every step
 
 ## Successive corrections, each building on the previous:
 lm_geom <- standardize_geometry(lm)     # orient + rescale + scale-bar + rotate
@@ -63,22 +67,22 @@ op <- par(no.readonly = TRUE)
 par(mfrow = c(2, 2), mar = c(4, 2, 2, 1), oma = c(0, 0, 1, 0), mgp = c(2, 1.2, 0),
     col.main = "transparent")   # hides each panel's specimen title; step_label() replaces it
 
-cc <- lm$coords[, , spec]
+cc <- lm$coords[, , spec_id]
 axis_range <- function(v) {
   r  <- range(v, na.rm = TRUE)
   pad <- 0.12 * diff(r)
   lo <- floor(r[1] - pad)
   c(lo, lo + ceiling((diff(r) + 2 * pad) / 4) * 4)
 }
-plot_fishmorph_points(lm, specimen = spec, labels = FALSE, legend = FALSE,
+plot_fishmorph_points(lm, specimen = spec_id, labels = FALSE, legend = FALSE,
                       asp = NA, xlim = axis_range(cc[, 1]), ylim = axis_range(cc[, 2]),
                       flip_y = FALSE)
 step_label("1 - Raw (as digitized)")
-plot_fishmorph_points(lm_geom, specimen = spec, labels = FALSE, legend = FALSE)
+plot_fishmorph_points(lm_geom, specimen = spec_id, labels = FALSE, legend = FALSE)
 step_label("2 - standardize_geometry()")
-plot_fishmorph_points(lm_imp, specimen = spec, labels = FALSE, legend = FALSE)
+plot_fishmorph_points(lm_imp, specimen = spec_id, labels = FALSE, legend = FALSE)
 step_label("3 - impute_landmarks()")
-plot_fishmorph_points(lm_corr, specimen = spec, labels = TRUE, legend = FALSE)
+plot_fishmorph_points(lm_corr, specimen = spec_id, labels = TRUE, legend = FALSE)
 step_label("4 - correct_geometry()")
 
 par(mfrow = c(1, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 1, 0), mgp = c(2, 1.2, 0),
@@ -89,9 +93,9 @@ par(mfrow = c(1, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 1, 0), mgp = c(2, 1.2, 0
 ## (see plot_fishmorph_shapes()'s `align` argument) -- aligning both lets
 ## the comparison isolate exactly what correct_geometry()/impute_landmarks()
 ## changed.
-plot_fishmorph_shapes(lm, species = "Gobio occitaniae", align = TRUE)
+plot_fishmorph_shapes(lm, species = "Gobio gobio", align = TRUE)
 mtext("a) Uncorrected specimens", side = 3, adj = 0)
-plot_fishmorph_shapes(lm_corr, species = "Gobio occitaniae", align = TRUE)
+plot_fishmorph_shapes(lm_corr, species = "Gobio gobio", align = TRUE)
 mtext("b) Corrected specimens", side = 3, adj = 0)
 par(op)
 
@@ -160,11 +164,9 @@ my_ratios <- morpho_ratios(
 )
 cat("\nCustom morpho_ratios (first rows):\n"); print(utils::head(my_ratios))
 
-## fishmorph_shape_landmarks(): a convenience shortcut for a *per-digitization*
-## shape-only subset (scale bar dropped, incomplete configs dropped). Section
-## 4 below instead builds one *consensus* configuration per fish (averaged
-## across operators) for the actual GPA/shape space analysis, but this is
-## the function to reach for when per-digitization shape data is enough.
+## fishmorph_shape_landmarks(): a convenience shortcut for a shape-only
+## subset (scale bar dropped, incomplete configs dropped); section 4 below
+## does the same by hand after imputation, for the GPA/shape space analysis.
 lm_shape_quick <- fishmorph_shape_landmarks(lm, drop_incomplete = TRUE)
 cat("\nfishmorph_shape_landmarks() ->", paste(dim(lm_shape_quick$coords), collapse = " x "), "\n")
 
@@ -174,32 +176,21 @@ trait_tab <- summary_traits(ratios[ratio_cols], groups = ratios$species)
 cat("\nPer-species trait summary:\n"); print(trait_tab)
 
 ## ----------------------------------------------------------------------
-## 4. One consensus configuration per fish, averaged across operators
+## 4. One configuration per fish
 ## ----------------------------------------------------------------------
-## Every fish (`code`) was digitized once per operator; shape space
-## (section 5) and intraspecific variability (section 7) both need one
-## configuration per *fish*, not per *digitization*, so this consensus is
-## built once here and reused by both.
-codes   <- unique(ops_sp$code)
-A       <- lm$coords
-code_of <- ops_sp$code[match(dimnames(A)[[3]], ops_sp$specimen)]  # config -> fish code
-A_cons  <- array(NA_real_, dim = c(dim(A)[1], dim(A)[2], length(codes)),
-                 dimnames = list(dimnames(A)[[1]], dimnames(A)[[2]], codes))
-for (code in codes) {
-  A_cons[, , code] <- apply(A[, , code_of == code, drop = FALSE], c(1, 2), mean, na.rm = TRUE)
-}
-meta_cons <- unique(ops_sp[c("code", "species", "id_status")])
-rownames(meta_cons) <- meta_cons$code
-meta_cons <- meta_cons[codes, ]
-lm_consensus <- structure(list(coords = A_cons, scale = NULL, metadata = meta_cons),
-                          class = "intrait_landmarks")
-cat("Per-fish consensus configurations ->", paste(dim(lm_consensus$coords), collapse = " x "), "\n")
+## Every fish was digitized once in the campaign table, so shape space
+## (section 5) and intraspecific variability (section 7) work directly on
+## `lm_corr`; the repeat trial (section 8) is where several configurations
+## of the same fish live.
+lm_consensus <- lm_corr
+meta_cons    <- lm_corr$metadata
+cat("Configurations for the shape analysis ->", paste(dim(lm_consensus$coords), collapse = " x "), "\n")
 
 ## ----------------------------------------------------------------------
 ## 5. shape_space() -- MORPHOLOGICAL (shape) space from GPA
 ## ----------------------------------------------------------------------
 lm_consensus_imp <- impute_landmarks(standardize_orientation(lm_consensus), method = "missforest_phylo")
-shape_coords <- lm_consensus_imp$coords[1:19, , ]           # drop the scale bar (20-21)
+shape_coords <- lm_consensus_imp$coords[1:19, , ]           # anatomical landmarks only
 complete     <- apply(shape_coords, 3, function(x) !anyNA(x))
 lm_shape <- structure(
   list(coords = shape_coords[, , complete], scale = NULL, metadata = meta_cons[complete, ]),
@@ -226,8 +217,7 @@ plot(ms, style = "spider", legend_title = "Species", legend_italic = TRUE,
 ## `remove_outliers` (a functional-space-level screen, unrelated to
 ## missing-value handling) is needed here. `ts` is reused in sections 8
 ## and 9 below.
-sel = unique(ops[which(ops$operator %in% "Operator_4"),]$specimen)
-ts <- trait_space(ratios[sel, c("species", ratio_cols)], remove_outliers = TRUE)
+ts <- trait_space(ratios[complete_r, c("species", ratio_cols)], remove_outliers = TRUE)
 
 reset_group_colors()   # start colour assignment from scratch for this figure
 species_cols <- group_colors(ts)   # data.frame(group, color)
@@ -269,11 +259,11 @@ plot(itv, col.main = "transparent")
 ## 8. measurement_error() and digitization_error() -- on the repeat trial
 ## ----------------------------------------------------------------------
 ## Percent measurement error and repeatability R (Bailey & Byrnes, 1990)
-## for a single measurement (body length, Bl) from replicated digitizations
-## of the same 25 fish.
+## for a single measurement (body length, Bl) from the blind repeat trial:
+## the same fish re-digitized several times in digitize_landmarks()'s repeat
+## mode (`lm_rep$metadata$individual` is the fish, `$replicate` the pass).
 segments_rep <- fishmorph_segments(lm_rep)
-rep_meta     <- unique(rep_df[c("specimen", "code")])
-indiv_rep    <- rep_meta$code[match(rownames(segments_rep), rep_meta$specimen)]
+indiv_rep    <- lm_rep$metadata$individual[match(rownames(segments_rep), lm_rep$metadata$specimen)]
 
 me_bl <- measurement_error(
   data.frame(individual = indiv_rep, value = segments_rep$Bl),
@@ -282,10 +272,11 @@ me_bl <- measurement_error(
 print(me_bl)
 
 ## digitization_error(): decomposes placement error landmark by landmark;
-## scale bar (20-21) excluded so only anatomical landmarks are assessed.
-species_rep <- ident$species[match(indiv_rep, ident$code)]
+## scale bar (20-21) and the unused point 25 excluded so only anatomical and
+## axis points are assessed.
+species_rep <- lm_rep$metadata$species[match(indiv_rep, lm_rep$metadata$individual)]
 derr <- digitization_error(lm_rep, individual = indiv_rep, species = species_rep,
-                           exclude_landmarks = c(20, 21))
+                           exclude_landmarks = c(20, 21, 25))
 print(derr)
 print(derr$by_landmark)   # landmarks ranked most -> least precise
 

@@ -30,8 +30,8 @@
 #'   [load_t26_saudrune_landmarks()] this is identical to the `code`
 #'   column). This is useful when `landmarks` holds one row per
 #'   specimen/operator or specimen/replicate combination (e.g.
-#'   `load_t26_saudrune_landmarks("operators")`, with two rows per fish, one
-#'   per operator) and it is more natural to look a fish up by its code than
+#'   `load_t26_saudrune_landmarks("repeatability")`, with several rows per
+#'   fish, one per pass) and it is more natural to look a fish up by its code than
 #'   by the exact specimen identifier. If `individual` matches more than one
 #'   specimen (e.g. two operators, or several replicate digitizations), all
 #'   matches are plotted side by side in a single figure (one panel per
@@ -192,12 +192,12 @@
 #' fish <- load_t26_saudrune_landmarks()
 #' plot_fishmorph_points(fish, specimen = 1)
 #'
-#' # look a fish up by its code rather than by specimen/operator: the raw
-#' # operator-level data has two rows (one per operator) per fish, so both
-#' # digitizations are plotted side by side for comparison
-#' fish_ops <- load_t26_saudrune_landmarks("operators")
-#' one_code <- fish_ops$metadata$individual[1]
-#' plot_fishmorph_points(fish_ops, individual = one_code)
+#' # look a fish up by its code rather than by specimen/replicate: the repeat
+#' # trial has several rows (one per pass) per fish, so every digitization is
+#' # plotted side by side for comparison
+#' fish_rep <- load_t26_saudrune_landmarks("repeatability")
+#' one_code <- fish_rep$metadata$individual[1]
+#' plot_fishmorph_points(fish_rep, individual = one_code)
 #'
 #' # if some specimens appear upside down or mirrored left-right, fix the
 #' # underlying coordinates (not just the display) for every specimen at
@@ -216,11 +216,12 @@
 #' }
 #'
 #' # points fixed by correct_landmarks() are highlighted in blue:
+#' spec <- fish$metadata$specimen[1]
 #' fish_fixed <- correct_landmarks(
-#'   fish, specimen = "T-26-0010_Operator_1",
+#'   fish, specimen = spec,
 #'   points = c(9, 8, 11, 4), correct = 11, axis = "y"
 #' )
-#' plot_fishmorph_points(fish_fixed, specimen = "T-26-0010_Operator_1")
+#' plot_fishmorph_points(fish_fixed, specimen = spec)
 #'
 #' # landmarks implicated in a failed check_geometry() convention are
 #' # highlighted in orange:

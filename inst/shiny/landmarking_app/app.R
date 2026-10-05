@@ -57,7 +57,8 @@ CFG <- local({
     operator = NULL, mode = "new", n_repeats = 3L, ruler_mm = 10,
     individuals_per_photo = 1L, individual_order = "top",
     individuals_per_row = NA_integer_,
-    xlsx_flush_every = 10L, sheet_measurements = "measurements",
+    xlsx_flush_every = 10L, provenance_keys = character(0),
+    sheet_measurements = "measurements",
     sheet_bias = "bias", sheet_summary = "bias_summary", app_version = "dev")
   for (nm in names(def)) if (is.null(d[[nm]])) d[[nm]] <- def[[nm]]
   if (!length(d$photos) && dir.exists(d$photo_dir))
@@ -74,6 +75,63 @@ OPERATOR <- local({
 ## Codes of the queue, in the order of the photographs: the file name without
 ## its extension IS the specimen code, here and in the workbook.
 PHOTO_CODES <- tools::file_path_sans_ext(basename(CFG$photos))
+
+## ...and what each photograph IS, as opposed to what it is called. The code
+## above is metadata -- site, date, species, number -- and every one of those
+## can be corrected. A determination read again turns
+## SAUDRUNESUDTOULOUSE_20260427_SQUCEP_004_AT into
+## SAUDRUNESUDTOULOUSE_20260427_BARBAR_025_AT and, before this, took the
+## specimen's measurements with it: the workbook still held the row under the
+## old code, the queue matched on the new one, and a fish digitized a week
+## earlier came back in the "new" queue with nothing to say it had ever been
+## measured. The fingerprint of the file does not move when the label does.
+##
+## Cached beside the journals: fingerprinting several hundred photographs on a
+## synchronised folder is not something to do at every launch, and a rename --
+## the one event this exists for -- changes neither the size nor the mtime the
+## cache is keyed on. See intraitR::photo_hash_cached().
+PHOTO_HASHES <- local({
+  if (!length(CFG$photos)) return(character(0))
+  tryCatch(intraitR::photo_hash_cached(
+    CFG$photos, file.path(CFG$journal_dir, "photo_hash_cache.tsv")),
+    error = function(e) rep(NA_character_, length(CFG$photos)))
+})
+## THE RENAMES THAT PREDATE THE FINGERPRINT COLUMN.
+##
+## Reconciling on `photo_hash` works from the moment the fingerprint is
+## recorded. It cannot work backwards: a photograph renamed BEFORE the column
+## existed left a row naming a file the folder no longer has, so there is
+## nothing in the workbook to recognise it by, and hashing the folder harder
+## will not conjure the link -- it was never written there. It was written in
+## whatever renamed the file.
+##
+## digitize_landmarks() looks for it and hands the result over; run standalone,
+## the app looks in the same place (a FishInTrait project keeps its import
+## journals in <project>/journal, next to <project>/measurements/*.xlsx).
+## Without it these specimens simply stay in the "new" queue, which is the
+## behaviour of every earlier version -- no worse, and no silent guessing.
+PROVENANCE <- local({
+  k <- CFG$provenance_keys
+  if (length(k) && !is.null(names(k))) return(k)
+  d <- file.path(dirname(dirname(CFG$xlsx_path)), "journal")
+  tryCatch(intraitR::photo_provenance_keys(d),
+           error = function(e) stats::setNames(character(0), character(0)))
+})
+## The reconciliation, without any reporting: used where a table has to be
+## brought to the CURRENT naming before it can be compared with another, and
+## where the changes are not news -- see the journal merge below.
+reconcile_quiet <- function(d) {
+  if (is.null(d) || !nrow(d) || !length(CFG$photos)) return(d)
+  tryCatch(intraitR::reconcile_photo_names(d, CFG$photos, PHOTO_HASHES,
+                                           provenance = PROVENANCE)$data,
+           error = function(e) d)
+}
+## Fingerprint of the photograph at queue position `i`, or of a file by name.
+hash_of_photo <- function(i) {
+  if (!length(i) || is.na(i) || i < 1L || i > length(PHOTO_HASHES))
+    return(NA_character_)
+  PHOTO_HASHES[[i]]
+}
 
 ## The package supplies the journal and the atomic workbook write. Required:
 ## without them a save would have nowhere durable to go, and running on
@@ -331,15 +389,31 @@ rep_of <- function(id) {
 ## what the published FISHMORPH tables use. What a wide table cannot carry, the
 ## per-point status, is kept twice over: as counts here (n_seeded, n_predicted,
 ## ...) and point by point in the journal.
+##
+## `photo_hash` is the identity of the PHOTOGRAPH, as opposed to `photo_file`
+## which is only its current name. A determination corrected renames the file --
+## and, with it, the specimen code -- without moving a pixel; matching on the
+## name alone therefore sent an already-measured fish back into the "new" queue,
+## silently, to be measured a second time. See R/photo_identity.R.
+##
+## `reviewed`, `reviewed_by`, `review_date` and `collapse_rules` come from the
+## Rfishmorph digitizer. The first three separate two statements the single
+## `quality` score was conflating: how good the entry is, and whether anyone has
+## actually looked at it -- a specimen can be checked AND poor, and that is the
+## state a re-photographing list is built from. The fourth records the
+## coincidences DECLARED on the specimen rather than leaving them to be inferred
+## back from the geometry they produced.
 WB_ID_COLS <- c("specimen", "individual", "replicate", "operator", "mode",
-                "photo_file", "img_w", "img_h", "quality", "ruler_mm",
-                "mm_per_px", "n_clicked", "n_seeded", "n_predicted",
+                "photo_file", "photo_hash", "img_w", "img_h", "quality",
+                "reviewed", "reviewed_by", "review_date", "collapse_rules",
+                "ruler_mm", "mm_per_px", "n_clicked", "n_seeded", "n_predicted",
                 "n_adjusted", "n_na", "app_version", "timestamp")
 WB_COORD_COLS <- as.vector(rbind(paste0(WB_PTS, "_X"), paste0(WB_PTS, "_Y")))
 WB_COLS <- c(WB_ID_COLS, WB_COORD_COLS)
 
 WB_CHR_COLS <- c("specimen", "individual", "operator", "mode", "photo_file",
-                 "app_version", "timestamp")
+                 "photo_hash", "reviewed", "reviewed_by", "review_date",
+                 "collapse_rules", "app_version", "timestamp")
 wb_empty <- function() {
   d <- data.frame(matrix(nrow = 0, ncol = 0))
   for (cc in WB_COLS)
@@ -1416,6 +1490,15 @@ side_tabs <- function() {
       radioButtons("quality", "Quality score (1 = very good -> 5 = poor)",
                    choices = c("1" = 1, "2" = 2, "3" = 3, "4" = 4, "5" = 5),
                    selected = 3, inline = TRUE),
+      ## TWO STATEMENTS, NOT ONE. The score says how good the entry is; the tick
+      ## says whether anyone has actually looked at it. They are independent,
+      ## and conflating them loses the case that matters: a specimen can be
+      ## checked AND poor, which is precisely the row a re-photographing list is
+      ## built from. Untouched, the score is its default and the tick is off --
+      ## "nobody has looked at it", which is a different thing from "somebody
+      ## looked and said nothing". The author and the date are stamped only when
+      ## the tick is on, so an unaudited opinion cannot be manufactured.
+      checkboxInput("reviewed", "Checked: I have looked at this entry", FALSE),
       numericInput("scale_mm", "Scale bar 20-21: real length (mm)",
                    CFG$ruler_mm, min = 0),
       helpText("Optional. Place 20 and 21 at the two ends of the reference:",
@@ -1792,29 +1875,298 @@ server <- function(input, output, session) {
                   error = function(e) NULL)
     if (is.null(j) || !nrow(j)) return(invisible(NULL))
     is_bias <- !is.na(j$target_sheet) & j$target_sheet == CFG$sheet_bias
-    jm <- wb_normalise(j[!is_bias, , drop = FALSE])
-    jb <- wb_normalise(j[is_bias, , drop = FALSE])
+    ## BOTH SIDES BROUGHT TO THE CURRENT NAMING BEFORE THEY ARE COMPARED.
+    ##
+    ## The journal is append-only: it holds every record under the code it was
+    ## SAVED with, so a specimen re-keyed on an earlier run is still in there
+    ## under its dead code. Comparing the raw journal with the workbook then
+    ## finds that dead code "missing from the workbook" and puts it back --
+    ## every launch, for ever -- and the reconciliation that runs next sees the
+    ## restored row collide with the live one and reports an ambiguity that is
+    ## nothing of the sort. On the T-26 campaign that manufactured 41 phantom
+    ## records and 41 phantom ambiguities out of 41 renames correctly applied.
+    ##
+    ## Reconciling the journal side FIRST makes the comparison a comparison of
+    ## like with like. A record whose code has since changed is then recognised
+    ## as present, because it is.
+    jm <- reconcile_quiet(wb_normalise(j[!is_bias, , drop = FALSE]))
+    jb <- reconcile_quiet(wb_normalise(j[is_bias, , drop = FALSE]))
+    ## ... and the workbook side likewise. It is reconciled for real a few lines
+    ## down; here only its CODES are needed, brought to the same naming as the
+    ## journal's, or the comparison compares two different vocabularies.
     known <- if (is.null(rv$meas) || !nrow(rv$meas)) character(0) else
-      as.character(rv$meas$specimen)
+      as.character(reconcile_quiet(rv$meas)$specimen)
     extra <- jm[!(as.character(jm$specimen) %in% known), , drop = FALSE]
+
+    ## ONLY WHAT THIS SESSION CAN ACT ON.
+    ##
+    ## The journal is append-only and project-wide: it holds every record ever
+    ## saved, under the code it was saved with, for every folder. Reinjecting
+    ## all of it into the workbook of ONE folder had two consequences, and the
+    ## second is a loop.
+    ##
+    ## A record whose photograph is not in this folder cannot be reviewed, cannot
+    ## be re-measured and cannot be reconciled here: its old name matches no
+    ## file, no fingerprint and no provenance. It comes back as `frame_changed`
+    ## or `ambiguous` at EVERY launch, is cleared or re-keyed, is written out --
+    ## and the journal, which never forgets, puts it back on the next launch.
+    ## On T-26 that was 49 records regenerating 37 + 12 warnings, run after run,
+    ## with counters that crept down but could never reach zero.
+    ##
+    ## So the test is the photograph: `photo_file` in THIS folder. That keeps
+    ## the safety net exactly where it is needed -- a write that failed for the
+    ## specimens being digitized now -- and leaves the rest of the project's
+    ## history in the journal, where it belongs, to be picked up by the session
+    ## that opens ITS folder. Nothing is lost: no record is deleted, only not
+    ## copied into a workbook that has no use for it.
+    held <- 0L
+    if (nrow(extra)) {
+      here <- !is.na(extra$photo_file) &
+        basename(as.character(extra$photo_file)) %in% basename(CFG$photos)
+      held  <- sum(!here)
+      extra <- extra[here, , drop = FALSE]
+    }
     if (nrow(extra)) {
       # Both sides went through wb_normalise(), so they carry exactly WB_COLS
       # in the same order and a plain rbind() is safe.
       rv$meas <- if (is.null(rv$meas) || !nrow(rv$meas)) extra else
         rbind(rv$meas, extra)
       rv$pending <- rv$pending + nrow(extra)
-      txt <- sprintf(paste("%d digitization(s) were in the journal but NOT in",
-                           "the workbook. They are counted as done -- the",
-                           "queue is right -- but the workbook is behind:",
-                           "press \"Write the workbook now\". A write that",
-                           "failed (file open in Excel, folder being synced)",
-                           "is the usual cause."), nrow(extra))
+      txt <- sprintf(paste("%d digitization(s) of THIS folder were in the",
+                           "journal but NOT in the workbook. They are counted",
+                           "as done -- the queue is right -- but the workbook",
+                           "is behind: press \"Write the workbook now\". A",
+                           "write that failed (file open in Excel, folder being",
+                           "synced) is the usual cause."), nrow(extra))
       rv$msg <- txt
       try(showNotification(txt, type = "warning", duration = 15), silent = TRUE)
     }
+    if (held)
+      try(showNotification(sprintf(paste(
+        "%d journal record(s) name a photograph that is not in this folder --",
+        "another site or date, or a picture digitized under a name it no longer",
+        "carries. They are left in the journal, which is where the project's",
+        "history lives; nothing is lost and nothing is expected of you here."),
+        held), type = "message", duration = 10), silent = TRUE)
     if (!is.null(jb) && nrow(jb) &&
         (is.null(rv$bias) || nrow(jb) > nrow(rv$bias))) rv$bias <- jb
   }))
+
+  ## A PHOTOGRAPH RENAMED IS NOT A PHOTOGRAPH REDISCOVERED.
+  ##
+  ## Everything downstream keys on the specimen code, which is the file name
+  ## without its extension. Correcting a determination renames the file -- and
+  ## the code with it -- while the pixels, the landmarks and the scale stay
+  ## exactly where they were. Matching the queue on the name alone therefore put
+  ## an already-digitized fish back in the "new" queue, with no error and no
+  ## warning, to be measured a second time under its new name: two rows, one
+  ## fish, and no column saying so.
+  ##
+  ## So the sheets are reconciled against the folder on the FINGERPRINT of the
+  ## files before any queue is built. Rows written before the column existed are
+  ## back-filled from the file they still name; rows whose photograph now has
+  ## another name are re-keyed, carrying the `_i<k>` of a plate and the
+  ## `_<operator>_rep<N>` of a repeat across untouched. Ambiguities -- the same
+  ## photograph present twice, a target code already taken -- are reported and
+  ## left alone, because a wrong merge is invisible afterwards and a rename done
+  ## by hand is not.
+  ##
+  ## In memory only, like the journal reconciliation above: the queue is right
+  ## immediately, and the workbook is repaired by a deliberate press of "Write
+  ## the workbook now". The journal, being append-only, keeps the old key --
+  ## which is what makes the re-keying auditable rather than a quiet rewriting
+  ## of history.
+  ## A FUNCTION AND NOT A ONE-OFF BLOCK, because there are two moments at which
+  ## the sheets can come to disagree with the folder. The obvious one is launch.
+  ## The other is "Rebuild from the journals": the journal is append-only, so it
+  ## still holds every record under the code it was SAVED with, and a rebuild
+  ## therefore resurrects exactly the old codes the reconciliation had just
+  ## replaced. Rebuilding without re-reconciling would undo the repair and put
+  ## the renamed specimens straight back in the "new" queue.
+  reconcile_sheets <- function() {
+    if (!length(CFG$photos)) return(invisible(NULL))
+    ## A FAILURE HERE IS REPORTED, NOT SWALLOWED. The reconciliation is allowed
+    ## to fail -- the app must still open, and a workbook it could not
+    ## reconcile is a workbook exactly as usable as before. What it is NOT
+    ## allowed to do is fail SILENTLY: "no rename found" and "the code that
+    ## looks for renames threw" are indistinguishable from the outside, and the
+    ## second was mistaken for the first for two releases.
+    fix <- function(d) {
+      if (is.null(d) || !nrow(d)) return(list(data = d, changes = NULL))
+      tryCatch(intraitR::reconcile_photo_names(d, CFG$photos, PHOTO_HASHES,
+                                               provenance = PROVENANCE),
+               error = function(e) {
+                 msg <- paste0("Could not reconcile the workbook against the ",
+                               "photographs: ", conditionMessage(e),
+                               ". Renamed specimens may reappear in the 'new' ",
+                               "queue; nothing has been altered.")
+                 rv$msg <- msg
+                 try(showNotification(msg, type = "error", duration = NULL),
+                     silent = TRUE)
+                 list(data = d, changes = NULL)
+               })
+    }
+    rm_ <- fix(rv$meas); rb_ <- fix(rv$bias)
+    rv$meas <- rm_$data; rv$bias <- rb_$data
+    ch <- rbind(rm_$changes, rb_$changes)
+    if (is.null(ch) || !nrow(ch)) return(invisible(NULL))
+    ren <- ch[ch$status == "renamed", , drop = FALSE]
+    amb <- ch[ch$status == "ambiguous", , drop = FALSE]
+    if (nrow(ren)) {
+      rv$pending <- rv$pending + nrow(ren)
+      ex <- utils::head(sprintf("%s -> %s", ren$specimen_old, ren$specimen_new), 3L)
+      txt <- sprintf(paste("%d specimen(s) were renamed since they were",
+                           "digitized and have been matched back to their",
+                           "measurements on the image fingerprint (%s%s).",
+                           "They stay OUT of the 'new' queue. Press \"Write",
+                           "the workbook now\" to record the new codes."),
+                     nrow(ren), paste(ex, collapse = "; "),
+                     if (nrow(ren) > 3L) ", ..." else "")
+      rv$msg <- txt
+      try(showNotification(txt, type = "message", duration = 15), silent = TRUE)
+    }
+    sup <- ch[ch$status == "superseded", , drop = FALSE]
+    frm <- ch[ch$status == "frame_changed", , drop = FALSE]
+    ## THE QUEUE IS THE ANSWER TO "IS THERE ANYTHING LEFT TO DO?", SO EVERY
+    ## DOUBT GOES BACK INTO IT.
+    ##
+    ## Leaving such a row in place puts the fish in the "correct" queue, where
+    ## the operator is shown a configuration that fits nothing and invited to
+    ## adjust it.
+    ##
+    ## Three findings mean the same thing for the operator -- these coordinates
+    ## can no longer be trusted against this image -- and they used to be
+    ## handled three different ways: the re-crop cleared and requeued, while the
+    ## frame change and the ambiguity only printed a warning and left the row
+    ## sitting in the "correct" queue. A warning is read once and gone; the
+    ## queue is what is still on screen tomorrow. Splitting the two meant the
+    ## queue said "nothing left" while 54 specimens needed attention.
+    ##
+    ## A few extra fish to measure costs an afternoon. A queue that lies costs
+    ## the campaign. Clearing the COORDINATES rather than deleting the row keeps
+    ## the record, and the journal keeps the original configuration either way
+    ## -- "Rebuild from the journal" restores it if it is ever wanted back.
+    ## Retourne le nombre de SPECIMENS distincts, pas de lignes. Un specimen
+    ## occupe plusieurs lignes -- un individu de planche `_iK`, une repetition
+    ## `_repN`, ou simplement son ancien et son nouveau nom quand les deux sont
+    ## passes ici. Annoncer les lignes donnait "37 specimen(s) ... 94 row(s)",
+    ## un ecart qui ressemble a une avarie alors qu'il n'en est pas une, et qui
+    ## surtout ne se compare pas au compteur de la file.
+    requeue <- function(codes) {
+      codes <- unique(codes[!is.na(codes) & nzchar(codes)])
+      if (!length(codes) || is.null(rv$meas) || !nrow(rv$meas)) return(0L)
+      hit <- which(rv$meas$specimen %in% codes)
+      # `v[integer(0)] <- NA` is an error in R, not a no-op: guard on the hit.
+      if (!length(hit)) return(0L)
+      for (cc in WB_COORD_COLS) rv$meas[[cc]][hit] <- NA_real_
+      rv$meas$photo_hash[hit] <- NA_character_
+      rv$pending <- rv$pending + length(hit)
+      length(unique(sub("_i[0-9]+$", "", sub("_rep[0-9]+$", "",
+                                             rv$meas$specimen[hit]))))
+    }
+
+    img <- ch[ch$status == "image_changed", , drop = FALSE]
+    if (nrow(img)) {
+      n <- requeue(img$specimen_old)
+      try(showNotification(sprintf(paste(
+        "%d photograph(s) have been RE-CROPPED since they were digitized (%s).",
+        "The landmarks belong to the old framing and point at the wrong pixels",
+        "now, so they have been cleared and %d specimen(s) are back in the",
+        "'new' queue. The journal keeps the original configuration."),
+        nrow(img), paste(utils::head(img$specimen_old, 3L), collapse = "; "), n),
+        type = "warning", duration = NULL), silent = TRUE)
+    }
+    if (nrow(sup)) {
+      rv$pending <- rv$pending + 1L
+      try(showNotification(sprintf(paste(
+        "%d row(s) were the SAME digitization present twice -- an old code",
+        "still carried alongside the one that replaced it, with identical",
+        "coordinates. The duplicate has been dropped; no measurement is lost."),
+        nrow(sup)), type = "message", duration = 12), silent = TRUE)
+    }
+    if (nrow(frm)) {
+      ## RE-KEY BEFORE REQUEUING, OR THE ROW DISAPPEARS ALTOGETHER.
+      ##
+      ## reconcile_photo_names() REPORTS a frame change, it does not rename:
+      ## the row keeps the code and the file name it was digitized under. Those
+      ## no longer name anything on disk once the specimen has been re-keyed
+      ## (`GOBOCC_010_AT.jpeg` is now `..._0016.jpeg`). Clearing the
+      ## coordinates then removes the row from the "correct" queue without ever
+      ## putting it in the "new" one -- because that queue is built from the
+      ## PHOTOGRAPHS in the folder, and no photograph answers to the old name.
+      ## On T-26 that hid 42 specimens: the queue said 34 when it was 76.
+      ##
+      ## `photo_file_new` is exactly the file that was matched, so the current
+      ## identity is readable from it. Any `_iK` / `_repN` suffix is carried
+      ## over: it names a fish within a photograph, not the photograph.
+      k <- match(rv$meas$specimen, frm$specimen_old)
+      j <- which(!is.na(k))
+      if (length(j)) {
+        newf <- frm$photo_file_new[k[j]]
+        oldf <- frm$photo_file_old[k[j]]
+        ok <- !is.na(newf) & nzchar(newf) & !grepl("|", newf, fixed = TRUE)
+        if (any(ok)) {
+          jj  <- j[ok]
+          suf <- substring(rv$meas$specimen[jj],
+                           nchar(tools::file_path_sans_ext(oldf[ok])) + 1L)
+          rv$meas$specimen[jj]   <- paste0(tools::file_path_sans_ext(newf[ok]), suf)
+          rv$meas$photo_file[jj] <- newf[ok]
+        }
+      }
+      n <- requeue(c(frm$specimen_old,
+                     if (length(j)) rv$meas$specimen[j] else character(0)))
+      try(showNotification(sprintf(paste(
+        "%d specimen(s) match a photograph of the same fish at a DIFFERENT",
+        "pixel size (%s). The picture was re-cropped after digitizing, so the",
+        "landmarks do not transfer. They have been cleared, re-keyed to the",
+        "photograph now on disk, and %d specimen(s) are back in the queue --",
+        "the journal keeps the original."),
+        nrow(frm), paste(utils::head(frm$specimen_old, 2L), collapse = "; "), n),
+        type = "warning", duration = NULL), silent = TRUE)
+    }
+    if (nrow(amb)) {
+      ## BOTH SIDES OF THE AMBIGUITY GO BACK, not just the row being examined.
+      ## The finding is "this image exists under several names with different
+      ## coordinates": requeuing one of them would leave the other looking
+      ## finished, and the doubt would survive in the half that stayed.
+      cand <- trimws(unlist(strsplit(as.character(amb$photo_file_new), "|",
+                                     fixed = TRUE)))
+      also <- if (is.null(rv$meas) || !nrow(rv$meas)) character(0) else
+        rv$meas$specimen[!is.na(rv$meas$photo_file) &
+                           rv$meas$photo_file %in% cand]
+      n <- requeue(c(amb$specimen_old, also))
+
+      ## THE SPENT HALF IS DROPPED, HERE AND NOWHERE ELSE.
+      ##
+      ## Once both halves are cleared, the one whose photograph is NOT in the
+      ## folder can never be reached again: it carries no coordinates, and no
+      ## image answers to its name. Left in place it is a dead row -- and it
+      ## cannot be cleaned later either, because clearing its hash is exactly
+      ## what stops the next run from recognising it as ambiguous at all. This
+      ## is the only moment the evidence exists.
+      ##
+      ## Dropped only when its live counterpart is present (`length(also)`):
+      ## without that, the row would be the last trace of the fish.
+      if (length(also)) {
+        gone <- amb$specimen_old[!(amb$photo_file_old %in% basename(CFG$photos))]
+        keep <- !(rv$meas$specimen %in% gone)
+        if (any(!keep)) {
+          rv$meas <- rv$meas[keep, , drop = FALSE]
+          rv$pending <- rv$pending + sum(!keep)
+        }
+      }
+      try(showNotification(sprintf(paste(
+        "%d photograph(s) could not be matched unambiguously -- the same image",
+        "digitized twice under two names, with DIFFERENT coordinates: %s.",
+        "Rather than leave the doubt in the workbook, %d specimen(s) have been",
+        "put back in the 'new' queue and are to be measured again. Nothing is",
+        "lost: the journal keeps every configuration."),
+        nrow(amb), paste(utils::head(amb$specimen_old, 3L), collapse = "; "), n),
+        type = "warning", duration = 20), silent = TRUE)
+    }
+    invisible(NULL)
+  }
+  isolate(reconcile_sheets())
 
   ## HOW MANY INDIVIDUALS A PHOTOGRAPH HOLDS IS READ BACK FROM WHAT WAS SAVED.
   ## The count lives in memory, and its default is a launch argument: a plate
@@ -2141,10 +2493,23 @@ server <- function(input, output, session) {
   }
   ## Specimens already in the measurements sheet: the "new" queue is what is NOT
   ## here, the "correct" queue is what IS.
+  ## ROWS WITH NO AXIS DO NOT COUNT AS DIGITIZED. A row carrying a specimen, a
+  ## photograph and no coordinate at all -- written by a press of "Save" on a
+  ## photograph nothing had been placed on, which the guard in save_specimen()
+  ## now refuses -- would otherwise take its specimen out of the "new" queue for
+  ## ever without it ever having been measured. Reading the axis back is the
+  ## same test the guard applies, so the sheet and the app agree on what "done"
+  ## means; existing empty rows simply return to the queue and are overwritten
+  ## by their own identifier the moment they are measured.
   saved_specimens <- function() {
     m <- rv$meas
     if (is.null(m) || !nrow(m)) return(character(0))
-    unique(m$specimen[!is.na(m$specimen)])
+    ok <- !is.na(m$specimen) &
+      is.finite(suppressWarnings(as.numeric(m[["1_X"]]))) &
+      is.finite(suppressWarnings(as.numeric(m[["1_Y"]]))) &
+      is.finite(suppressWarnings(as.numeric(m[["2_X"]]))) &
+      is.finite(suppressWarnings(as.numeric(m[["2_Y"]])))
+    unique(m$specimen[ok])
   }
   ## PHOTOGRAPHS that need no further work in the CURRENT mode. The unit of work
   ## is the individual, the unit of navigation is the photograph, and on a plate
@@ -2347,11 +2712,24 @@ server <- function(input, output, session) {
     q <- suppressWarnings(as.numeric(m$quality[i]))
     if (is.finite(q)) updateRadioButtons(session, "quality",
                                          selected = as.character(round(q)))
-    # A zero recorded earlier comes back as two coincident landmarks -- or, for a
-    # projection, as a landmark lying on the mid axis: read the rules off the
-    # coordinates rather than lose them, so that reopening a specimen shows the
-    # same statement it was saved with.
-    act <- collapse_detect(P)
+    # The tick comes back as it was left. It is deliberately NOT reset to FALSE
+    # on reopening: "checked" is a statement about the entry, and a correction
+    # pass that changes nothing must not silently retract it. Saving re-stamps
+    # the author and the date, so the last person to look at it is the one
+    # recorded.
+    rvw <- as.character(m$reviewed[i])
+    updateCheckboxInput(session, "reviewed",
+                        value = !is.na(rvw) && tolower(rvw) %in% c("yes", "true", "1"))
+    # A zero recorded earlier is read from what was DECLARED when the workbook
+    # says so, and only otherwise inferred back from the coordinates. The two
+    # normally agree; when they do not, the declaration is the statement the
+    # operator actually made -- a coincidence read off the geometry cannot tell
+    # a rule that was applied from two points that happened to land together,
+    # and cannot see a rule whose points were later moved apart at all.
+    declared <- as.character(m$collapse_rules[i])
+    act <- if (!is.na(declared) && nzchar(declared))
+      intersect(strsplit(declared, ";", fixed = TRUE)[[1]], names(COLLAPSE_RULES))
+    else collapse_detect(P)
     rv$collapse <- act
     updateCheckboxGroupInput(session, "collapse", selected = act)
     rv$adjusted <- union(rv$adjusted, collapse_points(act))
@@ -3067,16 +3445,43 @@ server <- function(input, output, session) {
                status = unname(point_status(WB_PTS)),
                row.names = NULL)
   }
+  ## The review of the ENTRY, as three fields rather than one. Empty strings and
+  ## not NA for the author and the date when nothing has been declared: the
+  ## column is character, and a reader has to be able to tell "not reviewed"
+  ## from "reviewed by nobody in particular".
+  review_now <- function() {
+    on <- isTRUE(input$reviewed)
+    list(reviewed = if (on) "yes" else "no",
+         reviewed_by = if (on) OPERATOR else NA_character_,
+         review_date = if (on) format(as.POSIXct(Sys.time(), tz = "UTC"),
+                                      "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+                       else NA_character_)
+  }
+  ## The coincidences DECLARED on this specimen, as one string. Recorded because
+  ## a declared zero is a measurement: leaving only the geometry it produced
+  ## means a reader cannot tell it from two points that happened to land on each
+  ## other, and means the boxes come back empty when the specimen is reopened.
+  collapse_now <- function() {
+    a <- rv$collapse
+    if (!length(a)) NA_character_ else paste(sort(unique(a)), collapse = ";")
+  }
   current_row <- function(st) {
     P <- rv$pred
+    rvw <- review_now()
     row <- data.frame(
       specimen = save_id(), individual = cur_code(),
       replicate = if (isTRUE(rep_mode()))
         suppressWarnings(as.integer(input$rep_i)) else 1L,
       operator = OPERATOR, mode = cur_mode(),
       photo_file = if (!is.null(rv$orig)) basename(rv$orig) else NA_character_,
+      # The fingerprint of the file on screen, not of the queue slot: the
+      # operator may have jumped to a photograph outside the current queue.
+      photo_hash = if (!is.null(rv$orig))
+        hash_of_photo(match(rv$orig, CFG$photos)) else NA_character_,
       img_w = rv$w %||% NA_real_, img_h = rv$h %||% NA_real_,
       quality = suppressWarnings(as.numeric(input$quality)),
+      reviewed = rvw$reviewed, reviewed_by = rvw$reviewed_by,
+      review_date = rvw$review_date, collapse_rules = collapse_now(),
       ruler_mm = num1(input$scale_mm), mm_per_px = mm_per_px(P),
       n_clicked = sum(st == "clicked"), n_seeded = sum(st == "seeded"),
       n_predicted = sum(st == "predicted"), n_adjusted = sum(st == "adjusted"),
@@ -3128,6 +3533,14 @@ server <- function(input, output, session) {
     is_bias <- !is.na(j$target_sheet) & j$target_sheet == CFG$sheet_bias
     rv$meas <- wb_normalise(j[!is_bias, , drop = FALSE])
     rv$bias <- wb_normalise(j[is_bias, , drop = FALSE])
+    # THE JOURNAL IS APPEND-ONLY, so it still holds every record under the code
+    # it was SAVED with -- including the codes a rename has since replaced.
+    # Rebuilding from it therefore resurrects exactly what the reconciliation
+    # repaired, and the renamed specimens would go straight back into the "new"
+    # queue. Re-reconciling here is what makes "rebuild" a recovery rather than
+    # a regression. It is idempotent: on a workbook already in step it finds
+    # nothing and says nothing.
+    reconcile_sheets()
     rv$pending <- rv$pending + 1L
     flush_xlsx(force = TRUE, quiet = FALSE)
     notify(sprintf("Rebuilt from the journals: %d measurement(s), %d repeat(s).",
@@ -3267,6 +3680,32 @@ server <- function(input, output, session) {
   observeEvent(input$extreme_asis, { removeModal(); save_specimen() })
 
   save_specimen <- function() {
+    ## AN EMPTY RECORD IS NOT A RECORD.
+    ##
+    ## Three rows of the T-26 campaign workbook carry a specimen, a photograph,
+    ## a size, a quality score and a timestamp -- and not one coordinate. They
+    ## were written by a press of "Save & next" on a photograph nothing had been
+    ## placed on yet, and they are worse than nothing: the queue counts them as
+    ## digitized, so the specimen leaves the "new" queue for ever without ever
+    ## having been measured, and `n_clicked = 0`, `n_na = 0` says so in a way
+    ## nothing reads.
+    ##
+    ## The axis is the minimum. LM1 and LM2 are what every frame, every
+    ## convention and every derived point are expressed against; a configuration
+    ## without them is not a partial measurement, it is no measurement at all.
+    ## Declaring a point unmeasurable (`na`) is a different act and stays
+    ## allowed -- that is a statement about the specimen, not an empty row.
+    P0 <- rv$pred
+    axis_ok <- fin_row(P0, 1L) && fin_row(P0, 2L)
+    n_placed <- sum(vapply(SAVE_PTS, function(p) fin_row(P0, p), logical(1)))
+    if (!axis_ok || n_placed == 0L) {
+      notify(paste("Nothing to save: place at least the snout (LM1) and the",
+                   "caudal-fin basis (LM2). An empty row would take this",
+                   "specimen out of the 'new' queue without measuring it."),
+             "error")
+      return(invisible(NULL))
+    }
+
     df  <- current_table()
     id  <- df$specimen[1]
     st  <- stats::setNames(df$status, as.character(df$landmark))
@@ -3283,7 +3722,10 @@ server <- function(input, output, session) {
         specimen = id, individual = row$individual, replicate = row$replicate,
         photo_file = row$photo_file, mode = row$mode, target_sheet = sheet,
         img_w = row$img_w, img_h = row$img_h, quality = row$quality,
-        ruler_mm = row$ruler_mm, mm_per_px = row$mm_per_px)
+        ruler_mm = row$ruler_mm, mm_per_px = row$mm_per_px,
+        photo_hash = row$photo_hash, reviewed = row$reviewed,
+        reviewed_by = row$reviewed_by, review_date = row$review_date,
+        collapse_rules = row$collapse_rules)
       TRUE
     }, error = function(e) { rv$msg <- conditionMessage(e); FALSE })
     if (!jok) {

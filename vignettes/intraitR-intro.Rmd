@@ -261,12 +261,25 @@ peduncle depth, caudal fin depth) plus an embedded scale bar, and
 optionally a 22nd point to correct standard length for body curvature in
 the picture.
 
-We simulate a small data set following this exact scheme with
-[simulate_fishmorph_points()], and inspect the digitization of one
-specimen with [plot_fishmorph_points()]:
+From here on the vignette works on **real data**: the T-26 electrofishing
+survey of the Saudrune, 494 fish of seven species photographed in the
+field on two dates and digitized specimen by specimen with
+[digitize_landmarks()].
+This is the data set the package ships as its reference example, and the
+one the rest of this document uses; the simulated generators above remain
+useful for teaching a function's shape, but the behaviour that matters —
+missing points, unequal sample sizes, specimens whose scale bar was never
+placed — only appears on a real survey.
+
+The campaign was digitized on the 25-point scheme: the 19 anatomical
+landmarks and the scale bar as above, plus the curvature point 22, the
+derived head base 23, and the two entry hinges 24–25 that record the
+broken axis a bent specimen was digitized under.
 
 ```{r}
-fishmorph_fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+fishmorph_fish <- load_t26_saudrune_landmarks()
+dim(fishmorph_fish$coords)
+table(fishmorph_fish$metadata$species)
 plot_fishmorph_points(fishmorph_fish, specimen = 1)
 ```
 

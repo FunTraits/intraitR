@@ -6,92 +6,76 @@
 \code{"intrait_landmarks"} object}
 \usage{
 load_t26_saudrune_landmarks(
-  source = c("operators", "repeatability"),
+  source = c("landmarks", "repeatability"),
   species = NULL,
   operator = NULL
 )
 }
 \arguments{
-\item{source}{Character, one of \code{"operators"} (default: 826 digitizations
-of the T-26 fish across four operators -- Operator_1 and Operator_2 each
-digitized the full set of 279 fish once, Operator_3 and Operator_4 a
-subset) or \code{"repeatability"} (25 individuals, each digitized 9-10 times,
-by two operators; see \code{\link[=digitization_error]{digitization_error()}} and \code{\link[=measurement_error]{measurement_error()}}).}
+\item{source}{Character, one of:
+\describe{
+\item{\code{"landmarks"}}{\strong{Default.} Every specimen of the campaign,
+digitized once with \code{\link[=digitize_landmarks]{digitize_landmarks()}} on the 25-point scheme.
+\code{metadata$replicate} is 1 throughout and \code{metadata$individual} equals
+\code{specimen}.}
+\item{\code{"repeatability"}}{The blind repeat trial: the same individuals
+re-digitized several times in the digitizer's repeat mode.
+\code{metadata$individual} is the fish (\code{code}), \code{metadata$replicate} the
+pass; the input of \code{\link[=digitization_error]{digitization_error()}}, \code{\link[=measurement_error]{measurement_error()}} and
+\code{\link[=operator_disagreement]{operator_disagreement()}}.}
+}}
 
 \item{species}{Optional character vector of species names: if supplied,
-only specimens identified (curated or preliminary) as one of these
-species are kept. Defaults to \code{NULL} (every fish is kept, including
-the single specimen with an unresolved identification, for which
-\code{metadata$species} is \code{NA}; see \code{\link[=load_t26_saudrune]{load_t26_saudrune()}}).}
+only specimens currently determined as one of these species are kept.
+Defaults to \code{NULL} (every fish is kept).}
 
-\item{operator}{\code{NULL} (default, every operator's digitizations are
-returned), or a character vector of one or more anonymous operator
-labels (e.g. \code{"Operator_1"}; see \code{unique(load_t26_saudrune(source)$operator)}
-for the labels available for a given \code{source}) to restrict to. This
-is the natural way to build \strong{two separate functional trait spaces},
-one per operator, from \code{source = "operators"} (each fish was
-digitized once by each operator) — e.g. to check whether
-\code{\link[=trait_space]{trait_space()}} or \code{\link[=fishmorph_ratios]{fishmorph_ratios()}} results are sensitive to who
-did the digitizing, complementing the landmark-level view of
-\code{\link[=digitization_error]{digitization_error()}}. Modular by design: if the requested \code{source}
-has no \code{operator} column, \code{operator} is ignored with a warning and
-every row is returned (in practice every \code{source} currently offered
-here does have one, but this keeps the function robust to future
-\code{source} options that might not).}
+\item{operator}{\code{NULL} (default, every operator's digitizations), or a
+character vector of operator labels (e.g. \code{"AT"}; see
+\code{unique(load_t26_saudrune(source)$operator)}) to restrict to. With two
+operators in \code{"repeatability"} this is the natural way to build two
+separate trait spaces and check whether results depend on who digitized.}
 }
 \value{
-An object of class \code{"intrait_landmarks"}, a list with elements
-\code{coords} (a \verb{21 x 2 x n} array), \code{scale} (\code{NULL}; the scale bar is
-embedded as landmarks 20-21, as in \code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}), and
-\code{metadata} (a \code{data.frame} with, in addition to the five standard
-columns shared with \code{simulate_fishmorph_points()}'s output, an
-\code{operator} column and, for \code{source = "repeatability"}, a \code{site}
-column carried over from the raw data).
+An object of class \code{"intrait_landmarks"}: \code{coords} (a \verb{25 x 2 x n}
+array), \code{scale} (\code{NULL}; the scale bar is embedded as landmarks 20-21, as
+in \code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}) and \code{metadata} (the five standard
+columns plus \code{operator}, and \code{species_code}, \code{quality}, \code{date} and \code{uid}
+carried over from the \code{"specimens"} table).
 }
 \description{
 Loads the real T-26 Saudrune electrofishing landmark data (see
 \code{\link[=load_t26_saudrune]{load_t26_saudrune()}}) directly as an object of class
-\code{"intrait_landmarks"}, in exactly the format returned by
-\code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}: a \verb{p x k x n} coordinate array (21
-FISHMORPH landmarks; Brosse et al., 2021) together with a \code{metadata}
-data.frame carrying \code{specimen}, \code{individual}, \code{species}, \code{population}
-and \code{replicate} columns. This makes the real data set a drop-in
+\code{"intrait_landmarks"}, in the format returned by
+\code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}: a \verb{p x k x n} coordinate array together with
+a \code{metadata} data.frame carrying \code{specimen}, \code{individual}, \code{species},
+\code{population} and \code{replicate}. The real data set is therefore a drop-in
 replacement for \code{simulate_fishmorph_points()} wherever a FISHMORPH-scheme
 \code{"intrait_landmarks"} object is expected, e.g. \code{\link[=fishmorph_segments]{fishmorph_segments()}},
-\code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=trait_space]{trait_space()}}, \code{\link[=itv_index]{itv_index()}},
-\code{\link[=trait_disparity]{trait_disparity()}}, and \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}.
+\code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=trait_space]{trait_space()}}, \code{\link[=itv_index]{itv_index()}}, \code{\link[=trait_disparity]{trait_disparity()}}
+and \code{\link[=plot_fishmorph_points]{plot_fishmorph_points()}}.
 }
 \details{
-Unlike \code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}, real specimens are not all fully
-digitized: some coordinates (chiefly landmark 5, in roughly a quarter
-of specimens) are missing. Functions that require a complete
-configuration (e.g. \code{\link[=gpa_fish]{gpa_fish()}}, which is not intended for this mixed
-shape/scale-bar landmark scheme in any case; see
-\code{\link[=simulate_fishmorph_points]{simulate_fishmorph_points()}}) should filter on complete cases first.
-\code{metadata$population} is set to \code{NA} throughout, because the T-26
-survey sampled a single electrofishing point: unlike the simulated data
-set, there is no genuine sub-population structure in this real sample
-to report, and none is fabricated here.
+Point 25 is reserved by the digitizer and currently always \code{NA}; a few
+specimens lack the scale bar (20-21). Functions that require a complete
+configuration (e.g. \code{\link[=gpa_fish]{gpa_fish()}}) should filter on complete cases of the
+landmarks they use. \code{metadata$population} is \code{NA} throughout: the survey
+sampled one electrofishing point and no sub-population structure is
+fabricated.
 }
 \examples{
 fish <- load_t26_saudrune_landmarks()
 fish
-table(fish$metadata$species, useNA = "ifany")
+table(fish$metadata$species)
 
 # restrict to the two most abundant species
 gobio_squalius <- load_t26_saudrune_landmarks(
-  species = c("Gobio occitaniae", "Squalius cephalus")
+  species = c("Gobio gobio", "Squalius cephalus")
 )
 dim(gobio_squalius$coords)
 
-# build two separate functional trait spaces, one per operator, to check
-# whether the two digitizers' shape spaces agree:
-fish_op1 <- load_t26_saudrune_landmarks(operator = "Operator_1")
-fish_op2 <- load_t26_saudrune_landmarks(operator = "Operator_2")
-ratios_op1 <- fishmorph_ratios(fishmorph_segments(fish_op1))
-ratios_op2 <- fishmorph_ratios(fishmorph_segments(fish_op2))
-ts_op1 <- trait_space(ratios_op1, groups = fish_op1$metadata$species, na_action = "omit")
-ts_op2 <- trait_space(ratios_op2, groups = fish_op2$metadata$species, na_action = "omit")
+# the repeat trial: several configurations per individual
+rep_fish <- load_t26_saudrune_landmarks("repeatability")
+table(rep_fish$metadata$individual)
 
 }
 \references{

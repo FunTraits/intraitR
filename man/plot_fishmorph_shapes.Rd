@@ -31,8 +31,8 @@ plotted. Exactly one of \code{species}/\code{individuals} must be supplied.}
 \item{individuals}{Character vector of individual/specimen identifiers
 to plot. Matched against \code{landmarks$metadata$individual} if that
 column exists (so a fish's code selects every digitization of it,
-e.g. two rows from \code{load_t26_saudrune_landmarks("operators")}, one
-per operator), and otherwise directly against the specimen
+e.g. several rows from \code{load_t26_saudrune_landmarks("repeatability")},
+one per pass), and otherwise directly against the specimen
 identifiers (\code{dimnames}). Exactly one of \code{species}/\code{individuals}
 must be supplied.}
 
@@ -67,7 +67,7 @@ fallback to a single colour.}
 \item{operator}{Logical shortcut for \code{color_by = "operator"}: colour each
 shape by the operator who digitized it (requires an \code{operator} column
 in \code{landmarks$metadata}, as produced by
-\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}} with \code{source = "operators"}). Cannot be
+\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}} with \code{source = "repeatability"}). Cannot be
 combined with an explicit \code{color_by}. Defaults to \code{FALSE}.}
 
 \item{palette}{Optional vector of colours to use for the groups defined
@@ -132,11 +132,13 @@ hand, or pass already Procrustes-aligned coordinates with
 }
 \examples{
 fish <- load_t26_saudrune_landmarks()
-plot_fishmorph_shapes(fish, species = "Gobio occitaniae")
+plot_fishmorph_shapes(fish, species = "Gobio gobio")
 
 # colour each outline by the operator who digitized it (raise alpha so
-# the two operators' colours stay legible through the overlap):
-plot_fishmorph_shapes(fish, species = "Gobio occitaniae",
+# the operators' colours stay legible through the overlap); on the repeat
+# trial, every pass of the same fish is overlaid:
+rep_fish <- load_t26_saudrune_landmarks("repeatability")
+plot_fishmorph_shapes(rep_fish, individuals = rep_fish$metadata$individual[1],
                       operator = TRUE, alpha = 0.4)
 
 # or by an explicit list of individuals, one colour each:

@@ -16,8 +16,8 @@
 #' @param individuals Character vector of individual/specimen identifiers
 #'   to plot. Matched against `landmarks$metadata$individual` if that
 #'   column exists (so a fish's code selects every digitization of it,
-#'   e.g. two rows from `load_t26_saudrune_landmarks("operators")`, one
-#'   per operator), and otherwise directly against the specimen
+#'   e.g. several rows from `load_t26_saudrune_landmarks("repeatability")`,
+#'   one per pass), and otherwise directly against the specimen
 #'   identifiers (`dimnames`). Exactly one of `species`/`individuals`
 #'   must be supplied.
 #' @param align Logical, centre each specimen's configuration on its own
@@ -47,7 +47,7 @@
 #' @param operator Logical shortcut for `color_by = "operator"`: colour each
 #'   shape by the operator who digitized it (requires an `operator` column
 #'   in `landmarks$metadata`, as produced by
-#'   [load_t26_saudrune_landmarks()] with `source = "operators"`). Cannot be
+#'   [load_t26_saudrune_landmarks()] with `source = "repeatability"`). Cannot be
 #'   combined with an explicit `color_by`. Defaults to `FALSE`.
 #' @param palette Optional vector of colours to use for the groups defined
 #'   by `color_by`/`operator`, at least as many as there are groups. `NULL`
@@ -113,11 +113,13 @@
 #'
 #' @examples
 #' fish <- load_t26_saudrune_landmarks()
-#' plot_fishmorph_shapes(fish, species = "Gobio occitaniae")
+#' plot_fishmorph_shapes(fish, species = "Gobio gobio")
 #'
 #' # colour each outline by the operator who digitized it (raise alpha so
-#' # the two operators' colours stay legible through the overlap):
-#' plot_fishmorph_shapes(fish, species = "Gobio occitaniae",
+#' # the operators' colours stay legible through the overlap); on the repeat
+#' # trial, every pass of the same fish is overlaid:
+#' rep_fish <- load_t26_saudrune_landmarks("repeatability")
+#' plot_fishmorph_shapes(rep_fish, individuals = rep_fish$metadata$individual[1],
 #'                       operator = TRUE, alpha = 0.4)
 #'
 #' # or by an explicit list of individuals, one colour each:

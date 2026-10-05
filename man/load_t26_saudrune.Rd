@@ -6,137 +6,97 @@
 (T-26, La Saudrune)}
 \source{
 T-26 electrofishing campaign, Saudrune (Adour-Garonne basin,
-France), 21 April 2026. Landmarks digitized by several independent
-operators; identifications curated with AI-vision assistance by A.
-Toussaint (CNRS). Raw spreadsheets are not distributed with the
-package (only the cleaned, analysis-ready tables are); see
-\code{data-raw/t26_saudrune_prepare.R} for the full cleaning/QC pipeline.
-Operator identity is not itself of biological interest and is not
-personally identifiable in the shipped data: the \code{operator} column
-records anonymous labels (\code{"Operator_1"}, \code{"Operator_2"}) rather than
-the real names recorded in the original field spreadsheets, assigned
-consistently across the \code{"operators"} and \code{"repeatability"} tables
-(see \code{data-raw/t26_saudrune_prepare.R}).
+France), 27 April and 18 May 2026; digitized by A. Toussaint (CNRS) with
+\code{\link[=digitize_landmarks]{digitize_landmarks()}}. The raw workbook and photographs are not
+distributed; \code{data-raw/t26_campaign_prepare.R} rebuilds the tables.
 }
 \usage{
 load_t26_saudrune(
-  dataset = c("operators", "repeatability", "identifications", "qc_log"),
+  dataset = c("landmarks", "specimens", "repeatability", "qc_log"),
   operator = NULL,
   species = FALSE
 )
 }
 \arguments{
-\item{dataset}{Character, one of \code{"operators"} (default),
-\code{"repeatability"}, \code{"identifications"}, or \code{"qc_log"}. See Details.}
+\item{dataset}{Character, one of \code{"landmarks"} (default), \code{"specimens"},
+\code{"repeatability"} or \code{"qc_log"}. See Value.}
 
-\item{operator}{\code{NULL} (default, all data returned), or a character
-vector of one or more operator labels (e.g. \code{"Operator_1"}) to
-restrict the returned rows to. Modular by design: if \code{dataset} has no
-\code{operator} column (as for \code{"identifications"} and \code{"qc_log"}, or any
-future dataset added without one), \code{operator} is ignored with a
-warning and every row is returned, rather than erroring. Useful to
-build two separate functional trait spaces, one per operator, from
-the \code{"operators"} table (see \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}} for the
-more convenient \code{"intrait_landmarks"}-object version of this).}
+\item{operator}{\code{NULL} (default, all rows returned), or a character vector
+of one or more operator labels (e.g. \code{"AT"}) to restrict the returned rows
+to. Modular by design: if \code{dataset} has no \code{operator} column, \code{operator} is
+ignored with a warning and every row is returned.}
 
 \item{species}{Logical, defaults to \code{FALSE}. If \code{TRUE}, left-joins the
-\code{species} and \code{id_status} columns from the \code{"identifications"} table
-onto \code{dataset}, matched by \code{code} (a plain \code{\link[=match]{match()}} lookup, not
-\code{\link[=merge]{merge()}}, so that the many rows sharing the same \code{code} in the
-long-format \code{"operators"}/\code{"repeatability"} tables -- one per
-landmark, and per operator/replicate -- keep their original row
-order exactly). \code{species} is deliberately \code{FALSE} by default: the
-landmark tables and the identification table are two separate,
-independently versioned data products (a landmark measurement never
-needs to know a species; an identification can be revised without
-touching a single coordinate), and joining them ties every landmark
-row to a species call that -- per \code{id_status} -- is not always fully
-curated. Modular by design: if \code{dataset} has no \code{code} column,
-\code{species} is ignored with a warning rather than erroring; if
-\code{dataset = "identifications"} (which already has \code{species}), it is a
-harmless no-op.}
+\code{species} and \code{species_code} columns of the \code{"specimens"} table onto
+\code{dataset}, matched by \code{code} with a plain \code{\link[=match]{match()}} lookup (not \code{\link[=merge]{merge()}}),
+so the many rows sharing one \code{code} in the long-format tables keep their
+order exactly. \code{FALSE} by default because a landmark never needs to know a
+species and a determination can be revised without touching a coordinate:
+the two tables are kept apart on purpose. Ignored with a warning if
+\code{dataset} has no \code{code} column; a no-op on \code{"specimens"} itself.}
 }
 \value{
 A \code{data.frame}:
 \describe{
-\item{\code{"operators"}}{Long-format landmark coordinates (columns
-\code{specimen}, \code{code}, \code{operator}, \code{landmark}, \code{X}, \code{Y}), one row per
-specimen x landmark combination. The T-26 fish digitized by four
-operators (826 specimen-level digitizations, 21 landmarks each):
-Operator_1 and Operator_2 each digitized the full set of 279 fish
-once, Operator_3 and Operator_4 a subset. The \code{specimen} id embeds
-the operator (e.g. \code{"T-26-0173_Operator_4"}), so it is unique. Use
-\code{\link[=read_landmarks_csv]{read_landmarks_csv()}} to import this table as an
-\code{"intrait_landmarks"} object; see \code{demo(pipeline_T26_saudrune)}.}
-\item{\code{"repeatability"}}{Long-format landmark coordinates (columns
-\code{specimen}, \code{code}, \code{replicate}, \code{operator}, \code{site}, \code{landmark},
-\code{X}, \code{Y}) for the repeatability trial: 25 individuals, each
-digitized 9-10 times, by two operators (\code{Operator_1} and
-\code{Operator_6}). Here \code{specimen} (e.g. \code{"T-26-0004_rep1"}) encodes
-only the fish and replicate, so it is shared across the two
-operators in this table; \code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}} appends
-the operator to keep each digitization uniquely identified.
-Intended for \code{\link[=measurement_error]{measurement_error()}} and \code{\link[=digitization_error]{digitization_error()}}.}
-\item{\code{"identifications"}}{One row per fish (\code{code}), with
-\code{species} (binomial), \code{id_status} (\code{"curated"}, \code{"preliminary"} --
-from AI-vision-assisted identification not yet manually confirmed,
-or \code{"unresolved"}), \code{french_name}, \code{stage}, \code{confidence},
-\code{n_individus}, \code{date_capture}, \code{site}. As noted in
-\code{metadonnees}/\code{stats} of the original identification file,
-identifications are a curated-but-not-fully-audited pilot data
-set: a handful of entries may still contain errors, which is why
-\code{id_status} is exposed explicitly rather than silently treating
-every row as ground truth.}
-\item{\code{"qc_log"}}{One row per specimen excluded during data
-cleaning (e.g. a code present in the measurement sheet with no
-match in the identification sheet), with a \code{reason} column,
-kept for full transparency of the cleaning pipeline (see
-\code{data-raw/t26_saudrune_prepare.R}).}
+\item{\code{"landmarks"}}{Long-format coordinates (\code{specimen}, \code{code},
+\code{operator}, \code{landmark}, \code{X}, \code{Y}), 25 rows per specimen, one
+digitization per specimen. Coordinates are pixels of the prepared
+photograph. Points a specimen does not carry are \code{NA} rather than
+absent rows, so the table is rectangular; point 25 is reserved by the
+digitizer and currently always \code{NA}. \code{specimen} and \code{code} are the
+campaign's immutable identifier \code{SITE_YYYYMMDD_NNNN}, with the suffix
+\verb{_iK} for the K-th fish of a multi-individual plate.}
+\item{\code{"specimens"}}{One row per digitized specimen (\code{code}): \code{uid} (the
+photograph), \code{individual} (position on the plate, 1 for a single
+fish), \code{photo}, the current determination (\code{species}, \code{species_code},
+\code{confidence}, \code{determined_by}), \code{site}, \code{date}, \code{operator}, the
+operator's \code{quality} score (1-5), \code{reviewed}, \code{n_landmarks} placed,
+\code{ruler_mm}, \code{mm_per_px}, image size, \code{photo_hash} (see \code{\link[=photo_hash]{photo_hash()}}),
+\code{app_version} and the \code{digitized} date.}
+\item{\code{"repeatability"}}{Long-format coordinates (\code{specimen}, \code{code},
+\code{operator}, \code{replicate}, \code{landmark}, \code{X}, \code{Y}) of the blind repeat
+trial run in \code{digitize_landmarks()}'s repeat mode: the same individuals
+(\code{code}) re-digitized several times. \code{specimen} is
+\verb{<code>_<operator>_rep<N>} and is unique. Input of
+\code{\link[=digitization_error]{digitization_error()}}, \code{\link[=measurement_error]{measurement_error()}} and, once a second
+operator has digitized the same fish, \code{\link[=operator_disagreement]{operator_disagreement()}}.}
+\item{\code{"qc_log"}}{One row per digitization excluded from the shipped
+tables, with the \code{reason} (see \code{data-raw/t26_campaign_prepare.R}).}
 }
 }
 \description{
-Loads one of four cleaned, analysis-ready tables from the T-26 electric
-fishing survey conducted on the Saudrune (Adour-Garonne basin, south of
-Toulouse, France), the first \strong{real} (non-simulated) data set shipped
-with intraitR. Individuals were photographed in the field and later
-digitized on the 21-landmark FISHMORPH scheme (Brosse et al., 2021; see
-\code{\link[=fishmorph_segments]{fishmorph_segments()}}) directly from the photographs.
+Loads one of the four analysis-ready tables of the T-26 electric fishing
+survey of the Saudrune (Adour-Garonne basin, south of Toulouse, France),
+the real (non-simulated) data set shipped with intraitR. Fish were
+photographed in the field on two dates (27 April and 18 May 2026) and
+digitized with \code{\link[=digitize_landmarks]{digitize_landmarks()}} on the 25-point scheme: the 19
+FISHMORPH anatomical landmarks (Brosse et al., 2021; see
+\code{\link[=fishmorph_segments]{fishmorph_segments()}}), the scale bar (20-21), the curvature point (22),
+the derived head base (23) and the entry hinges (24-25).
 }
 \details{
-Coordinates are in pixel units of the original photographs; landmarks
-20-21 are the two ends of a 1 cm calibration segment digitized on a
-ruler placed alongside each fish, following the same convention as
-\code{\link[=fishmorph_segments]{fishmorph_segments()}}'s \code{scale_cm} argument (so \code{fishmorph_segments()}
-can be called directly on \code{"intrait_landmarks"} objects built from these
-tables with its default \code{scale_cm = 1}).
-
-Per the explicit instruction of the data owner, taxonomic identifications
-have not been re-audited as part of building this data set: some species
-calls (in particular the 16 entries with \code{id_status == "preliminary"},
-and the single \code{"unresolved"} juvenile) should be treated with caution
-for any analysis sensitive to species identity, and are flagged via
-\code{id_status} for exactly that reason.
+Identity follows the campaign's own rule: the code is the photograph,
+never the species. Species names are the last non-superseded determination
+recorded in the campaign (\code{export/determinations.csv}) at the time the
+tables were built, and may be revised in a later release without any
+coordinate changing. Landmarks 20-21 are the two ends of a 10 mm segment on
+a ruler placed alongside each fish, so \code{\link[=fishmorph_segments]{fishmorph_segments()}} can be called
+on these data with its default \code{scale_cm = 1}.
 }
 \examples{
-ops <- load_t26_saudrune("operators")
-str(ops)
-ident <- load_t26_saudrune("identifications")
-table(ident$species, ident$id_status)
+lm <- load_t26_saudrune()
+str(lm)
+spec <- load_t26_saudrune("specimens")
+table(spec$species, spec$date)
 
-# restrict to a single operator's digitizations (see `operator`); ignored
-# with a warning, rather than an error, for tables with no operator
-# column, e.g. "identifications":
-unique(ops$operator)
-op1 <- load_t26_saudrune("operators", operator = "Operator_1")
-nrow(op1) < nrow(ops)
+# the landmark table carries `code`, not `species` (species lives in
+# "specimens" by design); species = TRUE joins it back, in row order:
+lm_sp <- load_t26_saudrune(species = TRUE)
+identical(lm_sp$code, lm$code)
 
-# the raw "operators"/"repeatability" tables carry `code`, not `species`
-# (species lives in "identifications" by design, see @param species);
-# species = TRUE restores it, one join, in original row order:
-"species" \%in\% names(ops)
-ops_sp <- load_t26_saudrune("operators", species = TRUE)
-c("species", "id_status") \%in\% names(ops_sp)
-identical(ops_sp$code, ops$code)
+# the blind repeat trial: one `code` digitized several times
+rep_df <- load_t26_saudrune("repeatability")
+table(unique(rep_df[c("code", "replicate")])$code)
 
 }
 \references{
@@ -146,8 +106,7 @@ morphological traits of freshwater fishes. Global Ecology and
 Biogeography, 30(12), 2330-2336.
 }
 \seealso{
-\code{\link[=read_landmarks_csv]{read_landmarks_csv()}}, \code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=gpa_fish]{gpa_fish()}},
-\code{\link[=digitization_error]{digitization_error()}}, \code{\link[=measurement_error]{measurement_error()}};
-\code{demo(pipeline_T26_saudrune)} for a complete worked analysis of this
-data set using intraitR.
+\code{\link[=load_t26_saudrune_landmarks]{load_t26_saudrune_landmarks()}}, \code{\link[=read_landmarks_csv]{read_landmarks_csv()}},
+\code{\link[=fishmorph_segments]{fishmorph_segments()}}, \code{\link[=digitization_error]{digitization_error()}}, \code{\link[=measurement_error]{measurement_error()}};
+\code{demo(pipeline_T26_saudrune)} for a complete worked analysis.
 }

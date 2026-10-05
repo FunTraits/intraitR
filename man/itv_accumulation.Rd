@@ -178,7 +178,9 @@ requires either a sequential plan together with \code{seed}, or reliance on
 \code{future.apply}'s own parallel-safe streams.
 }
 \examples{
-fish <- simulate_fishmorph_points(n_per_species = 20, n_replicates = 1)
+# The T-26 campaign: real specimens, and therefore genuinely unequal
+# sample sizes -- which is the question this function is asked.
+fish <- load_t26_saudrune_landmarks()
 ratios <- fishmorph_ratios(fishmorph_segments(fish))
 
 # multivariate trait variance: how many individuals until the

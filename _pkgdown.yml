@@ -31,6 +31,10 @@ reference:
       - landmark_journal_append
       - landmark_journal_read
       - consolidate_landmarks
+      - photo_hash
+      - photo_hash_cached
+      - reconcile_photo_names
+      - photo_provenance_keys
       - write_xlsx_atomic
       - plot_landmarks
       - print.intrait_landmarks
@@ -131,7 +135,8 @@ reference:
   - title: "Real data: T-26 La Saudrune"
     desc: >
       A real electrofishing landmark data set (Adour-Garonne basin,
-      France), used throughout the package's examples and
+      France) digitized with `digitize_landmarks()`, plus its blind
+      repeat trial; used throughout the package's examples and
       `demo(pipeline_T26_saudrune)`.
     contents:
       - load_t26_saudrune

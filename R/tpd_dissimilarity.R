@@ -73,7 +73,7 @@
 #'   [fd_accumulation()], [trait_space()]
 #'
 #' @examples
-#' fish <- simulate_fishmorph_points(n_per_species = 20, n_replicates = 1)
+#' fish <- load_t26_saudrune_landmarks()
 #' ratios <- fishmorph_ratios(fishmorph_segments(fish))
 #' \donttest{
 #' if (requireNamespace("TPD", quietly = TRUE)) {

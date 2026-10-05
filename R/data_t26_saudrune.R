@@ -1,105 +1,71 @@
 #' Real freshwater fish landmark data set from an electrofishing campaign
 #' (T-26, La Saudrune)
 #'
-#' Loads one of four cleaned, analysis-ready tables from the T-26 electric
-#' fishing survey conducted on the Saudrune (Adour-Garonne basin, south of
-#' Toulouse, France), the first **real** (non-simulated) data set shipped
-#' with intraitR. Individuals were photographed in the field and later
-#' digitized on the 21-landmark FISHMORPH scheme (Brosse et al., 2021; see
-#' [fishmorph_segments()]) directly from the photographs.
+#' Loads one of the four analysis-ready tables of the T-26 electric fishing
+#' survey of the Saudrune (Adour-Garonne basin, south of Toulouse, France),
+#' the real (non-simulated) data set shipped with intraitR. Fish were
+#' photographed in the field on two dates (27 April and 18 May 2026) and
+#' digitized with [digitize_landmarks()] on the 25-point scheme: the 19
+#' FISHMORPH anatomical landmarks (Brosse et al., 2021; see
+#' [fishmorph_segments()]), the scale bar (20-21), the curvature point (22),
+#' the derived head base (23) and the entry hinges (24-25).
 #'
-#' @param dataset Character, one of `"operators"` (default),
-#'   `"repeatability"`, `"identifications"`, or `"qc_log"`. See Details.
-#' @param operator `NULL` (default, all data returned), or a character
-#'   vector of one or more operator labels (e.g. `"Operator_1"`) to
-#'   restrict the returned rows to. Modular by design: if `dataset` has no
-#'   `operator` column (as for `"identifications"` and `"qc_log"`, or any
-#'   future dataset added without one), `operator` is ignored with a
-#'   warning and every row is returned, rather than erroring. Useful to
-#'   build two separate functional trait spaces, one per operator, from
-#'   the `"operators"` table (see [load_t26_saudrune_landmarks()] for the
-#'   more convenient `"intrait_landmarks"`-object version of this).
+#' @param dataset Character, one of `"landmarks"` (default), `"specimens"`,
+#'   `"repeatability"` or `"qc_log"`. See Value.
+#' @param operator `NULL` (default, all rows returned), or a character vector
+#'   of one or more operator labels (e.g. `"AT"`) to restrict the returned rows
+#'   to. Modular by design: if `dataset` has no `operator` column, `operator` is
+#'   ignored with a warning and every row is returned.
 #' @param species Logical, defaults to `FALSE`. If `TRUE`, left-joins the
-#'   `species` and `id_status` columns from the `"identifications"` table
-#'   onto `dataset`, matched by `code` (a plain [match()] lookup, not
-#'   [merge()], so that the many rows sharing the same `code` in the
-#'   long-format `"operators"`/`"repeatability"` tables -- one per
-#'   landmark, and per operator/replicate -- keep their original row
-#'   order exactly). `species` is deliberately `FALSE` by default: the
-#'   landmark tables and the identification table are two separate,
-#'   independently versioned data products (a landmark measurement never
-#'   needs to know a species; an identification can be revised without
-#'   touching a single coordinate), and joining them ties every landmark
-#'   row to a species call that -- per `id_status` -- is not always fully
-#'   curated. Modular by design: if `dataset` has no `code` column,
-#'   `species` is ignored with a warning rather than erroring; if
-#'   `dataset = "identifications"` (which already has `species`), it is a
-#'   harmless no-op.
+#'   `species` and `species_code` columns of the `"specimens"` table onto
+#'   `dataset`, matched by `code` with a plain [match()] lookup (not [merge()]),
+#'   so the many rows sharing one `code` in the long-format tables keep their
+#'   order exactly. `FALSE` by default because a landmark never needs to know a
+#'   species and a determination can be revised without touching a coordinate:
+#'   the two tables are kept apart on purpose. Ignored with a warning if
+#'   `dataset` has no `code` column; a no-op on `"specimens"` itself.
 #'
 #' @return A `data.frame`:
 #'   \describe{
-#'     \item{`"operators"`}{Long-format landmark coordinates (columns
-#'       `specimen`, `code`, `operator`, `landmark`, `X`, `Y`), one row per
-#'       specimen x landmark combination. The T-26 fish digitized by four
-#'       operators (826 specimen-level digitizations, 21 landmarks each):
-#'       Operator_1 and Operator_2 each digitized the full set of 279 fish
-#'       once, Operator_3 and Operator_4 a subset. The `specimen` id embeds
-#'       the operator (e.g. `"T-26-0173_Operator_4"`), so it is unique. Use
-#'       [read_landmarks_csv()] to import this table as an
-#'       `"intrait_landmarks"` object; see `demo(pipeline_T26_saudrune)`.}
-#'     \item{`"repeatability"`}{Long-format landmark coordinates (columns
-#'       `specimen`, `code`, `replicate`, `operator`, `site`, `landmark`,
-#'       `X`, `Y`) for the repeatability trial: 25 individuals, each
-#'       digitized 9-10 times, by two operators (`Operator_1` and
-#'       `Operator_6`). Here `specimen` (e.g. `"T-26-0004_rep1"`) encodes
-#'       only the fish and replicate, so it is shared across the two
-#'       operators in this table; [load_t26_saudrune_landmarks()] appends
-#'       the operator to keep each digitization uniquely identified.
-#'       Intended for [measurement_error()] and [digitization_error()].}
-#'     \item{`"identifications"`}{One row per fish (`code`), with
-#'       `species` (binomial), `id_status` (`"curated"`, `"preliminary"` --
-#'       from AI-vision-assisted identification not yet manually confirmed,
-#'       or `"unresolved"`), `french_name`, `stage`, `confidence`,
-#'       `n_individus`, `date_capture`, `site`. As noted in
-#'       `metadonnees`/`stats` of the original identification file,
-#'       identifications are a curated-but-not-fully-audited pilot data
-#'       set: a handful of entries may still contain errors, which is why
-#'       `id_status` is exposed explicitly rather than silently treating
-#'       every row as ground truth.}
-#'     \item{`"qc_log"`}{One row per specimen excluded during data
-#'       cleaning (e.g. a code present in the measurement sheet with no
-#'       match in the identification sheet), with a `reason` column,
-#'       kept for full transparency of the cleaning pipeline (see
-#'       `data-raw/t26_saudrune_prepare.R`).}
+#'     \item{`"landmarks"`}{Long-format coordinates (`specimen`, `code`,
+#'       `operator`, `landmark`, `X`, `Y`), 25 rows per specimen, one
+#'       digitization per specimen. Coordinates are pixels of the prepared
+#'       photograph. Points a specimen does not carry are `NA` rather than
+#'       absent rows, so the table is rectangular; point 25 is reserved by the
+#'       digitizer and currently always `NA`. `specimen` and `code` are the
+#'       campaign's immutable identifier `SITE_YYYYMMDD_NNNN`, with the suffix
+#'       `_iK` for the K-th fish of a multi-individual plate.}
+#'     \item{`"specimens"`}{One row per digitized specimen (`code`): `uid` (the
+#'       photograph), `individual` (position on the plate, 1 for a single
+#'       fish), `photo`, the current determination (`species`, `species_code`,
+#'       `confidence`, `determined_by`), `site`, `date`, `operator`, the
+#'       operator's `quality` score (1-5), `reviewed`, `n_landmarks` placed,
+#'       `ruler_mm`, `mm_per_px`, image size, `photo_hash` (see [photo_hash()]),
+#'       `app_version` and the `digitized` date.}
+#'     \item{`"repeatability"`}{Long-format coordinates (`specimen`, `code`,
+#'       `operator`, `replicate`, `landmark`, `X`, `Y`) of the blind repeat
+#'       trial run in `digitize_landmarks()`'s repeat mode: the same individuals
+#'       (`code`) re-digitized several times. `specimen` is
+#'       `<code>_<operator>_rep<N>` and is unique. Input of
+#'       [digitization_error()], [measurement_error()] and, once a second
+#'       operator has digitized the same fish, [operator_disagreement()].}
+#'     \item{`"qc_log"`}{One row per digitization excluded from the shipped
+#'       tables, with the `reason` (see `data-raw/t26_campaign_prepare.R`).}
 #'   }
 #'
 #' @details
-#' Coordinates are in pixel units of the original photographs; landmarks
-#' 20-21 are the two ends of a 1 cm calibration segment digitized on a
-#' ruler placed alongside each fish, following the same convention as
-#' [fishmorph_segments()]'s `scale_cm` argument (so `fishmorph_segments()`
-#' can be called directly on `"intrait_landmarks"` objects built from these
-#' tables with its default `scale_cm = 1`).
-#'
-#' Per the explicit instruction of the data owner, taxonomic identifications
-#' have not been re-audited as part of building this data set: some species
-#' calls (in particular the 16 entries with `id_status == "preliminary"`,
-#' and the single `"unresolved"` juvenile) should be treated with caution
-#' for any analysis sensitive to species identity, and are flagged via
-#' `id_status` for exactly that reason.
+#' Identity follows the campaign's own rule: the code is the photograph,
+#' never the species. Species names are the last non-superseded determination
+#' recorded in the campaign (`export/determinations.csv`) at the time the
+#' tables were built, and may be revised in a later release without any
+#' coordinate changing. Landmarks 20-21 are the two ends of a 10 mm segment on
+#' a ruler placed alongside each fish, so [fishmorph_segments()] can be called
+#' on these data with its default `scale_cm = 1`.
 #'
 #' @source T-26 electrofishing campaign, Saudrune (Adour-Garonne basin,
-#'   France), 21 April 2026. Landmarks digitized by several independent
-#'   operators; identifications curated with AI-vision assistance by A.
-#'   Toussaint (CNRS). Raw spreadsheets are not distributed with the
-#'   package (only the cleaned, analysis-ready tables are); see
-#'   `data-raw/t26_saudrune_prepare.R` for the full cleaning/QC pipeline.
-#'   Operator identity is not itself of biological interest and is not
-#'   personally identifiable in the shipped data: the `operator` column
-#'   records anonymous labels (`"Operator_1"`, `"Operator_2"`) rather than
-#'   the real names recorded in the original field spreadsheets, assigned
-#'   consistently across the `"operators"` and `"repeatability"` tables
-#'   (see `data-raw/t26_saudrune_prepare.R`).
+#'   France), 27 April and 18 May 2026; digitized by A. Toussaint (CNRS) with
+#'   [digitize_landmarks()]. The raw workbook and photographs are not
+#'   distributed; `data-raw/t26_campaign_prepare.R` rebuilds the tables.
 #'
 #' @references
 #' Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
@@ -107,41 +73,34 @@
 #' morphological traits of freshwater fishes. Global Ecology and
 #' Biogeography, 30(12), 2330-2336.
 #'
-#' @seealso [read_landmarks_csv()], [fishmorph_segments()], [gpa_fish()],
-#'   [digitization_error()], [measurement_error()];
-#'   `demo(pipeline_T26_saudrune)` for a complete worked analysis of this
-#'   data set using intraitR.
+#' @seealso [load_t26_saudrune_landmarks()], [read_landmarks_csv()],
+#'   [fishmorph_segments()], [digitization_error()], [measurement_error()];
+#'   `demo(pipeline_T26_saudrune)` for a complete worked analysis.
 #'
 #' @examples
-#' ops <- load_t26_saudrune("operators")
-#' str(ops)
-#' ident <- load_t26_saudrune("identifications")
-#' table(ident$species, ident$id_status)
+#' lm <- load_t26_saudrune()
+#' str(lm)
+#' spec <- load_t26_saudrune("specimens")
+#' table(spec$species, spec$date)
 #'
-#' # restrict to a single operator's digitizations (see `operator`); ignored
-#' # with a warning, rather than an error, for tables with no operator
-#' # column, e.g. "identifications":
-#' unique(ops$operator)
-#' op1 <- load_t26_saudrune("operators", operator = "Operator_1")
-#' nrow(op1) < nrow(ops)
+#' # the landmark table carries `code`, not `species` (species lives in
+#' # "specimens" by design); species = TRUE joins it back, in row order:
+#' lm_sp <- load_t26_saudrune(species = TRUE)
+#' identical(lm_sp$code, lm$code)
 #'
-#' # the raw "operators"/"repeatability" tables carry `code`, not `species`
-#' # (species lives in "identifications" by design, see @param species);
-#' # species = TRUE restores it, one join, in original row order:
-#' "species" %in% names(ops)
-#' ops_sp <- load_t26_saudrune("operators", species = TRUE)
-#' c("species", "id_status") %in% names(ops_sp)
-#' identical(ops_sp$code, ops$code)
+#' # the blind repeat trial: one `code` digitized several times
+#' rep_df <- load_t26_saudrune("repeatability")
+#' table(unique(rep_df[c("code", "replicate")])$code)
 #'
 #' @export
-load_t26_saudrune <- function(dataset = c("operators", "repeatability", "identifications", "qc_log"),
-                               operator = NULL, species = FALSE) {
+load_t26_saudrune <- function(dataset = c("landmarks", "specimens", "repeatability", "qc_log"),
+                              operator = NULL, species = FALSE) {
   dataset <- match.arg(dataset)
   file <- switch(dataset,
-    operators       = "t26_landmarks_operators.csv",
-    repeatability   = "t26_landmarks_repeatability.csv",
-    identifications = "t26_identifications.csv",
-    qc_log          = "t26_qc_log.csv"
+    landmarks     = "t26_campaign_landmarks.csv.gz",
+    specimens     = "t26_campaign_specimens.csv",
+    repeatability = "t26_campaign_repeatability.csv.gz",
+    qc_log        = "t26_campaign_qc_log.csv"
   )
   path <- system.file("extdata", "T26_Saudrune", file, package = "intraitR")
   if (!nzchar(path)) {
@@ -149,6 +108,10 @@ load_t26_saudrune <- function(dataset = c("operators", "repeatability", "identif
          "is intraitR installed correctly?", call. = FALSE)
   }
   df <- utils::read.csv(path, stringsAsFactors = FALSE)
+  if (dataset == "specimens") {
+    df$photo_hash <- as.character(df$photo_hash)
+    df$reviewed <- as.character(df$reviewed)
+  }
   df <- .filter_by_operator(df, operator, dataset_label = sprintf("the \"%s\" table", dataset))
   if (isTRUE(species)) {
     df <- .join_species(df, dataset_label = sprintf("the \"%s\" table", dataset))

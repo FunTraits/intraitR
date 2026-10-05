@@ -194,7 +194,7 @@ attr(fish_std$coords, "standardization_log")
 attr(fish_std$coords, "correction_log")
 # the scale bar now reads as a clean horizontal segment bottom-left,
 # and points 9, 8, 11, 4 line up exactly horizontal:
-plot_fishmorph_points(fish_std, specimen = "T-26-0010_Operator_1")
+plot_fishmorph_points(fish_std, specimen = 1)
 
 }
 \seealso{

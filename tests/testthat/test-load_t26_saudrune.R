@@ -1,107 +1,123 @@
-test_that("load_t26_saudrune() reads all four bundled tables with the expected shape", {
-  ops <- load_t26_saudrune("operators")
-  expect_s3_class(ops, "data.frame")
-  expect_true(all(c("specimen", "code", "operator", "landmark", "X", "Y") %in% names(ops)))
-  expect_equal(length(unique(ops$landmark)), 21)
-  expect_equal(length(unique(ops$operator)), 4)
+test_that("the landmark table is the default dataset and is rectangular", {
+  lm <- load_t26_saudrune()
+  expect_s3_class(lm, "data.frame")
+  expect_true(all(c("specimen", "code", "operator", "landmark", "X", "Y") %in% names(lm)))
+  expect_setequal(unique(lm$landmark), 1:25)
+  # Rectangular: 25 rows per specimen, points a specimen does not carry present
+  # as NA rather than as absent rows -- otherwise a specimen's landmark numbers
+  # would depend on what happened to be measurable on it.
+  expect_true(all(table(lm$specimen) == 25L))
+  # one digitization per specimen in this table: specimen == code
+  expect_identical(lm$specimen, lm$code)
+  # the codes are the campaign's own immutable identifiers, never a species
+  expect_true(all(grepl("^SAUDRUNESUDTOULOUSE_[0-9]{8}_[0-9]{4}(_i[0-9]+)?$", unique(lm$code))))
+  # every specimen carries the anatomical landmarks 1 and 2 (the body axis)
+  expect_false(anyNA(lm$X[lm$landmark %in% 1:2]))
+})
 
+test_that("the specimen table is one data set with the landmark table, split in two", {
+  lm   <- load_t26_saudrune()
+  spec <- load_t26_saudrune("specimens")
+  expect_true(all(c("code", "uid", "individual", "species", "species_code", "date",
+                    "operator", "quality", "n_landmarks", "photo_hash") %in% names(spec)))
+  # Every digitized specimen is identified, and every identification has a
+  # specimen: no slack in the join, which is what the 1.34.0 tables had lost.
+  expect_setequal(unique(lm$code), spec$code)
+  expect_equal(anyDuplicated(spec$code), 0L)
+  expect_false(anyNA(spec$species))
+  expect_false(any(spec$species == ""))
+  # species codes are injective: one code per species, one species per code
+  expect_equal(anyDuplicated(unique(spec[c("species", "species_code")])$species_code), 0L)
+  # a plate individual shares its photograph (uid) with its plate-mates
+  plates <- spec[spec$individual > 1, , drop = FALSE]
+  expect_true(all(sub("_i[0-9]+$", "", plates$code) == plates$uid))
+  # n_landmarks agrees with the coordinate table
+  placed <- tapply(!is.na(lm$X), lm$code, sum)
+  expect_equal(unname(placed[spec$code]), spec$n_landmarks)
+})
+
+test_that("the repeat trial has several passes per individual and unique specimen ids", {
   rep_df <- load_t26_saudrune("repeatability")
-  expect_s3_class(rep_df, "data.frame")
-  expect_true(all(c("specimen", "code", "replicate", "landmark", "X", "Y") %in% names(rep_df)))
-  rep_counts <- table(unique(rep_df[c("code", "replicate")])$code)
-  expect_true(all(rep_counts >= 2))
+  expect_true(all(c("specimen", "code", "operator", "replicate", "landmark", "X", "Y") %in%
+                    names(rep_df)))
+  expect_true(all(table(rep_df$specimen) == 25L))
+  passes <- unique(rep_df[c("specimen", "code", "operator", "replicate")])
+  expect_equal(anyDuplicated(passes$specimen), 0L)
+  expect_equal(anyDuplicated(passes[c("code", "operator", "replicate")]), 0L)
+  expect_true(all(table(passes$code) >= 2))
+  # <code>_<operator>_rep<N>: the replicate is the last token, the operator
+  # label holds no underscore
+  expect_true(all(passes$specimen == paste0(passes$code, "_", passes$operator, "_rep",
+                                            passes$replicate)))
+  expect_false(any(grepl("_", passes$operator, fixed = TRUE)))
+  # the repeated individuals are campaign specimens
+  expect_true(all(passes$code %in% load_t26_saudrune("specimens")$code))
+})
 
-  ident <- load_t26_saudrune("identifications")
-  expect_s3_class(ident, "data.frame")
-  expect_true(all(c("code", "species", "id_status") %in% names(ident)))
-  expect_true(all(ident$id_status %in% c("curated", "preliminary", "unresolved")))
-
+test_that("the qc log has the expected shape and excludes what it names", {
   qc <- load_t26_saudrune("qc_log")
   expect_s3_class(qc, "data.frame")
   expect_true(all(c("code", "reason") %in% names(qc)))
+  expect_length(intersect(qc$code, load_t26_saudrune("specimens")$code), 0L)
 })
 
-test_that("load_t26_saudrune() validates its `dataset` argument", {
+test_that("load_t26_saudrune() validates its `dataset` argument and refuses the legacy names", {
   expect_error(load_t26_saudrune("not_a_dataset"))
-})
-
-test_that("load_t26_saudrune() operator identities are anonymised", {
-  ops <- load_t26_saudrune("operators")
-  rep_df <- load_t26_saudrune("repeatability")
-  expect_setequal(unique(ops$operator),
-                  c("Operator_1", "Operator_2", "Operator_3", "Operator_4"))
-  expect_true(all(grepl("^Operator_[0-9]+$", unique(rep_df$operator))))
-  # the real names must not survive anywhere in the shipped tables
-  all_text <- c(unlist(ops, use.names = FALSE), unlist(rep_df, use.names = FALSE))
-  expect_false(any(grepl("breuil|rougean", all_text, ignore.case = TRUE)))
+  expect_error(load_t26_saudrune("operators"))
+  expect_error(load_t26_saudrune("identifications"))
 })
 
 test_that("load_t26_saudrune()'s `operator` argument filters rows and is modular", {
-  ops <- load_t26_saudrune("operators")
-  op1 <- load_t26_saudrune("operators", operator = "Operator_1")
-  expect_true(all(op1$operator == "Operator_1"))
-  expect_lt(nrow(op1), nrow(ops))
-  expect_equal(nrow(op1), sum(ops$operator == "Operator_1"))
+  lm <- load_t26_saudrune()
+  ops <- unique(lm$operator)
+  expect_true(all(nzchar(ops)))
+  one <- load_t26_saudrune(operator = ops[1])
+  expect_true(all(one$operator == ops[1]))
+  expect_equal(nrow(one), sum(lm$operator == ops[1]))
 
   # case-insensitive matching
-  op1_lower <- load_t26_saudrune("operators", operator = "operator_1")
-  expect_equal(nrow(op1_lower), nrow(op1))
+  expect_equal(nrow(load_t26_saudrune(operator = tolower(ops[1]))), nrow(one))
 
-  # more than one operator can be requested at once
-  both <- load_t26_saudrune("operators", operator = c("Operator_1", "Operator_2"))
-  expect_equal(nrow(both), sum(ops$operator %in% c("Operator_1", "Operator_2")))
-
-  # a table with no `operator` column (e.g. "identifications") ignores the
-  # argument with a warning rather than erroring
+  # a table with no `operator` column ignores the argument with a warning
   expect_warning(
-    ident_filtered <- load_t26_saudrune("identifications", operator = "Operator_1"),
+    qc_filtered <- load_t26_saudrune("qc_log", operator = ops[1]),
     "no `operator` column"
   )
-  expect_equal(nrow(ident_filtered), nrow(load_t26_saudrune("identifications")))
+  expect_equal(nrow(qc_filtered), nrow(load_t26_saudrune("qc_log")))
 
   # an operator label that matches nothing is an informative error
-  expect_error(load_t26_saudrune("operators", operator = "Operator_99"), "does not match")
+  expect_error(load_t26_saudrune(operator = "Operator_99"), "does not match")
 })
 
 test_that("load_t26_saudrune()'s `species` argument joins species identity by `code`", {
-  ops <- load_t26_saudrune("operators")
-  expect_false("species" %in% names(ops))
+  lm <- load_t26_saudrune()
+  expect_false("species" %in% names(lm))
 
-  ops_sp <- load_t26_saudrune("operators", species = TRUE)
-  expect_true(all(c("species", "id_status") %in% names(ops_sp)))
-  # the join must not reorder or duplicate rows: same row count, same `code`
-  # sequence, as guaranteed by match()-based (not merge()-based) joining
-  expect_equal(nrow(ops_sp), nrow(ops))
-  expect_identical(ops_sp$code, ops$code)
+  lm_sp <- load_t26_saudrune(species = TRUE)
+  expect_true(all(c("species", "species_code") %in% names(lm_sp)))
+  # the join must not reorder or duplicate rows
+  expect_equal(nrow(lm_sp), nrow(lm))
+  expect_identical(lm_sp$code, lm$code)
+  expect_false(anyNA(lm_sp$species))
 
-  # every joined value must agree with a direct lookup in "identifications"
-  ident <- load_t26_saudrune("identifications")
-  idx <- match(ops_sp$code, ident$code)
-  expect_identical(ops_sp$species, ident$species[idx])
-  expect_identical(ops_sp$id_status, ident$id_status[idx])
+  # every joined value agrees with a direct lookup in "specimens"
+  spec <- load_t26_saudrune("specimens")
+  idx <- match(lm_sp$code, spec$code)
+  expect_identical(lm_sp$species, spec$species[idx])
+  expect_identical(lm_sp$species_code, spec$species_code[idx])
 
-  # same behaviour on "repeatability" (also long-format, many rows per code)
+  # same behaviour on "repeatability" (many rows per code)
   rep_sp <- load_t26_saudrune("repeatability", species = TRUE)
   expect_true("species" %in% names(rep_sp))
   expect_equal(nrow(rep_sp), nrow(load_t26_saudrune("repeatability")))
+  expect_false(anyNA(rep_sp$species))
 
-  # default is unchanged (species = FALSE): no behaviour change for existing code
-  expect_false("species" %in% names(load_t26_saudrune("repeatability")))
-
-  # a no-op, without warning, on "identifications" itself (species already there)
-  expect_no_warning(ident_sp <- load_t26_saudrune("identifications", species = TRUE))
-  expect_identical(ident_sp, ident)
-
-  # `operator` and `species` compose: filtering then joining still preserves order
-  op1_sp <- load_t26_saudrune("operators", operator = "Operator_1", species = TRUE)
-  expect_true(all(op1_sp$operator == "Operator_1"))
-  expect_true("species" %in% names(op1_sp))
+  # a no-op, without warning, on "specimens" itself
+  expect_no_warning(spec_sp <- load_t26_saudrune("specimens", species = TRUE))
+  expect_identical(spec_sp, spec)
 })
 
 test_that("load_t26_saudrune()'s `species` argument is modular: no-op with a warning if `code` is absent", {
-  # none of the four bundled tables lack `code`, so exercise the no-op path
-  # directly against the internal helper on a synthetic table, mirroring how
-  # .filter_by_operator()'s no-op path is tested for `operator`
   df <- data.frame(x = 1:3)
   expect_warning(
     out <- intraitR:::.join_species(df, dataset_label = "a synthetic table"),
@@ -110,20 +126,19 @@ test_that("load_t26_saudrune()'s `species` argument is modular: no-op with a war
   expect_identical(out, df)
 })
 
-test_that("the operators table can be imported with read_landmarks_csv() and passed to gpa_fish()", {
-  ops <- load_t26_saudrune("operators")
-  # restrict to a handful of specimens with a fully digitized (non-missing),
-  # complete 21-landmark configuration for a fast smoke test
-  ops_ok <- ops[!is.na(ops$X) & !is.na(ops$Y), ]
-  complete_specimens <- names(which(table(ops_ok$specimen) == 21))
-  sub <- ops[ops$specimen %in% complete_specimens[1:10], ]
+test_that("the landmark table can be imported with read_landmarks_csv() and passed to gpa_fish()", {
+  lm <- load_t26_saudrune()
+  # anatomical landmarks only (1-19), on a handful of complete specimens
+  sub <- lm[lm$landmark %in% 1:19, ]
+  complete <- names(which(tapply(!is.na(sub$X), sub$specimen, all)))
+  sub <- sub[sub$specimen %in% complete[1:10], ]
 
-  lm <- read_landmarks_csv(sub)
-  expect_s3_class(lm, "intrait_landmarks")
-  expect_equal(dim(lm$coords)[1], 21)
-  expect_equal(dim(lm$coords)[3], 10)
+  obj <- read_landmarks_csv(sub)
+  expect_s3_class(obj, "intrait_landmarks")
+  expect_equal(dim(obj$coords)[1], 19)
+  expect_equal(dim(obj$coords)[3], 10)
 
-  gpa <- gpa_fish(lm)
+  gpa <- gpa_fish(obj)
   expect_s3_class(gpa, "intrait_gpa")
   expect_equal(length(gpa$Csize), 10)
 })

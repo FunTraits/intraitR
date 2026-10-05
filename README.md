@@ -118,7 +118,7 @@ non-numeric triggers a warning naming the offending column(s), and
 resolve conflicting or uncertain identifications -- do that in R first if
 your identification sheet needs it). It is the generalised, reusable
 version of the private cleaning script originally written to import the
-real T-26 Saudrune field data (`data-raw/t26_saudrune_prepare.R`), usable
+earlier T-26 Saudrune field data, usable
 directly on a new field season or survey with its own column-naming
 convention and landmark count. Requires the `readxl` package (Suggested,
 not installed by default).
@@ -197,10 +197,8 @@ fish_fixed    <- correct_geometry(fish_oriented)
 
 # visually compare a specimen before/after geometry correction, with any
 # flagged convention highlighted in orange:
-plot_fishmorph_points(fish_oriented, specimen = "T-26-0024_Operator_1",
-                       geometry_check = geom_check)
-plot_fishmorph_points(fish_fixed, specimen = "T-26-0024_Operator_1",
-                       geometry_check = geom_check)
+plot_fishmorph_points(fish_oriented, specimen = 1, geometry_check = geom_check)
+plot_fishmorph_points(fish_fixed, specimen = 1, geometry_check = geom_check)
 
 segments_fixed <- fishmorph_segments(fish_fixed)
 ratios_fixed   <- fishmorph_ratios(segments_fixed)
@@ -337,18 +335,20 @@ See `vignette("intraitR-intro")` for a full walkthrough.
 ## Real data: the T-26 La Saudrune data set
 
 Beyond simulated examples, `intraitR` ships a real landmark data set from an
-electric-fishing survey of the Saudrune (Adour-Garonne basin, France): 279
-fish from 8 species, digitized by two independent operators on the
-FISHMORPH scheme, plus a 25-fish x 9-10-replicate intra-operator
-repeatability trial. See `?load_t26_saudrune` for the data and
-`demo("pipeline_T26_saudrune")` for a complete worked pipeline (import,
-GPA, quality control, FISHMORPH traits, trait space, `itv_index()`,
-`measurement_error()`, `digitization_error()`, `trait_disparity()`) applied
-to it end to end.
+electric-fishing survey of the Saudrune (Adour-Garonne basin, France): 494
+fish of 7 species photographed on two dates (27 April and 18 May 2026) and
+digitized with `digitize_landmarks()` on the 25-point scheme, plus a blind
+repeat trial (the digitizer's repeat mode: the same fish re-digitized
+several times) for `measurement_error()` / `digitization_error()`. See
+`?load_t26_saudrune` for the four tables and `demo("pipeline_T26_saudrune")`
+for a complete worked pipeline (import, quality control, FISHMORPH traits,
+trait space, shape space, `itv_index()`, `measurement_error()`,
+`digitization_error()`, `trait_disparity()`) applied to it end to end.
 
 ```r
-ops <- load_t26_saudrune("operators")
-lm  <- read_landmarks_csv(ops)
+lm   <- load_t26_saudrune()                  # long landmark table
+spec <- load_t26_saudrune("specimens")       # one row per fish: species, quality, scale
+rep  <- load_t26_saudrune("repeatability")   # the repeat trial
 ```
 
 For the FISHMORPH-specific workflow, `load_t26_saudrune_landmarks()` returns
@@ -361,33 +361,21 @@ fish <- load_t26_saudrune_landmarks()
 fishmorph_ratios(fishmorph_segments(fish))
 ```
 
-Operator identity is anonymised in the shipped data (`"Operator_1"`,
-`"Operator_2"` rather than the real names recorded in the field
-spreadsheets). Both loaders take an `operator` argument to restrict to a
-single operator's digitizations — the natural way to build **two separate
-functional trait spaces**, one per operator, and check whether results are
-sensitive to who did the digitizing:
+Identity follows the campaign's own rule: a specimen is its photograph
+(`SAUDRUNESUDTOULOUSE_20260427_0001`, with `_iK` for the K-th fish of a
+multi-fish plate), never its species. The landmark tables carry `code`, not
+`species`; the current determination lives in the separate `"specimens"`
+table and can be revised without touching a coordinate. Pass
+`species = TRUE` to join `species`/`species_code` back by `code`:
 
 ```r
-fish_op1 <- load_t26_saudrune_landmarks(operator = "Operator_1")
-fish_op2 <- load_t26_saudrune_landmarks(operator = "Operator_2")
+lm <- load_t26_saudrune(species = TRUE)
+table(lm$species[lm$landmark == 1])
 ```
 
-`operator` is modular: passed to a table with no `operator` column, it is
-ignored with a warning (all rows are returned) rather than raising an
-error.
-
-`load_t26_saudrune("operators")` and `"repeatability"` are landmark tables
-keyed by `code`, not by species — species identity lives in the separate
-`"identifications"` table by design (a landmark measurement never needs to
-know a species, and identifications can be revised independently of the
-coordinates). Pass `species = TRUE` to join `species`/`id_status` back
-onto either table by `code`:
-
-```r
-ops <- load_t26_saudrune("operators", species = TRUE)
-table(ops$species)
-```
+Both loaders take an `operator` argument (labels are the digitizer's
+operator initials, `"AT"` so far); passed to a table with no `operator`
+column it is ignored with a warning rather than raising an error.
 
 ## Citation
 

@@ -3,8 +3,8 @@
 #'
 #' Screens a landmark data set in which the *same* physical individuals were
 #' each digitized once (or a few times) by *several* independent operators
-#' -- as produced by [load_t26_saudrune_landmarks()] with
-#' `source = "operators"` -- and returns, for every individual, a single
+#' -- e.g. [load_t26_saudrune_landmarks()] with `source = "repeatability"`
+#' once two operators have digitized the same fish -- and returns, for every individual, a single
 #' inter-operator disagreement index together with an automatic "at-risk"
 #' flag and, where identifiable, the operator responsible for the
 #' disagreement. It is the population-level, one-number-per-individual
@@ -27,7 +27,7 @@
 #' @param operator A factor or character vector of the same length, giving
 #'   the operator who produced each digitization. Defaults to
 #'   `landmarks$metadata$operator` if present (as produced by
-#'   [load_t26_saudrune_landmarks()] with `source = "operators"`). When an
+#'   [load_t26_saudrune_landmarks()] with `source = "repeatability"`). When an
 #'   operator digitized the same individual more than once, that operator's
 #'   replicate configurations are first averaged (landmark-wise mean,
 #'   ignoring `NA`) into a single per-operator configuration, so every
@@ -194,31 +194,34 @@
 #'   overlay this function summarises), [load_t26_saudrune_landmarks()]
 #'
 #' @examples
-#' # T-26 Saudrune: every fish digitized once by each of several operators.
-#' fish <- load_t26_saudrune_landmarks(source = "operators")
+#' # T-26 Saudrune repeat trial: the same individuals digitized several times.
+#' # The index needs at least two operators per individual; the shipped trial
+#' # has one so far, so the example runs once a second operator's passes are in.
+#' fish <- load_t26_saudrune_landmarks("repeatability")
+#' if (length(unique(fish$metadata$operator)) >= 2) {
+#'   # FISHMORPH scheme: drop the scale bar (landmarks 20-21) before screening.
+#'   od <- operator_disagreement(fish, exclude_landmarks = c(20, 21))
+#'   od
 #'
-#' # FISHMORPH scheme: drop the scale bar (landmarks 20-21) before screening.
-#' od <- operator_disagreement(fish, exclude_landmarks = c(20, 21))
-#' od
+#'   # the ranked, flagged table of individuals and their culprit operator:
+#'   head(od$by_individual)
 #'
-#' # the ranked, flagged table of individuals and their culprit operator:
-#' head(od$by_individual)
+#'   # which operator is systematically the most discordant?
+#'   od$by_operator
 #'
-#' # which operator is systematically the most discordant?
-#' od$by_operator
+#'   # visually confirm a flagged individual (the overlay this summarises):
+#'   risky <- od$by_individual$individual[od$by_individual$at_risk]
+#'   if (length(risky) > 0) {
+#'     plot_fishmorph_shapes(fish, individuals = risky[1],
+#'                           operator = TRUE, alpha = 0.6)
+#'   }
 #'
-#' # visually confirm a flagged individual (the overlay this summarises):
-#' risky <- od$by_individual$individual[od$by_individual$at_risk]
-#' if (length(risky) > 0) {
-#'   plot_fishmorph_shapes(fish, individuals = risky[1],
-#'                         operator = TRUE, alpha = 0.6)
+#'   # treat one operator as an expert reference so two-operator fish can also
+#'   # have their culprit named:
+#'   od_ref <- operator_disagreement(
+#'     fish, exclude_landmarks = c(20, 21), reference_operator = "AT"
+#'   )
 #' }
-#'
-#' # treat Operator_1 as an expert reference so two-operator fish can also
-#' # have their culprit named:
-#' od_ref <- operator_disagreement(
-#'   fish, exclude_landmarks = c(20, 21), reference_operator = "Operator_1"
-#' )
 #'
 #' @export
 operator_disagreement <- function(landmarks,

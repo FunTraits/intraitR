@@ -157,12 +157,13 @@
 #'
 #' @examples
 #' fish <- load_t26_saudrune_landmarks()
-#' plot_fishmorph_points(fish, specimen = "T-26-0010_Operator_1") # point 11 looks off
+#' spec <- fish$metadata$specimen[1]          # any specimen: the first one here
+#' plot_fishmorph_points(fish, specimen = spec)
 #' fish_fixed <- correct_landmarks(
-#'   fish, specimen = "T-26-0010_Operator_1",
+#'   fish, specimen = spec,
 #'   points = c(9, 8, 11, 4), correct = 11, axis = "y"
 #' )
-#' plot_fishmorph_points(fish_fixed, specimen = "T-26-0010_Operator_1") # point 11 now in blue
+#' plot_fishmorph_points(fish_fixed, specimen = spec) # point 11 now in blue
 #'
 #' # Audit the FISHMORPH geometric conventions across the whole data set
 #' # before deciding which specimens/points need rule = "align" -- or use

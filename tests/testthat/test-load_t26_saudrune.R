@@ -32,8 +32,8 @@ test_that("the specimen table is one data set with the landmark table, split in 
   plates <- spec[spec$individual > 1, , drop = FALSE]
   expect_true(all(sub("_i[0-9]+$", "", plates$code) == plates$uid))
   # n_landmarks agrees with the coordinate table
-  placed <- tapply(!is.na(lm$X), lm$code, sum)
-  expect_equal(unname(placed[spec$code]), spec$n_landmarks)
+  placed <- tapply(!is.na(lm$X), lm$code, sum)   # 1-d array: drop names and dim
+  expect_equal(as.integer(placed[spec$code]), as.integer(spec$n_landmarks))
 })
 
 test_that("the repeat trial has several passes per individual and unique specimen ids", {

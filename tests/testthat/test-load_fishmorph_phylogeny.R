@@ -16,6 +16,6 @@ test_that("load_fishmorph_phylogeny() works with phylo_pcoa() end-to-end", {
   tree <- load_fishmorph_phylogeny()
   some_tips <- gsub("\\.", " ", utils::head(tree$tip.label, 5))
   pp <- suppressWarnings(phylo_pcoa(tree, species = some_tips, k = 2))
-  expect_s3_class(pp, "intrait_phylopcoa")
+  expect_s3_class(pp, "fishmorph_phylopcoa")   # re-exported from Rfishmorph
   expect_true(nrow(pp$traits) >= 3)
 })

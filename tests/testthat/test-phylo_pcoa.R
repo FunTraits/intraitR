@@ -26,7 +26,7 @@ test_that("phylo_pcoa() builds axes from an ultrametric coalescent tree", {
   tree <- ape::rcoal(8, tip.label = paste0("sp_", 1:8))
   pp <- phylo_pcoa(tree, k = 3)
 
-  expect_s3_class(pp, "intrait_phylopcoa")
+  expect_s3_class(pp, "fishmorph_phylopcoa")   # phylo_pcoa() is re-exported from Rfishmorph
   expect_equal(pp$k, 3)
   expect_equal(nrow(pp$traits), 8)
   expect_equal(ncol(pp$traits), 4) # species + 3 axes
@@ -81,12 +81,12 @@ test_that("phylo_pcoa() errors when `k` exceeds the available positive-eigenvalu
   expect_error(phylo_pcoa(tree, k = 100), "requests more axes")
 })
 
-test_that("print.intrait_phylopcoa() prints a summary and returns x invisibly", {
+test_that("print.fishmorph_phylopcoa() prints a summary and returns x invisibly", {
   testthat::skip_if_not_installed("ape")
   set.seed(7)
   tree <- ape::rcoal(6, tip.label = paste0("sp_", 1:6))
   pp <- phylo_pcoa(tree, k = 2)
-  expect_output(print(pp), "intrait_phylopcoa")
+  expect_output(print(pp), "fishmorph_phylopcoa")
   expect_output(print(pp), "PCoA1")
   ret <- withVisible(print(pp))
   expect_false(ret$visible)

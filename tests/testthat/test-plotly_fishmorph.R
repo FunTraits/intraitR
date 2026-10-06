@@ -148,8 +148,9 @@ test_that("tooltips carry the specimen identity, and the traits only on demand",
   skip_if_not_installed("plotly")
   proj <- make_projection()
 
-  # default: identity + species + coordinates, no nine-ratio line
-  b <- bld(plotly_fishmorph(proj, style = "points"))
+  # identity + species + coordinates, no nine-ratio line (hover_distances,
+  # TRUE by default since 1.2x, adds two more lines; it is tested separately)
+  b <- bld(plotly_fishmorph(proj, style = "points", hover_distances = FALSE))
   txt <- b$data[[length(b$data)]]$text
   expect_true(any(grepl("spec", txt, fixed = TRUE)))
   expect_true(all(grepl("PC1: ", txt, fixed = TRUE)))
@@ -160,7 +161,8 @@ test_that("tooltips carry the specimen identity, and the traits only on demand",
 
   # hover_traits = TRUE appends them, wrapped three per line: 9 ratios add
   # three lines to the four above
-  b2 <- bld(plotly_fishmorph(proj, style = "points", hover_traits = TRUE))
+  b2 <- bld(plotly_fishmorph(proj, style = "points", hover_traits = TRUE,
+                             hover_distances = FALSE))
   txt2 <- b2$data[[length(b2$data)]]$text
   expect_true(all(grepl("REs = ", txt2, fixed = TRUE)))
   expect_equal(unique(n_lines(txt2)), 7L)

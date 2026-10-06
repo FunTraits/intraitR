@@ -343,7 +343,9 @@ photo_provenance_keys <- function(dir, field = "source_path") {
 #'
 #'   Because a key match says the two codes name one fish but nothing about the
 #'   pixels, the COORDINATE FRAME is checked before anything is re-keyed: the
-#'   row's `img_w`/`img_h` must equal the dimensions of the target image.
+#'   row's `img_w`/`img_h`, when recorded, must equal the dimensions of the
+#'   target image (a row digitized before those columns existed records
+#'   nothing, so nothing can contradict it and the re-keying proceeds).
 #'   Landmarks are recorded in the pixels of a particular rendering, so
 #'   carrying them onto a differently cropped or rescaled copy would move every
 #'   one of them without changing a single recorded number. A frame that does
@@ -523,10 +525,17 @@ reconcile_photo_names <- function(x, photos, hashes = NULL,
       k <- prov_target[i]
       by_provenance <- TRUE
       sz <- size_of(k)
-      w <- suppressWarnings(as.numeric(x[["img_w"]][i]))
-      hgt <- suppressWarnings(as.numeric(x[["img_h"]][i]))
-      frame_ok <- all(is.finite(sz)) && is.finite(w) && is.finite(hgt) &&
-        sz[1] == w && sz[2] == hgt
+      # A row digitized before `img_w`/`img_h` were recorded -- or a table
+      # without those columns at all -- has nothing to contradict: the frame is
+      # checked only when the row says what it was.
+      dim_of <- function(col) {
+        v <- if (col %in% names(x)) suppressWarnings(as.numeric(x[[col]][i])) else NA_real_
+        if (length(v) != 1L) NA_real_ else v
+      }
+      w <- dim_of("img_w"); hgt <- dim_of("img_h")
+      recorded <- is.finite(w) && is.finite(hgt)
+      frame_ok <- !recorded ||
+        (all(is.finite(sz)) && sz[1] == w && sz[2] == hgt)
       if (!frame_ok) {
         # Same fish, not the same picture. Landmarks live in the pixels of one
         # rendering; carrying them onto another would move every point without

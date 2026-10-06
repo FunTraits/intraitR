@@ -36,7 +36,9 @@ in common, and the grouping does not need one.
 
 Because a key match says the two codes name one fish but nothing about the
 pixels, the COORDINATE FRAME is checked before anything is re-keyed: the
-row's \code{img_w}/\code{img_h} must equal the dimensions of the target image.
+row's \code{img_w}/\code{img_h}, when recorded, must equal the dimensions of the
+target image (a row digitized before those columns existed records
+nothing, so nothing can contradict it and the re-keying proceeds).
 Landmarks are recorded in the pixels of a particular rendering, so
 carrying them onto a differently cropped or rescaled copy would move every
 one of them without changing a single recorded number. A frame that does

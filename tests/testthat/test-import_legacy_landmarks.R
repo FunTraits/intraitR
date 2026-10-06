@@ -112,7 +112,9 @@ test_that("landmarks absent from the source stay NA, and the schema is complete"
   expect_equal(add$n_clicked, rep(3, 3))
   expect_equal(add$n_na, rep(22, 3))
   expect_true(all(c("1_X", "25_Y", "app_version") %in% names(add)))
-  expect_equal(ncol(add), 18L + 50L)             # same schema as the app's sheet
+  # same schema as the app's sheet: 23 metadata columns (18 + reviewed,
+  # reviewed_by, review_date, collapse_rules, photo_hash since 1.31) + 25 x 2
+  expect_equal(ncol(add), 23L + 50L)
 })
 
 test_that("the {i} template reads the app's own layout too", {

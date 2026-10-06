@@ -44,6 +44,21 @@
   identifiant de specimen code en dur dans la documentation.
 * Taille : `inst/extdata/T26_Saudrune` passe de 3,4 Mo a 0,28 Mo.
 
+## Corrections
+
+* `reconcile_photo_names()` : une ligne numerisee avant l'existence des
+  colonnes `img_w`/`img_h` n'a rien qui contredise le cadre ; la verification
+  du cadre ne s'applique que lorsque la ligne a enregistre ses dimensions.
+  Jusqu'ici une telle ligne finissait en `frame_changed` et n'etait jamais
+  re-clee, ce qui annulait le cas retroactif que la provenance sert.
+* Tests remis au niveau du code (ils n'avaient pas ete relances depuis
+  1.31) : `phylo_pcoa()` renvoie `fishmorph_phylopcoa` (reexport de
+  Rfishmorph) ; le schema de la feuille `measurements` compte 23 colonnes de
+  metadonnees (`reviewed`, `reviewed_by`, `review_date`, `collapse_rules`,
+  `photo_hash`) ; `apply_collapse()` depend de `project_mid()` ; les
+  info-bulles de `plotly_fishmorph()` portent deux lignes de distances par
+  defaut (`hover_distances = TRUE`).
+
 # intraitR 1.34.0
 
 ## Le journal ne se deverse plus dans le classeur d'un autre dossier

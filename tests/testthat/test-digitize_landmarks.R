@@ -196,10 +196,10 @@ test_that("LM23 is derived from LM1, LM6, LM9 and the head axis", {
   expect_true(all(is.finite(p23)))
   # it lies ON the line (1, 9): the cross product of (23-1) and (9-1) vanishes
   d1 <- P[9, ] - P[1, ]; d <- p23 - P[1, ]
-  expect_equal(d[1] * d1[2] - d[2] * d1[1], 0, tolerance = 1e-8)
+  expect_equal(unname(d[1] * d1[2] - d[2] * d1[1]), 0, tolerance = 1e-8)
   # and 23-6 is parallel to the head axis 1 -> 22
   ax <- P[22, ] - P[1, ]; e <- P[6, ] - p23
-  expect_equal(e[1] * ax[2] - e[2] * ax[1], 0, tolerance = 1e-8)
+  expect_equal(unname(e[1] * ax[2] - e[2] * ax[1]), 0, tolerance = 1e-8)
 
   # invariant to the orientation of the photograph
   th <- 0.4; R <- matrix(c(cos(th), sin(th), -sin(th), cos(th)), 2, 2)
@@ -217,7 +217,9 @@ test_that("LM23 is derived from LM1, LM6, LM9 and the head axis", {
 
 test_that("a declared zero collapses its own segment and nothing else", {
   env <- app_helpers(c("fin_row", "COLLAPSE_RULES", "apply_collapse",
-                       "collapse_points"))
+                       "collapse_points", "project_mid", "seg_frames",
+                       "make_frame", "body_axis", "axis_chain", "N_TOT",
+                       "CURVE_PT", "HEAD_PT", "EXTRA_HINGES", "HINGES"))
   P <- conv_fish()
   seg <- function(P, a, b) sqrt(sum((P[a, ] - P[b, ])^2))
   base <- c(Mo = seg(P, 1, 9), Hd6 = seg(P, 6, 8), PFi = seg(P, 10, 11),

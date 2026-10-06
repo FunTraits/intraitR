@@ -13,3 +13,7 @@ NAMESPACE.bak
 # real example photographs/digitized data under a different path.
 specimens.tps
 P5180033.jpg
+
+# journals written by a digitizer session launched from inside the package tree
+inst/shiny/**/landmark_journal/
+inst/shiny/landmarking_app/T_26_LaSaudrune/

@@ -16,3 +16,5 @@
 ^_pkgdown\.yml$
 __pycache__
 \.pyc$
+^inst/shiny/landmarking_app/T_26_LaSaudrune$
+^inst/shiny/.*/landmark_journal$

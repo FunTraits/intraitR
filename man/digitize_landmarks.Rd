@@ -97,8 +97,9 @@ before the column existed stays in the \code{"new"} queue -- the behaviour of
 every earlier version, and never a silent guess.}
 
 \item{mlmorph_dir}{Path to the ml-morph resource directory holding the
-trained predictor(s) (\code{mlmorph_run_app/predictor.dat},
-\code{mlmorph_run_aligned/predictor.dat}), the aligned dataset
+trained predictor(s) (\code{mlmorph_run_campaign/predictor.dat},
+\code{mlmorph_run_app/predictor.dat}, \code{mlmorph_run_aligned/predictor.dat}),
+the matching dataset (\verb{mlmorph_dataset_campaign/}, ...), the aligned dataset
 (\verb{mlmorph_dataset_aligned/}) and, optionally, a Python virtual environment
 (\verb{.venv_mlmorph/}). \code{NULL} (default) auto-detects it from the
 \code{INTRAITR_MLMORPH_DIR} environment variable, then from \verb{ml_morph/},

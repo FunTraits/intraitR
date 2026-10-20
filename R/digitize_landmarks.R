@@ -64,8 +64,9 @@
 #'   in memory, are written when the session ends or on demand, and are in the
 #'   journal in any case. `1` writes after every specimen. Defaults to `10`.
 #' @param mlmorph_dir Path to the ml-morph resource directory holding the
-#'   trained predictor(s) (`mlmorph_run_app/predictor.dat`,
-#'   `mlmorph_run_aligned/predictor.dat`), the aligned dataset
+#'   trained predictor(s) (`mlmorph_run_campaign/predictor.dat`,
+#'   `mlmorph_run_app/predictor.dat`, `mlmorph_run_aligned/predictor.dat`),
+#'   the matching dataset (`mlmorph_dataset_campaign/`, ...), the aligned dataset
 #'   (`mlmorph_dataset_aligned/`) and, optionally, a Python virtual environment
 #'   (`.venv_mlmorph/`). `NULL` (default) auto-detects it from the
 #'   `INTRAITR_MLMORPH_DIR` environment variable, then from `ml_morph/`,
@@ -805,6 +806,7 @@ digitize_landmarks <- function(photo_dir,
   looks_like <- function(d) {
     nzchar(d) && dir.exists(d) && any(file.exists(file.path(d, c(
       "predict_new_image.py",
+      file.path("mlmorph_run_campaign", "predictor.dat"),
       file.path("mlmorph_run_app", "predictor.dat"),
       file.path("mlmorph_run_aligned", "predictor.dat"),
       "mlmorph_dataset_aligned"

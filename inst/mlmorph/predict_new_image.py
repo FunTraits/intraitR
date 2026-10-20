@@ -80,6 +80,20 @@ def fixed_box_dims(dataset_dir, pad=0.15):
     return W, H
 
 
+def read_canon_params(dataset_dir):
+    """Paramètres du repère canonique écrits à l'entraînement
+    (canon_params.txt, produit par build_campaign_dataset.py). Absent pour les
+    anciens jeux -> {} et comportement historique inchangé."""
+    p = os.path.join(dataset_dir, "canon_params.txt")
+    out = {}
+    if os.path.exists(p):
+        for ln in open(p):
+            if "=" in ln:
+                k, v = ln.strip().split("=", 1)
+                out[k.strip()] = v.strip()
+    return out
+
+
 def predict_config(predictor, img_canon, box_w, box_h, cw, ch):
     """Prédit les N landmarks dans l'image canonicalisée (box fixe centrée)."""
     left = int(round(cw / 2 - box_w / 2)); top = int(round(ch / 2 - box_h / 2))
@@ -110,10 +124,11 @@ def main():
     ap.add_argument("--scale-mm", type=float, default=0)
     ap.add_argument("--dataset-dir", default="mlmorph_dataset_aligned")
     ap.add_argument("--predictor", default="mlmorph_run_aligned/predictor.dat")
-    ap.add_argument("--target-len", type=float, default=750)
-    ap.add_argument("--crop-w-factor", type=float, default=2.6)
-    ap.add_argument("--crop-h-factor", type=float, default=1.7)
-    ap.add_argument("--refine", action="store_true", default=True)
+    # None = valeur lue dans <dataset-dir>/canon_params.txt, sinon défaut historique
+    ap.add_argument("--target-len", type=float, default=None)
+    ap.add_argument("--crop-w-factor", type=float, default=None)
+    ap.add_argument("--crop-h-factor", type=float, default=None)
+    ap.add_argument("--refine", action="store_true", default=None)
     ap.add_argument("--no-refine", dest="refine", action="store_false")
     ap.add_argument("--pin-clicks", action="store_true", default=True,
                     help="épingle LM1=museau et LM2=caudale sur les clics utilisateur "
@@ -121,6 +136,20 @@ def main():
     ap.add_argument("--no-pin-clicks", dest="pin_clicks", action="store_false")
     ap.add_argument("--out", default="prediction.csv")
     args = ap.parse_args()
+
+    # Repère canonique : il doit être IDENTIQUE à celui de l'entraînement.
+    # center=midpoint (modèles campagne) : la fenêtre est centrée sur le milieu
+    # LM1-LM2, exactement comme à l'entraînement -> pas de passe "refine", qui
+    # recentrerait sur le barycentre prédit et décalerait toute la configuration.
+    cp = read_canon_params(args.dataset_dir)
+    if args.target_len is None:
+        args.target_len = float(cp.get("target_len", 750))
+    if args.crop_w_factor is None:
+        args.crop_w_factor = float(cp.get("crop_w_factor", 2.6))
+    if args.crop_h_factor is None:
+        args.crop_h_factor = float(cp.get("crop_h_factor", 1.7))
+    if args.refine is None:
+        args.refine = cp.get("refine", "1") not in ("0", "false", "False")
 
     snout = parse_xy(args.snout); caudal = parse_xy(args.caudal)
     dorsal = parse_xy(args.dorsal) if args.dorsal else None

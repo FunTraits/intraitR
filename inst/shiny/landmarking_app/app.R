@@ -172,6 +172,10 @@ PRED_CHOICES <- {
   ex <- Sys.getenv("INTRAITR_MLMORPH_PREDICTOR", "")
   Filter(file.exists, c(
     if (nzchar(ex)) c(supplied = ex),
+    ## campaign: trained on the INTRAIT campaign workbook (Guyane + Saudrune,
+    ## build_campaign_dataset.py); its dataset folder mlmorph_dataset_campaign
+    ## carries canon_params.txt, read by the worker (frame centred on LM1-LM2).
+    campaign = file.path(ML, "mlmorph_run_campaign", "predictor.dat"),
     app     = file.path(ML, "mlmorph_run_app",     "predictor.dat"),
     aligned = file.path(ML, "mlmorph_run_aligned", "predictor.dat")))
 }

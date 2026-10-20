@@ -1,3 +1,25 @@
+# intraitR 1.36.0
+
+## Prediction : un modele entraine sur la campagne
+
+* `digitize_landmarks()` propose un troisieme modele, `campaign`
+  (`ml_morph/mlmorph_run_campaign/predictor.dat`, 19 landmarks anatomiques),
+  entraine sur le classeur de la campagne INTRAIT (5 sites, 80 especes ;
+  1 570 specimens lisibles : 1 102 train / 230 val / 238 test, partition par
+  photographie, stratifiee par espece). Il est liste en premier dans
+  « Predictor model » et detecte par `.resolve_mlmorph_dir()`.
+* Le worker `inst/mlmorph/predict_new_image.py` lit desormais
+  `<dataset>/canon_params.txt` (ecrit par `ml_morph/build_campaign_dataset.py`) :
+  `target_len`, facteurs de recadrage, et `refine`. Le modele `campaign` est
+  entraine dans une fenetre centree sur le MILIEU de LM1-LM2 -- les deux points
+  cliques -- et declare `refine=0` : la passe de recentrage sur le barycentre
+  predit, qui ne peut pas corriger une translation de la box (point fixe),
+  decalait toute la configuration de ~70 px (erreur mediane 9,7 % de Bl au
+  lieu de 1,1 % sur le bloc test). Sans `canon_params.txt` (modeles `app` et
+  `aligned`), le comportement historique est inchange.
+* Validation sur le bloc test (jamais vu), via le worker de l'app, clics
+  LM1-LM2-LM3 : voir `ml_morph/mlmorph_run_campaign/validation_summary.csv`.
+
 # intraitR 1.35.0
 
 ## Un seul corpus T-26 : celui de l'application

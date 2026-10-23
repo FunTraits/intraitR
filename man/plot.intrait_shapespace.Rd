@@ -92,7 +92,7 @@ across separate calls to \code{plot.intrait_shapespace()} and
 \code{\link[=plot.intrait_traitspace]{plot.intrait_traitspace()}} -- including when built from the same
 dataset but retaining different subsets of specimens (and so,
 potentially, different subsets of species) after each function's own
-missing-data or outlier handling. Call \code{\link[Rfishmorph:reset_group_colors]{reset_group_colors()}} to clear
+missing-data or outlier handling. Call \code{\link[=reset_group_colors]{reset_group_colors()}} to clear
 this cache, e.g. before moving on to an unrelated dataset.
 }
 \references{

@@ -91,16 +91,22 @@ app_file <- function() {
   if (!nzchar(p) || !file.exists(p)) testthat::skip("bundled app not installed")
   p
 }
-## Evaluate the app's identifier helpers -- and only those -- in a bare
-## environment, so the convention they implement can be tested without starting
-## Shiny (sourcing the file would call shinyApp()).
+## Gather the app's helpers in a bare environment, so the conventions they
+## implement can be tested without starting Shiny. Since intraitR 1.39.0 the
+## digitizer core (geometry, conventions, workbook layout) lives in the package
+## (R/digitizer_core.R) and is taken from the namespace; anything still defined
+## in app.R is evaluated out of the file (sourcing it would call shinyApp()).
 app_helpers <- function(wanted) {
   env <- new.env(parent = globalenv())
   env$`%||%` <- function(x, y) if (is.null(x)) y else x
   env$SAVE_PTS <- 1:23
-  for (e in as.list(parse(app_file()))) {
+  ns <- asNamespace("intraitR")
+  for (w in intersect(wanted, intraitR:::.digitizer_core_names()))
+    assign(w, get(w, envir = ns), envir = env)
+  wanted_app <- setdiff(wanted, ls(env))
+  if (length(wanted_app)) for (e in as.list(parse(app_file()))) {
     if (is.call(e) && identical(e[[1L]], as.name("<-")) && is.name(e[[2L]]) &&
-        as.character(e[[2L]]) %in% wanted) eval(e, env)
+        as.character(e[[2L]]) %in% wanted_app) eval(e, env)
   }
   if (!all(wanted %in% ls(env)))
     testthat::skip(paste("helpers not found in app.R:",
@@ -110,6 +116,18 @@ app_helpers <- function(wanted) {
 
 test_that("the bundled landmarking app parses", {
   expect_silent(invisible(parse(app_file())))
+})
+
+test_that("the digitizer core is complete and the app does not redefine it", {
+  core <- intraitR:::.digitizer_core_names()
+  ns <- asNamespace("intraitR")
+  expect_true(all(vapply(core, exists, logical(1), envir = ns, inherits = FALSE)))
+  expect_false(anyDuplicated(core) > 0)
+  # a top-level redefinition in app.R would silently shadow the shared core
+  top <- vapply(as.list(parse(app_file())), function(e)
+    if (is.call(e) && identical(e[[1L]], as.name("<-")) && is.name(e[[2L]]))
+      as.character(e[[2L]]) else NA_character_, character(1))
+  expect_length(intersect(core, top), 0)
 })
 
 ## ---- the conventions checked on save ----------------------------------------

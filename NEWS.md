@@ -1,3 +1,23 @@
+# intraitR 1.39.0
+
+## Fusion des digitizers, etape 1 : le noyau commun entre dans le package
+
+Objectif : UNE application de numerisation dans intraitR, avec deux cibles --
+la campagne (`digitize_landmarks()`) et le classeur de reference FISHMORPH
+(`digitize_fishmorph_reference()`, qui remplacera
+`Rfishmorph::launch_fishmorph_digitizer()`).
+
+* Le noyau du digitizer (schema des 25 points, ordres de saisie, mise en page
+  du classeur de campagne, conventions FISHMORPH verifiees a l'enregistrement :
+  axe brise, points extremes 3/4, ordre de l'oeil, points confondus ; geometrie
+  d'amorcage ; lecture/retournement des images) quitte
+  `inst/shiny/landmarking_app/app.R` pour `R/digitizer_core.R`, **a
+  l'identique** (79 definitions, ~1 130 lignes). L'app les importe sous les
+  memes noms au demarrage : aucun changement de comportement.
+* Les tests prennent ces fonctions dans le namespace au lieu d'analyser le
+  texte de `app.R` ; nouveau test : le noyau est complet et l'app ne le
+  redefinit pas.
+
 # intraitR 1.38.0
 
 ## Dedoublonnage avec Rfishmorph : la visualisation de l'espace FISHMORPH part dans Rfishmorph

@@ -84,6 +84,15 @@
 #'   every earlier version, and never a silent guess.
 #' @param predictor Optional path to a specific trained predictor (`.dat`) to
 #'   offer first in the app's model selector.
+#' @param batch Optional output folder of [batch_landmarks()] (or the list it
+#'   returns). In the "new" queue, a photograph found there arrives with its 19
+#'   landmarks already placed by the automatic chain -- status "predicted",
+#'   LM1 and LM2 included, until each is checked -- and the ruler (20-21) is the
+#'   first thing to click. Photographs are matched by file name; plates
+#'   (`individuals_per_photo > 1`) are not pre-filled.
+#' @param batch_order With `batch`: `"risk"` (default) puts the photographs the
+#'   batch flagged first in the "new" queue, by decreasing risk; `"photo"`
+#'   keeps the folder order.
 #' @param python Optional path to (or name of) the Python interpreter running
 #'   the prediction worker; it needs `numpy`, `opencv-python` and `dlib`
 #'   (typically `.venv_mlmorph`). `NULL` (default) resolves it from
@@ -583,6 +592,7 @@ digitize_landmarks <- function(photo_dir,
                                provenance = NULL,
                                mlmorph_dir = NULL, predictor = NULL,
                                python = NULL,
+                               batch = NULL, batch_order = c("risk", "photo"),
                                sheets = c(measurements = "measurements",
                                           bias = "bias",
                                           summary = "bias_summary"),
@@ -761,7 +771,17 @@ digitize_landmarks <- function(photo_dir,
   ## the app in THIS process, so the option is simply visible from it. The
   ## ml-morph paths stay in environment variables as well, so the app can also
   ## be launched standalone with shiny::runApp("inst/shiny/landmarking_app").
+  batch_order <- match.arg(batch_order)
+  if (is.list(batch)) batch <- batch$out_dir
+  if (!is.null(batch)) {
+    batch <- .one_path(batch, "batch")
+    if (!file.exists(file.path(batch, "landmarks_long.csv")))
+      stop("`batch`: no landmarks_long.csv in ", batch,
+           " (output folder of batch_landmarks()).", call. = FALSE)
+    batch <- normalizePath(batch)
+  }
   cfg <- list(
+    batch_dir = if (is.null(batch)) "" else batch, batch_order = batch_order,
     photo_dir = photo_dir, photos = photos, xlsx_path = xlsx_path,
     journal_dir = journal_dir, operator = operator, mode = mode,
     n_repeats = n_repeats, ruler_mm = ruler_mm,
@@ -806,6 +826,8 @@ digitize_landmarks <- function(photo_dir,
   looks_like <- function(d) {
     nzchar(d) && dir.exists(d) && any(file.exists(file.path(d, c(
       "predict_new_image.py",
+      file.path("mlmorph_run_cnn", "model.onnx"),
+      file.path("mlmorph_run_combined", "predictor.dat"),
       file.path("mlmorph_run_campaign", "predictor.dat"),
       file.path("mlmorph_run_app", "predictor.dat"),
       file.path("mlmorph_run_aligned", "predictor.dat"),

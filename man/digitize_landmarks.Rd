@@ -20,6 +20,8 @@ digitize_landmarks(
   mlmorph_dir = NULL,
   predictor = NULL,
   python = NULL,
+  batch = NULL,
+  batch_order = c("risk", "photo"),
   sheets = c(measurements = "measurements", bias = "bias", summary = "bias_summary"),
   launch.browser = TRUE,
   ...
@@ -114,6 +116,17 @@ the prediction worker; it needs \code{numpy}, \code{opencv-python} and \code{dli
 (typically \code{.venv_mlmorph}). \code{NULL} (default) resolves it from
 \code{INTRAITR_MLMORPH_PY}/\code{PY}, then \verb{~/.venv_mlmorph/bin/python}, then
 \verb{.venv_mlmorph/} inside \code{mlmorph_dir}, then \code{python3} on the search path.}
+
+\item{batch}{Optional output folder of \code{\link[=batch_landmarks]{batch_landmarks()}} (or the list it
+returns). In the "new" queue, a photograph found there arrives with its 19
+landmarks already placed by the automatic chain -- status "predicted",
+LM1 and LM2 included, until each is checked -- and the ruler (20-21) is the
+first thing to click. Photographs are matched by file name; plates
+(\code{individuals_per_photo > 1}) are not pre-filled.}
+
+\item{batch_order}{With \code{batch}: \code{"risk"} (default) puts the photographs the
+batch flagged first in the "new" queue, by decreasing risk; \code{"photo"}
+keeps the folder order.}
 
 \item{sheets}{Named character vector giving the three sheet names. Defaults
 to \code{c(measurements = "measurements", bias = "bias", summary = "bias_summary")}.}

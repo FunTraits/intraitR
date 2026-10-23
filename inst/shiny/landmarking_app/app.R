@@ -75,6 +75,29 @@ OPERATOR <- local({
 ## Codes of the queue, in the order of the photographs: the file name without
 ## its extension IS the specimen code, here and in the workbook.
 PHOTO_CODES <- tools::file_path_sans_ext(basename(CFG$photos))
+## Predictions of batch_landmarks() (argument `batch` of digitize_landmarks()):
+## the automatic chain run beforehand on the whole folder. Keyed by file name.
+## In the "new" queue a photograph found there arrives pre-filled, and the
+## photographs the batch flagged come first.
+BATCH <- local({
+  d <- CFG$batch_dir
+  if (is.null(d) || !nzchar(d) || !file.exists(file.path(d, "landmarks_long.csv"))) NULL else {
+    key <- function(p) tolower(basename(p))
+    L <- utils::read.csv(file.path(d, "landmarks_long.csv"), stringsAsFactors = FALSE)
+    # plates found by the batch (max_fish > 1): only individual 1 pre-fills a
+    # one-fish photograph; plates themselves are not pre-filled (see seed_from_batch)
+    if ("individual" %in% names(L)) L <- L[L$individual == 1L, , drop = FALSE]
+    S <- if (file.exists(file.path(d, "summary.csv")))
+      utils::read.csv(file.path(d, "summary.csv"), stringsAsFactors = FALSE) else
+      data.frame(photo = unique(L$photo), flags = "", risk = 0)
+    S$flags[is.na(S$flags)] <- ""
+    S <- S[order(-S$risk), , drop = FALSE]                # worst fish of the photo
+    S <- S[!duplicated(key(S$photo)), , drop = FALSE]
+    list(key = key, P = split(L, key(L$photo)),
+         risk = stats::setNames(S$risk, key(S$photo)),
+         flags = stats::setNames(S$flags, key(S$photo)))
+  }
+})
 
 ## ...and what each photograph IS, as opposed to what it is called. The code
 ## above is metadata -- site, date, species, number -- and every one of those
@@ -175,6 +198,13 @@ PRED_CHOICES <- {
     ## campaign: trained on the INTRAIT campaign workbook (Guyane + Saudrune,
     ## build_campaign_dataset.py); its dataset folder mlmorph_dataset_campaign
     ## carries canon_params.txt, read by the worker (frame centred on LM1-LM2).
+    ## combined: ONE model for the campaign photographs AND the FISHMORPH
+    ## species photographs (build_combined_dataset.py), the default.
+    ## cnn: neural network (heatmaps, train_cnn.py), exported to ONNX -- the
+    ## default, best on both sources; same canonical frame, same worker (needs
+    ## onnxruntime in the Python environment).
+    cnn      = file.path(ML, "mlmorph_run_cnn",      "model.onnx"),
+    combined = file.path(ML, "mlmorph_run_combined", "predictor.dat"),
     campaign = file.path(ML, "mlmorph_run_campaign", "predictor.dat"),
     app     = file.path(ML, "mlmorph_run_app",     "predictor.dat"),
     aligned = file.path(ML, "mlmorph_run_aligned", "predictor.dat")))
@@ -1677,6 +1707,11 @@ main_panel <- function() tagList(
           actionButton("clear_pt", "Clear point")),
       div(class = "tbsep"),
       actionButton("predict", "Predict 19 landmarks"),
+      actionButton("predict_auto", "Auto (no clicks)",
+                   title = paste("The global network finds the snout (LM1), the caudal-fin",
+                                 "basis (LM2) and the dorsal side on the whole photograph,",
+                                 "then the model places the other landmarks. Points already",
+                                 "clicked are kept. Needs mlmorph_run_global/model.onnx.")),
       div(class = "tbgroup",
           actionButton("undo", "Undo"),
           actionButton("restart", "Start over"))),
@@ -1819,6 +1854,7 @@ server <- function(input, output, session) {
     pred = NULL, sel = 1L, msg = "",
     placed_order = integer(0),          # points in the order they were placed (for Undo)
     seeded = integer(0),                # points still at their median-proportion seed
+    auto12 = integer(0),                # LM1/LM2 placed by the global network, not clicked
     na = integer(0),                    # landmarks declared non-measurable
     edited = integer(0),                # landmarks moved by hand this session
     adjusted = integer(0),              # landmarks snapped by the extreme-point
@@ -2645,7 +2681,7 @@ server <- function(input, output, session) {
     rv$img <- make_disp()
     rv$pred <- empty_coords(); rv$sel <- 1L
     rv$na <- integer(0); rv$edited <- integer(0); rv$placed_order <- integer(0)
-    rv$seeded <- integer(0); rv$adjusted <- integer(0)
+    rv$seeded <- integer(0); rv$adjusted <- integer(0); rv$auto12 <- integer(0)
     rv$zoom <- 1; rv$cx <- NULL; rv$cy <- NULL
     # A declared zero is a statement about ONE fish: it never carries over to
     # the next photograph.
@@ -2666,13 +2702,20 @@ server <- function(input, output, session) {
   ## membership test left every plate in the "new" queue for ever.
   photo_ndone <- function(code) length(saved_inds(code))
   photo_done  <- function(code) photo_ndone(code) >= n_ind_of(code)
+  ## batch run: flagged photographs first (decreasing risk), the others after
+  batch_sort <- function(idx) {
+    if (is.null(BATCH) || !identical(CFG$batch_order, "risk") || !length(idx)) return(idx)
+    r <- unname(BATCH$risk[BATCH$key(CFG$photos[idx])])
+    r[!is.finite(r)] <- -Inf
+    idx[order(-r, idx)]
+  }
   queue_of <- function(m = cur_mode()) {
     done <- vapply(PHOTO_CODES, photo_done, logical(1), USE.NAMES = FALSE)
     started <- vapply(PHOTO_CODES, function(c0) photo_ndone(c0) > 0L,
                       logical(1), USE.NAMES = FALSE)
     switch(m,
            # "new" keeps a plate only partly measured: it still has work on it.
-           new     = which(!done),
+           new     = batch_sort(which(!done)),
            correct = which(started),
            `repeat` = seq_along(CFG$photos),
            seq_along(CFG$photos))
@@ -2742,6 +2785,26 @@ server <- function(input, output, session) {
     rv$edited   <- setdiff(rv$edited, collapse_points(act, kinds = "move"))
     TRUE
   }
+  ## Pre-fill from the batch run. Every landmark comes in as "predicted",
+  ## LM1 and LM2 included (rv$auto12): nobody has looked at this photograph yet.
+  seed_from_batch <- function() {
+    if (is.null(BATCH) || !identical(cur_mode(), "new") || n_ind_of(rv$photo) != 1L)
+      return(FALSE)
+    d <- BATCH$P[[BATCH$key(rv$orig)]]
+    if (is.null(d) || !nrow(d)) return(FALSE)
+    d <- d[(d$landmark >= 1 & d$landmark <= N_ANAT | d$landmark %in% c(CURVE_PT, EXTRA_HINGES[1])) &
+             is.finite(d$X) & is.finite(d$Y), , drop = FALSE]
+    # coordinates of another version of the photograph (re-cropped since)
+    if (!nrow(d) || any(d$X > rv$w + 1 | d$Y > rv$h + 1)) return(FALSE)
+    M <- rv$pred
+    M[as.character(d$landmark), ] <- as.matrix(d[, c("X", "Y")])
+    if (isTRUE(input$pin) || isTRUE(input$auto_constraints)) M <- apply_conventions(M)
+    rv$pred <- collapse_pred(M)
+    rv$auto12 <- intersect(c(1L, 2L), d$landmark)
+    rv$edited <- integer(0); rv$placed_order <- integer(0); rv$seeded <- integer(0)
+    rv$sel <- SCALE_PTS[1]
+    TRUE
+  }
   load_queue_photo <- function(k) {
     n <- length(rv$q)
     if (!n) { rv$qi <- 0L; return(invisible(NULL)) }
@@ -2763,12 +2826,21 @@ server <- function(input, output, session) {
     rv$ind <- next_ind(code)
     reloaded <- if (identical(cur_mode(), "correct"))
       seed_from_sheet(ind_code(code, ind_i(), nn)) else FALSE
+    batched <- if (!reloaded) seed_from_batch() else FALSE
     if (isTRUE(rep_mode())) updateNumericInput(session, "rep_i",
                                                value = next_rep(cur_code()))
+    if (batched) {
+      fl <- unname(BATCH$flags[BATCH$key(rv$orig)])
+      notify(if (!is.na(fl) && nzchar(fl))
+               sprintf("Batch prediction FLAGGED (%s): check every point, LM1 and LM2 first.", fl)
+             else "Batch prediction loaded: click LM20/21 on the ruler, then review the points.",
+             if (!is.na(fl) && nzchar(fl)) "warning" else "message")
+    }
     rv$msg <- sprintf(
       "%s (%d/%d in the '%s' queue). %s",
       code, k, n, cur_mode(),
-      if (!reloaded) "Click the snout (point 1)."
+      if (batched) "Points proposed by the batch run (all 'predicted'): click the ruler, then review."
+      else if (!reloaded) "Click the snout (point 1)."
       else if (length(rv$seeded))
         paste("Configuration SEEDED from elsewhere, checked by nobody on this",
               "photograph: go through every point before saving.")
@@ -3080,7 +3152,12 @@ server <- function(input, output, session) {
     # one of these re-seeds instead of propagating, since it changes the frame
     # every other point is expressed in.
     frame_pt <- just %in% c(1L, 2L, 3L, HINGES)
-    if (isTRUE(input$auto_constraints) && !frame_pt &&
+    # The scale bar (20, 21) is not anatomy: it sits in no body frame and no
+    # convention depends on it, so placing it must leave the fish untouched.
+    # Propagating from it used to re-derive 8/9/11 and square the depth pairs
+    # WITHOUT re-imposing the eye vertical (5-13-7-14-6), which is only run for
+    # a head point -- after a prediction, LM8 moved and LM6 did not.
+    if (isTRUE(input$auto_constraints) && !frame_pt && !(just %in% SCALE_PTS) &&
         fin_row(P, 1L) && fin_row(P, 2L))
       P <- propagate_conventions(P, just)
     rv$pred <- collapse_pred(P)          # a declared zero survives the conventions
@@ -3429,7 +3506,8 @@ server <- function(input, output, session) {
       else if (p %in% rv$edited) "clicked"
       else if (p %in% rv$seeded && !(p %in% DERIVED_LM)) "seeded"
       else if (p %in% DERIVED_LM) "derived"
-      else if (p %in% c(1L, 2L)) "clicked"
+      # LM1/LM2 found by the global network (Auto, batch) are not clicks
+      else if (p %in% c(1L, 2L) && !(p %in% rv$auto12)) "clicked"
       else "predicted"
     }, character(1))
     stats::setNames(st, as.character(points))
@@ -3822,10 +3900,25 @@ server <- function(input, output, session) {
   })
 
   ## ---- prediction -----------------------------------------------------------
-  observeEvent(input$predict, {
+  ## Fully automatic mode ('Auto'): no click needed. The worker runs the global
+  ## network (mlmorph_run_global/model.onnx, train_global.py) on the whole
+  ## photograph to find LM1, LM2 and the dorsal side, then the chosen model in
+  ## the canonical frame. LM1/LM2 clicked beforehand take precedence over the
+  ## detection; the automatic ones stay "predicted" (unchecked) until reviewed.
+  GLOBAL_MODEL <- file.path(ML, "mlmorph_run_global", "model.onnx")
+  observeEvent(input$predict, run_prediction(auto = FALSE))
+  observeEvent(input$predict_auto, {
+    if (!file.exists(GLOBAL_MODEL)) {
+      notify(paste("Auto mode unavailable: no global model at", GLOBAL_MODEL), "error")
+      return()
+    }
+    run_prediction(auto = TRUE)
+  })
+  run_prediction <- function(auto = FALSE) {
     P <- rv$pred
-    if (is.null(P) || !fin_row(P, 1L) || !fin_row(P, 2L)) {
-      notify("Place at least the snout (LM1) and the caudal-fin basis (LM2) first.",
+    if (is.null(P)) { notify("No photograph loaded.", "error"); return() }
+    if (!auto && (!fin_row(P, 1L) || !fin_row(P, 2L))) {
+      notify("Place at least the snout (LM1) and the caudal-fin basis (LM2) first (or use 'Auto').",
              "error"); return() }
     if (!length(PRED_CHOICES)) { notify("No model available.", "error"); return() }
     out <- tempfile(fileext = ".csv")
@@ -3840,7 +3933,8 @@ server <- function(input, output, session) {
     if (!dir.exists(ds_dir)) ds_dir <- DATASET
     img_path <- worker_path()
     args <- c(shQuote(WORKER), "--image", shQuote(img_path),
-              "--snout", xy(1L), "--caudal", xy(2L),
+              if (auto) c("--auto", "--global-model", shQuote(GLOBAL_MODEL)),
+              if (has(1L)) c("--snout", xy(1L)), if (has(2L)) c("--caudal", xy(2L)),
               if (has(3L)) c("--dorsal", xy(3L)),   # orientation; = LM3 in pin mode
               if (isTRUE(input$pin) && has(4L))  c("--lm4",  xy(4L)),
               if (isTRUE(input$pin) && has(7L))  c("--lm7",  xy(7L)),
@@ -3855,7 +3949,7 @@ server <- function(input, output, session) {
               "--dataset-dir", shQuote(ds_dir),
               "--predictor", shQuote(input$pred),
               "--out", shQuote(out))
-    rv$msg <- "Prediction running..."
+    rv$msg <- if (auto) "Automatic landmarking running..." else "Prediction running..."
     res <- tryCatch(system2(PY, args, stdout = TRUE, stderr = TRUE),
                     error = function(e) conditionMessage(e))
     if (!identical(img_path, rv$orig)) try(unlink(img_path), silent = TRUE)
@@ -3867,9 +3961,21 @@ server <- function(input, output, session) {
       M <- rv$pred
       keep <- d$landmark >= 1 & d$landmark <= N_ANAT
       M[as.character(d$landmark[keep]), ] <- as.matrix(d[keep, c("X", "Y")])
+      # Hinges 22/24 placed by a model trained with them (train_cnn.py --hinges):
+      # the broken axis 1-22-24-2 follows a curved body, and the conventions are
+      # then applied segment by segment. A hinge the operator placed is kept.
+      hk <- d$landmark %in% c(CURVE_PT, EXTRA_HINGES[1]) &
+        !(d$landmark %in% rv$edited) & is.finite(d$X) & is.finite(d$Y)
+      if (any(hk)) M[as.character(d$landmark[hk]), ] <- as.matrix(d[hk, c("X", "Y")])
       # Pin mode: 1, 2, 3, 4, 7 are already frozen on the clicks by the worker;
       # propagate the FISHMORPH conventions to the dependants (8, 9, 11, 5, 6, 13, 14).
-      if (isTRUE(input$pin)) M <- apply_conventions(M)
+      # Without pin mode the model output is not convention-compliant either
+      # (9 off the perpendicular of 1, 8 off that of 7, 6 off the eye vertical).
+      # Left as is, the FIRST later click propagated only part of the
+      # conventions and visibly broke the head vertical. Applying them all now,
+      # once, means what is on screen after 'Predict' is what will be saved.
+      if (isTRUE(input$pin) || isTRUE(input$auto_constraints))
+        M <- apply_conventions(M)
       rv$pred <- M
       rv$seeded <- setdiff(rv$seeded, as.integer(d$landmark[keep]))
       # The model knows nothing of a zero the operator declared on this fish:
@@ -3879,18 +3985,31 @@ server <- function(input, output, session) {
       # again, except those the worker froze on the operator's clicks.
       rv$edited <- union(setdiff(rv$edited, as.integer(d$landmark[keep])),
                          intersect(pinned_clicks(input$pin), rv$placed_order))
+      # LM1/LM2 placed by the global network stay "predicted" until clicked
+      rv$auto12 <- setdiff(union(rv$auto12, if (auto) c(1L, 2L)), rv$edited)
       # a landmark the model has just rewritten is no longer the one the
       # extreme-point convention had snapped
       rv$adjusted <- setdiff(rv$adjusted, as.integer(d$landmark[keep]))
-      rv$sel <- ANAT_ORDER[1]   # first anatomical point to review
-      notify(paste0("Prediction done. Review the points; scale bar 20-21: ",
-                    if (any(is.na(M[c("20", "21"), ]))) "still to place."
-                    else "in place."))
+      # Straight on to the scale bar: the model has placed the anatomy, the
+      # ruler is what is left to click. The first of 20/21 still missing
+      # becomes active, with the whole photograph in view so the ruler is on
+      # screen; once both are down the review starts on the first anatomical
+      # point, as before.
+      todo <- SCALE_PTS[!vapply(SCALE_PTS, function(i) fin_row(rv$pred, i), logical(1))]
+      if (length(todo)) {
+        rv$sel <- todo[1]
+        rv$zoom <- 1; rv$cx <- NULL; rv$cy <- NULL
+      } else {
+        rv$sel <- ANAT_ORDER[1]   # first anatomical point to review
+      }
+      notify(if (length(todo))
+               sprintf("Prediction done. Click LM%d on the ruler, then review the points.", todo[1])
+             else "Prediction done. Scale bar in place: review the points.")
     } else {
       notify(paste("Prediction failed:", paste(utils::tail(res, 4), collapse = " | ")),
              "error")
     }
-  })
+  }
 
   ## ---- plot -----------------------------------------------------------------
   # The plot output is rebuilt when the panel height changes. Safe for the pan

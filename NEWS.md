@@ -1,6 +1,91 @@
+# intraitR 1.37.0
+
+## Landmarking tout automatique (sans clic)
+
+* Bouton **« Auto (no clicks) »** dans `digitize_landmarks()` : un reseau
+  GLOBAL (`ml_morph/train_global.py`, `mlmorph_run_global/model.onnx`)
+  localise le museau (LM1), la base de la caudale (LM2) et le cote dorsal sur
+  la photo entiere (puis sur un recadrage zoome du poisson) ; le modele choisi
+  place ensuite les autres points dans le repere canonique. Un point deja
+  clique garde la priorite ; LM1/LM2 detectes restent "predicted" (non
+  verifies) tant qu'ils ne sont pas recliques. Worker : `--auto`.
+* NOUVEAU `batch_landmarks()` / `read_batch_landmarks()` : meme chaine sur
+  tout un dossier de photos, sans les ouvrir (`ml_morph/batch_auto.py`,
+  ~0,3 s/photo sur CPU). Sorties : `landmarks_long.csv`, `landmarks_wide.csv`,
+  `summary.csv` (drapeaux `instable`, `dorsal`, `petit`, `bord`, `confiance`
+  et score de risque) et planche de controle `qc/index.html` triee par risque.
+  Rien n'est ecrit dans le journal ; la regle (20-21) n'est pas detectee
+  (coordonnees en pixels). Une seule espece/poisson par photo pour l'instant.
+* Localisation verifiee (plusieurs candidats museau/caudale, chaque couple
+  verifie par le modele fin ; planches : detection puis masquage). Reseau
+  global final (20 epoques). Bloc test, points 4-19, mediane % de Bl :
+  campagne 1,14 (= chaine cliquee 1,14), FISHMORPH 1,66 (cliquee 1,58).
+  `batch_landmarks(max_fish = )` pour les planches ; drapeau `plusieurs`.
+  Details : `ml_morph/README.md`.
+* Charnieres 22 et 24 placees par le modele fin (`cnn` a 21 sorties,
+  `train_cnn.py --hinges`) : l'axe brise 1-22-24-2 suit les poissons courbes
+  et les conventions s'appliquent segment par segment ; statut "predicted",
+  une charniere cliquee est conservee. Points 3-19 : campagne 0,99 % de Bl,
+  FISHMORPH 1,56. Redressement des poissons courbes : option experimentale
+  `--straighten` du worker, desactivee par defaut.
+* 2e etage a haute resolution (`ml_morph/train_refine.py`) : tete, pectorale et
+  caudale reaffinees automatiquement apres le modele fin. Erreur sur les traits
+  (variance, % de l'ITV, chaine automatique) : BEl 26 -> 14, CPt 76 -> 34,
+  PFs 104 -> 65, RMl 208 -> 101, OGp 76 -> 53 ; aucun trait degrade.
+* `digitize_landmarks(batch = <dossier de batch_landmarks()>)` : dans la file
+  "new", une photo traitee par lot arrive DEJA POINTEE (19 points, tous au
+  statut "predicted", LM1 et LM2 compris, avec les conventions FISHMORPH
+  appliquees) ; le point actif est LM20 (regle). `batch_order = "risk"`
+  (defaut) place en tete les photos signalees, par risque decroissant ; une
+  notification rappelle les drapeaux de la photo. Ne s'applique pas aux
+  planches (`individuals_per_photo > 1`).
+* Correctif : apres le bouton « Auto », LM1/LM2 detectes sont journalises
+  "predicted" (et non "clicked") tant qu'ils ne sont pas recliques.
+
 # intraitR 1.36.0
 
 ## Prediction : un modele entraine sur la campagne
+
+* NOUVEAU MODELE PAR DEFAUT `cnn` : reseau de neurones a cartes de chaleur
+  (ResNet-18 pre-entraine ImageNet + decodeur pyramidal, soft-argmax ;
+  `ml_morph/train_cnn.py`), exporte en ONNX (`mlmorph_run_cnn/model.onnx`).
+  Meme repere canonique et meme worker que les modeles dlib : le worker
+  reconnait un fichier `.onnx` et l'execute avec onnxruntime (a installer une
+  fois : `~/.venv_mlmorph/bin/pip install onnxruntime`) ; chaque point recoit
+  une confiance (colonne `conf`). Bloc test (points 3-19, % de Bl) : campagne
+  1,03 (dlib `combined` 1,40), FISHMORPH 1,61 (dlib 2,48) ; meilleur sur 71 %
+  et 78 % des specimens (Wilcoxon apparie p < 1e-15). Les modeles dlib restent
+  proposes dans la liste.
+* Modele dlib `combined` : un seul
+  modele ml-morph entraine sur la campagne INTRAIT ET sur FISHMORPH
+  (5 730 especes). Bloc test, points 3-19 : campagne mediane 1,40 % de Bl,
+  FISHMORPH 2,48 % ; sans perte face au modele `campaign` sur les specimens
+  jamais vus par les deux (1,44 vs 1,49 %, p = 0,59). Details :
+  `ml_morph/README.md`. Repere canonique plus compact (Bl = 500 px), lu par le
+  worker dans `canon_params.txt`.
+
+* CORRECTIF. Placer la regle (LM20, LM21) deplacait des points anatomiques :
+  le clic propageait les conventions (8/9/11 re-derives, paires de hauteur
+  re-equerrees) sans re-imposer la verticale de l'oeil, si bien qu'apres une
+  prediction LM8 bougeait et LM6 restait hors de la verticale 5-13-7-14-6.
+  Les points d'echelle ne propagent plus rien, et, avec « Auto constraints »
+  coche, les conventions sont appliquees en entier une fois juste apres
+  « Predict » (elles ne l'etaient qu'en mode pin) : ce qui est affiche apres
+  la prediction est ce qui sera enregistre.
+* Le worker lit la box dlib dans `canon_params.txt` quand le jeu la declare
+  (`box_w`, `box_h`) au lieu de la recalculer sur les TPS : la boucle
+  d'apprentissage (`ml_morph/update_combined.py`) fige la box, et la recalculer
+  sur un jeu modifie decalait le cadre de prediction de celui de
+  l'entrainement. Sans ces cles, comportement inchange.
+* CORRECTIF (worker). `predict_new_image.py` lit l'image SANS appliquer
+  l'orientation EXIF (`cv2.IMREAD_IGNORE_ORIENTATION`), comme `jpeg::readJPEG()`
+  dans l'app : 33 photographies preparees de la campagne portent une rotation
+  EXIF (valeur 8), sur lesquelles la prediction tombait dans un autre repere.
+  Meme worker que Rfishmorph 0.15.0.
+* Apres « Predict », la selection passe directement au premier point de la
+  regle encore manquant (LM20, puis LM21), en vue entiere pour que la regle
+  soit a l'ecran ; si la regle est deja placee, la revue commence comme avant
+  au premier point anatomique.
 
 * `digitize_landmarks()` propose un troisieme modele, `campaign`
   (`ml_morph/mlmorph_run_campaign/predictor.dat`, 19 landmarks anatomiques),

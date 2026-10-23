@@ -17,25 +17,49 @@ navbar:
     right: [search, github]
 
 reference:
-  - title: Landmark import and digitization
+  - title: Measurement hub and digitization
     desc: >
-      Read landmark data from tpsDig files, generic spreadsheets, or an
-      interactive digitizer; visualise a single configuration.
+      The measurement session: a hub over a folder of photographs, an
+      optional automatic pre-pass, the interactive digitizer (campaign
+      photographs or the FISHMORPH reference workbook), and the append-only
+      landmark journal that records every save.
+    contents:
+      - launch_measure_hub
+      - measure_queue
+      - batch_landmarks
+      - accept_batch_landmarks
+      - read_batch_landmarks
+      - digitize_landmarks
+      - digitize_fishmorph_reference
+      - landmark_journal_open
+      - landmark_journal_append
+      - landmark_journal_read
+      - landmark_journal_status
+      - landmark_journal_history
+      - landmark_journal_qc
+      - consolidate_landmarks
+      - retract_landmarks
+      - fishmorph_build_db
+      - fishmorph_validate
+      - fishmorph_db_connect
+
+  - title: Landmark import
+    desc: >
+      Read landmark data from tpsDig files, generic spreadsheets or earlier
+      tools; photograph identity; atomic workbook writes; visualise a single
+      configuration.
     contents:
       - read_tps
       - read_landmarks_csv
       - read_landmarks_xlsx
       - read_mlmorph_landmarks
-      - digitize_landmarks
-      - landmark_journal_open
-      - landmark_journal_append
-      - landmark_journal_read
-      - consolidate_landmarks
+      - import_legacy_landmarks
       - photo_hash
       - photo_hash_cached
       - reconcile_photo_names
       - photo_provenance_keys
       - write_xlsx_atomic
+      - write_workbook_atomic
       - plot_landmarks
       - print.intrait_landmarks
 
@@ -66,6 +90,7 @@ reference:
       - morpho_ratios
       - fishmorph_segments
       - fishmorph_ratios
+      - impute_traits
       - plot_fishmorph_points
       - plot_fishmorph_shapes
       - plot_fishmorph_density

@@ -188,12 +188,17 @@ landmark_journal_open <- function(journal_dir, operator = NULL,
     stop("Could not create the journal directory: ", journal_dir, call. = FALSE)
 
   stamp <- format(as.POSIXct(Sys.time(), tz = "UTC"), "%Y%m%dT%H%M%SZ", tz = "UTC")
-  sid   <- paste0(operator, "_", stamp)
+  sid0  <- paste0(operator, "_", stamp)
+  sid   <- sid0
   path  <- file.path(journal_dir, paste0("landmarks_", sid, ".tsv"))
   k <- 1L                                   # two launches within one second
   while (file.exists(path)) {
     k <- k + 1L
-    path <- file.path(journal_dir, sprintf("landmarks_%s-%d.tsv", sid, k))
+    # the SESSION id follows the file name: record ids are built on it, and two
+    # sessions opened within one second must not issue the same record ids
+    # (consolidate_landmarks() selects the last record of a key by its id)
+    sid <- sprintf("%s-%d", sid0, k)
+    path <- file.path(journal_dir, paste0("landmarks_", sid, ".tsv"))
   }
   cat(paste(.INTRAITR_JOURNAL_COLS, collapse = "\t"), "\n", sep = "", file = path)
   message("Session journal: ", path)
@@ -320,6 +325,9 @@ landmark_journal_append <- function(journal, row_key, coords, points,
 }
 
 
+# Parsed journal files, keyed by path (see landmark_journal_read()).
+.intraitr_jcache <- new.env(parent = emptyenv())
+
 .intraitr_journal_empty <- function() {
   d <- as.data.frame(matrix(character(0), nrow = 0,
                             ncol = length(.INTRAITR_JOURNAL_COLS)),
@@ -415,6 +423,14 @@ landmark_journal_read <- function(journal_dir) {
   # skipped -- one bad file must not block the rest -- but now by name.
   unreadable <- character(0)
   parts <- lapply(fs, function(f) {
+    # CACHE per file. The files are append-only and a session writes only its
+    # own: everything but the file of the session in progress is unchanged
+    # between two reads, so only what changed (size or mtime) is parsed again.
+    # The hub re-reads the journal at every save of the digitizer.
+    inf <- file.info(f)
+    sig <- paste(inf$size, as.numeric(inf$mtime))
+    hit <- .intraitr_jcache[[f]]
+    if (!is.null(hit) && identical(hit$sig, sig)) return(hit$d)
     d <- try(utils::read.delim(f, sep = "\t", header = TRUE, quote = "",
                                comment.char = "", colClasses = "character",
                                fill = TRUE, stringsAsFactors = FALSE),
@@ -433,7 +449,9 @@ landmark_journal_read <- function(journal_dir) {
     ok <- !is.na(d$record_id) & nzchar(d$record_id) &
           !is.na(d$landmark)  & nzchar(d$landmark) &
           !is.na(d$row_key)
-    d[ok, , drop = FALSE]
+    d <- d[ok, , drop = FALSE]
+    assign(f, list(sig = sig, d = d), envir = .intraitr_jcache)
+    d
   })
   parts <- parts[!vapply(parts, is.null, logical(1))]
   if (length(unreadable))
@@ -538,6 +556,14 @@ consolidate_landmarks <- function(journal_dir, points = 1:25,
     # what makes the correction history recoverable with history = TRUE.
     last_rec <- tapply(j$record_id, j$row_key, function(r) r[length(r)])
     j <- j[j$record_id %in% as.character(last_rec), , drop = FALSE]
+    # A key whose last record is a RETRACTION (retract_landmarks()) is no
+    # longer measured: it leaves the table, while every record stays in the
+    # journal (history = TRUE shows them, retraction included).
+    j <- j[!(j$mode %in% "retracted"), , drop = FALSE]
+    if (!nrow(j))
+      return(consolidate_landmarks(j, points = points, history = history,
+                                   long = long, drop_na_points = drop_na_points,
+                                   status_columns = status_columns))
   }
   # A point declared non-measurable carries no usable position, whatever
   # coordinates the record may hold (FISHMORPH journals could keep them).
@@ -552,34 +578,45 @@ consolidate_landmarks <- function(journal_dir, points = 1:25,
     return(j)
   }
 
-  recs <- split(j, factor(j$record_id, levels = unique(j$record_id)))
-  rows <- lapply(recs, function(d) {
-    one <- d[1L, , drop = FALSE]
-    out <- data.frame(record_id = one$record_id, timestamp = one$timestamp,
-                      stringsAsFactors = FALSE)
-    for (cc in id_cols) out[[cc]] <- one[[cc]]
-    # Coordinates: match() and not a merge, so a point absent from the record
-    # stays NA rather than shifting the row.
-    hit <- match(points, d$landmark)
-    for (k in seq_along(points)) {
-      out[[paste0(points[k], "_X")]] <- if (is.na(hit[k])) NA_real_ else d$x[hit[k]]
-      out[[paste0(points[k], "_Y")]] <- if (is.na(hit[k])) NA_real_ else d$y[hit[k]]
-    }
-    if (isTRUE(status_columns)) for (k in seq_along(points))
-      out[[paste0(points[k], "_status")]] <-
-        if (is.na(hit[k])) NA_character_ else d$status[hit[k]]
-    # Counted over the whole record, including points outside `points`: the
-    # summary answers "was this digitization checked", not "was this column".
-    st <- d$status
-    out$n_clicked   <- sum(st == "clicked")
-    out$n_seeded    <- sum(st == "seeded")
-    out$n_predicted <- sum(st == "predicted")
-    out$n_validated <- sum(st == "validated")
-    out$n_adjusted  <- sum(st == "adjusted")
-    out$n_na        <- sum(st == "na")
-    out
-  })
-  out <- do.call(rbind, rows)
+  # VECTORISED (1.45.0): one matrix filled by index instead of one small
+  # data.frame per record bound together -- the same table, ~20x faster on a
+  # campaign journal (4.2 s -> 0.2 s for 1,500 records), which matters because
+  # the hub and the digitizer rebuild it at every refresh.
+  rid <- factor(j$record_id, levels = unique(j$record_id))
+  ri  <- as.integer(rid)
+  nr  <- nlevels(rid)
+  first <- !duplicated(ri)
+  out <- data.frame(record_id = j$record_id[first], timestamp = j$timestamp[first],
+                    stringsAsFactors = FALSE)
+  for (cc in id_cols) out[[cc]] <- j[[cc]][first]
+  # Coordinates: the FIRST row of a record for each point, as match() did, so a
+  # point absent from the record stays NA rather than shifting the row.
+  pk  <- match(j$landmark, points)
+  use <- !is.na(pk)
+  use[use] <- !duplicated(cbind(ri[use], pk[use]))
+  fill <- function(v, na) {
+    m <- matrix(na, nr, length(points))
+    m[cbind(ri[use], pk[use])] <- v[use]
+    m
+  }
+  X <- fill(j$x, NA_real_); Y <- fill(j$y, NA_real_)
+  for (k in seq_along(points)) {
+    out[[paste0(points[k], "_X")]] <- X[, k]
+    out[[paste0(points[k], "_Y")]] <- Y[, k]
+  }
+  if (isTRUE(status_columns)) {
+    S <- fill(j$status, NA_character_)
+    for (k in seq_along(points)) out[[paste0(points[k], "_status")]] <- S[, k]
+  }
+  # Counted over the whole record, including points outside `points`: the
+  # summary answers "was this digitization checked", not "was this column".
+  cnt <- function(v) as.integer(tapply(j$status == v, rid, sum))
+  out$n_clicked   <- cnt("clicked")
+  out$n_seeded    <- cnt("seeded")
+  out$n_predicted <- cnt("predicted")
+  out$n_validated <- cnt("validated")
+  out$n_adjusted  <- cnt("adjusted")
+  out$n_na        <- cnt("na")
   rownames(out) <- NULL
   # `timestamp` is kept either way: it says WHEN a specimen was digitized, which
   # a wide table has no other way of carrying. Only `record_id`, meaningless
@@ -681,6 +718,111 @@ write_xlsx_atomic <- function(x, path, keep_prev = TRUE, drop_sheets = FALSE) {
 
 
 # =============================================================================
+#' Retract the landmarks of a photograph (it goes back to "not measured")
+#'
+#' The journal is append-only and is the source of truth: deleting a row of the
+#' workbook would not stand, since the digitizer rebuilds the workbook from the
+#' journal. A measurement is therefore withdrawn by APPENDING a retraction
+#' record for each of its keys (`mode = "retracted"`); [consolidate_landmarks()]
+#' then leaves those keys out, so the photograph is "to measure" again
+#' everywhere -- the digitizer's "new" queue, [measure_queue()], the workbook
+#' rebuilt from the journal. Nothing is erased: the earlier records stay in the
+#' journal and [landmark_journal_history()] shows them, retraction included. A
+#' later digitization of the same key simply supersedes the retraction.
+#'
+#' Typical use: the prepared image of a measured photograph has been re-cropped
+#' or turned, so its landmarks, which are in the pixels of that image, no
+#' longer fall on the fish.
+#'
+#' @param journal_dir Landmark journal directory.
+#' @param photo Photograph code(s) (file name without extension): every live
+#'   key recorded on that photograph is retracted -- all the individuals of a
+#'   plate, all the repeats.
+#' @param row_key Key(s) to retract directly, in addition to `photo`.
+#' @param xlsx_path Optional workbook of [digitize_landmarks()]: the rows of the
+#'   retracted specimens are removed from every sheet now (atomic write, the
+#'   previous file kept as `.prev.xlsx`), rather than at the next rebuild. Do
+#'   not run this while a digitizer has that workbook open: it would write its
+#'   own copy back.
+#' @param operator Who retracts (recorded in the journal).
+#' @return Invisibly, a data.frame of the retracted keys (`row_key`,
+#'   `specimen`, `photo_file`); zero rows when nothing was measured.
+#' @seealso [consolidate_landmarks()], [landmark_journal_history()]
+#' @examples
+#' d <- file.path(tempdir(), "retract_demo")
+#' jr <- landmark_journal_open(d, operator = "AT")
+#' landmark_journal_append(jr, "fish_01", cbind(c(10, 20), c(5, 6)), 1:2,
+#'                         specimen = "fish_01", photo_file = "fish_01.jpg")
+#' nrow(consolidate_landmarks(d))          # 1
+#' retract_landmarks(d, photo = "fish_01")
+#' nrow(consolidate_landmarks(d))          # 0
+#' unlink(d, recursive = TRUE)
+#' @export
+retract_landmarks <- function(journal_dir, photo = NULL, row_key = NULL,
+                              xlsx_path = NULL, operator = NULL) {
+  if (is.null(photo) && is.null(row_key))
+    stop("Give `photo` and/or `row_key`.", call. = FALSE)
+  cols <- c("row_key", "specimen", "photo_file")
+  empty <- data.frame(row_key = character(0), specimen = character(0),
+                      photo_file = character(0), stringsAsFactors = FALSE)
+  J <- landmark_journal_read(journal_dir)
+  if (!nrow(J)) return(invisible(empty))
+  J <- J[order(J$timestamp, J$record_id), , drop = FALSE]
+  last <- J[!duplicated(J$row_key, fromLast = TRUE), , drop = FALSE]
+  live <- last[!(last$mode %in% "retracted"), , drop = FALSE]
+  pf <- as.character(live$photo_file)
+  pcode <- ifelse(!is.na(pf) & nzchar(pf), tools::file_path_sans_ext(basename(pf)),
+                  as.character(live$specimen))
+  hit <- live[live$row_key %in% row_key |
+                pcode %in% tools::file_path_sans_ext(basename(as.character(photo))),
+              , drop = FALSE]
+  if (!nrow(hit)) return(invisible(empty))
+
+  jr <- landmark_journal_open(journal_dir, operator = operator,
+                              app_version = tryCatch(
+                                as.character(utils::packageVersion("intraitR")),
+                                error = function(e) NA_character_))
+  rows <- lapply(seq_len(nrow(hit)), function(i) {
+    jr$n$i <- jr$n$i + 1L
+    r <- as.list(stats::setNames(rep("", length(.INTRAITR_JOURNAL_COLS)),
+                                 .INTRAITR_JOURNAL_COLS))
+    for (cc in c("target_sheet", "row_key", "specimen", "individual", "replicate",
+                 "photo_file", "photo_hash", "species"))
+      r[[cc]] <- .intraitr_tsv_safe(hit[[cc]][i])
+    r$record_id <- sprintf("%s-%05d", jr$session_id, jr$n$i)
+    r$timestamp <- .intraitr_iso_now()
+    r$operator <- jr$operator
+    r$app_version <- if (length(jr$app_version) && !is.na(jr$app_version)) jr$app_version else ""
+    r$mode <- "retracted"
+    r$landmark <- "0"             # the reader needs a point; 0 is none of them
+    r$status <- "retracted"
+    paste(vapply(r, function(v) if (is.na(v)) "" else as.character(v), ""),
+          collapse = "\t")
+  })
+  cat(paste(unlist(rows), collapse = "\n"), "\n", sep = "", file = jr$path, append = TRUE)
+
+  out <- data.frame(row_key = hit$row_key, specimen = hit$specimen,
+                    photo_file = hit$photo_file, stringsAsFactors = FALSE)
+  if (!is.null(xlsx_path) && file.exists(xlsx_path)) {
+    if (!requireNamespace("readxl", quietly = TRUE))
+      stop("Removing the rows from the workbook needs 'readxl'.", call. = FALSE)
+    shs <- .xlsx_sheet_names(xlsx_path)
+    if (length(shs)) {
+      sheets <- lapply(stats::setNames(shs, shs), function(sh)
+        as.data.frame(readxl::read_excel(xlsx_path, sheet = sh), stringsAsFactors = FALSE))
+      gone <- unique(c(out$specimen, out$row_key))
+      sheets <- lapply(sheets, function(d) {
+        if (!nrow(d) || is.null(d$specimen)) return(d)
+        d[!(as.character(d$specimen) %in% gone), , drop = FALSE]
+      })
+      write_xlsx_atomic(sheets, xlsx_path)
+    }
+  }
+  message(sprintf("%d measurement(s) retracted: %s.", nrow(out),
+                  paste(out$row_key, collapse = ", ")))
+  invisible(out)
+}
+
 # Monitoring the journals -- ported from Rfishmorph (fm_journal_status(),
 # fm_journal_history(), fishmorph_journal_qc()) in intraitR 1.40.0, so both
 # digitizer targets are monitored by the same functions.
@@ -836,21 +978,26 @@ landmark_journal_history <- function(journal_dir, row_key = NULL) {
 landmark_journal_qc <- function(journal_dir, expect = c(1:19, 23L)) {
   K <- consolidate_landmarks(journal_dir, long = TRUE, drop_na_points = FALSE)
   if (!nrow(K)) return(K)
-  qc <- do.call(rbind, lapply(split(K, K$row_key), function(g) {
-    e <- g$landmark %in% expect
-    data.frame(
-      row_key = g$row_key[1], specimen = g$specimen[1], species = g$species[1],
-      photo_file = g$photo_file[1], timestamp = g$timestamp[1],
-      n_missing = sum(!expect %in% g$landmark),
-      missing = paste(setdiff(expect, g$landmark), collapse = ","),
-      n_seeded = sum(g$status %in% "seeded" & e),
-      seeded = paste(g$landmark[g$status %in% "seeded" & e], collapse = ","),
-      n_adjusted = sum(g$status %in% "adjusted" & e),
-      adjusted = paste(g$landmark[g$status %in% "adjusted" & e], collapse = ","),
-      n_na = sum(g$status %in% "na" & e),
-      has_scale = isTRUE(is.finite(g$mm_per_px[1])),
-      stringsAsFactors = FALSE)
-  }))
+  # Per key, on plain vectors split once (not one data.frame per key): the
+  # same table, an order of magnitude faster on a campaign journal.
+  key <- factor(K$row_key, levels = unique(K$row_key))
+  f1 <- !duplicated(key)
+  L <- split(K$landmark, key); S <- split(K$status, key)
+  pick <- function(st) mapply(function(l, s) l[s %in% st & l %in% expect], L, S,
+                              SIMPLIFY = FALSE)
+  sd <- pick("seeded"); ad <- pick("adjusted"); na <- pick("na")
+  qc <- data.frame(
+    row_key = K$row_key[f1], specimen = K$specimen[f1], species = K$species[f1],
+    photo_file = K$photo_file[f1], timestamp = K$timestamp[f1],
+    n_missing = vapply(L, function(l) sum(!expect %in% l), integer(1)),
+    missing = vapply(L, function(l) paste(setdiff(expect, l), collapse = ","), ""),
+    n_seeded = lengths(sd),
+    seeded = vapply(sd, paste, "", collapse = ","),
+    n_adjusted = lengths(ad),
+    adjusted = vapply(ad, paste, "", collapse = ","),
+    n_na = lengths(na),
+    has_scale = is.finite(K$mm_per_px[f1]),
+    stringsAsFactors = FALSE)
   qc <- qc[order(-qc$n_missing, -qc$n_seeded, qc$row_key), , drop = FALSE]
   rownames(qc) <- NULL
   qc
@@ -861,10 +1008,19 @@ landmark_journal_qc <- function(journal_dir, expect = c(1:19, 23L)) {
 # (an .xlsx is a zip archive), so the safety check of write_xlsx_atomic() needs
 # no extra package. character(0) when the file cannot be read as a workbook.
 .xlsx_sheet_names <- function(path) {
-  con <- unz(path, "xl/workbook.xml")
-  on.exit(try(close(con), silent = TRUE), add = TRUE)
-  x <- tryCatch(paste(readLines(con, warn = FALSE, encoding = "UTF-8"), collapse = ""),
-                error = function(e) "")
+  # BINARY read. readLines() on an unz() connection drops a last line without
+  # a final newline -- and workbook.xml is typically the XML declaration on
+  # one line and everything else on a second, unterminated one -- so the sheet
+  # list came back EMPTY for workbooks written by writexl and openxlsx alike,
+  # and every guard built on it (write_xlsx_atomic()'s refusal to destroy
+  # sheets, digitize_landmarks()'s refusal of a FISHMORPH workbook) silently
+  # let everything through. Found by a test in 1.45.0.
+  x <- tryCatch({
+    con <- unz(path, "xl/workbook.xml", open = "rb")
+    on.exit(try(close(con), silent = TRUE), add = TRUE)
+    raw <- readBin(con, "raw", n = 5e7)
+    rawToChar(raw[raw != as.raw(0)])
+  }, error = function(e) "")
   m <- regmatches(x, gregexpr("<sheet [^>]*name=\"[^\"]*\"", x))[[1]]
   n <- sub(".*name=\"([^\"]*)\".*", "\\1", m)
   n <- gsub("&amp;", "&", gsub("&apos;", "'", gsub("&quot;", "\"", n)))

@@ -23,6 +23,7 @@ digitize_landmarks(
   batch = NULL,
   batch_order = c("risk", "photo"),
   sheets = c(measurements = "measurements", bias = "bias", summary = "bias_summary"),
+  display = c("canvas", "plot"),
   launch.browser = TRUE,
   ...
 )
@@ -135,6 +136,13 @@ keeps the folder order.}
 
 \item{sheets}{Named character vector giving the three sheet names. Defaults
 to \code{c(measurements = "measurements", bias = "bias", summary = "bias_summary")}.}
+
+\item{display}{How the photograph is drawn. \code{"canvas"} (default): in the
+browser -- R sends the image once and, after each click, only the overlay
+(points, segments, guides) as a list of shapes; zoom (mouse wheel, at the
+cursor) and pan (right-button drag) happen in the browser, without a round
+trip to R. \code{"plot"}: the previous display, re-rendered by R at each click.
+The overlay is the same code in both.}
 
 \item{launch.browser}{Where the application opens. \code{TRUE} (default) or
 \code{"browser"} forces the system browser, past the RStudio Viewer pane --

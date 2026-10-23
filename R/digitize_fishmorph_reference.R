@@ -52,6 +52,8 @@
 #' @param mode Starting queue; switchable in the app.
 #' @param mlmorph_dir,predictor,python ml-morph resources, as in
 #'   [digitize_landmarks()].
+#' @param display `"canvas"` (default, drawn in the browser) or `"plot"`; see
+#'   [digitize_landmarks()].
 #' @param launch.browser Where the app opens (see [digitize_landmarks()]).
 #' @param ... Passed to [shiny::runApp()].
 #' @return The path of the working copy, invisibly. Called for its side effect.
@@ -81,8 +83,10 @@ digitize_fishmorph_reference <- function(
     xlsx_flush_every = 10L,
     mode = c("reconstruct", "correct", "new"),
     mlmorph_dir = NULL, predictor = NULL, python = NULL,
+    display = c("canvas", "plot"),
     launch.browser = TRUE, ...) {
   mode <- match.arg(mode)
+  display <- match.arg(display)
   one <- function(x, what) {
     if (!is.character(x) || length(x) != 1L || is.na(x))
       stop("`", what, "` must be a single path.", call. = FALSE)
@@ -123,7 +127,7 @@ digitize_fishmorph_reference <- function(
          "application; run it from an interactive R session.", call. = FALSE)
 
   cfg <- list(
-    target = "fishmorph",
+    target = "fishmorph", display = display,
     fm = list(xlsx_path = xlsx_path, out_path = out_path, photo_dir = photo_dir,
               new_photo_dir = new_photo_dir, seg_sheet = seg_sheet,
               lm_sheet = lm_sheet, new_sheet = new_sheet),

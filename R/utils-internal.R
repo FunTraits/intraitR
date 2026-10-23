@@ -701,7 +701,11 @@
       col <- X[, j]
       col_na <- is.na(col)
       if (!any(col_na)) next
-      for (g in levels(groups)) {
+      # unique(), not levels(): `groups` is as often a character vector (the
+      # species of impute_traits(), of FishInTrait's space table) as a factor,
+      # and levels() of a character vector is NULL -- the loop then never ran
+      # and NOTHING was imputed, with a message saying "imputed 0".
+      for (g in unique(as.character(groups[!group_na]))) {
         in_group <- !group_na & groups == g
         idx <- which(in_group & col_na)
         if (length(idx) == 0) next

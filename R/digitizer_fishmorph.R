@@ -62,7 +62,7 @@
 #     extension. In this collection about 7 % of the ".jpg" files are in fact
 #     PNG, GIF or BMP (see read_img()), and re-encoding one of them as JPEG
 #     because of its name would add lossy compression to a lossless file.
-.fm_write_img <- function(a, path, quality = 0.97) {
+.fm_write_img <- function(a, path, quality = 0.97, bak_dir = NULL) {
   sig <- tryCatch(readBin(path, "raw", n = 2L), error = function(e) raw(0))
   is_jpeg <- length(sig) >= 2 && sig[1] == as.raw(0xFF) && sig[2] == as.raw(0xD8)
   a[!is.finite(a)] <- 0
@@ -71,7 +71,10 @@
   if (is_jpeg && length(dim(a)) == 3L && dim(a)[3] == 4L)
     a <- a[, , seq_len(3), drop = FALSE]
 
-  bak_dir <- file.path(dirname(path), "_originaux")
+  # the copy of the original goes beside the photograph by default (FISHMORPH
+  # reference); a campaign puts it beside its workbook instead, OUTSIDE the
+  # photograph tree, which the measuring hub walks for photographs
+  bak_dir <- bak_dir %||% file.path(dirname(path), "_originaux")
   bak <- file.path(bak_dir, basename(path))
   if (!file.exists(bak)) {
     dir.create(bak_dir, showWarnings = FALSE, recursive = TRUE)
@@ -335,8 +338,13 @@
                                             colNames = FALSE, rows = 1))
     ok <- !is.na(hdr) & nzchar(hdr)
     hdr <- if (any(ok)) hdr[seq_len(max(which(ok)))] else character(0)
+    # skipEmpty*: an all-empty column (12_X when no species lacks LM12 is
+    # filled, the hinge columns 24-25 before any save) would otherwise be
+    # dropped and every column after it shifted; an empty row would shift the
+    # sheet row numbers the store writes back to.
     df <- openxlsx::read.xlsx(out_path, sheet = sheet, colNames = FALSE,
-                              startRow = 2, cols = seq_along(hdr))
+                              startRow = 2, cols = seq_along(hdr),
+                              skipEmptyCols = FALSE, skipEmptyRows = FALSE)
     if (is.null(df) || !nrow(df))
       df <- as.data.frame(matrix(NA, nrow = 0, ncol = length(hdr)))
     else if (ncol(df) < length(hdr))

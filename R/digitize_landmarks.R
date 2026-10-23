@@ -106,6 +106,12 @@
 #' @param sheets Named character vector giving the three sheet names. Defaults
 #'   to `c(measurements = "measurements", bias = "bias", summary =
 #'   "bias_summary")`.
+#' @param display How the photograph is drawn. `"canvas"` (default): in the
+#'   browser -- R sends the image once and, after each click, only the overlay
+#'   (points, segments, guides) as a list of shapes; zoom (mouse wheel, at the
+#'   cursor) and pan (right-button drag) happen in the browser, without a round
+#'   trip to R. `"plot"`: the previous display, re-rendered by R at each click.
+#'   The overlay is the same code in both.
 #' @param launch.browser Where the application opens. `TRUE` (default) or
 #'   `"browser"` forces the system browser, past the RStudio Viewer pane --
 #'   which is a few hundred pixels wide and the wrong place to click landmarks
@@ -607,10 +613,12 @@ digitize_landmarks <- function(photo_dir,
                                sheets = c(measurements = "measurements",
                                           bias = "bias",
                                           summary = "bias_summary"),
+                               display = c("canvas", "plot"),
                                launch.browser = TRUE,
                                ...) {
   ## ---- argument validation (runs regardless of interactivity) ---------------
   mode <- match.arg(mode)
+  display <- match.arg(display)
   .one_path <- function(x, what) {
     if (!is.character(x) || length(x) != 1L || is.na(x))
       stop("`", what, "` must be a single path.", call. = FALSE)
@@ -847,7 +855,8 @@ digitize_landmarks <- function(photo_dir,
     sheet_bias = unname(sheets[["bias"]]),
     sheet_summary = unname(sheets[["summary"]]),
     app_version = tryCatch(as.character(utils::packageVersion("intraitR")),
-                           error = function(e) "dev"))
+                           error = function(e) "dev"),
+    display = display)
   message(sprintf("Workbook: %s\nJournal : %s\nMode    : %s",
                   xlsx_path, journal_dir, mode))
   .run_digitizer_app(app_dir, cfg, mlmorph_dir = mlmorph_dir, worker = worker,

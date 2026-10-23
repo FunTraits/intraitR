@@ -1,3 +1,182 @@
+# intraitR 1.46.0
+
+* Hub, Results > Progress : le tableau ne recouvre plus le graphique quand il
+  y a des donnees (contenu des onglets hors de la mise en page « remplissante »,
+  et correction generale dans `Rfishmorph::app_theme()`). Graphique refait :
+  legende au-dessus des barres (dedans, elle les cachait), compte « mesurees /
+  total » au bout de chaque barre, hauteur proportionnelle au nombre
+  d'especes, italique pour les seuls binomes, couleurs du theme.
+* `launch_measure_hub()` SANS ARGUMENT : une page de demarrage choisit le
+  dossier des photos (explorateur de dossiers cote R, avec raccourcis Home,
+  Bureau, Documents, OneDrive / iCloud, disques ; nombre de photos affiche en
+  naviguant) ou y CHARGE des photos dans un nouveau dossier (copiees, les
+  originaux intacts) ; les especes (inconnues, un dossier par espece, ou une
+  table CSV / Excel verifiee contre les photos) ; ou sont enregistrees les
+  mesures (classeur et journal proposes a cote des photos, etat du journal
+  existant) ; operateur, regle, noms des deux niveaux de dossiers, dossier
+  ml-morph. Les SESSIONS RECENTES (8, dans le dossier utilisateur
+  d'intraitR) se rouvrent en un clic, et l'appel equivalent en console est
+  affiche. *Open* lance le hub dans le meme onglet (meme port, la page se
+  recharge seule) ; sur l'accueil du hub, *Open another folder* y revient.
+  Les arguments donnes en console restent verifies avant tout lancement.
+* NOUVEAU `accept_batch_landmarks()` : enregistre dans le journal les points
+  d'une pre-passe `batch_landmarks()` SANS les relire. Photos signalees par la
+  pre-passe exclues (sauf `include_flagged = TRUE`), photo deja mesuree jamais
+  ecrasee, planches exclues ; conventions du digitizer appliquees (profondeurs,
+  points derives, LM23). Rien n'est maquille : chaque point reste
+  `"predicted"`, l'entree `reviewed = "no"`, `app_version` dit d'ou elle
+  vient. Le classeur est mis a jour en GARDANT ses autres feuilles (bias,
+  bias_summary...) et son schema de colonnes ; `dry_run = TRUE` pour voir.
+* Hub, onglet Digitize : bouton *Accept the pre-pass without review* sous
+  *Stop the digitizer*. Une boite d'avertissement dit ce qui sera enregistre
+  (photos sans drapeau), ce qui est exclu (photos signalees, par drapeau ;
+  deja mesurees ; planches), avec une case pour inclure les photos signalees.
+  Refuse tant que le digitizer ou la pre-passe tournent. Apres coup :
+  rafraichissement et enregistrement dans la base (FishInTrait).
+* Hub : page d'ACCUEIL (premier onglet). Ce qu'il reste a mesurer (titre,
+  barre d'avancement, nombre de dossiers concernes), ou sont les photos, le
+  dernier enregistrement (code, espece, operateur, il y a combien de temps) ;
+  bouton *Resume* qui ouvre le dossier du dernier enregistrement (ou le
+  premier ou il reste du travail), filtre sur les photos a mesurer ; liste
+  des dossiers avec leur avancement (un clic ouvre le dossier dans Select) ;
+  derniers enregistrements ; les quatre etapes en liens ; les autres
+  applications. Illustration : un profil de poisson et ses landmarks, poses
+  un a un a l'ouverture (aucune animation si le systeme demande moins de
+  mouvement).
+* Digitizer : VRAI Undo / Redo (Ctrl+Z / Cmd+Z, Ctrl+Maj+Z / Cmd+Maj+Z,
+  boutons *Undo* / *Redo*). Chaque modification des points (clic, prediction,
+  regle qui realigne les voisins, Mark NA, Validate, segment nul) est une
+  etape ; Undo remet tout l'etat d'avant -- un point predit deplace revient a
+  sa place, avec les points que les regles avaient bouges. L'ancien *Undo*
+  effacait seulement le dernier point pose. Historique par photographie (et
+  par individu d'une planche), jusqu'a 200 etapes ; un enregistrement n'est
+  pas annule (le journal est en ajout seul).
+* Theme commun `Rfishmorph::app_theme()` dans le hub et le digitizer (qui
+  garde son accent bleu) ; le digitizer a une vraie barre de titre. Les
+  couleurs ecrites en dur dans les styles passent par les variables du theme.
+  Requiert Rfishmorph >= 0.19.0.
+* Site pkgdown : 15 fonctions exportees manquaient a l'index de reference
+  (hub, journal, base DuckDB, `batch_landmarks()`, `impute_traits()`...), ce
+  qui faisait echouer la construction du site ; nouvelle section
+  *Measurement hub and digitization*.
+* CORRECTION. `impute_traits(method = "impute_group_mean")` (et
+  `.apply_na_action()`) n'imputait RIEN quand les groupes etaient un vecteur
+  de caracteres -- le cas de `impute_traits()` et de
+  `FishInTrait::fit_build_space()` : la boucle parcourait `levels(groups)`,
+  qui vaut `NULL` sur un caractere, et le message annoncait "imputed 0".
+  Les autres methodes (missForest par defaut) n'etaient pas touchees.
+* CORRECTION. Digitizer FISHMORPH : `openxlsx::read.xlsx()` supprime par
+  defaut les colonnes et lignes entierement vides. Une colonne vide (LM12
+  jamais saisi, colonnes de charniere 24-25 avant la premiere sauvegarde)
+  decalait toutes les colonnes suivantes : `quality_score`, `reviewed`,
+  `collapse_rules` relus dans la mauvaise colonne, points non mesurables
+  perdus au rechargement. `skipEmptyCols/skipEmptyRows = FALSE`.
+* TESTS. Les 6 tests en echec depuis plusieurs versions sont corriges (5 par
+  la correction ci-dessus, 1 donnee de test incoherente). Nouveau
+  `test-app-digitizer.R` : le digitizer joue sans navigateur
+  (`shiny::testServer()`) -- Entree valide + enregistre + photo suivante,
+  bouton Validate sans enregistrement, refus d'un enregistrement vide, bouton
+  Save qui ecrit le classeur. withr en Suggests.
+
+* CORRECTION IMPORTANTE. `.xlsx_sheet_names()` renvoyait une liste VIDE pour
+  les classeurs ecrits par writexl comme par openxlsx (`readLines()` sur une
+  connexion `unz()` perd la derniere ligne sans fin de ligne, et
+  `workbook.xml` tient en deux lignes). Les deux protections ajoutees apres
+  l'incident du 23/10 (1.42.1) ne se declenchaient donc jamais :
+  `write_xlsx_atomic()` ne refusait pas de detruire des feuilles et
+  `digitize_landmarks()` ne refusait pas un classeur FISHMORPH. Lecture
+  binaire desormais ; trouve par un test.
+* CORRECTION. Deux sessions de journal ouvertes dans la meme seconde
+  produisaient les memes identifiants d'enregistrement (le nom de fichier
+  recevait un suffixe, pas l'identifiant de session) ; la consolidation
+  pouvait alors melanger deux enregistrements.
+
+* NOUVEAU `launch_measure_hub()` : le hub de mesure, sur n'importe quel
+  dossier de photos (sous-dossiers sur deux niveaux, ex. site/date ou
+  espece). 1. Setup ; 2. Select : galerie avec espece et etat mesure,
+  tableau des especes, selection libre ; 3. Digitize : pre-passe
+  `batch_landmarks()` optionnelle (regle oui/non) puis `digitize_landmarks()`
+  sur exactement la selection, dans un processus R d'arriere-plan (callr) ;
+  4. Results : avancement, landmarks + statuts (journal), traits FISHMORPH
+  (sans regle : ratios valides, segments en pixels), photo annotee, bouton
+  *Remeasure* (cette photo seule, mode `correct`). Bouton *Finish* : rend la
+  console et renvoie la selection et les traits. Especes : nom du dossier
+  (`species = "folder"`) ou table photo/species. `traits_fun` permet a une
+  couche de gestion (FishInTrait) de brancher son propre calcul de traits.
+* Hub : point d'entree d'une session. `launch_measure_hub(apps = )` ouvre
+  d'autres applications Shiny, chacune dans son processus R et son onglet :
+  boutons de l'onglet Select (`place = "select"`), boutons sur une photo
+  (`"photo"` : loupe de la galerie et onglet Annotated photograph, code de la
+  photo passe en argument, avertissement optionnel si elle est deja mesuree),
+  menu *Apps* (`"menu"`). Par defaut l'espace FISHMORPH
+  (`Rfishmorph::launch_fishmorph_space()`). Photos et especes relues quand une
+  de ces applications se ferme ; `species` peut etre une fonction. Le bouton
+  Remeasure devient *Correct the points in the digitizer*. Images de la
+  galerie rechargees quand le fichier change (recadrage).
+* NOUVEAU `retract_landmarks(journal_dir, photo, row_key, xlsx_path)` : une
+  photo redevient "non mesuree". Le journal reste en ajout seul : un
+  enregistrement de retrait (`mode = "retracted"`) est ajoute pour chaque cle
+  vivante de la photo (individus d'une planche, repetitions) ;
+  `consolidate_landmarks()` laisse ces cles de cote (sauf `history = TRUE`),
+  donc le digitizer ne les ressuscite pas en reconstruisant le classeur ; les
+  lignes sont aussi retirees du classeur (ecriture atomique). Une nouvelle
+  mesure de la cle remplace le retrait.
+* Hub : une application connectee peut demander `close_digitizer = TRUE`
+  (le digitizer ouvert est ferme d'abord) ; quand l'image d'une photo a change
+  pendant qu'une application etait ouverte dessus, ses predictions de
+  pre-saisie automatique sont retirees.
+* Hub : une application sur photo peut declarer `photo_query` : deja ouverte,
+  elle recoit la photo suivante par son URL, dans le meme onglet, au lieu
+  d'etre relancee ; le hub surveille les images du dossier courant tant
+  qu'elle est ouverte (pre-saisie perimee retiree, galerie redessinee).
+* VITESSE. `consolidate_landmarks()` vectorisee (une matrice remplie par
+  index au lieu d'un petit tableau par enregistrement) : resultat identique
+  (`identical()` sur un journal de campagne et un journal de cas limites),
+  4,0 s -> 0,5 s pour 1 500 specimens ; `landmark_journal_qc()` 1,6 -> 0,4 s.
+  `landmark_journal_read()` garde en cache les fichiers deja lus (ils sont en
+  ajout seul : seul celui de la session en cours change). Le hub lit le
+  journal une fois par changement et en derive file, controle et tableaux ;
+  vignettes de galerie generees a la demande et mises en cache
+  (`tools::R_user_dir("intraitR", "cache")`) au lieu des images en pleine
+  resolution.
+* Digitizer : affichage CANEVAS par defaut (`display = "canvas"`, ancien
+  affichage `"plot"` conserve). La photo est dessinee dans le navigateur : R
+  envoie l'image une fois, puis apres chaque clic seulement les formes de la
+  superposition (points, segments, guides, controles), quelques Ko au lieu
+  d'un PNG du panneau refait par R. Zoom a la molette (au curseur) et
+  deplacement (clic droit glisse) dans le navigateur, sans aller-retour. La
+  superposition est le MEME code pour les deux affichages (rejoue avec des
+  fonctions d'enregistrement), et le clic envoie `input$click` en pixels de
+  l'image comme avant : regles, statuts et enregistrement inchanges.
+* Ce qui est enregistre, et quand, toujours visible. Digitizer : bouton
+  *Write the workbook now* dans la barre principale et pastille "LM... recorded
+  at hh:mm:ss -- workbook up to date / N save(s) to write" (le journal est
+  ecrit a chaque *Save & next* ; le classeur suit). Hub : bouton *Save to the
+  database* et etat (nombre mesure, dernier landmark, classeur) dans la barre ;
+  `launch_measure_hub(sync_fun = )` : l'enregistrement propre a la couche de
+  gestion, lance par le bouton, a la fermeture du digitizer et a *Finish*.
+* Digitizer : *Validate points* (bleu) a cote de *Save & next* ; touche
+  ENTREE = valider les points a l'ecran + Save & next (le controle des
+  conventions s'applique toujours et son dialogue arrete la sequence ; la
+  touche est sans effet dans un champ de saisie ou quand un dialogue est
+  ouvert).
+* Digitizer (campagnes) : bouton *Write the flip into the file* (onglet
+  Display), comme pour la cible FISHMORPH : la photo est reecrite telle
+  qu'affichee, a pleine resolution ; l'original est copie une fois dans
+  `_original_photos/` a cote du classeur (hors de l'arborescence des photos,
+  que le hub parcourt) ; si la photo etait deja enregistree, un avertissement
+  demande de refaire Save & next. `measure_queue()` ignore les dossiers
+  `_originaux/` et `_original_photos/`.
+* Hub : vignettes sans etiquette d'orientation EXIF (le navigateur les
+  tournait ; elles montrent maintenant la grille brute, comme le digitizer).
+* NOUVEAU `measure_queue()` : la table du hub (photos, espece, etat mesure).
+* callr, DT, httpuv en Suggests (hub uniquement).
+
+* Digitizer : bouton *Finish* (a cote du titre) : ecrit le classeur, ferme
+  l'app et rend la console R (`digitize_landmarks()` /
+  `digitize_fishmorph_reference()` renvoient le chemin du classeur). Lance
+  depuis le hub FishInTrait, il termine proprement le processus d'arriere-plan.
+
 # intraitR 1.45.0
 
 * Digitizer : CORRECTION. Deplacer un point de repere du cadre (1, 2, 3 ou une

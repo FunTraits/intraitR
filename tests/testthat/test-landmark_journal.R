@@ -205,7 +205,7 @@ write_fm_journal <- function(d, name = "landmarks_AT_20260801T101010Z.tsv") {
     row("AT_20260801T101010Z-00002", "2026-08-01T10:12:00.000Z", "Abramis.brama",
         "1", "12", "20", "placed", rv = "FALSE"),
     row("AT_20260801T101010Z-00002", "2026-08-01T10:12:00.000Z", "Abramis.brama",
-        "2", "301", "22", "na"))
+        "2", "301", "22", "na", rv = "FALSE"))   # entry-level: same on every row of a record
   writeLines(c(paste(hdr, collapse = "\t"),
                apply(rows, 1, paste, collapse = "\t")),
              file.path(d, name))

@@ -20,6 +20,7 @@ digitize_fishmorph_reference(
   mlmorph_dir = NULL,
   predictor = NULL,
   python = NULL,
+  display = c("canvas", "plot"),
   launch.browser = TRUE,
   ...
 )
@@ -55,6 +56,9 @@ together.}
 \item{mode}{Starting queue; switchable in the app.}
 
 \item{mlmorph_dir, predictor, python}{ml-morph resources, as in
+\code{\link[=digitize_landmarks]{digitize_landmarks()}}.}
+
+\item{display}{\code{"canvas"} (default, drawn in the browser) or \code{"plot"}; see
 \code{\link[=digitize_landmarks]{digitize_landmarks()}}.}
 
 \item{launch.browser}{Where the app opens (see \code{\link[=digitize_landmarks]{digitize_landmarks()}}).}

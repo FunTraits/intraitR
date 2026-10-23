@@ -76,6 +76,9 @@ CFG <- local({
 ## prediction, journal -- is common; what differs is where an entry comes
 ## from, how it is seeded and where it is written, and those places test IS_FM.
 IS_FM <- identical(CFG$target, "fishmorph")
+## Display of the photograph: drawn in the browser ("canvas", default) or by R
+## ("plot", the previous display, kept as a fallback).
+CANVAS <- !identical(CFG$display, "plot")
 OPERATOR <- local({
   o <- CFG$operator
   if (is.null(o) || !nzchar(o))
@@ -269,9 +272,9 @@ APP_CSS <- paste0(
   ".toolbar .form-group{margin-bottom:0;}",
   ".toolbar .selectize-control{margin-bottom:0;}",
   ".toolbar .btn,.lmbar .btn{height:32px;padding:0 12px;font-size:13px;",
-  "line-height:30px;border:1px solid #d1d5db;background:#fff;color:#374151;",
+  "line-height:30px;border:1px solid var(--fm-line);background:#fff;color:var(--fm-ink);",
   "border-radius:7px;box-shadow:none;transition:background .12s,border-color .12s;}",
-  ".toolbar .btn:hover{background:#f3f4f6;border-color:#9ca3af;}",
+  ".toolbar .btn:hover{background:var(--fm-wash);border-color:var(--fm-muted);}",
   ".toolbar .btn:active,.toolbar .btn:focus{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.15);}",
   ".toolbar .btn-primary{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:600;}",
   ".toolbar .btn-primary:hover{background:#1d4ed8;border-color:#1d4ed8;}",
@@ -284,26 +287,26 @@ APP_CSS <- paste0(
   ".tbgroup .btn:first-child{border-top-left-radius:7px;border-bottom-left-radius:7px;}",
   ".tbgroup .btn:last-child{border-top-right-radius:7px;",
   "border-bottom-right-radius:7px;border-right-width:1px;}",
-  ".tbsep{width:1px;height:22px;background:#e5e7eb;margin:0 3px;flex:0 0 auto;}",
-  ".tbhint{font-size:11.5px;color:#9ca3af;line-height:1.3;max-width:340px;}",
+  ".tbsep{width:1px;height:22px;background:var(--fm-line);margin:0 3px;flex:0 0 auto;}",
+  ".tbhint{font-size:11.5px;color:var(--fm-muted);line-height:1.3;max-width:340px;}",
   ".toolbar .selectize-input{min-height:32px;height:32px;padding:4px 10px;",
-  "border-radius:7px;border-color:#d1d5db;}",
+  "border-radius:7px;border-color:var(--fm-line);}",
   ".toolbar select.form-control{height:32px;padding:2px 8px;font-size:13px;",
-  "border-radius:7px;border-color:#d1d5db;}",
+  "border-radius:7px;border-color:var(--fm-line);}",
   # a denser side panel: the tabs already separate the groups, so the vertical
   # rhythm inside a tab can be tighter than Bootstrap's default
   ".sidetabs .tab-content{padding-top:10px;}",
   ".sidetabs .form-group{margin-bottom:10px;}",
   ".sidetabs .shiny-input-container{width:100% !important;}",
   ".sidetabs .irs{margin-bottom:0;}",
-  ".sidetabs .help-block{font-size:11.5px;line-height:1.35;color:#6b7280;}",
+  ".sidetabs .help-block{font-size:11.5px;line-height:1.35;color:var(--fm-muted);}",
   ".sidetabs .nav-link{padding:5px 9px;font-size:12.5px;}",
   # the header strip: what the session IS, always visible, never in the way
-  ".sessionbar{font-size:12px;color:#6b7280;padding:2px 0 8px 0;",
-  "border-bottom:1px solid #e5e7eb;margin-bottom:10px;}",
-  ".sessionbar code{font-size:11.5px;color:#374151;background:#f3f4f6;",
+  ".sessionbar{font-size:12px;color:var(--fm-muted);padding:2px 0 8px 0;",
+  "border-bottom:1px solid var(--fm-line);margin-bottom:10px;}",
+  ".sessionbar code{font-size:11.5px;color:var(--fm-ink);background:var(--fm-wash);",
   "padding:1px 5px;border-radius:4px;}",
-  ".progressbox{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;",
+  ".progressbox{background:var(--fm-wash);border:1px solid var(--fm-line);border-radius:8px;",
   "padding:8px 10px;font-size:13px;line-height:1.5;}",
   ".statusline{font-size:12px;}",
   # The landmark bar is the app's real navigation. One flex row, never wrapped:
@@ -314,7 +317,7 @@ APP_CSS <- paste0(
   ".lmrow{display:flex;flex-wrap:nowrap;gap:3px;align-items:stretch;",
   "overflow-x:auto;margin-bottom:6px;padding-bottom:2px;}",
   ".lmrow .lmbtn{flex:1 1 0;min-width:30px;padding:7px 0;font-size:14px;",
-  "line-height:1.1;text-align:center;border:1px solid #d1d5db;",
+  "line-height:1.1;text-align:center;border:1px solid var(--fm-line);",
   "border-radius:7px;cursor:pointer;transition:filter .12s;}",
   ".lmrow .lmbtn:hover{filter:brightness(0.94);}",
   # A gap between the sections of the bar -- axis, anatomical run, derived and
@@ -331,17 +334,19 @@ APP_CSS <- paste0(
   ".collapsebar .checkbox-inline{margin-right:14px;font-size:12.5px;}",
   # the queue selector heads the side panel: boxed, so it reads as the state of
   # the session rather than as one more control
-  ".modebar{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;",
+  ".modebar{background:var(--fm-wash);border:1px solid var(--fm-line);border-radius:8px;",
   "padding:6px 10px 0 10px;margin-bottom:10px;}",
   ".modebar .form-group{margin-bottom:4px;}",
-  ".modebar .control-label{font-size:12px;color:#6b7280;margin-bottom:2px;}",
+  ".modebar .control-label{font-size:12px;color:var(--fm-muted);margin-bottom:2px;}",
   # the title. A system stack rather than a web font: it renders identically
   # offline, which a field session may well be, and matches the platform.
-  ".app-title{font-family:'Inter','SF Pro Display','Segoe UI Variable',",
-  "'Helvetica Neue',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;",
-  "letter-spacing:-0.015em;}",
-  ".app-title-name{font-weight:800;}",
-  ".app-title-sub{font-weight:600;opacity:0.62;}",
+  # the title bar of the common theme (Rfishmorph::app_theme): white, a hairline
+  # and the dotted row of landmarks below it; the name in the condensed face
+  ".app-title{display:flex;align-items:center;gap:6px;padding:10px 18px 9px 18px;",
+  "margin:0;font-size:1.2rem;line-height:1.2;}",
+  ".app-title-name{font-family:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;",
+  "font-weight:600;color:var(--fm-ink);}",
+  ".app-title-sub{font-weight:400;color:var(--fm-muted);font-size:0.95rem;}",
   # Mark NA is destructive-ish and pressed with the eye on the photograph: give
   # it a colour of its own so it is never hit for 'Clear point'
   "#set_na{font-weight:600;}")
@@ -349,9 +354,9 @@ APP_CSS <- paste0(
 ## The navigation guides: a grey track, a darker thumb, and an arrow button at
 ## each end. Defined here because the tracks and the buttons are built in the
 ## UI and only the thumbs are rendered by the server.
-NAV_TRACK <- "background:#e5e7eb;border:1px solid #d1d5db;border-radius:6px;"
-NAV_THUMB <- "position:absolute;background:#6b7280;border-radius:6px;"
-NAV_BTN   <- "padding:0 8px;line-height:22px;font-size:13px;color:#374151;"
+NAV_TRACK <- "background:var(--fm-line);border:1px solid var(--fm-line);border-radius:6px;"
+NAV_THUMB <- "position:absolute;background:var(--fm-muted);border-radius:6px;"
+NAV_BTN   <- "padding:0 8px;line-height:22px;font-size:13px;color:var(--fm-ink);"
 
 ## Right-button drag on the photograph pans the view (deltas sent to Shiny).
 PAN_JS <- paste(
@@ -515,15 +520,17 @@ side_tabs <- function() {
                "already placed stay on the specimen. The second changes the",
                "display only -- useful when reloaded points are mirrored",
                "relative to the photograph. It persists between photographs."),
-      if (IS_FM) tagList(
+      tagList(
         actionButton("flip_write", "Write the flip into the file",
                      class = "btn-warning btn-sm"),
         helpText("Writes the photograph AS DISPLAYED back to disk, at full",
                  "resolution, so the file and the recorded landmarks agree for",
-                 "every other reader. The original is copied into a",
-                 "'_originaux/' subfolder first (once), and both selectors go",
-                 "back to None. It writes the IMAGE, not the record: save the",
-                 "specimen as well if its points changed."))),
+                 "every other reader. The original is copied first (once) into",
+                 if (IS_FM) "a '_originaux/' subfolder" else
+                   "'_original_photos/' beside the workbook",
+                 ", and both selectors go back to None. It writes the IMAGE,",
+                 "not the record: save the specimen as well (Save & next) if",
+                 "its points changed."))),
 
     tabPanel(
       "Checks",
@@ -617,8 +624,19 @@ main_panel <- function() tagList(
           actionButton("prev_photo", "‹ Previous"),
           actionButton("next_photo", "Next ›")),
       div(class = "tbsep"),
-      actionButton("save_specimen", "Save & next", class = "btn-primary"),
+      actionButton("validate_pts", "Validate points", class = "btn-primary",
+                   title = paste("Mark every point still 'predicted' or 'seeded' as checked",
+                                 "and accepted (status 'validated'). Use it only after looking",
+                                 "at each point: a validated point is treated as verified.")),
+      actionButton("save_specimen", "Save & next", class = "btn-primary",
+                   title = "Enter = Validate points + Save & next"),
       actionButton("skip", "Skip"),
+      div(class = "tbsep"),
+      actionButton("flush_top", "\U0001F4BE Write the workbook now",
+                   class = "btn-outline-success",
+                   title = paste("Every 'Save & next' is already in the journal;",
+                                 "this writes the Excel workbook too, now.")),
+      uiOutput("save_badge", inline = TRUE),
       div(class = "tbsep"),
       div(style = "min-width:260px;",
           selectizeInput("goto_file", NULL, choices = NULL, selected = NULL,
@@ -642,17 +660,14 @@ main_panel <- function() tagList(
                               "clicked, predicted hinges tilt the head segment and bias",
                               "the derived points 8/9. Check them before saving."),
                 checkboxInput("pred_hinges", "Hinges 22/24 (curved fish)", FALSE, width = "auto")),
-      actionButton("validate_pts", "Validate points",
-                   title = paste("Mark every point still 'predicted' or 'seeded' as checked",
-                                 "and accepted (status 'validated'). Use it only after looking",
-                                 "at each point: a validated point is treated as verified.")),
       actionButton("predict_auto", "Auto (no clicks)",
                    title = paste("The global network finds the snout (LM1), the caudal-fin",
                                  "basis (LM2) and the dorsal side on the whole photograph,",
                                  "then the model places the other landmarks. Points already",
                                  "clicked are kept. Needs mlmorph_run_global/model.onnx.")),
       div(class = "tbgroup",
-          actionButton("undo", "Undo"),
+          actionButton("undo", "Undo", title = "Undo the last change of the points (Ctrl+Z / Cmd+Z)"),
+          actionButton("redo", "Redo", title = "Redo (Ctrl+Shift+Z / Cmd+Shift+Z)"),
           actionButton("restart", "Start over"))),
   div(class = "lmbar", uiOutput("lm_buttons")),   # active-landmark bar, bare
   # ---- view bar, immediately above the photograph ----------------------------
@@ -681,8 +696,10 @@ main_panel <- function() tagList(
                                   "Panel 1200 px (tallest)" = 1200),
                       selected = 700, width = "170px")),
       div(class = "tbhint",
-          "Right-click and drag to pan · double-click for the whole view ·",
-          "the zoom centres on the active landmark · no wheel zoom ·",
+          if (CANVAS) "Wheel to zoom at the cursor · right-click and drag to pan · double RIGHT-click for the whole view ·"
+          else "Right-click and drag to pan · double-click for the whole view ·",
+          if (CANVAS) "the zoom buttons centre on the active landmark ·"
+          else "the zoom centres on the active landmark · no wheel zoom ·",
           "a shorter panel is a wider view")),
   # The panel's height is a control rather than a constant, because it decides
   # the SHAPE of the zoomed view: the window shown follows the panel's aspect
@@ -823,15 +840,222 @@ page_body <- function()
                 tabPanel("New species", value = "add",
                          div(style = "padding-top:10px;", add_page())))
 
-head_tags <- tags$head(tags$script(HTML(PAN_JS)), tags$style(HTML(APP_CSS)))
+## ---- canvas display (default) ---------------------------------------------
+## The photograph and its overlay are drawn IN THE BROWSER. R sends the display
+## image once (and again only when it changes: another photograph, a flip, the
+## display resolution) and, after each click, the overlay as a list of shapes
+## -- a few kilobytes instead of a re-rendered PNG of the whole panel. Zoom
+## (wheel, at the cursor) and pan (right-button drag) happen entirely in the
+## browser and are reported back so that the server's buttons and guides stay
+## in step. A left click sends the image coordinates as `input$click`, exactly
+## what the plot display sends, so every rule downstream is unchanged.
+DCV_JS <- "
+(function() {
+  var st = { img: null, w: 1, h: 1, items: [], view: { z: 1, cx: null, cy: null },
+             drag: null, timer: null, rep: null };
+  function cv() { return document.getElementById('dcv'); }
+  function A(v) { return v === null || v === undefined ? [] : (Array.isArray(v) ? v : [v]); }
+  function E(v, i) { return Array.isArray(v) ? v[i] : v; }
+  function size() {
+    var c = cv(), r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+    var W = Math.max(1, Math.round(r.width * d)), H = Math.max(1, Math.round(r.height * d));
+    if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+    return { W: W, H: H, d: d, r: r };
+  }
+  function win(s) {
+    var hw = st.w / 2, hh = st.h / 2, ar = s.W / s.H;
+    if (hw / hh < ar) hw = hh * ar; else hh = hw / ar;
+    var z = Math.max(1, st.view.z || 1); hw /= z; hh /= z;
+    var cx = st.view.cx == null ? st.w / 2 : st.view.cx, cy = st.view.cy == null ? st.h / 2 : st.view.cy;
+    cx = (2 * hw >= st.w) ? st.w / 2 : Math.min(Math.max(cx, hw), st.w - hw);
+    cy = (2 * hh >= st.h) ? st.h / 2 : Math.min(Math.max(cy, hh), st.h - hh);
+    return { x0: cx - hw, y0: cy - hh, hw: hw, hh: hh, cx: cx, cy: cy, k: s.W / (2 * hw) };
+  }
+  function dash(l, d) { return l == 2 ? [6 * d, 4 * d] : (l == 3 ? [1.5 * d, 3 * d] : []); }
+  function draw() {
+    var c = cv(); if (!c) return;
+    var s = size(), g = c.getContext('2d'), v = win(s), d = s.d;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#e5e7eb'; g.fillRect(0, 0, s.W, s.H);
+    if (!st.img) return;
+    g.imageSmoothingEnabled = v.k < 2 * d;
+    g.setTransform(v.k, 0, 0, v.k, -v.x0 * v.k, -v.y0 * v.k);
+    g.drawImage(st.img, 0, 0, st.w, st.h);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    var X = function(x) { return (x - v.x0) * v.k; }, Y = function(y) { return (y - v.y0) * v.k; };
+    st.items.forEach(function(it) {
+      g.setLineDash(dash(it.lty, d)); g.lineWidth = Math.max(1, (it.lwd || 1) * 1.3 * d);
+      if (it.t === 'abl') {
+        A(it.v).forEach(function(x, i) { g.strokeStyle = E(it.col, i); g.beginPath();
+          g.moveTo(X(x), 0); g.lineTo(X(x), s.H); g.stroke(); });
+        A(it.h).forEach(function(y, i) { g.strokeStyle = E(it.col, i); g.beginPath();
+          g.moveTo(0, Y(y)); g.lineTo(s.W, Y(y)); g.stroke(); });
+      } else if (it.t === 'seg') {
+        A(it.x0).forEach(function(x0, i) {
+          var y0 = E(it.y0, i), x1 = E(it.x1, i), y1 = E(it.y1, i);
+          if ([x0, y0, x1, y1].some(function(q) { return q === null; })) return;
+          g.strokeStyle = E(it.col, i); g.beginPath(); g.moveTo(X(x0), Y(y0)); g.lineTo(X(x1), Y(y1)); g.stroke();
+        });
+      } else if (it.t === 'line') {
+        var xs = A(it.x), ys = A(it.y), on = false; g.strokeStyle = E(it.col, 0); g.beginPath();
+        for (var i = 0; i < xs.length; i++) {
+          if (xs[i] === null || ys[i] === null) { on = false; continue; }
+          if (on) g.lineTo(X(xs[i]), Y(ys[i])); else { g.moveTo(X(xs[i]), Y(ys[i])); on = true; }
+        }
+        g.stroke();
+      } else if (it.t === 'pt') {
+        g.setLineDash([]);
+        A(it.x).forEach(function(x, i) {
+          var y = E(it.y, i); if (x === null || y === null) return;
+          var r = (2.2 + 3.6 * (E(it.cex, i) || 1)) * d;
+          g.beginPath(); g.arc(X(x), Y(y), r, 0, 2 * Math.PI);
+          if (E(it.pch, i) == 21) { g.fillStyle = E(it.bg, i); g.fill(); }
+          g.strokeStyle = E(it.col, i); g.lineWidth = Math.max(1, (E(it.lwd, i) || 1) * 1.6 * d); g.stroke();
+        });
+      } else if (it.t === 'txt') {
+        g.setLineDash([]);
+        A(it.x).forEach(function(x, i) {
+          var y = E(it.y, i); if (x === null || y === null) return;
+          var px = Math.round(18 * (E(it.cex, i) || 1) * d), pos = E(it.pos, i), sx = X(x), sy = Y(y);
+          g.font = (E(it.font, i) == 2 ? 'bold ' : '') + px + 'px sans-serif';
+          g.textAlign = pos == 2 ? 'right' : (pos == 4 ? 'left' : 'center');
+          g.textBaseline = pos == 3 ? 'bottom' : (pos == 1 ? 'top' : 'middle');
+          if (pos == 3) sy -= 6 * d; else if (pos == 1) sy += 6 * d; else if (pos == 2) sx -= 6 * d; else if (pos == 4) sx += 6 * d;
+          var lab = String(E(it.lab, i));
+          g.lineWidth = 3 * d; g.strokeStyle = 'rgba(0,0,0,0.75)'; g.strokeText(lab, sx, sy);
+          g.fillStyle = E(it.col, i); g.fillText(lab, sx, sy);
+        });
+      } else if (it.t === 'leg') {
+        var labs = A(it.lab), n = labs.length, nc = it.ncol || 1, nr = Math.ceil(n / nc);
+        var fs = 13 * d, rh = fs * 1.35, cw = 90 * d, bw = nc * cw + 10 * d, bh = nr * rh + 10 * d;
+        var x0 = s.W - bw - 8 * d, y0 = 8 * d;
+        g.setLineDash([]); g.fillStyle = 'rgba(255,255,255,0.9)'; g.fillRect(x0, y0, bw, bh);
+        g.font = fs + 'px sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';
+        labs.forEach(function(l, i) {
+          var cx = x0 + 5 * d + Math.floor(i / nr) * cw, cy = y0 + 5 * d + (i % nr + 0.5) * rh;
+          g.strokeStyle = E(it.col, i); g.lineWidth = 2.5 * d;
+          g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + 22 * d, cy); g.stroke();
+          g.fillStyle = '#111'; g.fillText(l, cx + 27 * d, cy);
+        });
+      }
+    });
+    g.setLineDash([]);
+  }
+  function world(e) {
+    var s = size(), v = win(s);
+    return { x: v.x0 + (e.clientX - s.r.left) * s.d / v.k, y: v.y0 + (e.clientY - s.r.top) * s.d / v.k,
+             sx: (e.clientX - s.r.left) * s.d, sy: (e.clientY - s.r.top) * s.d, s: s, v: v };
+  }
+  function report() {
+    if (!cv()) return;
+    if (st.rep) clearTimeout(st.rep);
+    st.rep = setTimeout(function() {
+      var s = size(), v = win(s);
+      Shiny.setInputValue('dcv_view', { z: st.view.z || 1, cx: (st.view.z || 1) > 1 ? v.cx : null,
+        cy: (st.view.z || 1) > 1 ? v.cy : null, ar: s.W / s.H }, { priority: 'event' });
+    }, 150);
+  }
+  // left click: a landmark, sent AT ONCE (no waiting to see whether a double
+  // click follows: 0.2 s on every one of ~20 points per photograph). The second
+  // click of a double click is ignored, so it never places two points.
+  // Right drag: pan; double RIGHT click: the whole photograph.
+  $(document).on('contextmenu', '#dcv', function(e) {
+    e.preventDefault();
+    var now = Date.now();
+    if (st.lastRight && now - st.lastRight < 350 && !st.moved) {
+      st.lastRight = 0; st.view = { z: 1, cx: null, cy: null }; draw(); report();
+      Shiny.setInputValue('img_dblclick', { n: Math.random() }, { priority: 'event' });
+    } else st.lastRight = now;
+  });
+  $(document).on('mousedown', '#dcv', function(e) {
+    if (e.button === 2) { st.drag = { x: e.clientX, y: e.clientY }; st.moved = false; e.preventDefault(); }
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!st.drag) return;
+    var s = size(), v = win(s);
+    if (Math.abs(e.clientX - st.drag.x) + Math.abs(e.clientY - st.drag.y) > 2) st.moved = true;
+    st.view.cx = v.cx - (e.clientX - st.drag.x) * s.d / v.k;
+    st.view.cy = v.cy - (e.clientY - st.drag.y) * s.d / v.k;
+    st.drag = { x: e.clientX, y: e.clientY }; draw();
+  });
+  document.addEventListener('mouseup', function(e) { if (st.drag && e.button === 2) { st.drag = null; report(); } });
+  $(document).on('click', '#dcv', function(e) {
+    var o = e.originalEvent || e;
+    if (o.button !== 0 || o.detail > 1) return;
+    var p = world(o);
+    Shiny.setInputValue('click', { x: p.x, y: p.y, n: Math.random() }, { priority: 'event' });
+  });
+  // wheel: zoom at the cursor, the point under it staying put
+  document.addEventListener('wheel', function(e) {
+    if (!e.target || e.target.id !== 'dcv' || !st.img) return;
+    e.preventDefault();
+    var p = world(e), z0 = st.view.z || 1;
+    var z = Math.min(12, Math.max(1, z0 * (e.deltaY < 0 ? 1.25 : 0.8)));
+    if (z === z0) return;
+    var hw = p.v.hw * z0 / z, hh = p.v.hh * z0 / z, k = p.s.W / (2 * hw);
+    st.view = { z: z, cx: p.x - p.sx / k + hw, cy: p.y - p.sy / k + hh };
+    if (z === 1) st.view = { z: 1, cx: null, cy: null };
+    draw(); report();
+  }, { passive: false });
+  Shiny.addCustomMessageHandler('dcv_img', function(m) {
+    var im = new Image();
+    im.onload = function() { st.img = im; st.w = m.w; st.h = m.h; draw(); report(); };
+    im.src = m.url;
+  });
+  Shiny.addCustomMessageHandler('dcv_items', function(m) { st.items = A(m.items); draw(); });
+  Shiny.addCustomMessageHandler('dcv_view', function(m) {
+    st.view = { z: m.z || 1, cx: m.cx, cy: m.cy }; draw();
+  });
+  $(document).on('shiny:value', function(e) { if (e.name === 'img_box') setTimeout(function() { draw(); report(); }, 0); });
+  $(window).on('resize', function() { draw(); report(); });
+})();
+"
+
+ENTER_JS <- "
+$(document).on('keydown', function(e) {
+  if (e.key !== 'Enter' || e.repeat) return;
+  // typing fields keep their Enter; a button or a radio that merely kept the
+  // focus after a click does not (otherwise Enter would press it again)
+  var t = (e.target.tagName || '').toUpperCase(), ty = (e.target.type || '').toLowerCase();
+  if ((t === 'INPUT' && ['text', 'number', 'search', 'email', 'password'].indexOf(ty) >= 0) ||
+      t === 'TEXTAREA' || t === 'SELECT' || $(e.target).closest('.selectize-control').length) return;
+  if ($('.modal.show, .modal.in').length) return;      // a dialog has the hand
+  e.preventDefault();
+  if (e.target && e.target.blur) e.target.blur();
+  Shiny.setInputValue('kb_enter', Math.random(), { priority: 'event' });
+});
+"
+## Ctrl+Z / Cmd+Z: undo the last change of the points; with Shift (or Ctrl+Y),
+## redo. A text field keeps its own undo (the specimen code, the notes).
+UNDO_JS <- "
+$(document).on('keydown', function(e) {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  var k = (e.key || '').toLowerCase();
+  if (k !== 'z' && k !== 'y') return;
+  var t = (e.target.tagName || '').toUpperCase(), ty = (e.target.type || '').toLowerCase();
+  if ((t === 'INPUT' && ['text', 'number', 'search', 'email', 'password'].indexOf(ty) >= 0) ||
+      t === 'TEXTAREA' || $(e.target).closest('.selectize-control').length) return;
+  if ($('.modal.show, .modal.in').length) return;
+  e.preventDefault();
+  var redo = (k === 'y') || e.shiftKey;
+  Shiny.setInputValue(redo ? 'kb_redo' : 'kb_undo', Math.random(), { priority: 'event' });
+});
+"
+head_tags <- tags$head(tags$script(HTML(PAN_JS)), tags$script(HTML(DCV_JS)),
+                       tags$script(HTML(ENTER_JS)), tags$script(HTML(UNDO_JS)),
+                       tags$style(HTML(APP_CSS)))
 
 ## The title, once, as a tag rather than a string: the package name carries the
 ## capitals it is written with, and the rest of the line is a subtitle, not part
 ## of the name -- so it is set lighter instead of being run together with it.
-APP_TITLE <- tags$span(
-  class = "app-title",
+APP_TITLE <- tags$div(
+  class = "app-title app-title-bar",
   tags$span(class = "app-title-name", "InTraitR"),
-  tags$span(class = "app-title-sub", " — predictor-assisted landmarking"))
+  tags$span(class = "app-title-sub", "predictor-assisted landmarking"),
+  tags$span(style = "flex:1;"),
+  # Finish: write the workbook, close the app, hand the R console back.
+  actionButton("finish_app", "Finish", class = "btn-sm btn-outline-danger",
+               style = "margin-left:16px;",
+               title = "Write the workbook, close the app and return to R"))
 
 ## `fillable = FALSE`: this page is a scrolling document, not a dashboard. In a
 ## fillable page every child negotiates a share of the viewport height, so the
@@ -841,9 +1065,10 @@ APP_TITLE <- tags$span(
 ## lets the rest scroll.
 ui <- if (HAS_BSLIB) {
   bslib::page_sidebar(
-    title = APP_TITLE,
-    theme = bslib::bs_theme(version = 5, primary = "#2563eb",
-                            "border-radius" = "0.5rem"),
+    title = APP_TITLE, window_title = "InTraitR landmarking",
+    # the common look, with the digitizer's own blue accent: its two action
+    # buttons (Validate, Save & next) must stand out
+    theme = Rfishmorph::app_theme(primary = "#2563eb"),
     fillable = FALSE,
     sidebar = bslib::sidebar(width = 360, open = "desktop", side_panel()),
     head_tags, page_body())
@@ -859,6 +1084,35 @@ ui <- if (HAS_BSLIB) {
 ## Server
 ## =============================================================================
 server <- function(input, output, session) {
+  ## ---- finish: back to the R console ------------------------------------------
+  ## Defined first, but only ever run from a click: by then every helper below
+  ## (flush_xlsx) exists. In a background process (the FishInTrait hub) the
+  ## same stopApp() ends the process cleanly, and the hub sees it closed.
+  observeEvent(input$finish_app, {
+    showModal(modalDialog(
+      title = "Finish and return to R?",
+      tags$p("The workbook is written now, then the app closes. Every saved",
+             "specimen is also in the journal."),
+      tags$p(tags$b("Points of the photograph on screen that were not saved are lost.")),
+      footer = tagList(modalButton("Cancel"),
+                       actionButton("finish_app_ok", "Finish", class = "btn-danger"))))
+  })
+  observeEvent(input$finish_app_ok, {
+    removeModal()
+    ok <- tryCatch(isTRUE(flush_xlsx(force = TRUE, quiet = TRUE)),
+                   error = function(e) FALSE)
+    out <- if (IS_FM) tryCatch(FM$out_path, error = function(e) NULL) else CFG$xlsx_path
+    showModal(modalDialog(
+      title = "Closed",
+      if (ok) "The app is closed and the R console is free again. This tab can be closed."
+      else paste("The app is closed, but the workbook could not be written:",
+                 "it will be rebuilt from the journal at the next launch."),
+      footer = NULL, easyClose = FALSE))
+    insertUI("body", "beforeEnd", tags$script("setTimeout(function(){ try { window.close(); } catch (e) {} }, 300);"),
+             immediate = TRUE)
+    stopApp(invisible(out))
+  })
+
   rv <- reactiveValues(
     img = NULL, arr = NULL, w = NULL, h = NULL, orig = NULL,
     flip = "none", dispflip = "none",
@@ -1253,6 +1507,7 @@ server <- function(input, output, session) {
       ok <- tryCatch({ FM$flush(force = force, every = CFG$xlsx_flush_every); TRUE },
                      error = function(e) { rv$msg <- conditionMessage(e); FALSE })
       rv$pending <- FM$pending()
+      if (ok && rv$pending == 0L) rv$last_write <- Sys.time()
       if (ok && force && !quiet)
         showNotification(sprintf("Workbook written: %s.", basename(FM$out_path)),
                          type = "message", duration = 4)
@@ -1271,6 +1526,7 @@ server <- function(input, output, session) {
                    error = function(e) { rv$msg <- conditionMessage(e); FALSE })
     if (ok) {
       rv$pending <- 0L
+      rv$last_write <- Sys.time()
       if (!quiet) showNotification(
         sprintf("Workbook written: %s (%d + %d row(s)).",
                 basename(CFG$xlsx_path), nrow(rv$meas), nrow(rv$bias)),
@@ -1942,6 +2198,7 @@ server <- function(input, output, session) {
                        type = "error", duration = NULL)
       return(invisible(NULL))
     }
+    rv$last_save <- list(id = e$key, at = Sys.time())
     cr <- collapse_now()
     dropped <- tryCatch(
       FM$save(cur_mode(), k, P, list(
@@ -2136,6 +2393,10 @@ server <- function(input, output, session) {
   ## panel's height is a control (see "Panel ... px"), so the shape of the view
   ## is the operator's to choose: short panel, wide band.
   view_ar <- function() {
+    if (CANVAS) {
+      ar <- suppressWarnings(as.numeric(input$dcv_view$ar))
+      if (length(ar) == 1L && is.finite(ar) && ar > 0) return(ar)
+    }
     cd <- session$clientData
     w <- cd[["output_img_width"]]; h <- cd[["output_img_height"]]
     if (is.numeric(w) && is.numeric(h) && length(w) && length(h) &&
@@ -2437,7 +2698,7 @@ server <- function(input, output, session) {
              else if (i %in% rv$edited) "background:#cfe8ff;"
              else if (i %in% auto || i %in% DERIVED_LM) "background:#eee;color:#999;"
              else if (i %in% rv$seeded) "background:#faeeda;color:#854f0b;"
-             else "background:#f7f7f7;"
+             else "background:var(--fm-wash);"
       if (!fin_row(rv$pred, i) && !(i %in% rv$na))
         col <- paste0(col, "border-style:dashed;")
       tags$button(type = "button", i, class = "lmbtn",
@@ -2468,7 +2729,7 @@ server <- function(input, output, session) {
 
   ## The colour legend, at the foot of the page: read once, then never again.
   output$lm_legend <- renderUI({
-    tags$div(style = "font-size:11.5px;color:#6b7280;line-height:1.6;",
+    tags$div(style = "font-size:11.5px;color:var(--fm-muted);line-height:1.6;",
       tags$b("Landmark bar: "),
       "green = active; blue = placed by hand; amber = still at its seed",
       "(median FISHMORPH proportion -- never checked on this specimen);",
@@ -2521,18 +2782,85 @@ server <- function(input, output, session) {
     rv$placed_order <- setdiff(rv$placed_order, rv$sel)
     rv$msg <- paste(point_label(rv$sel), "cleared.")
   })
-  ## Undo: clear the point placed most recently, and make it active again.
-  observeEvent(input$undo, {
-    if (is.null(rv$pred) || !length(rv$placed_order)) {
-      notify("Nothing to undo.", "warning"); return() }
-    last <- rv$placed_order[length(rv$placed_order)]
-    rv$placed_order <- rv$placed_order[-length(rv$placed_order)]
-    rv$pred[last, ] <- NA_real_
-    rv$edited <- setdiff(rv$edited, last); rv$na <- setdiff(rv$na, last)
-    rv$seeded <- setdiff(rv$seeded, last)
-    rv$sel <- last
-    rv$msg <- paste0(point_label(last), " cleared -- place it again.")
+  ## ---- Undo / Redo -----------------------------------------------------------
+  ## A real history, not "clear the last point placed": every change of the
+  ## points -- a click, a prediction, a convention that realigned its
+  ## neighbours, Mark NA, Validate, a declared zero -- is ONE step, and Undo
+  ## puts back the whole state before it (a moved predicted point returns to
+  ## where it was, the points a rule realigned with it return too).
+  ##
+  ## Recorded by watching the state rather than by instrumenting each handler:
+  ## an observer sees the state after every reactive flush, i.e. after each
+  ## operator action, and pushes the PREVIOUS state when it differs. The
+  ## history belongs to one photograph (and one individual of a plate) and is
+  ## dropped when another is loaded; a save is not undone (the journal is
+  ## append-only), but the points on screen after it can still be.
+  UNDO_FIELDS <- c("pred", "na", "edited", "seeded", "adjusted", "validated",
+                   "placed_order", "collapse", "auto12")
+  UNDO_MAX <- 200L
+  hist <- new.env()
+  hist$undo <- list(); hist$redo <- list(); hist$last <- NULL
+  hist$key <- NULL; hist$restoring <- FALSE
+  undo_state <- function() {
+    st <- lapply(UNDO_FIELDS, function(f) rv[[f]]); names(st) <- UNDO_FIELDS
+    st
+  }
+  undo_key <- function() paste(rv$photo, rv$ind, rv$qi, sep = "\r")
+  observe({
+    st <- undo_state(); key <- undo_key()
+    isolate({
+      if (!identical(key, hist$key)) {             # another photograph: new history
+        hist$undo <- list(); hist$redo <- list()
+        hist$key <- key; hist$last <- st; hist$restoring <- FALSE
+        return()
+      }
+      if (isTRUE(hist$restoring)) {                # the state Undo/Redo just put back
+        hist$restoring <- FALSE; hist$last <- st; return()
+      }
+      if (identical(st, hist$last)) return()
+      if (!is.null(hist$last$pred)) {               # never back to "no photograph"
+        hist$undo <- c(hist$undo, list(hist$last))
+        if (length(hist$undo) > UNDO_MAX) hist$undo <- hist$undo[-1L]
+        hist$redo <- list()                        # a new change forks the history
+      }
+      hist$last <- st
+    })
   })
+  # the point a step changed, to make it the active one again
+  changed_point <- function(a, b) {
+    if (is.null(a) || is.null(b) || !identical(dim(a), dim(b))) return(NA_integer_)
+    d <- which(vapply(seq_len(nrow(a)), function(i)
+      !identical(unname(a[i, ]), unname(b[i, ])), logical(1)))
+    if (length(d)) d[1] else NA_integer_
+  }
+  restore_state <- function(st, what) {
+    pt <- changed_point(rv$pred, st$pred)
+    hist$restoring <- TRUE
+    for (f in UNDO_FIELDS) rv[[f]] <- st[[f]]
+    if (is.finite(pt) && pt %in% seq_len(nrow(rv$pred %||% matrix(0, 0, 2))))
+      rv$sel <- pt
+    rv$msg <- sprintf("%s%s. (%d step(s) to undo, %d to redo)", what,
+                      if (is.finite(pt)) paste0(": ", point_label(pt)) else "",
+                      length(hist$undo), length(hist$redo))
+  }
+  do_undo <- function() {
+    if (!length(hist$undo)) { notify("Nothing to undo.", "warning"); return() }
+    prev <- hist$undo[[length(hist$undo)]]
+    hist$undo <- hist$undo[-length(hist$undo)]
+    hist$redo <- c(hist$redo, list(undo_state()))
+    restore_state(prev, "Undone")
+  }
+  do_redo <- function() {
+    if (!length(hist$redo)) { notify("Nothing to redo.", "warning"); return() }
+    nxt <- hist$redo[[length(hist$redo)]]
+    hist$redo <- hist$redo[-length(hist$redo)]
+    hist$undo <- c(hist$undo, list(undo_state()))
+    restore_state(nxt, "Redone")
+  }
+  observeEvent(input$undo, do_undo())
+  observeEvent(input$kb_undo, do_undo())
+  observeEvent(input$redo, do_redo())
+  observeEvent(input$kb_redo, do_redo())
   ## ---- collapsed segments ---------------------------------------------------
   ## Re-applied after everything that could undo them: the conventions put LM9
   ## and LM11 back on the belly line and enforce_head_order() re-separates the
@@ -2676,7 +3004,7 @@ server <- function(input, output, session) {
     btn <- function(k) {
       col <- if (k == cur) "background:#28a745;color:#fff;font-weight:bold;"
              else if (k %in% done) "background:#cfe8ff;"
-             else "background:#f7f7f7;border-style:dashed;"
+             else "background:var(--fm-wash);border-style:dashed;"
       tags$button(type = "button", paste0("i", k), class = "lmbtn",
         title = if (k %in% done) "saved -- click to reload and correct"
                 else "not yet measured",
@@ -2833,6 +3161,30 @@ server <- function(input, output, session) {
       notify("Nothing to write yet.", "warning"); return() }
     flush_xlsx(force = TRUE, quiet = FALSE)
   })
+  observeEvent(input$flush_top, {
+    if (!IS_FM && is.null(rv$meas) && is.null(rv$bias)) {
+      notify("Nothing saved yet: press 'Save & next' first.", "warning"); return() }
+    flush_xlsx(force = TRUE, quiet = FALSE)
+  })
+  ## WHERE THINGS ARE, always on screen. A specimen is RECORDED the moment
+  ## 'Save & next' returns: the journal line is written then and there, and it
+  ## is the source of truth. The Excel workbook is a copy of it, written every
+  ## `xlsx_flush_every` saves, at Finish and when the tab closes.
+  output$save_badge <- renderUI({
+    ls <- rv$last_save; pend <- rv$pending %||% 0L
+    hm <- function(t) format(t, "%H:%M:%S")
+    jtxt <- if (is.null(ls)) "nothing saved in this session yet" else
+      sprintf("\u2713 %s recorded at %s", ls$id, hm(ls$at))
+    wtxt <- if (pend > 0L) sprintf("workbook: %d save(s) to write", pend) else
+      if (!is.null(rv$last_write)) sprintf("workbook up to date (%s)", hm(rv$last_write)) else
+      "workbook up to date"
+    tags$span(style = sprintf(
+      "font-size:12px;margin-left:8px;padding:3px 8px;border-radius:10px;background:%s;",
+      if (pend > 0L) "#fef3c7" else "#dcfce7"),
+      title = paste("Journal (source of truth):", journal$path,
+                    "| Workbook:", if (IS_FM) FM$out_path else CFG$xlsx_path),
+      jtxt, " \u00b7 ", wtxt)
+  })
 
   ## Recovery: rebuild both sheets from the journals and take them as the state.
   ## The journal is the source of truth, so this is not an import -- it is the
@@ -2942,7 +3294,7 @@ server <- function(input, output, session) {
     is.null(extreme_violations(rv$pred, skip = conv_skip()))
   }
 
-  observeEvent(input$save_specimen, {
+  save_and_next <- function() {
     if (is.null(rv$pred)) {
       notify("Nothing to save yet: predict, or start manual placement first.",
              "warning"); return() }
@@ -2951,7 +3303,8 @@ server <- function(input, output, session) {
       if (!is.null(v)) { extreme_modal(v); return() }
     }
     save_specimen()
-  })
+  }
+  observeEvent(input$save_specimen, save_and_next())
 
   ## Measure again: close, select the offending landmark and centre the view.
   ## For an inversion the landmark to re-measure is the CULPRIT -- the one found
@@ -3049,6 +3402,7 @@ server <- function(input, output, session) {
         type = "error", duration = NULL)
       return(invisible(NULL))
     }
+    rv$last_save <- list(id = id, at = Sys.time())
 
     ## 2. Then the in-memory sheet. Same identifier = same row: a corrected
     ##    specimen replaces itself, while a repeat -- whose identifier carries
@@ -3317,7 +3671,6 @@ server <- function(input, output, session) {
   ## is re-read at full resolution -- the array on screen is downsampled, and
   ## writing it would shrink the photograph under full-resolution coordinates.
   observeEvent(input$flip_write, {
-    if (!IS_FM) return()
     if (is.null(rv$arr)) { showNotification("No photograph loaded.", type = "error"); return() }
     if (identical(rv$flip, "none") && identical(rv$dispflip, "none")) {
       showNotification("No flip to write: both selectors are on None.", type = "message")
@@ -3330,7 +3683,9 @@ server <- function(input, output, session) {
     full <- tryCatch(read_image(f), error = function(e) NULL)
     if (is.null(full)) { showNotification("Could not re-read the photograph.", type = "error"); return() }
     a <- flip_array(flip_array(full, rv$flip), rv$dispflip)
-    res <- tryCatch(intraitR:::.fm_write_img(a, f), error = function(e) e)
+    res <- tryCatch(intraitR:::.fm_write_img(
+      a, f, bak_dir = if (IS_FM) NULL else
+        file.path(dirname(CFG$xlsx_path), "_original_photos")), error = function(e) e)
     if (inherits(res, "error")) {
       showNotification(paste("Write failed:", conditionMessage(res)), type = "error",
                        duration = 8)
@@ -3346,11 +3701,19 @@ server <- function(input, output, session) {
     updateRadioButtons(session, "flip_disp", selected = "none")
     rv$img <- make_disp()
     rv$zoom <- 1; rv$cx <- NULL; rv$cy <- NULL
+    # A campaign photograph SAVED before the flip has its record in the old
+    # orientation: the points on screen are right (they moved with the image),
+    # the saved ones are not until the specimen is saved again.
+    was_saved <- !IS_FM && !is.null(rv$meas) && nrow(rv$meas) &&
+      any(basename(f) %in% rv$meas$photo_file)
     showNotification(paste0(basename(f), " written",
                             if (isTRUE(res$jpeg)) " (JPEG re-encoded at quality 0.97)" else "",
-                            ". Original kept in _originaux/. Save the specimen as ",
-                            "well if its points changed: this wrote the IMAGE."),
-                     type = "warning", duration = 10)
+                            ". Original kept in ", basename(dirname(res$backup)), "/. ",
+                            if (was_saved)
+                              paste("This photograph was ALREADY SAVED in the old orientation:",
+                                    "press Save & next now to record its points in the new one.")
+                            else "Save the specimen as well if its points changed: this wrote the IMAGE."),
+                     type = "warning", duration = if (was_saved) NULL else 10)
   })
 
   output$saved_info <- renderText({
@@ -3377,13 +3740,27 @@ server <- function(input, output, session) {
   ## detection; the automatic ones stay "predicted" (unchecked) until reviewed.
   GLOBAL_MODEL <- file.path(ML, "mlmorph_run_global", "model.onnx")
   observeEvent(input$predict, run_prediction(auto = FALSE))
-  observeEvent(input$validate_pts, {
-    if (is.null(rv$pred)) return()
+  validate_points <- function(quiet = FALSE) {
+    if (is.null(rv$pred)) return(invisible(0L))
     st <- point_status(WB_PTS)
     tgt <- WB_PTS[st %in% c("predicted", "seeded")]
-    if (!length(tgt)) { notify("No predicted or seeded point to validate."); return() }
+    if (!length(tgt)) {
+      if (!quiet) notify("No predicted or seeded point to validate.")
+      return(invisible(0L))
+    }
     rv$validated <- union(rv$validated, tgt)
-    notify(sprintf("%d point(s) validated: %s.", length(tgt), paste(sort(tgt), collapse = ", ")))
+    if (!quiet)
+      notify(sprintf("%d point(s) validated: %s.", length(tgt), paste(sort(tgt), collapse = ", ")))
+    invisible(length(tgt))
+  }
+  observeEvent(input$validate_pts, validate_points())
+  ## ENTER: validate the points on screen, save, next photograph -- the whole
+  ## review of a good prediction in one key. The convention check of the save
+  ## still runs (its dialog stops the sequence when a rule is broken), and the
+  ## key does nothing while a dialog is open or a text field has the focus.
+  observeEvent(input$kb_enter, {
+    validate_points(quiet = TRUE)
+    save_and_next()
   })
   observeEvent(input$predict_auto, {
     if (!file.exists(GLOBAL_MODEL)) {
@@ -3510,37 +3887,107 @@ server <- function(input, output, session) {
   output$img_box <- renderUI({
     h <- suppressWarnings(as.integer(input$panel_h %||% 700))
     if (!is.finite(h) || h < 200) h <- 700
-    plotOutput("img", click = "click", dblclick = "img_dblclick",
-               height = paste0(h, "px"))
+    if (CANVAS)
+      tags$canvas(id = "dcv", style = sprintf(paste(
+        "width:100%%;height:%dpx;display:block;cursor:crosshair;",
+        "touch-action:none;background:var(--fm-line);"), h))
+    else
+      plotOutput("img", click = "click", dblclick = "img_dblclick",
+                 height = paste0(h, "px"))
   })
 
-  output$img <- renderPlot({
-    # The margins go to zero FIRST, before anything is drawn: with the default
-    # 5.1/4.1/4.1/2.1 lines, plot.new() errors with "figure margins too large"
-    # as soon as the device is narrow (a collapsed layout, a small window),
-    # which would replace the photograph with a stack trace.
-    par(mar = c(0, 0, 0, 0))
-    if (is.null(rv$img)) { plot.new(); text(.5, .5, "Load a photograph"); return() }
-    cx <- if (is.null(rv$cx)) rv$w / 2 else rv$cx
-    cy <- if (is.null(rv$cy)) rv$h / 2 else rv$cy
-    v <- view_half(); hw <- v[1]; hh <- v[2]
-    cx <- view_clamp(cx, hw, rv$w); cy <- view_clamp(cy, hh, rv$h)
-    plot(NA, xlim = c(cx - hw, cx + hw), ylim = c(cy + hh, cy - hh), asp = 1,
-         xaxs = "i", yaxs = "i", xlab = "", ylab = "", axes = FALSE)
-    # Draw ONLY the visible crop of the raster. Handing the whole image to
-    # rasterImage() and letting the device clip means the full bitmap is
-    # rasterized on every redraw -- and the plot redraws on every click. At 8x
-    # the visible crop is about 1/64 of the pixels.
-    rr <- rv$img
-    dh <- nrow(rr); dw <- ncol(rr)
-    c0 <- max(1L, floor((cx - hw) / rv$w * dw)); c1 <- min(dw, ceiling((cx + hw) / rv$w * dw))
-    r0 <- max(1L, floor((cy - hh) / rv$h * dh)); r1 <- min(dh, ceiling((cy + hh) / rv$h * dh))
-    if (c1 >= c0 && r1 >= r0)
-      graphics::rasterImage(rr[r0:r1, c0:c1, drop = FALSE],
-                            (c0 - 1) / dw * rv$w, r1 / dh * rv$h,
-                            c1 / dw * rv$w, (r0 - 1) / dh * rv$h,
-                            interpolate = FALSE)
+  ## ---- canvas display: what the browser needs ------------------------------
+  ## The display image, as a JPEG, by URL (re-encoded only when it changes).
+  dimg_url <- session$registerDataObj("dimg", NULL, function(data, req) {
+    a <- isolate(rv$arr)
+    if (is.null(a)) return(shiny::httpResponse(404L, "text/plain", "no image"))
+    a <- flip_array(flip_array(a, isolate(rv$flip)), isolate(rv$dispflip))
+    shiny::httpResponse(200L, "image/jpeg", jpeg::writeJPEG(a, raw(), quality = 0.9))
+  })
+  dimg_ver <- 0L
+  observe({
+    if (!CANVAS || is.null(rv$img)) return()
+    dimg_ver <<- dimg_ver + 1L
+    session$sendCustomMessage("dcv_img", list(
+      url = paste0(dimg_url, "&v=", dimg_ver), w = rv$w, h = rv$h))
+  })
+  ## The overlay: the SAME code as the plot display (overlay_expr), evaluated
+  ## with recorders in place of the drawing functions.
+  css_col <- function(col) {
+    if (is.null(col) || !length(col)) return("rgba(0,0,0,1)")
+    m <- grDevices::col2rgb(col, alpha = TRUE)
+    sprintf("rgba(%d,%d,%d,%.3f)", m[1, ], m[2, ], m[3, ], m[4, ] / 255)
+  }
+  num <- function(x) { x <- as.numeric(x); x[!is.finite(x)] <- NA; x }
+  overlay_items <- function() {
+    items <- list()
+    add <- function(x) items[[length(items) + 1L]] <<- x
+    e <- new.env(parent = environment(overlay_items))
+    e$points <- function(x, y = NULL, pch = 1, col = "black", bg = NA, cex = 1,
+                         lwd = 1, ...) {
+      n <- length(x)
+      add(list(t = "pt", x = num(x), y = num(y), pch = rep_len(pch, n),
+               col = rep_len(css_col(col), n),
+               bg = rep_len(if (all(is.na(bg))) "rgba(0,0,0,0)" else css_col(bg), n),
+               cex = rep_len(cex, n), lwd = rep_len(lwd, n)))
+    }
+    e$segments <- function(x0, y0, x1 = x0, y1 = y0, col = "black", lty = 1,
+                           lwd = 1, ...) {
+      n <- max(length(x0), length(x1))
+      add(list(t = "seg", x0 = rep_len(num(x0), n), y0 = rep_len(num(y0), n),
+               x1 = rep_len(num(x1), n), y1 = rep_len(num(y1), n),
+               col = rep_len(css_col(col), n), lty = lty[1], lwd = lwd[1]))
+    }
+    e$lines <- function(x, y = NULL, col = "black", lty = 1, lwd = 1, ...)
+      add(list(t = "line", x = num(x), y = num(y), col = css_col(col)[1],
+               lty = lty[1], lwd = lwd[1]))
+    e$abline <- function(h = NULL, v = NULL, col = "black", lty = 1, lwd = 1, ...)
+      add(list(t = "abl", h = num(h), v = num(v),
+               col = rep_len(css_col(col), max(1L, length(h), length(v))),
+               lty = lty[1], lwd = lwd[1]))
+    e$text <- function(x, y = NULL, labels = seq_along(x), col = "black",
+                       pos = NA, cex = 1, font = 1, ...) {
+      n <- length(x)
+      add(list(t = "txt", x = num(x), y = num(y), lab = rep_len(as.character(labels), n),
+               col = rep_len(css_col(col), n), pos = rep_len(pos, n),
+               cex = rep_len(cex, n), font = rep_len(font, n)))
+    }
+    e$legend <- function(x, legend, col = "black", ncol = 1, ...)
+      add(list(t = "leg", lab = as.character(legend),
+               col = rep_len(css_col(col), length(legend)), ncol = ncol))
+    tryCatch(eval(overlay_expr, envir = e), error = function(err) NULL)
+    items
+  }
+  observe({
+    if (!CANVAS || is.null(rv$img)) return()
+    session$sendCustomMessage("dcv_items", list(items = overlay_items()))
+  })
+  ## The view: the browser owns zoom and pan and reports them; the server's own
+  ## view changes (zoom buttons, double click, a new photograph, the arrows)
+  ## are sent to the browser -- but not the ones the browser itself reported.
+  view_key <- function(z, cx, cy) paste(round(z %||% 1, 4), round(cx %||% -1, 1),
+                                         round(cy %||% -1, 1))
+  observeEvent(input$dcv_view, {
+    v <- input$dcv_view
+    rv$client_view <- view_key(v$z, v$cx, v$cy)
+    rv$zoom <- max(1, as.numeric(v$z %||% 1))
+    rv$cx <- if (is.null(v$cx)) NULL else as.numeric(v$cx)
+    rv$cy <- if (is.null(v$cy)) NULL else as.numeric(v$cy)
+  })
+  observe({
+    if (!CANVAS) return()
+    z <- rv$zoom; cx <- rv$cx; cy <- rv$cy
+    if (identical(view_key(z, cx, cy), isolate(rv$client_view))) return()
+    session$sendCustomMessage("dcv_view", list(z = z, cx = cx, cy = cy))
+  })
 
+  ## THE OVERLAY -- plate axes, guides, reference lines, segments, geometry
+  ## checks, landmarks -- written ONCE, as base-graphics calls. The plot
+  ## display evaluates it on the device; the canvas display evaluates the SAME
+  ## code with recording versions of points()/lines()/segments()/text()/
+  ## abline()/legend() and hands the shapes to the browser. One source of truth
+  ## for what the operator sees, whichever display draws it.
+  overlay_expr <- quote({
     P <- rv$pred
     # THE OTHER FISH ON THE PLATE. Their axis 1 -> 2, drawn faintly with their
     # number: without it the operator has no way of telling, on a plate of four
@@ -3713,6 +4160,36 @@ server <- function(input, output, session) {
                col = "black", pch = 1, cex = 1.6, lwd = 1)
     }
 
+  })
+
+  output$img <- renderPlot({
+    # The margins go to zero FIRST, before anything is drawn: with the default
+    # 5.1/4.1/4.1/2.1 lines, plot.new() errors with "figure margins too large"
+    # as soon as the device is narrow (a collapsed layout, a small window),
+    # which would replace the photograph with a stack trace.
+    par(mar = c(0, 0, 0, 0))
+    if (is.null(rv$img)) { plot.new(); text(.5, .5, "Load a photograph"); return() }
+    cx <- if (is.null(rv$cx)) rv$w / 2 else rv$cx
+    cy <- if (is.null(rv$cy)) rv$h / 2 else rv$cy
+    v <- view_half(); hw <- v[1]; hh <- v[2]
+    cx <- view_clamp(cx, hw, rv$w); cy <- view_clamp(cy, hh, rv$h)
+    plot(NA, xlim = c(cx - hw, cx + hw), ylim = c(cy + hh, cy - hh), asp = 1,
+         xaxs = "i", yaxs = "i", xlab = "", ylab = "", axes = FALSE)
+    # Draw ONLY the visible crop of the raster. Handing the whole image to
+    # rasterImage() and letting the device clip means the full bitmap is
+    # rasterized on every redraw -- and the plot redraws on every click. At 8x
+    # the visible crop is about 1/64 of the pixels.
+    rr <- rv$img
+    dh <- nrow(rr); dw <- ncol(rr)
+    c0 <- max(1L, floor((cx - hw) / rv$w * dw)); c1 <- min(dw, ceiling((cx + hw) / rv$w * dw))
+    r0 <- max(1L, floor((cy - hh) / rv$h * dh)); r1 <- min(dh, ceiling((cy + hh) / rv$h * dh))
+    if (c1 >= c0 && r1 >= r0)
+      graphics::rasterImage(rr[r0:r1, c0:c1, drop = FALSE],
+                            (c0 - 1) / dw * rv$w, r1 / dh * rv$h,
+                            c1 / dw * rv$w, (r0 - 1) / dh * rv$h,
+                            interpolate = FALSE)
+
+    eval(overlay_expr)
   })
 
   ## ---- navigation guides, OUTSIDE the photograph ----------------------------

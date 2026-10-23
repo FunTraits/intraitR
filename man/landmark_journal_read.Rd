@@ -19,7 +19,14 @@ returned numeric; everything else is character.
 Tolerant by construction: a last line truncated by a crash is dropped
 (mandatory columns missing), and a journal written by an earlier version
 (fewer columns) is filled with \code{NA}. Two workstations' journals merge by
-plain concatenation.
+plain concatenation. Columns are matched by NAME, never by position.
+}
+\details{
+Journals written by \code{Rfishmorph::launch_fishmorph_digitizer()} (Rfishmorph
+up to 0.17) are read too, and translated on the fly -- the files themselves
+are never modified: \code{quality_score} becomes \code{quality}, \code{collapse} becomes
+\code{collapse_rules}, \code{reviewed} \code{TRUE}/\code{FALSE} becomes \code{"yes"}/\code{"no"}, and the
+status \code{"placed"} becomes \code{"clicked"} (both mean "put there by hand").
 }
 \examples{
 d <- file.path(tempdir(), "journal_demo3")

@@ -58,8 +58,20 @@
   "reviewed",       # "yes"/"no": has anyone actually looked at this entry
   "reviewed_by",    # who declared it, stamped only when something is declared
   "review_date",    # when, likewise
-  "collapse_rules"  # coincidences DECLARED on the specimen ("Mo;Hd6"), not inferred
+  "collapse_rules", # coincidences DECLARED on the specimen ("Mo;Hd6"), not inferred
+  # ---- appended in 1.40.0 (merge of the two digitizers) ----------------------
+  "species"         # Genus species, for the FISHMORPH reference target (row_key
+                    # there is the species); empty for campaign records
 )
+
+# Journals written by Rfishmorph::launch_fishmorph_digitizer() (Rfishmorph <=
+# 0.17) follow the same principle under other column names. They are read as
+# they are -- never rewritten on disk -- and translated on the fly by
+# .intraitr_journal_harmonise(), so one reader serves both digitizers' history.
+#   quality_score -> quality        collapse -> collapse_rules
+#   reviewed TRUE/FALSE -> "yes"/"no"
+#   status "placed" -> "clicked"    (same meaning: put there by hand)
+.LEGACY_FM_RENAME <- c(quality_score = "quality", collapse = "collapse_rules")
 
 # WHY A FILE HASH AND NOT A FILE NAME. A photograph's name is metadata: it
 # carries the site, the date, the species and the specimen number, and every one
@@ -211,6 +223,8 @@ landmark_journal_open <- function(journal_dir, operator = NULL,
 #'   good the entry is; these say whether the judgement has been made at all,
 #'   which is a different statement: a specimen can be checked AND poor, and
 #'   that is the state a re-photographing list is built from.
+#' @param species Optional species name (`"Genus species"`), recorded by the
+#'   FISHMORPH reference target, whose `row_key` is the species itself.
 #' @param collapse_rules Optional character string listing the coincidence
 #'   rules DECLARED on the specimen, separated by `";"` (for example
 #'   `"Mo;Hd6"`). A declared zero is a measurement, and recording only the
@@ -240,7 +254,8 @@ landmark_journal_append <- function(journal, row_key, coords, points,
                                     quality = NA, ruler_mm = NA,
                                     mm_per_px = NA, photo_hash = NA,
                                     reviewed = NA, reviewed_by = NA,
-                                    review_date = NA, collapse_rules = NA) {
+                                    review_date = NA, collapse_rules = NA,
+                                    species = NA) {
   if (!inherits(journal, "intrait_journal"))
     stop("`journal` is not a journal handle from landmark_journal_open().",
          call. = FALSE)
@@ -282,6 +297,7 @@ landmark_journal_append <- function(journal, row_key, coords, points,
     reviewed_by = .intraitr_tsv_safe(reviewed_by),
     review_date = .intraitr_tsv_safe(review_date),
     collapse_rules = .intraitr_tsv_safe(collapse_rules),
+    species = .intraitr_tsv_safe(species),
     stringsAsFactors = FALSE)
   rows <- rows[, .INTRAITR_JOURNAL_COLS, drop = FALSE]
 
@@ -300,12 +316,45 @@ landmark_journal_append <- function(journal, row_key, coords, points,
 }
 
 
+# Translate, in memory, a journal written by Rfishmorph's digitizer into the
+# column names and vocabulary of this package (see .LEGACY_FM_RENAME). A no-op
+# on journals written by intraitR. Columns are handled by NAME: the FISHMORPH
+# journals inserted quality_score/reviewed/collapse in the middle of their
+# header over successive versions, so no positional rule would hold.
+.intraitr_journal_harmonise <- function(d) {
+  for (old in names(.LEGACY_FM_RENAME)) {
+    if (!old %in% names(d)) next
+    new <- .LEGACY_FM_RENAME[[old]]
+    if (!new %in% names(d)) {
+      d[[new]] <- d[[old]]
+    } else {
+      fill <- is.na(d[[new]]) | !nzchar(d[[new]])
+      d[[new]][fill] <- d[[old]][fill]
+    }
+    d[[old]] <- NULL
+  }
+  if ("reviewed" %in% names(d)) {
+    r <- toupper(trimws(d$reviewed))
+    d$reviewed[r %in% "TRUE"]  <- "yes"
+    d$reviewed[r %in% "FALSE"] <- "no"
+  }
+  if ("status" %in% names(d)) d$status[d$status %in% "placed"] <- "clicked"
+  d
+}
+
+
 #' Read and concatenate every journal in a directory
 #'
 #' Tolerant by construction: a last line truncated by a crash is dropped
 #' (mandatory columns missing), and a journal written by an earlier version
 #' (fewer columns) is filled with `NA`. Two workstations' journals merge by
-#' plain concatenation.
+#' plain concatenation. Columns are matched by NAME, never by position.
+#'
+#' Journals written by `Rfishmorph::launch_fishmorph_digitizer()` (Rfishmorph
+#' up to 0.17) are read too, and translated on the fly -- the files themselves
+#' are never modified: `quality_score` becomes `quality`, `collapse` becomes
+#' `collapse_rules`, `reviewed` `TRUE`/`FALSE` becomes `"yes"`/`"no"`, and the
+#' status `"placed"` becomes `"clicked"` (both mean "put there by hand").
 #'
 #' @param journal_dir Journal directory, or a vector of directories.
 #'
@@ -331,12 +380,22 @@ landmark_journal_read <- function(journal_dir) {
     use.names = FALSE)
   if (!length(fs)) return(.intraitr_journal_empty())
 
+  # A file that exists but cannot be read (typically a cloud-synchronised file
+  # not downloaded on this machine) used to be skipped SILENTLY, and a
+  # consolidation then lost every specimen it held without a word. It is still
+  # skipped -- one bad file must not block the rest -- but now by name.
+  unreadable <- character(0)
   parts <- lapply(fs, function(f) {
     d <- try(utils::read.delim(f, sep = "\t", header = TRUE, quote = "",
                                comment.char = "", colClasses = "character",
                                fill = TRUE, stringsAsFactors = FALSE),
              silent = TRUE)
-    if (inherits(d, "try-error") || is.null(d) || !nrow(d)) return(NULL)
+    if (inherits(d, "try-error")) {
+      unreadable <<- c(unreadable, basename(f))
+      return(NULL)
+    }
+    if (is.null(d) || !nrow(d)) return(NULL)
+    d <- .intraitr_journal_harmonise(d)
     for (cc in setdiff(.INTRAITR_JOURNAL_COLS, names(d)))
       d[[cc]] <- rep(NA_character_, nrow(d))
     d <- d[, .INTRAITR_JOURNAL_COLS, drop = FALSE]
@@ -348,6 +407,12 @@ landmark_journal_read <- function(journal_dir) {
     d[ok, , drop = FALSE]
   })
   parts <- parts[!vapply(parts, is.null, logical(1))]
+  if (length(unreadable))
+    warning(sprintf(paste0(
+      "%d journal file(s) could not be read and were SKIPPED: %s. Their ",
+      "records are missing from this result. On a synchronised folder ",
+      "(OneDrive, iCloud), make the files available offline and read again."),
+      length(unreadable), paste(unreadable, collapse = ", ")), call. = FALSE)
   if (!length(parts)) return(.intraitr_journal_empty())
 
   out <- do.call(rbind, parts)
@@ -368,7 +433,8 @@ landmark_journal_read <- function(journal_dir) {
 #' recovery path: the workbook can be deleted, corrupted, or left behind by a
 #' crashed session, and the data are still there.
 #'
-#' @param journal_dir Journal directory, or a vector of directories.
+#' @param journal_dir Journal directory, a vector of directories, or a journal
+#'   already read with [landmark_journal_read()].
 #' @param points Landmark numbers to lay out as columns. Defaults to `1:25`,
 #'   what [digitize_landmarks()] records: the 19 FISHMORPH landmarks, the scale
 #'   bar (20-21), the curvature point (22), the derived head-base point (23)
@@ -382,11 +448,19 @@ landmark_journal_read <- function(journal_dir) {
 #' @param xlsx_path Optional path; when supplied, the result is also written
 #'   there with [writexl::write_xlsx()], one sheet per group of `target_sheet`
 #'   (typically `measurements` and `bias`).
+#' @param long Logical. `TRUE` returns the kept records in the LONG layout of
+#'   the journal (one row per point) instead of the wide table.
+#' @param drop_na_points Logical (default `TRUE`): points whose status is
+#'   `"na"` (declared non-measurable) come out with `NA` coordinates.
+#' @param status_columns Logical (default `FALSE`): add one `<n>_status` column
+#'   per point after the coordinates -- the per-point quality information a
+#'   coordinate table cannot otherwise carry.
 #'
 #' @return A `data.frame`, one row per digitization, with the identification
 #'   columns (`specimen`, `individual`, `replicate`, `operator`, `photo_file`,
 #'   ...), the coordinate columns, and the per-record status counts
-#'   (`n_clicked`, `n_seeded`, `n_predicted`, `n_adjusted`, `n_na`).
+#'   (`n_clicked`, `n_seeded`, `n_predicted`, `n_validated`, `n_adjusted`,
+#'   `n_na`); with `long = TRUE`, the journal rows of the kept records.
 #'
 #' @seealso [landmark_journal_read()], [digitize_landmarks()],
 #'   [read_landmarks_xlsx()]
@@ -402,17 +476,22 @@ landmark_journal_read <- function(journal_dir) {
 #'
 #' @export
 consolidate_landmarks <- function(journal_dir, points = 1:25,
-                                  history = FALSE, xlsx_path = NULL) {
-  j <- landmark_journal_read(journal_dir)
+                                  history = FALSE, xlsx_path = NULL,
+                                  long = FALSE, drop_na_points = TRUE,
+                                  status_columns = FALSE) {
+  j <- if (is.data.frame(journal_dir)) journal_dir else landmark_journal_read(journal_dir)
   points <- as.integer(points)
-  id_cols <- c("specimen", "individual", "replicate", "operator", "mode",
-               "target_sheet", "photo_file", "photo_hash", "img_w", "img_h",
-               "quality", "reviewed", "reviewed_by", "review_date",
+  id_cols <- c("specimen", "individual", "replicate", "species", "operator",
+               "mode", "target_sheet", "photo_file", "photo_hash", "img_w",
+               "img_h", "quality", "reviewed", "reviewed_by", "review_date",
                "collapse_rules", "ruler_mm", "mm_per_px", "app_version")
   coord_cols <- as.vector(rbind(paste0(points, "_X"), paste0(points, "_Y")))
-  cnt_cols <- c("n_clicked", "n_seeded", "n_predicted", "n_adjusted", "n_na")
+  if (isTRUE(status_columns)) coord_cols <- c(coord_cols, paste0(points, "_status"))
+  cnt_cols <- c("n_clicked", "n_seeded", "n_predicted", "n_validated",
+                "n_adjusted", "n_na")
 
   if (!nrow(j)) {
+    if (isTRUE(long)) return(j)
     out <- as.data.frame(
       matrix(numeric(0), nrow = 0,
              ncol = length(c("record_id", "timestamp", id_cols, coord_cols, cnt_cols))))
@@ -431,6 +510,18 @@ consolidate_landmarks <- function(journal_dir, points = 1:25,
     last_rec <- tapply(j$record_id, j$row_key, function(r) r[length(r)])
     j <- j[j$record_id %in% as.character(last_rec), , drop = FALSE]
   }
+  # A point declared non-measurable carries no usable position, whatever
+  # coordinates the record may hold (FISHMORPH journals could keep them).
+  if (isTRUE(drop_na_points)) {
+    bad <- j$status %in% "na"
+    j$x[bad] <- NA_real_
+    j$y[bad] <- NA_real_
+  }
+  if (isTRUE(long)) {
+    j <- j[!is.na(j$landmark), , drop = FALSE]
+    rownames(j) <- NULL
+    return(j)
+  }
 
   recs <- split(j, factor(j$record_id, levels = unique(j$record_id)))
   rows <- lapply(recs, function(d) {
@@ -445,6 +536,9 @@ consolidate_landmarks <- function(journal_dir, points = 1:25,
       out[[paste0(points[k], "_X")]] <- if (is.na(hit[k])) NA_real_ else d$x[hit[k]]
       out[[paste0(points[k], "_Y")]] <- if (is.na(hit[k])) NA_real_ else d$y[hit[k]]
     }
+    if (isTRUE(status_columns)) for (k in seq_along(points))
+      out[[paste0(points[k], "_status")]] <-
+        if (is.na(hit[k])) NA_character_ else d$status[hit[k]]
     # Counted over the whole record, including points outside `points`: the
     # summary answers "was this digitization checked", not "was this column".
     st <- d$status
@@ -537,3 +631,181 @@ write_xlsx_atomic <- function(x, path, keep_prev = TRUE) {
   if (had && !keep_prev) unlink(prev)
   invisible(TRUE)
 }
+
+
+# =============================================================================
+# Monitoring the journals -- ported from Rfishmorph (fm_journal_status(),
+# fm_journal_history(), fishmorph_journal_qc()) in intraitR 1.40.0, so both
+# digitizer targets are monitored by the same functions.
+# =============================================================================
+
+#' State of the journals in a directory
+#'
+#' The first thing to call when a consolidation comes back empty: it says at
+#' once whether the directory is the right one, which journal files it holds,
+#' and how many records each contains. A journal with 0 records is the normal
+#' trace of a session opened and closed without saving anything -- the app
+#' creates the file at LAUNCH, not at the first save.
+#'
+#' @param journal_dir Journal directory.
+#' @return A `data.frame` (invisibly `NULL` if the directory does not exist or
+#'   holds no journal), one row per file: `file`, `bytes`, `n_lines`,
+#'   `n_records`, `n_points`, `start`, `end`. A summary is also printed as
+#'   messages.
+#' @seealso [landmark_journal_read()], [landmark_journal_history()],
+#'   [landmark_journal_qc()], [consolidate_landmarks()]
+#' @examples
+#' d <- file.path(tempdir(), "journal_status_demo")
+#' jr <- landmark_journal_open(d, operator = "AT")
+#' landmark_journal_append(jr, "fish_01", cbind(c(10, 60), c(20, 22)), 1:2)
+#' landmark_journal_status(d)
+#' unlink(d, recursive = TRUE)
+#' @export
+landmark_journal_status <- function(journal_dir) {
+  ex <- dir.exists(journal_dir)
+  message("Directory: ", normalizePath(journal_dir, mustWork = FALSE),
+          if (ex) "" else "   [NOT FOUND]")
+  if (!ex) return(invisible(NULL))
+  fs <- list.files(journal_dir, pattern = "^landmarks_.*\\.tsv$", full.names = TRUE)
+  other <- setdiff(list.files(journal_dir), basename(fs))
+  if (!length(fs)) {
+    message("No 'landmarks_*.tsv' file.",
+            if (length(other))
+              paste0(" The directory does contain: ",
+                     paste(utils::head(other, 5), collapse = ", "),
+                     " -- wrong directory, or renamed files?") else
+              " Empty directory: the app has never been launched with this journal_dir.")
+    return(invisible(NULL))
+  }
+  J <- landmark_journal_read(journal_dir)
+  out <- do.call(rbind, lapply(fs, function(f) {
+    n_l <- length(readLines(f, warn = FALSE))
+    data.frame(file = basename(f), bytes = file.size(f),
+               n_lines = max(0L, n_l - 1L), stringsAsFactors = FALSE)
+  }))
+  out$n_records <- 0L
+  out$n_points  <- 0L
+  out$start <- NA_character_
+  out$end   <- NA_character_
+  if (nrow(J)) {
+    # a record belongs to its session through the prefix of its record_id
+    sess <- sub("-\\d+$", "", J$record_id)
+    for (i in seq_len(nrow(out))) {
+      sid <- sub("^landmarks_(.*)\\.tsv$", "\\1", out$file[i])
+      k <- sess == sid
+      out$n_records[i] <- length(unique(J$record_id[k]))
+      out$n_points[i]  <- sum(k)
+      if (any(k)) {
+        out$start[i] <- min(J$timestamp[k])
+        out$end[i]   <- max(J$timestamp[k])
+      }
+    }
+  }
+  tot <- sum(out$n_records)
+  message(sprintf("%d file(s), %d record(s), %d point(s) in total.",
+                  nrow(out), tot, sum(out$n_points)))
+  if (tot == 0L)
+    message("-> No specimen has been saved yet in a session using this ",
+            "journal. The file is created when the app is LAUNCHED; it only ",
+            "fills up at the first save.")
+  out
+}
+
+
+#' History of the records of one key
+#'
+#' Every press of *Save* is kept in the journals, so the successive passes over
+#' one specimen (digitization, then corrections) can be listed and compared --
+#' to check that a correction was taken into account, or to see who changed
+#' what and when.
+#'
+#' @param journal_dir Journal directory, or a journal already read with
+#'   [landmark_journal_read()].
+#' @param row_key Key(s) to inspect (the saved identifier; the species for the
+#'   FISHMORPH reference target). `NULL` (default) summarises every key.
+#' @return A `data.frame`, one row per record, ordered by key then time:
+#'   `record_id`, `timestamp`, `operator`, `mode`, `row_key`, `specimen`,
+#'   `species`, `photo_file`, `n_points` and the per-status counts
+#'   (`n_clicked`, `n_seeded`, `n_predicted`, `n_validated`, `n_adjusted`,
+#'   `n_na`).
+#' @seealso [landmark_journal_status()], [consolidate_landmarks()] with
+#'   `history = TRUE` for the coordinates of every pass.
+#' @examples
+#' d <- file.path(tempdir(), "journal_history_demo")
+#' jr <- landmark_journal_open(d, operator = "AT")
+#' landmark_journal_append(jr, "fish_01", cbind(c(10, 60), c(20, 22)), 1:2)
+#' landmark_journal_append(jr, "fish_01", cbind(c(11, 60), c(20, 23)), 1:2)
+#' landmark_journal_history(d, "fish_01")
+#' unlink(d, recursive = TRUE)
+#' @export
+landmark_journal_history <- function(journal_dir, row_key = NULL) {
+  J <- if (is.data.frame(journal_dir)) journal_dir else landmark_journal_read(journal_dir)
+  if (!nrow(J)) return(J)
+  if (!is.null(row_key)) J <- J[J$row_key %in% row_key, , drop = FALSE]
+  if (!nrow(J)) return(J)
+  agg <- do.call(rbind, lapply(split(J, J$record_id), function(g) data.frame(
+    record_id = g$record_id[1], timestamp = g$timestamp[1],
+    operator = g$operator[1], mode = g$mode[1], row_key = g$row_key[1],
+    specimen = g$specimen[1], species = g$species[1],
+    photo_file = g$photo_file[1], n_points = nrow(g),
+    n_clicked = sum(g$status %in% "clicked"),
+    n_seeded = sum(g$status %in% "seeded"),
+    n_predicted = sum(g$status %in% "predicted"),
+    n_validated = sum(g$status %in% "validated"),
+    n_adjusted = sum(g$status %in% "adjusted"),
+    n_na = sum(g$status %in% "na"), stringsAsFactors = FALSE)))
+  agg <- agg[order(agg$row_key, agg$timestamp, agg$record_id), , drop = FALSE]
+  rownames(agg) <- NULL
+  agg
+}
+
+
+#' Quick quality control of the journals
+#'
+#' Reports, for the LAST record of every key, what a coordinate table does not
+#' show: expected points never placed, points still at their seed (never
+#' checked), points snapped by a convention (`adjusted`: 3 or 4 brought back to
+#' the maximum body depth), points declared non-measurable, and whether the
+#' scale is known. Sorted worst first.
+#'
+#' @param journal_dir Journal directory, or a journal already read with
+#'   [landmark_journal_read()].
+#' @param expect Points a complete specimen must carry. Defaults to the 19
+#'   FISHMORPH landmarks and the derived head-base point 23; for the FISHMORPH
+#'   reference target, whose records always carry the axis point 22, use
+#'   `c(1:19, 22, 23)`.
+#' @return A `data.frame`, one row per key: `row_key`, `specimen`, `species`,
+#'   `photo_file`, `timestamp`, `n_missing`/`missing`, `n_seeded`/`seeded`,
+#'   `n_adjusted`/`adjusted`, `n_na`, `has_scale`.
+#' @seealso [landmark_journal_status()], [consolidate_landmarks()]
+#' @examples
+#' d <- file.path(tempdir(), "journal_qc_demo")
+#' jr <- landmark_journal_open(d, operator = "AT")
+#' landmark_journal_append(jr, "fish_01", cbind(c(10, 60), c(20, 22)), 1:2,
+#'                         status = c("1" = "clicked", "2" = "seeded"))
+#' landmark_journal_qc(d, expect = 1:3)
+#' unlink(d, recursive = TRUE)
+#' @export
+landmark_journal_qc <- function(journal_dir, expect = c(1:19, 23L)) {
+  K <- consolidate_landmarks(journal_dir, long = TRUE, drop_na_points = FALSE)
+  if (!nrow(K)) return(K)
+  qc <- do.call(rbind, lapply(split(K, K$row_key), function(g) {
+    e <- g$landmark %in% expect
+    data.frame(
+      row_key = g$row_key[1], specimen = g$specimen[1], species = g$species[1],
+      photo_file = g$photo_file[1], timestamp = g$timestamp[1],
+      n_missing = sum(!expect %in% g$landmark),
+      missing = paste(setdiff(expect, g$landmark), collapse = ","),
+      n_seeded = sum(g$status %in% "seeded" & e),
+      seeded = paste(g$landmark[g$status %in% "seeded" & e], collapse = ","),
+      n_adjusted = sum(g$status %in% "adjusted" & e),
+      adjusted = paste(g$landmark[g$status %in% "adjusted" & e], collapse = ","),
+      n_na = sum(g$status %in% "na" & e),
+      has_scale = isTRUE(is.finite(g$mm_per_px[1])),
+      stringsAsFactors = FALSE)
+  }))
+  qc <- qc[order(-qc$n_missing, -qc$n_seeded, qc$row_key), , drop = FALSE]
+  rownames(qc) <- NULL
+  qc
+}
+

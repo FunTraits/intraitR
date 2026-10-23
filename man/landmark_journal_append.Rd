@@ -25,7 +25,8 @@ landmark_journal_append(
   reviewed = NA,
   reviewed_by = NA,
   review_date = NA,
-  collapse_rules = NA
+  collapse_rules = NA,
+  species = NA
 )
 }
 \arguments{
@@ -63,6 +64,9 @@ rules DECLARED on the specimen, separated by \code{";"} (for example
 \code{"Mo;Hd6"}). A declared zero is a measurement, and recording only the
 geometry it produced leaves a reader unable to tell it from an accidental
 coincidence.}
+
+\item{species}{Optional species name (\code{"Genus species"}), recorded by the
+FISHMORPH reference target, whose \code{row_key} is the species itself.}
 }
 \value{
 The \code{record_id} written (invisibly), or \code{NULL} if there was nothing

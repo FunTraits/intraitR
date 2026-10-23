@@ -1,3 +1,29 @@
+# intraitR 1.40.0
+
+## Fusion des digitizers, etape 2 : un seul journal
+
+* `landmark_journal_read()` relit aussi les journaux ecrits par
+  `Rfishmorph::launch_fishmorph_digitizer()`, traduits a la volee (les
+  fichiers ne sont jamais reecrits) : `quality_score` -> `quality`,
+  `collapse` -> `collapse_rules`, `reviewed` TRUE/FALSE -> "yes"/"no", statut
+  "placed" -> "clicked". Colonnes alignees par NOM (les journaux FISHMORPH ont
+  insere des colonnes au milieu de leur en-tete au fil des versions). Verifie
+  sur les 121 journaux FISHMORPH lisibles : 73 163 points, 3 181
+  enregistrements, 2 800 especes, aucune ligne perdue.
+* **Correctif** : un fichier de journal illisible (typiquement un fichier
+  OneDrive/iCloud non telecharge) etait ignore EN SILENCE, et ses specimens
+  disparaissaient de la consolidation. Il est toujours ignore, mais un
+  avertissement le nomme. 14 journaux FISHMORPH sont dans ce cas sur la
+  machine de reference le 23/10/2026.
+* Nouvelle colonne de journal `species` (en fin d'en-tete) et argument
+  `species` de `landmark_journal_append()`, pour la cible FISHMORPH.
+* `consolidate_landmarks()` : nouveaux arguments `long`, `drop_na_points`
+  (defaut `TRUE` ; sans effet sur les journaux intraitR, ou un point "na" n'a
+  jamais de coordonnees) et `status_columns` ; accepte un journal deja lu ;
+  colonne `species` ; `n_validated` aussi dans le resultat vide.
+* NOUVEAU (portes de Rfishmorph) : `landmark_journal_status()`,
+  `landmark_journal_history()`, `landmark_journal_qc()`.
+
 # intraitR 1.39.0
 
 ## Fusion des digitizers, etape 1 : le noyau commun entre dans le package

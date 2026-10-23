@@ -183,3 +183,102 @@ test_that("append refuses anything that is not a journal handle", {
   expect_null(landmark_journal_append(jr, "k", P2(), 5:6))
   expect_equal(nrow(landmark_journal_read(d)), 0L)
 })
+
+## ---- merge of the two digitizers (1.40.0) -------------------------------------
+
+# A journal exactly as Rfishmorph's digitizer wrote it (latest generation of
+# its header: quality_score/reviewed/collapse INSERTED before `landmark`).
+write_fm_journal <- function(d, name = "landmarks_AT_20260801T101010Z.tsv") {
+  hdr <- c("record_id", "timestamp", "operator", "app_version", "mode",
+           "target_sheet", "row_key", "species", "photo_file", "img_w", "img_h",
+           "ruler_mm", "mm_per_px", "quality_score", "reviewed", "collapse",
+           "landmark", "x", "y", "status")
+  row <- function(rid, ts, key, lm, x, y, st, q = "5", rv = "TRUE", co = "Mo")
+    c(rid, ts, "AT", "0.10.0", "correct", "Global_Landmark", key,
+      sub("\\.", " ", key), paste0(key, ".jpg"), "800", "300", "", "", q, rv,
+      co, lm, x, y, st)
+  rows <- rbind(
+    row("AT_20260801T101010Z-00001", "2026-08-01T10:10:11.000Z", "Abramis.brama",
+        "1", "10", "20", "placed"),
+    row("AT_20260801T101010Z-00001", "2026-08-01T10:10:11.000Z", "Abramis.brama",
+        "2", "300", "22", "derived"),
+    row("AT_20260801T101010Z-00002", "2026-08-01T10:12:00.000Z", "Abramis.brama",
+        "1", "12", "20", "placed", rv = "FALSE"),
+    row("AT_20260801T101010Z-00002", "2026-08-01T10:12:00.000Z", "Abramis.brama",
+        "2", "301", "22", "na"))
+  writeLines(c(paste(hdr, collapse = "\t"),
+               apply(rows, 1, paste, collapse = "\t")),
+             file.path(d, name))
+}
+
+test_that("journals written by Rfishmorph's digitizer are read and translated", {
+  d <- tmp_dir(); on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  write_fm_journal(d)
+  j <- landmark_journal_read(d)
+  expect_equal(nrow(j), 4L)
+  expect_setequal(names(j), intraitR:::.INTRAITR_JOURNAL_COLS)
+  expect_false(any(c("quality_score", "collapse") %in% names(j)))
+  expect_equal(j$status[1], "clicked")                 # "placed" translated
+  expect_equal(j$quality, rep(5, 4))
+  expect_equal(j$reviewed, c("yes", "yes", "no", "no"))
+  expect_equal(j$collapse_rules, rep("Mo", 4))
+  expect_equal(j$species[1], "Abramis brama")
+  expect_equal(j$x[1], 10)
+  # the file on disk is never rewritten
+  expect_true(grepl("quality_score", readLines(list.files(d, full.names = TRUE))[1]))
+})
+
+test_that("both journal formats merge, and the last record per key wins", {
+  d <- tmp_dir(); on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  write_fm_journal(d)
+  jr <- suppressMessages(landmark_journal_open(d, operator = "AT"))
+  landmark_journal_append(jr, "fish_01", P2(), 1:2, specimen = "fish_01",
+                          species = "Squalius cephalus")
+  w <- consolidate_landmarks(d, points = 1:2)
+  expect_equal(nrow(w), 2L)                            # Abramis.brama + fish_01
+  ab <- w[w$species %in% "Abramis brama", ]
+  expect_equal(ab$`1_X`, 12)                           # the correction
+  expect_true(is.na(ab$`2_X`))                         # declared "na"
+  expect_equal(ab$n_na, 1L)
+  expect_equal(w$species[w$specimen %in% "fish_01"], "Squalius cephalus")
+
+  ws <- consolidate_landmarks(d, points = 1:2, status_columns = TRUE)
+  expect_true(all(c("1_status", "2_status") %in% names(ws)))
+  expect_equal(ws$`2_status`[ws$species %in% "Abramis brama"], "na")
+
+  lg <- consolidate_landmarks(d, long = TRUE)
+  expect_equal(nrow(lg), 4L)                           # 2 kept records x 2 points
+  expect_true(all(c("landmark", "x", "y", "status") %in% names(lg)))
+
+  keep <- consolidate_landmarks(d, points = 1:2, drop_na_points = FALSE)
+  expect_equal(keep$`2_X`[keep$species %in% "Abramis brama"], 301)
+})
+
+test_that("journal status, history and qc summarise the journals", {
+  d <- tmp_dir(); on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  expect_null(suppressMessages(landmark_journal_status(file.path(d, "nope"))))
+  write_fm_journal(d)
+  st <- suppressMessages(landmark_journal_status(d))
+  expect_equal(st$n_records, 2L)
+  expect_equal(st$n_points, 4L)
+
+  h <- landmark_journal_history(d, "Abramis.brama")
+  expect_equal(nrow(h), 2L)
+  expect_equal(h$n_clicked, c(1L, 1L))
+  expect_equal(h$n_na, c(0L, 1L))
+  expect_equal(nrow(landmark_journal_history(d, "absent")), 0L)
+
+  q <- landmark_journal_qc(d, expect = 1:3)
+  expect_equal(q$row_key, "Abramis.brama")
+  expect_equal(q$missing, "3")
+  expect_equal(q$n_na, 1L)
+  expect_false(q$has_scale)
+})
+
+test_that("consolidate_landmarks() accepts a journal already read", {
+  d <- tmp_dir(); on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  write_fm_journal(d)
+  j <- landmark_journal_read(d)
+  expect_identical(consolidate_landmarks(j, points = 1:2),
+                   consolidate_landmarks(d, points = 1:2))
+})

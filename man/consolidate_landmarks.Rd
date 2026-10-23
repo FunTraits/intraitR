@@ -8,11 +8,15 @@ consolidate_landmarks(
   journal_dir,
   points = 1:25,
   history = FALSE,
-  xlsx_path = NULL
+  xlsx_path = NULL,
+  long = FALSE,
+  drop_na_points = TRUE,
+  status_columns = FALSE
 )
 }
 \arguments{
-\item{journal_dir}{Journal directory, or a vector of directories.}
+\item{journal_dir}{Journal directory, a vector of directories, or a journal
+already read with \code{\link[=landmark_journal_read]{landmark_journal_read()}}.}
 
 \item{points}{Landmark numbers to lay out as columns. Defaults to \code{1:25},
 what \code{\link[=digitize_landmarks]{digitize_landmarks()}} records: the 19 FISHMORPH landmarks, the scale
@@ -29,12 +33,23 @@ returned either way.}
 \item{xlsx_path}{Optional path; when supplied, the result is also written
 there with \code{\link[writexl:write_xlsx]{writexl::write_xlsx()}}, one sheet per group of \code{target_sheet}
 (typically \code{measurements} and \code{bias}).}
+
+\item{long}{Logical. \code{TRUE} returns the kept records in the LONG layout of
+the journal (one row per point) instead of the wide table.}
+
+\item{drop_na_points}{Logical (default \code{TRUE}): points whose status is
+\code{"na"} (declared non-measurable) come out with \code{NA} coordinates.}
+
+\item{status_columns}{Logical (default \code{FALSE}): add one \verb{<n>_status} column
+per point after the coordinates -- the per-point quality information a
+coordinate table cannot otherwise carry.}
 }
 \value{
 A \code{data.frame}, one row per digitization, with the identification
 columns (\code{specimen}, \code{individual}, \code{replicate}, \code{operator}, \code{photo_file},
 ...), the coordinate columns, and the per-record status counts
-(\code{n_clicked}, \code{n_seeded}, \code{n_predicted}, \code{n_adjusted}, \code{n_na}).
+(\code{n_clicked}, \code{n_seeded}, \code{n_predicted}, \code{n_validated}, \code{n_adjusted},
+\code{n_na}); with \code{long = TRUE}, the journal rows of the kept records.
 }
 \description{
 Reconstructs, from every journal in \code{journal_dir}, one row per digitization

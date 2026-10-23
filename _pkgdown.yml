@@ -28,6 +28,11 @@ reference:
       - measure_queue
       - batch_landmarks
       - accept_batch_landmarks
+      - install_mlmorph_models
+      - install_mlmorph_python
+      - mlmorph_models_dir
+      - mlmorph_models_info
+      - pack_mlmorph_models
       - read_batch_landmarks
       - digitize_landmarks
       - digitize_fishmorph_reference

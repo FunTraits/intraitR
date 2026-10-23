@@ -815,9 +815,9 @@ digitize_landmarks <- function(photo_dir,
   mlmorph_dir <- .resolve_mlmorph_dir(mlmorph_dir)
   if (is.null(mlmorph_dir))
     warning(
-      "Could not auto-detect an ml-morph resource directory (no trained ",
-      "predictor found). The app will open but the prediction step stays ",
-      "disabled until you pass `mlmorph_dir` (or set INTRAITR_MLMORPH_DIR).",
+      "No prediction model found. The app opens, but placement is by hand: ",
+      "install the models once with install_mlmorph_models() (and Python with ",
+      "install_mlmorph_python()), or pass `mlmorph_dir`.",
       call. = FALSE)
 
   ## ---- guard: the app needs an interactive session --------------------------
@@ -895,7 +895,9 @@ digitize_landmarks <- function(photo_dir,
     wd
   )
   hit <- Filter(looks_like, candidates)
-  if (length(hit)) normalizePath(hit[[1]], mustWork = FALSE) else NULL
+  if (length(hit)) return(normalizePath(hit[[1]], mustWork = FALSE))
+  # last: the models installed with install_mlmorph_models()
+  mlmorph_models_dir()
 }
 
 # Hand a configuration to the bundled app and run it: shared by the two

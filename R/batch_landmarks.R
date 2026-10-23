@@ -85,7 +85,8 @@ batch_landmarks <- function(photos, out_dir, recursive = FALSE, qc = TRUE,
   if (ruler && !(is.numeric(ruler_mm) && length(ruler_mm) == 1L && is.finite(ruler_mm) && ruler_mm > 0))
     stop("`ruler_mm` must be a single positive number.", call. = FALSE)
   ml <- .resolve_mlmorph_dir(mlmorph_dir)
-  if (is.null(ml)) stop("ml-morph folder not found: pass `mlmorph_dir`.", call. = FALSE)
+  if (is.null(ml)) stop("No prediction model found: install them once with ",
+                        "install_mlmorph_models(), or pass `mlmorph_dir`.", call. = FALSE)
   glob  <- file.path(ml, "mlmorph_run_global", "model.onnx")
   fine  <- file.path(ml, "mlmorph_run_cnn", "model.onnx")
   ds    <- file.path(ml, "mlmorph_dataset_cnn")
@@ -146,7 +147,8 @@ read_batch_landmarks <- function(out_dir) {
 .batch_python <- function(python, ml) {
   cand <- c(if (is.null(python)) "" else python, Sys.getenv("INTRAITR_MLMORPH_PY", ""), Sys.getenv("PY", ""),
             path.expand("~/.venv_mlmorph/bin/python"),
-            file.path(ml, ".venv_mlmorph", "bin", "python"))
+            file.path(ml, ".venv_mlmorph", "bin", "python"),
+            .mlmorph_venv_python())            # install_mlmorph_python()
   cand <- cand[nzchar(cand) & file.exists(cand)]
   if (length(cand)) cand[1] else "python3"
 }

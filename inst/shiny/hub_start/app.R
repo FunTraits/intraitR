@@ -158,7 +158,8 @@ ui <- bslib::page_navbar(
                  selectInput("levels", "The two folder levels are",
                              names(LEVELS), selected = lev_key(LAST$levels %||% LEVELS[[1]]))),
                path_row("mlmorph_dir", "Predictor folder, ml-morph (optional: found automatically)",
-                        LAST$mlmorph_dir %||% "", "br_ml")),
+                        LAST$mlmorph_dir %||% "", "br_ml"),
+               uiOutput("models_state")),
         div(class = "start-open",
             actionButton("open", "Open the photographs", class = "btn-primary btn-lg"),
             uiOutput("open_why", inline = TRUE))),
@@ -306,6 +307,64 @@ server <- function(input, output, session) {
     session$sendCustomMessage("hub_switch", "Closed. The R console is free again.")
     stopApp(NULL)
   })
+
+  ## ---- the prediction models and their Python --------------------------------
+  ## Found: said where. Missing: one button installs them (in a background R
+  ## process: 300 MB take a while, the page stays usable). Without them the
+  ## digitizer works by hand.
+  SPEC <- get(".MLMORPH_MODELS", ns)
+  inst <- reactiveValues(proc = NULL, what = NULL, log = NULL, tick = 0L)
+  models_found <- reactive({
+    inst$tick
+    d <- norm(input$mlmorph_dir)
+    if (nzchar(d)) return(if (dir.exists(d)) d else NA_character_)
+    tryCatch(get(".resolve_mlmorph_dir", ns)(NULL), error = function(e) NULL)
+  })
+  python_ok <- reactive({
+    inst$tick
+    py <- get(".batch_python", ns)(NULL, models_found() %||% "")
+    out <- suppressWarnings(tryCatch(system2(py, c("-c", shQuote(
+      "import numpy, cv2, onnxruntime; print('ok')")), stdout = TRUE, stderr = TRUE),
+      error = function(e) "")); any(grepl("^ok$", out))
+  })
+  output$models_state <- renderUI({
+    if (!is.null(inst$proc)) {
+      if (inst$proc$is_alive()) {
+        invalidateLater(1000)                    # polled only while it runs
+        tl <- utils::tail(tryCatch(readLines(inst$log, warn = FALSE), error = function(e) ""), 1)
+        return(hint(tags$b(inst$what), " ... ", tl))
+      }
+      ok <- tryCatch({ inst$proc$get_result(); TRUE }, error = function(e) conditionMessage(e))
+      inst$proc <- NULL; inst$tick <- inst$tick + 1L
+      showNotification(if (isTRUE(ok)) paste(inst$what, "done.") else paste(inst$what, "failed:", ok),
+                       type = if (isTRUE(ok)) "message" else "error", duration = 12)
+    }
+    d <- models_found()
+    mod <- if (is.na(d %||% "x")) tags$p(class = "found bad", "This folder does not exist.")
+    else if (is.null(d)) tagList(
+      tags$p(class = "start-hint", "No prediction model on this computer: the digitizer ",
+             "works, but every landmark is placed by hand."),
+      if (!is.na(SPEC$version))
+        actionButton("inst_models", sprintf("Install the models (v%s%s)", SPEC$version,
+                                            if (is.finite(SPEC$size_mb)) sprintf(", %.0f MB", SPEC$size_mb) else ""),
+                     class = "btn-sm btn-outline-primary")
+      else tags$p(class = "start-hint", "No model bundle is published for this version of intraitR yet."))
+    else tags$p(class = "found ok", "Prediction models: ", tags$code(d),
+                if (grepl("mlmorph_models", d)) sprintf(" (installed, v%s)", sub("^v", "", basename(d))))
+    py <- if (!is.null(d) && !is.na(d) && !isTRUE(python_ok()))
+      tagList(tags$p(class = "start-hint", "Python cannot run them yet (numpy, opencv, onnxruntime)."),
+              actionButton("inst_python", "Set up Python for the models", class = "btn-sm btn-outline-primary"))
+    tagList(mod, py)
+  })
+  start_install <- function(what, fun) {
+    if (!is.null(inst$proc) && inst$proc$is_alive()) return()
+    inst$log <- tempfile("install_", fileext = ".log"); inst$what <- what
+    inst$proc <- callr::r_bg(fun, stdout = inst$log, stderr = "2>&1")
+  }
+  observeEvent(input$inst_models, start_install("Installing the models",
+    function() intraitR::install_mlmorph_models()))
+  observeEvent(input$inst_python, start_install("Setting up Python",
+    function() intraitR::install_mlmorph_python()))
 
   ## ---- recent sessions -------------------------------------------------------
   output$recent <- renderUI({

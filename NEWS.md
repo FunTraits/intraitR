@@ -1,5 +1,28 @@
 # intraitR 1.46.0
 
+* Les MODELES DE PREDICTION se distribuent hors du package (7 reseaux ONNX,
+  ~290 Mo : trop lourds pour le package et pour l'historique git) :
+  - `pack_mlmorph_models()` (mainteneur) : extrait d'un dossier ml_morph ce
+    que la prediction utilise -- reseaux global, fin, regle, periode de la
+    regle et les trois affinages regionaux, leurs parametres, le repere
+    canonique -- en un zip avec manifeste (md5 de chaque fichier) ; les
+    checkpoints d'entrainement (`*.pt`) et les jeux de donnees restent.
+    `package_dir =` inscrit la version et la somme de controle dans
+    `R/mlmorph_models.R` : une version d'intraitR predit TOUJOURS avec la meme
+    version des modeles (reproductibilite).
+  - `install_mlmorph_models()` : telecharge le zip de la release GitHub
+    `models-v<version>` (ou un zip local / un miroir), verifie le zip et chaque
+    fichier, installe dans le dossier utilisateur d'intraitR. Une fois par
+    machine. `mlmorph_models_dir()`, `mlmorph_models_info()`.
+  - `install_mlmorph_python()` : environnement Python (numpy, pandas,
+    opencv, pillow, onnxruntime) dans le dossier utilisateur d'intraitR.
+  - Detection automatique : le dossier ml_morph local reste prioritaire, puis
+    les modeles installes ; meme chose pour Python (`~/.venv_mlmorph`, puis
+    l'environnement installe). Page de demarrage du hub : etat des modeles et
+    de Python, boutons d'installation (en arriere-plan).
+  - Verifie de bout en bout : les 7 modeles reels empaquetes (zip de 287 Mo),
+    installes, puis `batch_landmarks()` sur deux photos T-26 sans aucun dossier
+    ml_morph (2e etage et regle compris, 1,6 s/photo).
 * Hub, Results > Progress : le tableau ne recouvre plus le graphique quand il
   y a des donnees (contenu des onglets hors de la mise en page « remplissante »,
   et correction generale dans `Rfishmorph::app_theme()`). Graphique refait :

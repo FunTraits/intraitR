@@ -1,3 +1,27 @@
+# intraitR 1.41.0
+
+## Une seule echelle de qualite (CHANGEMENT DE CONVENTION)
+
+Les deux digitizers notaient la saisie a l'envers : intraitR `quality`,
+1 = tres bon .. 5 = mauvais (defaut 3) ; Rfishmorph `quality_score`,
+1 = inutilisable .. 5 = excellent, avec "Not scored". L'echelle commune est
+desormais celle de Rfishmorph, sous son nom.
+
+* App : choix "Not scored" (defaut, cellule vide) puis 1..5 ; 5 = excellent.
+  La note et la case "Checked" sont remises a zero a chaque specimen (elles
+  suivaient l'operateur d'un poisson au suivant) et rechargees avec une saisie
+  rouverte.
+* Journal et classeur : colonne `quality_score` (meme position que l'ancienne
+  `quality` dans l'en-tete du journal). Le NOM de colonne dit l'echelle : une
+  ancienne `quality` est convertie a la lecture, `quality_score = 6 - quality`
+  (journaux par `landmark_journal_read()`, classeur de campagne a sa relecture
+  par l'app et par `import_legacy_landmarks()`). Rien n'est reecrit sur disque ;
+  le classeur passe a `quality_score` a sa prochaine ecriture.
+* `landmark_journal_append()` : l'argument `quality` devient `quality_score`.
+* Jeu de donnees T-26 livre : sa colonne `quality` reste sur l'ancienne echelle
+  (documente) ; 491 specimens sur 494 y portent 3, l'ancienne valeur par defaut,
+  c'est-a-dire "non note".
+
 # intraitR 1.40.0
 
 ## Fusion des digitizers, etape 2 : un seul journal

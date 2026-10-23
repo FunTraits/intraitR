@@ -18,7 +18,7 @@ landmark_journal_append(
   target_sheet = NA,
   img_w = NA,
   img_h = NA,
-  quality = NA,
+  quality_score = NA,
   ruler_mm = NA,
   mm_per_px = NA,
   photo_hash = NA,
@@ -46,7 +46,11 @@ without a finite coordinate are recorded as \code{"na"} whatever is passed.}
 \item{specimen, individual, replicate, photo_file, mode, target_sheet}{Record-level
 metadata, recycled over the points.}
 
-\item{img_w, img_h, quality, ruler_mm, mm_per_px}{Further record-level metadata.}
+\item{img_w, img_h, ruler_mm, mm_per_px}{Further record-level metadata.}
+
+\item{quality_score}{Score of the entry, 1 (unusable) to 5 (excellent);
+\code{NA} when not scored. (Until intraitR 1.40.0 this was \code{quality}, on the
+reversed scale.)}
 
 \item{photo_hash}{Optional MD5 of the image FILE, as returned by
 \code{\link[=photo_hash]{photo_hash()}}. This is the identity a rename cannot change: a specimen
@@ -54,7 +58,7 @@ re-determined, and therefore renamed, is matched back to its own
 measurements on this column rather than on \code{photo_file}.}
 
 \item{reviewed, reviewed_by, review_date}{Optional review of the ENTRY as a
-whole -- whether anyone has looked at it, who, and when. \code{quality} says how
+whole -- whether anyone has looked at it, who, and when. \code{quality_score} says how
 good the entry is; these say whether the judgement has been made at all,
 which is a different statement: a specimen can be checked AND poor, and
 that is the state a re-photographing list is built from.}

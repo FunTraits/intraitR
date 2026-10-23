@@ -377,7 +377,7 @@ import_legacy_landmarks <- function(from, into,
 # imported row and a digitized one are indistinguishable in structure -- which is
 # the whole point of the import.
 .ILM_ID_COLS <- c("specimen", "individual", "replicate", "operator", "mode",
-                  "photo_file", "photo_hash", "img_w", "img_h", "quality",
+                  "photo_file", "photo_hash", "img_w", "img_h", "quality_score",
                   "reviewed", "reviewed_by", "review_date", "collapse_rules",
                   "ruler_mm", "mm_per_px", "n_clicked", "n_seeded",
                   "n_predicted", "n_adjusted", "n_na", "app_version",
@@ -409,6 +409,17 @@ import_legacy_landmarks <- function(from, into,
     return(e)
   }
   d <- as.data.frame(d, stringsAsFactors = FALSE)
+  # an existing sheet written up to intraitR 1.40.0 scores on the reversed
+  # `quality` scale; converted exactly as wb_normalise() does
+  if ("quality" %in% names(d)) {
+    q <- suppressWarnings(as.numeric(d$quality))
+    conv <- ifelse(is.finite(q) & q >= 1 & q <= 5, 6 - q, NA_real_)
+    if (!"quality_score" %in% names(d)) d$quality_score <- conv
+    else {
+      fill <- is.na(suppressWarnings(as.numeric(d$quality_score)))
+      d$quality_score[fill] <- conv[fill]
+    }
+  }
   for (cc in setdiff(cols, names(d))) d[[cc]] <- NA
   d <- d[, cols, drop = FALSE]
   for (cc in .ILM_CHR_COLS) d[[cc]] <- as.character(d[[cc]])

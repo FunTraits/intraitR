@@ -217,9 +217,9 @@ test_that("journals written by Rfishmorph's digitizer are read and translated", 
   j <- landmark_journal_read(d)
   expect_equal(nrow(j), 4L)
   expect_setequal(names(j), intraitR:::.INTRAITR_JOURNAL_COLS)
-  expect_false(any(c("quality_score", "collapse") %in% names(j)))
+  expect_false("collapse" %in% names(j))
   expect_equal(j$status[1], "clicked")                 # "placed" translated
-  expect_equal(j$quality, rep(5, 4))
+  expect_equal(j$quality_score, rep(5, 4))        # same scale: kept as is
   expect_equal(j$reviewed, c("yes", "yes", "no", "no"))
   expect_equal(j$collapse_rules, rep("Mo", 4))
   expect_equal(j$species[1], "Abramis brama")
@@ -281,4 +281,35 @@ test_that("consolidate_landmarks() accepts a journal already read", {
   j <- landmark_journal_read(d)
   expect_identical(consolidate_landmarks(j, points = 1:2),
                    consolidate_landmarks(d, points = 1:2))
+})
+
+test_that("an old intraitR `quality` (1 = very good) becomes quality_score = 6 - q", {
+  d <- tmp_dir(); on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  hdr <- c("record_id", "timestamp", "operator", "app_version", "mode",
+           "target_sheet", "row_key", "specimen", "individual", "replicate",
+           "photo_file", "img_w", "img_h", "quality", "ruler_mm", "mm_per_px",
+           "landmark", "x", "y", "status")
+  rows <- rbind(
+    c("AT_20260601T080000Z-00001", "2026-06-01T08:00:01.000Z", "AT", "1.30.0",
+      "new", "measurements", "f1", "f1", "f1", "1", "f1.jpg", "800", "300",
+      "1", "", "", "1", "10", "20", "clicked"),
+    c("AT_20260601T080000Z-00002", "2026-06-01T08:01:01.000Z", "AT", "1.30.0",
+      "new", "measurements", "f2", "f2", "f2", "1", "f2.jpg", "800", "300",
+      "", "", "", "1", "11", "21", "clicked"))
+  writeLines(c(paste(hdr, collapse = "\t"), apply(rows, 1, paste, collapse = "\t")),
+             file.path(d, "landmarks_AT_20260601T080000Z.tsv"))
+  j <- landmark_journal_read(d)
+  expect_false("quality" %in% names(j))
+  expect_equal(j$quality_score, c(5, NA))
+  w <- consolidate_landmarks(d, points = 1)
+  expect_equal(w$quality_score[w$specimen == "f1"], 5)
+})
+
+test_that("the campaign workbook layout converts an old `quality` column", {
+  old <- data.frame(specimen = c("a", "b"), quality = c(1, 4), `1_X` = c(1, 2),
+                    check.names = FALSE)
+  w <- intraitR:::wb_normalise(old)
+  expect_false("quality" %in% names(w))
+  expect_equal(w$quality_score, c(5, 2))
+  expect_equal(w$`1_X`, c(1, 2))
 })

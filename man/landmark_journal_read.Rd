@@ -12,7 +12,7 @@ landmark_journal_read(journal_dir)
 \value{
 A LONG \code{data.frame}, one row per point and per record, with the
 columns listed in \code{intraitR:::.INTRAITR_JOURNAL_COLS}. Coordinates,
-\code{replicate}, \code{quality}, \code{img_w}, \code{img_h}, \code{ruler_mm} and \code{mm_per_px} are
+\code{replicate}, \code{quality_score}, \code{img_w}, \code{img_h}, \code{ruler_mm} and \code{mm_per_px} are
 returned numeric; everything else is character.
 }
 \description{
@@ -24,9 +24,14 @@ plain concatenation. Columns are matched by NAME, never by position.
 \details{
 Journals written by \code{Rfishmorph::launch_fishmorph_digitizer()} (Rfishmorph
 up to 0.17) are read too, and translated on the fly -- the files themselves
-are never modified: \code{quality_score} becomes \code{quality}, \code{collapse} becomes
-\code{collapse_rules}, \code{reviewed} \code{TRUE}/\code{FALSE} becomes \code{"yes"}/\code{"no"}, and the
-status \code{"placed"} becomes \code{"clicked"} (both mean "put there by hand").
+are never modified: \code{collapse} becomes \code{collapse_rules}, \code{reviewed}
+\code{TRUE}/\code{FALSE} becomes \code{"yes"}/\code{"no"}, and the status \code{"placed"} becomes
+\code{"clicked"} (both mean "put there by hand").
+
+The quality of an entry is \code{quality_score}, 1 (unusable) to 5 (excellent),
+\code{NA} when not scored. Journals written by intraitR up to 1.40.0 carry a
+\code{quality} column on the REVERSED scale (1 = very good); it is converted on
+reading, \code{quality_score = 6 - quality}.
 }
 \examples{
 d <- file.path(tempdir(), "journal_demo3")

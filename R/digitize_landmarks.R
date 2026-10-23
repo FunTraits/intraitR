@@ -795,26 +795,11 @@ digitize_landmarks <- function(photo_dir,
     sheet_summary = unname(sheets[["summary"]]),
     app_version = tryCatch(as.character(utils::packageVersion("intraitR")),
                            error = function(e) "dev"))
-  old_opt <- options(intraitR.digitizer = cfg)
-  on.exit(options(old_opt), add = TRUE)
-
-  env <- c(
-    INTRAITR_MLMORPH_DIR       = if (!is.null(mlmorph_dir)) mlmorph_dir else "",
-    INTRAITR_MLMORPH_WORKER    = if (nzchar(worker)) worker else "",
-    INTRAITR_MLMORPH_PY        = if (!is.null(python)) python else "",
-    INTRAITR_MLMORPH_PREDICTOR = if (!is.null(predictor)) normalizePath(predictor) else "")
-  old <- Sys.getenv(names(env), unset = NA, names = TRUE)
-  do.call(Sys.setenv, as.list(env))
-  on.exit({
-    set_again <- old[!is.na(old)]
-    if (length(set_again)) do.call(Sys.setenv, as.list(set_again))
-    unset <- names(old)[is.na(old)]
-    if (length(unset)) Sys.unsetenv(unset)
-  }, add = TRUE)
-
   message(sprintf("Workbook: %s\nJournal : %s\nMode    : %s",
                   xlsx_path, journal_dir, mode))
-  shiny::runApp(app_dir, launch.browser = .intrait_browser(launch.browser), ...)
+  .run_digitizer_app(app_dir, cfg, mlmorph_dir = mlmorph_dir, worker = worker,
+                     python = python, predictor = predictor,
+                     launch.browser = launch.browser, ...)
   invisible(xlsx_path)
 }
 
@@ -849,4 +834,33 @@ digitize_landmarks <- function(photo_dir,
   )
   hit <- Filter(looks_like, candidates)
   if (length(hit)) normalizePath(hit[[1]], mustWork = FALSE) else NULL
+}
+
+# Hand a configuration to the bundled app and run it: shared by the two
+# launchers, digitize_landmarks() (campaign target) and
+# digitize_fishmorph_reference() (FISHMORPH reference target). The app reads
+# `cfg` from the option `intraitR.digitizer` (runApp evaluates it in this same
+# process) and the ml-morph resources from four environment variables; both
+# are restored when the app stops.
+.run_digitizer_app <- function(app_dir, cfg, mlmorph_dir = NULL, worker = "",
+                               python = NULL, predictor = NULL,
+                               launch.browser = TRUE, ...) {
+  old_opt <- options(intraitR.digitizer = cfg)
+  on.exit(options(old_opt), add = TRUE)
+
+  env <- c(
+    INTRAITR_MLMORPH_DIR       = if (!is.null(mlmorph_dir)) mlmorph_dir else "",
+    INTRAITR_MLMORPH_WORKER    = if (nzchar(worker)) worker else "",
+    INTRAITR_MLMORPH_PY        = if (!is.null(python)) python else "",
+    INTRAITR_MLMORPH_PREDICTOR = if (!is.null(predictor)) normalizePath(predictor) else "")
+  old <- Sys.getenv(names(env), unset = NA, names = TRUE)
+  do.call(Sys.setenv, as.list(env))
+  on.exit({
+    set_again <- old[!is.na(old)]
+    if (length(set_again)) do.call(Sys.setenv, as.list(set_again))
+    unset <- names(old)[is.na(old)]
+    if (length(unset)) Sys.unsetenv(unset)
+  }, add = TRUE)
+
+  shiny::runApp(app_dir, launch.browser = .intrait_browser(launch.browser), ...)
 }

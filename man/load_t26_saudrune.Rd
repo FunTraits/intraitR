@@ -50,7 +50,11 @@ campaign's immutable identifier \code{SITE_YYYYMMDD_NNNN}, with the suffix
 photograph), \code{individual} (position on the plate, 1 for a single
 fish), \code{photo}, the current determination (\code{species}, \code{species_code},
 \code{confidence}, \code{determined_by}), \code{site}, \code{date}, \code{operator}, the
-operator's \code{quality} score (1-5), \code{reviewed}, \code{n_landmarks} placed,
+operator's \code{quality} score on the scale of intraitR <= 1.40
+(1 = very good .. 5 = poor; the digitizer now records
+\code{quality_score}, 5 = excellent). 491 of the 494 specimens carry 3, the
+old DEFAULT of the app: read it as "not scored", not as a judgement.
+Then \code{reviewed}, \code{n_landmarks} placed,
 \code{ruler_mm}, \code{mm_per_px}, image size, \code{photo_hash} (see \code{\link[=photo_hash]{photo_hash()}}),
 \code{app_version} and the \code{digitized} date.}
 \item{\code{"repeatability"}}{Long-format coordinates (\code{specimen}, \code{code},

@@ -47,7 +47,9 @@
   "replicate",      # digitization number for that individual (1 outside repeats)
   "photo_file",     # photograph file name (basename)
   "img_w", "img_h", # image size in pixels: X/Y are in IMAGE pixels
-  "quality",        # operator's quality score for the photograph (1-5)
+  "quality_score",  # operator's score of the entry: 1 (unusable) .. 5 (excellent),
+                    # empty = not scored. Was `quality`, on the REVERSED scale
+                    # (1 = very good), up to intraitR 1.40.0 -- see below
   "ruler_mm",       # real length of the scale bar 20-21 (mm), or NA
   "mm_per_px",      # resulting scale, or NA
   "landmark",       # point number
@@ -68,10 +70,18 @@
 # 0.17) follow the same principle under other column names. They are read as
 # they are -- never rewritten on disk -- and translated on the fly by
 # .intraitr_journal_harmonise(), so one reader serves both digitizers' history.
-#   quality_score -> quality        collapse -> collapse_rules
+#   collapse -> collapse_rules     (quality_score: same name, same scale)
 #   reviewed TRUE/FALSE -> "yes"/"no"
 #   status "placed" -> "clicked"    (same meaning: put there by hand)
-.LEGACY_FM_RENAME <- c(quality_score = "quality", collapse = "collapse_rules")
+.LEGACY_FM_RENAME <- c(collapse = "collapse_rules")
+
+# THE QUALITY SCALE. The two digitizers scored an entry on OPPOSITE scales:
+# intraitR (column `quality`) 1 = very good .. 5 = poor, Rfishmorph (column
+# `quality_score`) 1 = unusable .. 5 = excellent. From intraitR 1.41.0 there is
+# one scale, Rfishmorph's, under its name: 5 = excellent, empty = not scored.
+# The column NAME therefore says which scale a value is on, and an old
+# `quality` is converted on reading, `quality_score = 6 - quality`; nothing on
+# disk is rewritten.
 
 # WHY A FILE HASH AND NOT A FILE NAME. A photograph's name is metadata: it
 # carries the site, the date, the species and the specimen number, and every one
@@ -213,13 +223,16 @@ landmark_journal_open <- function(journal_dir, operator = NULL,
 #'   without a finite coordinate are recorded as `"na"` whatever is passed.
 #' @param specimen,individual,replicate,photo_file,mode,target_sheet Record-level
 #'   metadata, recycled over the points.
-#' @param img_w,img_h,quality,ruler_mm,mm_per_px Further record-level metadata.
+#' @param img_w,img_h,ruler_mm,mm_per_px Further record-level metadata.
+#' @param quality_score Score of the entry, 1 (unusable) to 5 (excellent);
+#'   `NA` when not scored. (Until intraitR 1.40.0 this was `quality`, on the
+#'   reversed scale.)
 #' @param photo_hash Optional MD5 of the image FILE, as returned by
 #'   [photo_hash()]. This is the identity a rename cannot change: a specimen
 #'   re-determined, and therefore renamed, is matched back to its own
 #'   measurements on this column rather than on `photo_file`.
 #' @param reviewed,reviewed_by,review_date Optional review of the ENTRY as a
-#'   whole -- whether anyone has looked at it, who, and when. `quality` says how
+#'   whole -- whether anyone has looked at it, who, and when. `quality_score` says how
 #'   good the entry is; these say whether the judgement has been made at all,
 #'   which is a different statement: a specimen can be checked AND poor, and
 #'   that is the state a re-photographing list is built from.
@@ -251,7 +264,7 @@ landmark_journal_append <- function(journal, row_key, coords, points,
                                     individual = NA, replicate = 1L,
                                     photo_file = NA, mode = NA,
                                     target_sheet = NA, img_w = NA, img_h = NA,
-                                    quality = NA, ruler_mm = NA,
+                                    quality_score = NA, ruler_mm = NA,
                                     mm_per_px = NA, photo_hash = NA,
                                     reviewed = NA, reviewed_by = NA,
                                     review_date = NA, collapse_rules = NA,
@@ -286,7 +299,7 @@ landmark_journal_append <- function(journal, row_key, coords, points,
     replicate = .intraitr_num(replicate),
     photo_file = .intraitr_tsv_safe(photo_file),
     img_w = .intraitr_num(img_w), img_h = .intraitr_num(img_h),
-    quality = .intraitr_num(quality), ruler_mm = .intraitr_num(ruler_mm),
+    quality_score = .intraitr_num(quality_score), ruler_mm = .intraitr_num(ruler_mm),
     mm_per_px = .intraitr_num(mm_per_px),
     landmark = as.character(points),
     x = .intraitr_num(round(coords[points, 1], 3)),
@@ -339,6 +352,17 @@ landmark_journal_append <- function(journal, row_key, coords, points,
     d$reviewed[r %in% "FALSE"] <- "no"
   }
   if ("status" %in% names(d)) d$status[d$status %in% "placed"] <- "clicked"
+  if ("quality" %in% names(d)) {                  # intraitR <= 1.40, reversed scale
+    q <- suppressWarnings(as.numeric(d$quality))
+    conv <- ifelse(is.finite(q) & q >= 1 & q <= 5, as.character(6 - q), NA_character_)
+    if (!"quality_score" %in% names(d)) {
+      d$quality_score <- conv
+    } else {
+      fill <- is.na(d$quality_score) | !nzchar(d$quality_score)
+      d$quality_score[fill] <- conv[fill]
+    }
+    d$quality <- NULL
+  }
   d
 }
 
@@ -352,15 +376,20 @@ landmark_journal_append <- function(journal, row_key, coords, points,
 #'
 #' Journals written by `Rfishmorph::launch_fishmorph_digitizer()` (Rfishmorph
 #' up to 0.17) are read too, and translated on the fly -- the files themselves
-#' are never modified: `quality_score` becomes `quality`, `collapse` becomes
-#' `collapse_rules`, `reviewed` `TRUE`/`FALSE` becomes `"yes"`/`"no"`, and the
-#' status `"placed"` becomes `"clicked"` (both mean "put there by hand").
+#' are never modified: `collapse` becomes `collapse_rules`, `reviewed`
+#' `TRUE`/`FALSE` becomes `"yes"`/`"no"`, and the status `"placed"` becomes
+#' `"clicked"` (both mean "put there by hand").
+#'
+#' The quality of an entry is `quality_score`, 1 (unusable) to 5 (excellent),
+#' `NA` when not scored. Journals written by intraitR up to 1.40.0 carry a
+#' `quality` column on the REVERSED scale (1 = very good); it is converted on
+#' reading, `quality_score = 6 - quality`.
 #'
 #' @param journal_dir Journal directory, or a vector of directories.
 #'
 #' @return A LONG `data.frame`, one row per point and per record, with the
 #'   columns listed in `intraitR:::.INTRAITR_JOURNAL_COLS`. Coordinates,
-#'   `replicate`, `quality`, `img_w`, `img_h`, `ruler_mm` and `mm_per_px` are
+#'   `replicate`, `quality_score`, `img_w`, `img_h`, `ruler_mm` and `mm_per_px` are
 #'   returned numeric; everything else is character.
 #'
 #' @seealso [consolidate_landmarks()], [landmark_journal_open()]
@@ -417,7 +446,7 @@ landmark_journal_read <- function(journal_dir) {
 
   out <- do.call(rbind, parts)
   rownames(out) <- NULL
-  for (cc in c("landmark", "x", "y", "replicate", "quality",
+  for (cc in c("landmark", "x", "y", "replicate", "quality_score",
                "img_w", "img_h", "ruler_mm", "mm_per_px"))
     out[[cc]] <- suppressWarnings(as.numeric(out[[cc]]))
   out
@@ -483,7 +512,7 @@ consolidate_landmarks <- function(journal_dir, points = 1:25,
   points <- as.integer(points)
   id_cols <- c("specimen", "individual", "replicate", "species", "operator",
                "mode", "target_sheet", "photo_file", "photo_hash", "img_w",
-               "img_h", "quality", "reviewed", "reviewed_by", "review_date",
+               "img_h", "quality_score", "reviewed", "reviewed_by", "review_date",
                "collapse_rules", "ruler_mm", "mm_per_px", "app_version")
   coord_cols <- as.vector(rbind(paste0(points, "_X"), paste0(points, "_Y")))
   if (isTRUE(status_columns)) coord_cols <- c(coord_cols, paste0(points, "_status"))

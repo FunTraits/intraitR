@@ -242,13 +242,13 @@ rep_of <- function(id) {
 ##
 ## `reviewed`, `reviewed_by`, `review_date` and `collapse_rules` come from the
 ## Rfishmorph digitizer. The first three separate two statements the single
-## `quality` score was conflating: how good the entry is, and whether anyone has
+## quality score was conflating: how good the entry is, and whether anyone has
 ## actually looked at it -- a specimen can be checked AND poor, and that is the
 ## state a re-photographing list is built from. The fourth records the
 ## coincidences DECLARED on the specimen rather than leaving them to be inferred
 ## back from the geometry they produced.
 WB_ID_COLS <- c("specimen", "individual", "replicate", "operator", "mode",
-                "photo_file", "photo_hash", "img_w", "img_h", "quality",
+                "photo_file", "photo_hash", "img_w", "img_h", "quality_score",
                 "reviewed", "reviewed_by", "review_date", "collapse_rules",
                 "ruler_mm", "mm_per_px", "n_clicked", "n_seeded", "n_predicted",
                 "n_adjusted", "n_na", "app_version", "timestamp")
@@ -270,6 +270,18 @@ wb_empty <- function() {
 wb_normalise <- function(d) {
   if (is.null(d) || !nrow(d)) return(wb_empty())
   d <- as.data.frame(d, stringsAsFactors = FALSE)
+  # Quality scale: rows written up to intraitR 1.40.0 carry `quality`, 1 = very
+  # good .. 5 = poor; the scale is now `quality_score`, 5 = excellent (that of
+  # the FISHMORPH digitizer). The column name says which scale a value is on.
+  if ("quality" %in% names(d)) {
+    q <- suppressWarnings(as.numeric(d$quality))
+    conv <- ifelse(is.finite(q) & q >= 1 & q <= 5, 6 - q, NA_real_)
+    if (!"quality_score" %in% names(d)) d$quality_score <- conv
+    else {
+      fill <- is.na(suppressWarnings(as.numeric(d$quality_score)))
+      d$quality_score[fill] <- conv[fill]
+    }
+  }
   for (cc in setdiff(WB_COLS, names(d))) d[[cc]] <- NA
   d <- d[, WB_COLS, drop = FALSE]
   for (cc in WB_CHR_COLS) d[[cc]] <- as.character(d[[cc]])
@@ -1032,12 +1044,23 @@ chain_at <- function(P, f) {
 ## FISHMORPH conventions so the seeded configuration is already coherent.
 ## `keep` lists the points that must NOT be overwritten -- everything the
 ## operator has placed by hand, marked NA, or that defines the axis.
+## `ratios`: segment / standard-length proportions to seed with, named like
+## FM_MEDIAN_RATIOS. NULL (default) uses the medians; the FISHMORPH reference
+## target passes the MEASURED proportions of the species (.fm_seed_ratios()),
+## so the seed sits on its published segments. A missing name falls back on
+## the median.
 seed_configuration <- function(P, params = list(), flip_dorsal = FALSE,
-                               keep = integer(0)) {
+                               keep = integer(0), ratios = NULL) {
   mid <- chain_at(P, 0.5); if (is.null(mid)) return(P)
   L <- mid$L
   p <- utils::modifyList(SEED_DEFAULTS, params)
-  r <- function(nm) as.numeric(FM_MEDIAN_RATIOS[[nm]])
+  rat <- FM_MEDIAN_RATIOS
+  if (!is.null(ratios)) {
+    ok <- intersect(names(rat), names(ratios))
+    ok <- ok[is.finite(as.numeric(ratios[ok])) & as.numeric(ratios[ok]) > 0]
+    rat[ok] <- as.numeric(ratios[ok])
+  }
+  r <- function(nm) as.numeric(rat[[nm]])
   # Which side is dorsal? The normal is always u rotated the same way, so one
   # sign settles it for the whole chain. Default to the top of the image (Y
   # grows downward); LM3 is the dorsal point and overrides that when present.

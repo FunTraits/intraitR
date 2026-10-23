@@ -39,7 +39,11 @@
 #'       photograph), `individual` (position on the plate, 1 for a single
 #'       fish), `photo`, the current determination (`species`, `species_code`,
 #'       `confidence`, `determined_by`), `site`, `date`, `operator`, the
-#'       operator's `quality` score (1-5), `reviewed`, `n_landmarks` placed,
+#'       operator's `quality` score on the scale of intraitR <= 1.40
+#'       (1 = very good .. 5 = poor; the digitizer now records
+#'       `quality_score`, 5 = excellent). 491 of the 494 specimens carry 3, the
+#'       old DEFAULT of the app: read it as "not scored", not as a judgement.
+#'       Then `reviewed`, `n_landmarks` placed,
 #'       `ruler_mm`, `mm_per_px`, image size, `photo_hash` (see [photo_hash()]),
 #'       `app_version` and the `digitized` date.}
 #'     \item{`"repeatability"`}{Long-format coordinates (`specimen`, `code`,

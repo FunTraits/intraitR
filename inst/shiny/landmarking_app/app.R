@@ -403,9 +403,17 @@ side_tabs <- function() {
                tags$code("_i2"), "names the same fish for every operator, which",
                "is what makes the repeat and operator-bias comparisons valid."),
       tags$hr(),
-      radioButtons("quality", "Quality score (1 = very good -> 5 = poor)",
-                   choices = c("1" = 1, "2" = 2, "3" = 3, "4" = 4, "5" = 5),
-                   selected = 3, inline = TRUE),
+      radioButtons("quality", "Quality score of the entry",
+                   choices = c("Not scored" = "0", "1" = "1", "2" = "2",
+                               "3" = "3", "4" = "4", "5" = "5"),
+                   selected = "0", inline = TRUE),
+      helpText("1 = unusable (specimen unreadable, landmarks largely guessed),",
+               "2 = doubtful, 3 = acceptable, 4 = good, 5 = excellent (whole",
+               "fish, strictly lateral, every landmark unambiguous). 'Not",
+               "scored' leaves the cell empty: an absent score and a bad score",
+               "are not the same statement. (Until intraitR 1.40 the scale ran",
+               "the other way, 1 = very good; old scores are converted on",
+               "reading.)"),
       ## TWO STATEMENTS, NOT ONE. The score says how good the entry is; the tick
       ## says whether anyone has actually looked at it. They are independent,
       ## and conflating them loses the case that matters: a specimen can be
@@ -1581,6 +1589,11 @@ server <- function(input, output, session) {
     # the next photograph.
     rv$collapse <- character(0)
     updateCheckboxGroupInput(session, "collapse", selected = character(0))
+    # The score and the tick qualify ONE entry: they never trail behind the
+    # operator onto the next specimen. A reloaded entry puts its own back
+    # (seed_from_sheet).
+    updateRadioButtons(session, "quality", selected = "0")
+    updateCheckboxInput(session, "reviewed", value = FALSE)
   }
 
   ## ---- the queues -----------------------------------------------------------
@@ -1650,9 +1663,10 @@ server <- function(input, output, session) {
     rv$adjusted <- integer(0); rv$na <- integer(0)
     rv$placed_order <- got
     rv$sel <- if (22L %in% got) 22L else got[1]
-    q <- suppressWarnings(as.numeric(m$quality[i]))
-    if (is.finite(q)) updateRadioButtons(session, "quality",
-                                         selected = as.character(round(q)))
+    q <- suppressWarnings(as.numeric(m$quality_score[i]))
+    updateRadioButtons(session, "quality",
+                       selected = if (is.finite(q) && q >= 1 && q <= 5)
+                         as.character(round(q)) else "0")
     # The tick comes back as it was left. It is deliberately NOT reset to FALSE
     # on reopening: "checked" is a statement about the entry, and a correction
     # pass that changes nothing must not silently retract it. Saving re-stamps
@@ -2422,7 +2436,7 @@ server <- function(input, output, session) {
     data.frame(specimen = id, landmark = WB_PTS,
                X = P[WB_PTS, 1], Y = P[WB_PTS, 2],
                mm_per_px = mm_per_px(P),            # scale from the final 20-21
-               note = suppressWarnings(as.integer(input$quality)),
+               note = qual_now(),
                status = unname(point_status(WB_PTS)),
                row.names = NULL)
   }
@@ -2430,6 +2444,13 @@ server <- function(input, output, session) {
   ## not NA for the author and the date when nothing has been declared: the
   ## column is character, and a reader has to be able to tell "not reviewed"
   ## from "reviewed by nobody in particular".
+  ## The score of the entry, 1 (unusable) .. 5 (excellent), or NA: "Not scored"
+  ## (value 0) and an empty cell are the same statement, and a 0 would be a
+  ## sixth grade nobody defined.
+  qual_now <- function() {
+    v <- num1(input$quality)
+    if (!is.finite(v) || v < 1 || v > 5) NA_real_ else round(v)
+  }
   review_now <- function() {
     on <- isTRUE(input$reviewed)
     list(reviewed = if (on) "yes" else "no",
@@ -2460,7 +2481,7 @@ server <- function(input, output, session) {
       photo_hash = if (!is.null(rv$orig))
         hash_of_photo(match(rv$orig, CFG$photos)) else NA_character_,
       img_w = rv$w %||% NA_real_, img_h = rv$h %||% NA_real_,
-      quality = suppressWarnings(as.numeric(input$quality)),
+      quality_score = qual_now(),
       reviewed = rvw$reviewed, reviewed_by = rvw$reviewed_by,
       review_date = rvw$review_date, collapse_rules = collapse_now(),
       ruler_mm = num1(input$scale_mm), mm_per_px = mm_per_px(P),
@@ -2702,7 +2723,7 @@ server <- function(input, output, session) {
         journal, row_key = id, coords = rv$pred, points = WB_PTS, status = st,
         specimen = id, individual = row$individual, replicate = row$replicate,
         photo_file = row$photo_file, mode = row$mode, target_sheet = sheet,
-        img_w = row$img_w, img_h = row$img_h, quality = row$quality,
+        img_w = row$img_w, img_h = row$img_h, quality_score = row$quality_score,
         ruler_mm = row$ruler_mm, mm_per_px = row$mm_per_px,
         photo_hash = row$photo_hash, reviewed = row$reviewed,
         reviewed_by = row$reviewed_by, review_date = row$review_date,
@@ -2729,8 +2750,11 @@ server <- function(input, output, session) {
     rv$pending <- rv$pending + 1L
     flush_xlsx()                                   # writes every N records
 
-    msg <- sprintf("'%s' saved to %s (score %s/5; %d measurement(s), %d repeat(s)).",
-                   id, sheet, df$note[1], nrow(rv$meas), nrow(rv$bias))
+    msg <- sprintf("'%s' saved to %s (%s; %d measurement(s), %d repeat(s)).",
+                   id, sheet,
+                   if (is.finite(df$note[1])) sprintf("score %d/5", as.integer(df$note[1]))
+                   else "not scored",
+                   nrow(rv$meas), nrow(rv$bias))
     # Points never looked at are the quality risk worth surfacing, and a seeded
     # point is the worse of the two: it was measured on no specimen at all.
     unchecked <- c(seeded = sum(df$status == "seeded"),

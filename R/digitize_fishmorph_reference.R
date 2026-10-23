@@ -32,12 +32,16 @@
 #' 5 (excellent), empty when not scored.
 #'
 #' @param xlsx_path The FISHMORPH workbook (sheets `seg_sheet` and `lm_sheet`).
-#' @param photo_dir Folder of the species photographs.
+#' @param photo_dir Folder of the species photographs. The default,
+#'   `Photos utilisees` beside the workbook, is also found under its accented
+#'   name `Photos utilisées`.
 #' @param out_path Working copy that is written. `NULL` (default): `xlsx_path`
 #'   itself when its name ends in `_reconstructed.xlsx`, otherwise
 #'   `<name>_reconstructed.xlsx`, created from `xlsx_path` if absent.
 #' @param seg_sheet,lm_sheet,new_sheet Sheet names: segments, landmarks, and the
-#'   new specimens (created with the header of `lm_sheet` when absent).
+#'   new specimens (created with the header of `lm_sheet` when absent). A sheet
+#'   whose name differs only by case, separators or a final "s"
+#'   (`new_specimens` / `New_specimen`) is recognised as the one asked for.
 #' @param new_photo_dir Folder of the new photographs (the `"new"` queue).
 #' @param ruler_mm Real length (mm) of the scale bar 20-21, `"new"` queue.
 #' @param journal_dir Journal folder. Default: `landmark_journal` beside the
@@ -69,7 +73,7 @@ digitize_fishmorph_reference <- function(
     out_path = NULL,
     seg_sheet = "Global_segments",
     lm_sheet = "Global_Landmark",
-    new_sheet = "new_specimens",
+    new_sheet = "New_specimen",
     new_photo_dir = file.path(dirname(xlsx_path), "Photos nouvelles"),
     ruler_mm = 10,
     journal_dir = file.path(dirname(xlsx_path), "landmark_journal"),
@@ -89,10 +93,11 @@ digitize_fishmorph_reference <- function(
     stop("Workbook not found: ", xlsx_path, call. = FALSE)
   xlsx_path <- normalizePath(xlsx_path, mustWork = TRUE)
   photo_dir <- one(photo_dir, "photo_dir")
+  photo_dir <- .fm_find_dir(photo_dir)
+  new_photo_dir <- .fm_find_dir(one(new_photo_dir, "new_photo_dir"))
   if (!dir.exists(photo_dir))
     stop("Photograph folder not found: ", photo_dir, call. = FALSE)
   photo_dir <- normalizePath(photo_dir, mustWork = TRUE)
-  new_photo_dir <- one(new_photo_dir, "new_photo_dir")
   journal_dir <- one(journal_dir, "journal_dir")
   ruler_mm <- suppressWarnings(as.numeric(ruler_mm))
   if (length(ruler_mm) != 1L || is.na(ruler_mm) || ruler_mm <= 0)
@@ -134,4 +139,23 @@ digitize_fishmorph_reference <- function(
                      python = python, predictor = predictor,
                      launch.browser = launch.browser, ...)
   invisible(out_path)
+}
+
+# A folder named with or without its accents is the same folder to the person
+# who typed it ("Photos utilisees" / "Photos utilisées"): when the path given
+# does not exist, a sibling whose name matches once accents and case are
+# dropped is used instead, and reported. Anything else is returned unchanged
+# (the caller decides whether a missing folder is an error).
+.fm_find_dir <- function(path) {
+  if (dir.exists(path) || !dir.exists(dirname(path))) return(path)
+  # macOS transliterates "é" to "'e": keep letters only after transliteration
+  strip <- function(x)
+    gsub("[^a-z]", "", tolower(iconv(enc2utf8(x), "UTF-8", "ASCII//TRANSLIT", sub = "")))
+  sib <- list.dirs(dirname(path), recursive = FALSE, full.names = TRUE)
+  hit <- sib[strip(basename(sib)) == strip(basename(path))]
+  if (length(hit) == 1L) {
+    message(sprintf("Folder '%s' not found; using '%s'.", basename(path), basename(hit)))
+    return(hit)
+  }
+  path
 }

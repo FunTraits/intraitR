@@ -616,6 +616,10 @@ consolidate_landmarks <- function(journal_dir, points = 1:25,
 #'   [writexl::write_xlsx()] takes.
 #' @param path Target path.
 #' @param keep_prev Keep the previous generation (default `TRUE`).
+#' @param drop_sheets Logical (default `FALSE`). An existing workbook holding
+#'   sheets that `x` does not carry is NOT overwritten -- the write stops with
+#'   an error naming them -- since rewriting it would destroy them. `TRUE`
+#'   overwrites anyway.
 #'
 #' @return `TRUE`, invisibly, if the write succeeded.
 #'
@@ -630,11 +634,25 @@ consolidate_landmarks <- function(journal_dir, points = 1:25,
 #' unlink(c(f, sub("\\.xlsx$", ".prev.xlsx", f)))
 #'
 #' @export
-write_xlsx_atomic <- function(x, path, keep_prev = TRUE) {
+write_xlsx_atomic <- function(x, path, keep_prev = TRUE, drop_sheets = FALSE) {
   if (!requireNamespace("writexl", quietly = TRUE))
     stop("Package \"writexl\" is required; install it with ",
          "install.packages(\"writexl\").", call. = FALSE)
   if (!is.list(x) || is.data.frame(x)) x <- list(Sheet1 = x)
+  # A workbook is REWRITTEN IN FULL here. If the file on disk holds sheets this
+  # write does not carry, they would vanish -- which is how a FISHMORPH
+  # reference workbook given to the campaign digitizer lost its three sheets on
+  # 23/10/2026 (recovered from its .prev.xlsx). Refused unless asked for.
+  if (!isTRUE(drop_sheets) && file.exists(path)) {
+    have <- .xlsx_sheet_names(path)
+    lost <- setdiff(have, names(x))
+    if (length(lost))
+      stop(sprintf(paste0(
+        "Refusing to overwrite %s: it holds sheet(s) %s that this write would ",
+        "DESTROY (it writes only %s). Is it the right file? Nothing was written."),
+        basename(path), paste(sQuote(lost, FALSE), collapse = ", "),
+        paste(sQuote(names(x), FALSE), collapse = ", ")), call. = FALSE)
+  }
 
   tmp <- file.path(dirname(path),
                    sprintf(".%s.tmp%d", basename(path), Sys.getpid()))
@@ -836,5 +854,20 @@ landmark_journal_qc <- function(journal_dir, expect = c(1:19, 23L)) {
   qc <- qc[order(-qc$n_missing, -qc$n_seeded, qc$row_key), , drop = FALSE]
   rownames(qc) <- NULL
   qc
+}
+
+
+# Sheet names of an .xlsx file, read from its xl/workbook.xml with base R only
+# (an .xlsx is a zip archive), so the safety check of write_xlsx_atomic() needs
+# no extra package. character(0) when the file cannot be read as a workbook.
+.xlsx_sheet_names <- function(path) {
+  con <- unz(path, "xl/workbook.xml")
+  on.exit(try(close(con), silent = TRUE), add = TRUE)
+  x <- tryCatch(paste(readLines(con, warn = FALSE, encoding = "UTF-8"), collapse = ""),
+                error = function(e) "")
+  m <- regmatches(x, gregexpr("<sheet [^>]*name=\"[^\"]*\"", x))[[1]]
+  n <- sub(".*name=\"([^\"]*)\".*", "\\1", m)
+  n <- gsub("&amp;", "&", gsub("&apos;", "'", gsub("&quot;", "\"", n)))
+  n
 }
 

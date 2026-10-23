@@ -10,7 +10,7 @@ digitize_fishmorph_reference(
   out_path = NULL,
   seg_sheet = "Global_segments",
   lm_sheet = "Global_Landmark",
-  new_sheet = "new_specimens",
+  new_sheet = "New_specimen",
   new_photo_dir = file.path(dirname(xlsx_path), "Photos nouvelles"),
   ruler_mm = 10,
   journal_dir = file.path(dirname(xlsx_path), "landmark_journal"),
@@ -27,14 +27,18 @@ digitize_fishmorph_reference(
 \arguments{
 \item{xlsx_path}{The FISHMORPH workbook (sheets \code{seg_sheet} and \code{lm_sheet}).}
 
-\item{photo_dir}{Folder of the species photographs.}
+\item{photo_dir}{Folder of the species photographs. The default,
+\verb{Photos utilisees} beside the workbook, is also found under its accented
+name \verb{Photos utilisées}.}
 
 \item{out_path}{Working copy that is written. \code{NULL} (default): \code{xlsx_path}
 itself when its name ends in \verb{_reconstructed.xlsx}, otherwise
 \verb{<name>_reconstructed.xlsx}, created from \code{xlsx_path} if absent.}
 
 \item{seg_sheet, lm_sheet, new_sheet}{Sheet names: segments, landmarks, and the
-new specimens (created with the header of \code{lm_sheet} when absent).}
+new specimens (created with the header of \code{lm_sheet} when absent). A sheet
+whose name differs only by case, separators or a final "s"
+(\code{new_specimens} / \code{New_specimen}) is recognised as the one asked for.}
 
 \item{new_photo_dir}{Folder of the new photographs (the \code{"new"} queue).}
 

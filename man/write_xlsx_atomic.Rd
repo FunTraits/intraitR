@@ -4,7 +4,7 @@
 \alias{write_xlsx_atomic}
 \title{Write a workbook atomically}
 \usage{
-write_xlsx_atomic(x, path, keep_prev = TRUE)
+write_xlsx_atomic(x, path, keep_prev = TRUE, drop_sheets = FALSE)
 }
 \arguments{
 \item{x}{A named list of \code{data.frame}s (one per sheet), as
@@ -13,6 +13,11 @@ write_xlsx_atomic(x, path, keep_prev = TRUE)
 \item{path}{Target path.}
 
 \item{keep_prev}{Keep the previous generation (default \code{TRUE}).}
+
+\item{drop_sheets}{Logical (default \code{FALSE}). An existing workbook holding
+sheets that \code{x} does not carry is NOT overwritten -- the write stops with
+an error naming them -- since rewriting it would destroy them. \code{TRUE}
+overwrites anyway.}
 }
 \value{
 \code{TRUE}, invisibly, if the write succeeded.

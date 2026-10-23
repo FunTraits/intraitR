@@ -59,7 +59,8 @@ CFG <- local({
     individuals_per_row = NA_integer_,
     xlsx_flush_every = 10L, provenance_keys = character(0),
     sheet_measurements = "measurements",
-    sheet_bias = "bias", sheet_summary = "bias_summary", app_version = "dev")
+    sheet_bias = "bias", sheet_summary = "bias_summary", app_version = "dev",
+    target = "campaign", fm = NULL)
   for (nm in names(def)) if (is.null(d[[nm]])) d[[nm]] <- def[[nm]]
   if (!length(d$photos) && dir.exists(d$photo_dir))
     d$photos <- sort(list.files(d$photo_dir, full.names = TRUE,
@@ -67,6 +68,14 @@ CFG <- local({
                                 pattern = "\\.(jpe?g|png|gif|bmp|tiff?)$"))
   d
 })
+## TWO TARGETS, ONE APPLICATION (intraitR 1.42.0). "campaign": a folder of
+## field photographs and the campaign workbook (digitize_landmarks()).
+## "fishmorph": the FISHMORPH reference workbook, its species and a folder of
+## new photographs (digitize_fishmorph_reference()), which replaces the
+## digitizer of Rfishmorph. Everything that measures -- clicks, conventions,
+## prediction, journal -- is common; what differs is where an entry comes
+## from, how it is seeded and where it is written, and those places test IS_FM.
+IS_FM <- identical(CFG$target, "fishmorph")
 OPERATOR <- local({
   o <- CFG$operator
   if (is.null(o) || !nzchar(o))
@@ -134,6 +143,7 @@ PHOTO_HASHES <- local({
 ## Without it these specimens simply stay in the "new" queue, which is the
 ## behaviour of every earlier version -- no worse, and no silent guessing.
 PROVENANCE <- local({
+  if (IS_FM) return(stats::setNames(character(0), character(0)))
   k <- CFG$provenance_keys
   if (length(k) && !is.null(names(k))) return(k)
   d <- file.path(dirname(dirname(CFG$xlsx_path)), "journal")
@@ -220,6 +230,13 @@ PRED_CHOICES <- {
 for (.nm in intraitR:::.digitizer_core_names())
   assign(.nm, get(.nm, envir = asNamespace("intraitR")))
 rm(.nm)
+
+## The FISHMORPH workbook, opened once: its three queues, its rows, and the
+## writer of a record (R/digitizer_fishmorph.R). NULL for the campaign target.
+FM <- if (IS_FM) do.call(intraitR:::.fm_store_open, CFG$fm) else NULL
+if (IS_FM) message(sprintf(
+  "FISHMORPH queues: %d species to reconstruct, %d to correct, %d new photograph(s).",
+  FM$counts()[["reconstruct"]], FM$counts()[["correct"]], FM$counts()[["new"]]))
 
 
 ## =============================================================================
@@ -363,12 +380,16 @@ card_box <- function(title, ...) {
 
 ## ---- side panel: one tab per rhythm of use ----------------------------------
 side_tabs <- function() {
-  tabsetPanel(
-    id = "sidetab", type = if (HAS_BSLIB) "pills" else "tabs",
+  # tabs a target does not use are dropped (NULL), hence the do.call
+  tabs <- list(
 
     tabPanel(
       "Specimen",
-      textInput("specimen_id", "Specimen code", ""),
+      textInput("specimen_id",
+                if (IS_FM) "Species (Genus species)" else "Specimen code", ""),
+      if (IS_FM) helpText("Fixed by the workbook in the 'reconstruct' and",
+                          "'correct' queues; typed for a new photograph.")
+      else tagList(
       # --- several individuals on one photograph -------------------------------
       tags$strong("Individuals on this photograph"),
       div(class = "toolbar", style = "margin-top:6px;align-items:center;",
@@ -401,7 +422,7 @@ side_tabs <- function() {
                "calibration, no scale error added per fish. The number is",
                "SPATIAL: the app refuses a snout placed out of order, so",
                tags$code("_i2"), "names the same fish for every operator, which",
-               "is what makes the repeat and operator-bias comparisons valid."),
+               "is what makes the repeat and operator-bias comparisons valid.")),
       tags$hr(),
       radioButtons("quality", "Quality score of the entry",
                    choices = c("Not scored" = "0", "1" = "1", "2" = "2",
@@ -455,7 +476,7 @@ side_tabs <- function() {
       helpText("A side export of the configuration on screen. The session's",
                "real output is the workbook and the journal.")),
 
-    tabPanel(
+    if (!IS_FM) tabPanel(
       "Repeats",
       uiOutput("rep_info"),
       numericInput("rep_target", "Repeats per individual", CFG$n_repeats,
@@ -493,7 +514,16 @@ side_tabs <- function() {
       helpText("The first option moves the landmarks with the image, so points",
                "already placed stay on the specimen. The second changes the",
                "display only -- useful when reloaded points are mirrored",
-               "relative to the photograph. It persists between photographs.")),
+               "relative to the photograph. It persists between photographs."),
+      if (IS_FM) tagList(
+        actionButton("flip_write", "Write the flip into the file",
+                     class = "btn-warning btn-sm"),
+        helpText("Writes the photograph AS DISPLAYED back to disk, at full",
+                 "resolution, so the file and the recorded landmarks agree for",
+                 "every other reader. The original is copied into a",
+                 "'_originaux/' subfolder first (once), and both selectors go",
+                 "back to None. It writes the IMAGE, not the record: save the",
+                 "specimen as well if its points changed."))),
 
     tabPanel(
       "Checks",
@@ -520,7 +550,7 @@ side_tabs <- function() {
       verbatimTextOutput("saved_info"),
       div(class = "toolbar",
           actionButton("flush", "Write the workbook now", class = "btn-primary"),
-          actionButton("rebuild", "Rebuild from the journal")),
+          if (!IS_FM) actionButton("rebuild", "Rebuild from the journal")),
       helpText("The workbook is written every", CFG$xlsx_flush_every,
                "record(s), atomically. The journal is written at every save and",
                "is the source of truth: 'Rebuild' reconstructs the sheets from",
@@ -534,6 +564,11 @@ side_tabs <- function() {
                "segment ratios do not fix: where a segment sits along the body,",
                "how it splits dorsal/ventral, and two fin angles. A point you",
                "have moved is never re-seeded."),
+      if (IS_FM) helpText(tags$b("FISHMORPH workbook:"), "in the 'reconstruct' and",
+                          "'correct' queues the proportions are the species' OWN,",
+                          "from its published segments (Eh2, Mo2, PFi2 for the",
+                          "heights); the medians are used only where a segment is",
+                          "missing, and for a new photograph."),
       checkboxInput("flipdorsal", "Flip dorsal / ventral", FALSE),
       actionButton("reseed", "Re-seed the unplaced landmarks"),
       tags$hr(),
@@ -547,8 +582,9 @@ side_tabs <- function() {
       sliderInput("o_PF",    "Pectoral dorsal share",   -1, 1, -0.69, 0.01),
       sliderInput("f_CP",    "Peduncle position",      0.5, 1,  0.93, 0.01),
       sliderInput("ang_PFl", "Pectoral fin angle",       0, 90, 35,   1),
-      sliderInput("ang_Jl",  "Jaw angle",              -30, 90, 20,   1))
-  )
+      sliderInput("ang_Jl",  "Jaw angle",              -30, 90, 20,   1)))
+  do.call(tabsetPanel, c(list(id = "sidetab", type = if (HAS_BSLIB) "pills" else "tabs"),
+                         Filter(Negate(is.null), tabs)))
 }
 
 ## The queue selector sits at the top of the side panel, above the tabs: it
@@ -559,8 +595,11 @@ side_panel <- function()
   div(class = "sidetabs",
       div(class = "modebar",
           radioButtons("session_mode", "Queue",
-                       c("New" = "new", "Correct" = "correct",
-                         "Repeats" = "repeat"),
+                       if (IS_FM) c("Reconstruct" = "reconstruct",
+                                    "Correct" = "correct",
+                                    "New photographs" = "new")
+                       else c("New" = "new", "Correct" = "correct",
+                              "Repeats" = "repeat"),
                        selected = CFG$mode, inline = TRUE)),
       uiOutput("progress"), tags$br(), side_tabs())
 
@@ -712,6 +751,78 @@ main_panel <- function() tagList(
            uiOutput("lm_legend"))
 )
 
+## ---- page "New species" (FISHMORPH target) -----------------------------------
+## A photograph enters the "new" queue here: chosen, named, FRAMED, then
+## committed. The framing must come before the first click and never after it:
+## landmarks are recorded in the pixels of the file. Nothing is written to the
+## workbook at this stage -- a row is the record of a MEASUREMENT, created by
+## the first "Save & next". Ported from Rfishmorph's digitizer (0.17).
+add_page <- function() tagList(
+  div(class = "sessionbar",
+      "The photograph is COPIED into the new-photographs folder under a name ",
+      "derived from the species; the file you pick is left untouched. ",
+      tags$code(CFG$fm$new_photo_dir)),
+  fluidRow(
+    column(5,
+      card_box("1. Photograph",
+        fileInput("add_file", NULL, multiple = FALSE, width = "100%",
+                  accept = c("image/jpeg", "image/png", "image/gif", "image/bmp",
+                             "image/tiff", ".jpg", ".jpeg", ".png", ".gif",
+                             ".bmp", ".tif", ".tiff"),
+                  buttonLabel = "Browse...", placeholder = "No file selected"),
+        helpText("JPEG, PNG, GIF, BMP or TIFF, read by its real bytes, not by",
+                 "its extension.")),
+      card_box("2. Species name",
+        textInput("add_species", NULL, "", width = "100%",
+                  placeholder = "Genus species"),
+        helpText("Pre-filled from the file name when it can be read. It becomes",
+                 "the file name of the copy (Genus_species.jpg) and, at the",
+                 "first save, the Genus.species of the new-specimen sheet."),
+        div(class = "tbgroup",
+            actionButton("add_check", "Check against FishBase"),
+            actionButton("add_accept", "Use the accepted name")),
+        uiOutput("add_name_info")),
+      card_box("4. Add to the queue",
+        actionButton("add_commit", "Add and go to the specimen",
+                     class = "btn-primary", width = "100%"),
+        helpText("Writes the framed picture into the new-photographs folder,",
+                 "rebuilds the queue and opens the specimen in the 'New",
+                 "photographs' queue. The workbook is untouched until the first",
+                 "'Save & next'."),
+        uiOutput("add_log"))),
+    column(7,
+      card_box("3. Framing",
+        div(class = "toolbar",
+            div(class = "tbgroup",
+                actionButton("add_rotl", "\u21ba 90\u00b0"),
+                actionButton("add_rotr", "90\u00b0 \u21bb")),
+            div(class = "tbsep"),
+            div(class = "tbgroup",
+                actionButton("add_fliph", "Mirror \u2194"),
+                actionButton("add_flipv", "Mirror \u2195")),
+            div(class = "tbsep"),
+            div(class = "tbgroup",
+                actionButton("add_crop", "Crop to selection"),
+                actionButton("add_reset", "Reset"))),
+        plotOutput("add_plot", height = "520px",
+                   brush = brushOpts("add_brush", resetOnNew = TRUE,
+                                     opacity = 0.25, fill = "#2563eb",
+                                     stroke = "#1d4ed8")),
+        uiOutput("add_info"),
+        helpText("Drag a rectangle, then 'Crop to selection'. A lateral view,",
+                 "head to the LEFT and dorsal side UP, is what the seeded",
+                 "landmarks assume. Crop close to the specimen, and keep the",
+                 "scale bar if there is one: points 20-21 go on it.")))))
+
+## The FISHMORPH target has two pages, the campaign target one.
+page_body <- function()
+  if (!IS_FM) main_panel() else
+    tabsetPanel(id = "page", type = if (HAS_BSLIB) "pills" else "tabs",
+                tabPanel("Digitize", value = "digit",
+                         div(style = "padding-top:10px;", main_panel())),
+                tabPanel("New species", value = "add",
+                         div(style = "padding-top:10px;", add_page())))
+
 head_tags <- tags$head(tags$script(HTML(PAN_JS)), tags$style(HTML(APP_CSS)))
 
 ## The title, once, as a tag rather than a string: the package name carries the
@@ -735,13 +846,13 @@ ui <- if (HAS_BSLIB) {
                             "border-radius" = "0.5rem"),
     fillable = FALSE,
     sidebar = bslib::sidebar(width = 360, open = "desktop", side_panel()),
-    head_tags, main_panel())
+    head_tags, page_body())
 } else {
   fluidPage(
     head_tags,
     titlePanel(APP_TITLE, windowTitle = "InTraitR landmarking"),
     sidebarLayout(sidebarPanel(width = 3, side_panel()),
-                  mainPanel(width = 9, main_panel())))
+                  mainPanel(width = 9, page_body())))
 }
 
 ## =============================================================================
@@ -786,8 +897,8 @@ server <- function(input, output, session) {
   ## memory: they are small (one row per digitization) and having them here is
   ## what lets the queues, the progress display and the bias summary be computed
   ## without touching the disk on every interaction.
-  rv$meas <- wb_read_sheet(CFG$xlsx_path, CFG$sheet_measurements)
-  rv$bias <- wb_read_sheet(CFG$xlsx_path, CFG$sheet_bias)
+  rv$meas <- if (IS_FM) wb_empty() else wb_read_sheet(CFG$xlsx_path, CFG$sheet_measurements)
+  rv$bias <- if (IS_FM) wb_empty() else wb_read_sheet(CFG$xlsx_path, CFG$sheet_bias)
 
   ## THE JOURNAL IS CONSULTED AT START-UP, NOT ONLY BY THE REBUILD BUTTON.
   ##
@@ -811,6 +922,7 @@ server <- function(input, output, session) {
   ## The reconciliation is a one-off at start-up and depends on nothing, which
   ## is exactly what isolate() is for.
   isolate(local({
+    if (IS_FM) return(invisible(NULL))     # the FISHMORPH store reads its workbook
     j <- tryCatch(intraitR::consolidate_landmarks(CFG$journal_dir,
                                                   points = WB_PTS),
                   error = function(e) NULL)
@@ -1137,6 +1249,20 @@ server <- function(input, output, session) {
   ## On failure NOTHING is overwritten and the operator is told: the journal is
   ## already written, so no data is lost -- consolidate_landmarks() finds it.
   flush_xlsx <- function(force = FALSE, quiet = TRUE) {
+    if (IS_FM) {
+      ok <- tryCatch({ FM$flush(force = force, every = CFG$xlsx_flush_every); TRUE },
+                     error = function(e) { rv$msg <- conditionMessage(e); FALSE })
+      rv$pending <- FM$pending()
+      if (ok && force && !quiet)
+        showNotification(sprintf("Workbook written: %s.", basename(FM$out_path)),
+                         type = "message", duration = 4)
+      if (!ok)
+        showNotification(paste0(
+          "Could not write the workbook (open in Excel? locked by the sync ",
+          "client?). Nothing is lost: every record is in the journal ",
+          journal$path, "."), type = "error", duration = 12)
+      return(invisible(ok))
+    }
     if (rv$pending == 0L && !force) return(invisible(FALSE))
     if (!force && rv$pending < CFG$xlsx_flush_every) return(invisible(FALSE))
     sheets <- list(rv$meas, rv$bias, bias_summary(rv$bias, WB_PTS))
@@ -1151,9 +1277,9 @@ server <- function(input, output, session) {
         type = "message", duration = 4)
     } else {
       showNotification(
-        paste0("Could not write the workbook (open in Excel? locked by the ",
-               "sync client?). Nothing is lost: every record is in the journal ",
-               journal$path, "."), type = "error", duration = 12)
+        paste0("Could not write the workbook: ", rv$msg, " Nothing is lost: ",
+               "every record is in the journal ", journal$path, "."),
+        type = "error", duration = NULL)
     }
     invisible(ok)
   }
@@ -1617,6 +1743,7 @@ server <- function(input, output, session) {
     idx[order(-r, idx)]
   }
   queue_of <- function(m = cur_mode()) {
+    if (IS_FM) return(seq_len(FM$n(m)))
     done <- vapply(PHOTO_CODES, photo_done, logical(1), USE.NAMES = FALSE)
     started <- vapply(PHOTO_CODES, function(c0) photo_ndone(c0) > 0L,
                       logical(1), USE.NAMES = FALSE)
@@ -1713,7 +1840,138 @@ server <- function(input, output, session) {
     rv$sel <- if (all(SCALE_PTS %in% d$landmark)) ANAT_ORDER[1] else SCALE_PTS[1]
     TRUE
   }
+  ## ---- FISHMORPH reference target ------------------------------------------
+  ## An entry is a species row of the workbook ("reconstruct", "correct") or a
+  ## photograph of the new-photograph folder ("new"); see .fm_store_open().
+  fm_entry <- function(k = rv$qi)
+    if (IS_FM && length(k) == 1L && k > 0L) FM$entry(cur_mode(), k) else NULL
+  ## the MEASURED proportions of the species on screen, or NULL (medians)
+  fm_ratios <- function() {
+    if (!IS_FM || identical(cur_mode(), "new") || rv$qi < 1L) return(NULL)
+    FM$ratios(cur_mode(), rv$qi)
+  }
+  ## what the workbook already holds for an entry, put back on the photograph
+  fm_apply_seed <- function(s) {
+    P <- empty_coords()
+    got <- integer(0)
+    for (p in seq_len(min(nrow(P), nrow(s$P))))
+      if (all(is.finite(s$P[p, ]))) { P[p, ] <- s$P[p, ]; got <- c(got, p) }
+    rv$pred <- P
+    rv$edited <- setdiff(got, DERIVED_LM); rv$seeded <- integer(0)
+    rv$na <- intersect(s$na, seq_len(N_ANAT))
+    rv$adjusted <- integer(0); rv$placed_order <- got
+    rv$sel <- if (22L %in% got) 22L else got[1]
+    q <- s$quality_score
+    updateRadioButtons(session, "quality",
+                       selected = if (length(q) == 1L && is.finite(q) && q >= 1 && q <= 5)
+                         as.character(round(q)) else "0")
+    updateCheckboxInput(session, "reviewed", value = isTRUE(s$reviewed))
+    if (isTRUE(is.finite(s$ruler_mm)))
+      updateNumericInput(session, "scale_mm", value = s$ruler_mm)
+    declared <- s$collapse_rules
+    act <- if (length(declared) == 1L && !is.na(declared) && nzchar(declared))
+      intersect(strsplit(declared, "[;,[:space:]]+")[[1]], names(COLLAPSE_RULES))
+    else collapse_detect(P)
+    rv$collapse <- act
+    updateCheckboxGroupInput(session, "collapse", selected = act)
+    rv$adjusted <- union(rv$adjusted, collapse_points(act))
+    rv$edited <- setdiff(rv$edited, collapse_points(act, kinds = "move"))
+  }
+  fm_load_entry <- function(k) {
+    n <- length(rv$q)
+    if (!n) { rv$qi <- 0L; return(invisible(NULL)) }
+    k <- max(1L, min(as.integer(k), n)); rv$qi <- k
+    e <- FM$entry(cur_mode(), k)
+    rv$orig <- e$photo
+    rv$photo <- e$key
+    updateTextInput(session, "specimen_id", value = e$species)
+    updateSelectizeInput(session, "goto_file", selected = k)
+    if (is.na(e$photo) || !file.exists(e$photo)) {
+      rv$arr <- NULL; rv$img <- NULL; rv$pred <- NULL
+      notify(sprintf("%s: photograph not found.", e$label), "error")
+      return(invisible(NULL))
+    }
+    load_working()                                  # resets every point
+    ind_ax_reload(e$key)
+    s <- FM$seed(cur_mode(), k)
+    if (!is.null(s)) fm_apply_seed(s)
+    rat <- fm_ratios()
+    fb <- attr(rat, "fallback")
+    rv$msg <- sprintf(
+      "%s (%d/%d in the '%s' queue). %s", e$label, k, n, cur_mode(),
+      if (!is.null(s)) "Points reloaded from the workbook: check and correct."
+      else if (!is.null(rat))
+        paste0("Click the snout (1) then the caudal base (2): every landmark is ",
+               "then seeded at this species' MEASURED proportions",
+               if (length(fb)) sprintf(" (medians for %s)", paste(fb, collapse = ", "))
+               else "", ".")
+      else "Click the snout (point 1).")
+    invisible(NULL)
+  }
+  ## Save an entry of the FISHMORPH target: journal first, then the workbook
+  ## row, then the next entry of the queue.
+  fm_save <- function() {
+    k <- rv$qi; e <- fm_entry(k)
+    if (is.null(e)) { notify("No entry on screen.", "error"); return(invisible(NULL)) }
+    is_new <- identical(cur_mode(), "new")
+    sp <- if (is_new) trimws(input$specimen_id %||% "") else e$species
+    if (!nzchar(sp)) {
+      notify("Fill in the species name before saving.", "error")
+      return(invisible(NULL))
+    }
+    pts <- if (is_new) intraitR:::.FM_SAVE_PTS_NEW else intraitR:::.FM_SAVE_PTS
+    P <- rv$pred
+    st <- point_status(pts)
+    rvw <- review_now(); q <- qual_now()
+    mm <- num1(input$scale_mm); mpp <- mm_per_px(P)
+    jok <- tryCatch({
+      intraitR::landmark_journal_append(
+        journal, row_key = e$key, coords = P, points = pts, status = st,
+        specimen = e$key, individual = e$key, species = sp,
+        photo_file = basename(e$photo), mode = cur_mode(), target_sheet = e$sheet,
+        img_w = rv$w %||% NA_real_, img_h = rv$h %||% NA_real_, quality_score = q,
+        ruler_mm = if (is_new && is.finite(mm)) mm else NA,
+        mm_per_px = if (is_new && is.finite(mpp)) mpp else NA,
+        reviewed = rvw$reviewed, reviewed_by = rvw$reviewed_by,
+        review_date = rvw$review_date, collapse_rules = collapse_now())
+      TRUE
+    }, error = function(err) { rv$msg <- conditionMessage(err); FALSE })
+    if (!jok) {
+      showNotification(paste("JOURNAL WRITE FAILED -- nothing was saved. Check that",
+                             journal$path, "is writable before going on."),
+                       type = "error", duration = NULL)
+      return(invisible(NULL))
+    }
+    cr <- collapse_now()
+    dropped <- tryCatch(
+      FM$save(cur_mode(), k, P, list(
+        species = sp, quality_score = q, reviewed = identical(rvw$reviewed, "yes"),
+        reviewed_by = rvw$reviewed_by, review_date = rvw$review_date,
+        collapse_rules = if (is.na(cr)) "" else cr, ruler_mm = mm, mm_per_px = mpp)),
+      error = function(err) {
+        notify(paste("Workbook row not updated (the journal has the record):",
+                     conditionMessage(err)), "error")
+        integer(0)
+      })
+    if (length(dropped))
+      showNotification(sprintf(paste("Columns absent from the sheet: point(s) %s",
+                                     "NOT written to the workbook (the journal has them)."),
+                               paste(dropped, collapse = ", ")),
+                       type = "error", duration = NULL)
+    rv$pending <- FM$pending()
+    flush_xlsx()
+    unchecked <- sum(st %in% c("seeded", "predicted"))
+    notify(sprintf("'%s' saved to %s (%s)%s.", sp, e$sheet,
+                   if (is.finite(q)) sprintf("score %d/5", as.integer(q)) else "not scored",
+                   if (unchecked) sprintf(" -- %d point(s) still seeded or predicted, unchecked",
+                                          unchecked) else ""),
+           if (unchecked) "warning" else "message")
+    if (rv$qi < length(rv$q)) load_queue_photo(rv$qi + 1L)
+    invisible(NULL)
+  }
+
   load_queue_photo <- function(k) {
+    if (IS_FM) return(fm_load_entry(k))
     n <- length(rv$q)
     if (!n) { rv$qi <- 0L; return(invisible(NULL)) }
     k <- max(1L, min(as.integer(k), n)); rv$qi <- k
@@ -1764,7 +2022,8 @@ server <- function(input, output, session) {
     if (!length(rv$q)) {
       # An empty queue at launch is the normal state of a finished batch, not an
       # error: fall back to the first queue that has work, and say so.
-      alt <- setdiff(c("new", "correct", "repeat"), m)
+      alt <- setdiff(if (IS_FM) c("reconstruct", "correct", "new")
+                     else c("new", "correct", "repeat"), m)
       alt <- alt[vapply(alt, function(x) length(queue_of(x)) > 0, logical(1))]
       if (length(alt)) {
         notify(sprintf("The '%s' queue is empty -- switching to '%s'.", m, alt[1]),
@@ -1775,6 +2034,19 @@ server <- function(input, output, session) {
       rv$qi <- 0L
       notify(sprintf("The '%s' queue is empty.", m), "warning")
       return(invisible(NULL))
+    }
+    if (IS_FM) {
+      # the jump list is the queue itself, in its (alphabetical) order
+      updateSelectizeInput(session, "goto_file",
+                           choices = stats::setNames(seq_along(rv$q), FM$labels(m)),
+                           selected = character(0), server = TRUE)
+      k <- 1L
+      if (!is.null(rv$fm_goto)) {             # a photograph just added
+        k <- match(rv$fm_goto, FM$labels(m)); rv$fm_goto <- NULL
+        if (is.na(k)) k <- 1L
+        updateSelectizeInput(session, "goto_file", selected = k)
+      }
+      return(load_queue_photo(k))
     }
     k <- if (!is.na(cur) && cur %in% rv$q) match(cur, rv$q) else {
       todo <- photos_todo(PHOTO_CODES[rv$q])
@@ -1795,6 +2067,10 @@ server <- function(input, output, session) {
   observeEvent(input$goto_file, {
     i <- suppressWarnings(as.integer(input$goto_file))
     if (is.na(i) || !length(rv$q)) return()
+    if (IS_FM) {                         # a position in the queue, not a photo index
+      if (!identical(i, rv$qi)) load_queue_photo(i)
+      return()
+    }
     if (rv$qi > 0L && identical(rv$q[rv$qi], i)) return()
     k <- match(i, rv$q)
     if (is.na(k)) {
@@ -1929,7 +2205,8 @@ server <- function(input, output, session) {
     P <- rv$pred
     if (is.null(P) || !fin_row(P, 1L) || !fin_row(P, 2L)) return(invisible(FALSE))
     keep <- Reduce(union, list(rv$edited, rv$na, c(1L, 2L), HINGES))
-    P2 <- seed_configuration(P, seed_params(), isTRUE(input$flipdorsal), keep = keep)
+    P2 <- seed_configuration(P, seed_params(), isTRUE(input$flipdorsal), keep = keep,
+                             ratios = fm_ratios())
     if (is.null(P2)) return(invisible(FALSE))
     rv$pred <- collapse_pred(P2)
     rv$seeded <- setdiff(seq_len(N_ANAT), keep)
@@ -1939,6 +2216,15 @@ server <- function(input, output, session) {
     invisible(TRUE)
   }
   observeEvent(input$reseed, reseed(quiet = FALSE))
+  ## The scale bar 20-21 is part of the sequence only where a ruler is on the
+  ## photograph: the published FISHMORPH photographs carry none, and their
+  ## sheet has no column for it.
+  next_pt <- function(j) {
+    n <- next_point(j)
+    if (IS_FM && !identical(cur_mode(), "new") && n %in% SCALE_PTS)
+      n <- next_point(SCALE_PTS[length(SCALE_PTS)])
+    n
+  }
   ## Live re-seed while the axis is still being defined: moving a slider or the
   ## dorsal switch should show its effect straight away. Not in the review
   ## phase, where the conventions are already driving the configuration.
@@ -2073,7 +2359,7 @@ server <- function(input, output, session) {
     # ALWAYS advance -- hinges included. They are stops in the sequence like any
     # other point; treating them as a special case is what left the selection
     # stuck on 22.
-    nxt <- next_point(just)
+    nxt <- next_pt(just)
     rv$sel <- nxt
     rv$msg <- paste0(point_label(just), " placed -> next: ", point_label(nxt), ".")
     # As soon as the axis is complete, drop the whole configuration onto the
@@ -2204,7 +2490,7 @@ server <- function(input, output, session) {
     rv$adjusted <- setdiff(rv$adjusted, rv$sel)
     s <- rv$sel
     rv$placed_order <- setdiff(rv$placed_order, s)
-    rv$sel <- if (s %in% HINGES) s else next_point(s)
+    rv$sel <- if (s %in% HINGES) s else next_pt(s)
     rv$msg <- paste(point_label(s), "marked NA (not measurable).")
   })
   observeEvent(input$clear_pt, {                   # unlike NA: simply "not placed"
@@ -2505,6 +2791,11 @@ server <- function(input, output, session) {
   ## specimens already done.
   observeEvent(input$skip, {
     if (!length(rv$q)) { notify("The queue is empty.", "warning"); return() }
+    if (IS_FM) {
+      if (rv$qi < length(rv$q)) load_queue_photo(rv$qi + 1L)
+      else notify(sprintf("End of the '%s' queue.", cur_mode()))
+      return()
+    }
     cand <- photos_todo(PHOTO_CODES[rv$q])
     nxt <- cand[cand > rv$qi]
     if (!length(nxt)) nxt <- cand              # wrap around to the earlier gaps
@@ -2528,6 +2819,7 @@ server <- function(input, output, session) {
   ## The journal is the source of truth, so this is not an import -- it is the
   ## workbook catching up with what was actually recorded.
   observeEvent(input$rebuild, {
+    if (IS_FM) return()
     j <- tryCatch(intraitR::consolidate_landmarks(CFG$journal_dir, points = WB_PTS),
                   error = function(e) NULL)
     if (is.null(j) || !nrow(j)) {
@@ -2707,6 +2999,7 @@ server <- function(input, output, session) {
              "error")
       return(invisible(NULL))
     }
+    if (IS_FM) return(fm_save())
 
     df  <- current_table()
     id  <- df$specimen[1]
@@ -2809,7 +3102,242 @@ server <- function(input, output, session) {
     invisible(NULL)
   }
 
+  ## ---- FISHMORPH: bringing a photograph into the "new" queue --------------
+  ## `orig` is the picture as read and is never touched again ("Reset" must undo
+  ## a crop); `work` is what is on screen and what will be written.
+  add_rv <- reactiveValues(orig = NULL, work = NULL, src = NULL, srcname = NULL,
+                           png = FALSE, fbase = NULL, log = NULL)
+  observeEvent(input$add_file, {
+    f <- input$add_file
+    if (is.null(f) || !nrow(f)) return()
+    a <- tryCatch(read_image(f$datapath[1]), error = function(e) NULL)
+    if (is.null(a)) {
+      add_rv$orig <- NULL; add_rv$work <- NULL
+      showNotification(paste0("Unreadable image: ", f$name[1],
+                              ". A GIF/BMP/TIFF needs the 'magick' package."),
+                       type = "error", duration = NULL)
+      return()
+    }
+    add_rv$orig <- a; add_rv$work <- a
+    add_rv$src <- f$datapath[1]; add_rv$srcname <- f$name[1]
+    add_rv$png <- intraitR:::.fm_is_png_file(f$datapath[1])
+    add_rv$fbase <- NULL; add_rv$log <- NULL
+    nm <- intraitR:::.fm_name_from_file(f$name[1])
+    if (nzchar(nm)) updateTextInput(session, "add_species", value = nm)
+  })
+  add_apply <- function(fn) {
+    if (is.null(add_rv$work)) return()
+    add_rv$work <- fn(add_rv$work)
+    session$resetBrush("add_brush")
+  }
+  observeEvent(input$add_rotl,  add_apply(function(a) intraitR:::.fm_rot90(a, 1L)))
+  observeEvent(input$add_rotr,  add_apply(function(a) intraitR:::.fm_rot90(a, 3L)))
+  observeEvent(input$add_fliph, add_apply(function(a) intraitR:::.fm_mirror(a, "h")))
+  observeEvent(input$add_flipv, add_apply(function(a) intraitR:::.fm_mirror(a, "v")))
+  observeEvent(input$add_reset, {
+    add_rv$work <- add_rv$orig
+    session$resetBrush("add_brush")
+  })
+  observeEvent(input$add_crop, {
+    if (is.null(add_rv$work)) return()
+    b <- input$add_brush
+    if (is.null(b)) {
+      showNotification("Drag a rectangle on the picture first.", type = "warning")
+      return()
+    }
+    a <- intraitR:::.fm_crop(add_rv$work, b$xmin, b$xmax, b$ymin, b$ymax)
+    if (is.null(a)) {
+      showNotification("Selection too small (8 px minimum a side).", type = "error")
+      return()
+    }
+    add_rv$work <- a
+    session$resetBrush("add_brush")
+  })
+  ## The user space is the PIXEL grid of the working array, y downwards: the
+  ## brush returns coordinates .fm_crop() uses as they are. Sub-sampled for
+  ## drawing only; the array keeps its full resolution.
+  output$add_plot <- renderPlot({
+    a <- add_rv$work
+    op <- graphics::par(mar = c(0, 0, 0, 0)); on.exit(graphics::par(op))
+    if (is.null(a)) {
+      graphics::plot.new()
+      graphics::text(0.5, 0.5, "Choose a photograph to see it here.",
+                     col = "#9ca3af", cex = 1.1)
+      return(invisible(NULL))
+    }
+    d <- dim(a); H <- d[1]; W <- d[2]
+    graphics::plot(NA, xlim = c(0, W), ylim = c(H, 0), asp = 1, xaxs = "i",
+                   yaxs = "i", axes = FALSE, xlab = "", ylab = "")
+    graphics::rasterImage(grDevices::as.raster(downscale(a)), 0, H, W, 0,
+                          interpolate = FALSE)
+  })
+  output$add_info <- renderUI({
+    a <- add_rv$work
+    if (is.null(a)) return(NULL)
+    d0 <- dim(add_rv$orig); d1 <- dim(a)
+    div(class = "tbhint", style = "margin-top:6px;",
+        sprintf("%d x %d px", d1[2], d1[1]),
+        if (!identical(d0[1:2], d1[1:2])) sprintf(" (original %d x %d px)", d0[2], d0[1]),
+        sprintf(" -- source: %s", add_rv$srcname %||% ""),
+        sprintf(" -- will be written as .%s", if (add_rv$png) "png" else "jpg"))
+  })
+  ## FishBase: REPORTS, never refuses. A name absent from FishBase may still be
+  ## a specimen worth digitizing; only the FORM of the binomial is enforced at
+  ## commit. Taxonomy belongs to Rfishmorph (validate_species_names()).
+  observeEvent(input$add_check, {
+    nm <- intraitR:::.fm_check_binomial(input$add_species)
+    if (!nm$ok) {
+      add_rv$fbase <- list(status = "form", msg = nm$msg, accepted = NA_character_)
+      return()
+    }
+    if (!requireNamespace("rfishbase", quietly = TRUE)) {
+      add_rv$fbase <- list(status = "unavailable", accepted = NA_character_,
+                           msg = "The 'rfishbase' package is not installed.")
+      return()
+    }
+    res <- tryCatch(Rfishmorph::validate_species_names(nm$name, verbose = FALSE),
+                    error = function(e) NULL)
+    if (is.null(res) || !nrow(res)) {
+      add_rv$fbase <- list(status = "unavailable", accepted = NA_character_,
+                           msg = "FishBase did not answer (network, or server down).")
+      return()
+    }
+    add_rv$fbase <- list(status = as.character(res$status[1]),
+                         accepted = as.character(res$accepted[1]), msg = "")
+  })
+  ## a separate button, not an automatic rewrite: which name goes into the
+  ## database is the operator's call, and a silently corrected synonym is a
+  ## decision nobody recorded
+  observeEvent(input$add_accept, {
+    acc <- add_rv$fbase$accepted %||% NA_character_
+    if (is.na(acc) || !nzchar(acc)) {
+      showNotification("No accepted name to apply: run the check first.",
+                       type = "warning")
+      return()
+    }
+    updateTextInput(session, "add_species", value = acc)
+  })
+  output$add_name_info <- renderUI({
+    nm <- intraitR:::.fm_check_binomial(input$add_species)
+    box <- function(col, ...) div(class = "tbhint",
+                                  style = paste0("margin-top:6px;color:", col, ";"), ...)
+    if (!nzchar(trimws(as.character(input$add_species %||% ""))))
+      return(box("#9ca3af", "No name yet."))
+    if (!nm$ok) return(box("#b45309", nm$msg))
+    fb <- add_rv$fbase
+    base <- box("#6b7280", "Form accepted: ", tags$code(nm$name), " -- file: ",
+                tags$code(basename(intraitR:::.fm_new_photo_path(
+                  CFG$fm$new_photo_dir, nm$name, if (add_rv$png) "png" else "jpg"))))
+    if (is.null(fb)) return(base)
+    tagList(base, switch(
+      fb$status,
+      accepted   = box("#15803d", "FishBase: name accepted."),
+      synonym    = box("#b45309", "FishBase: SYNONYM of ", tags$code(fb$accepted %||% "?"),
+                       " -- use it, or keep this one deliberately."),
+      unresolved = box("#b45309", "FishBase: name not resolved. Digitizing is ",
+                       "still possible; the name is recorded as typed."),
+      box("#6b7280", "FishBase: ", fb$msg %||% fb$status)))
+  })
+  observeEvent(input$add_commit, {
+    a <- add_rv$work
+    if (is.null(a)) { showNotification("Choose a photograph first.", type = "error"); return() }
+    nm <- intraitR:::.fm_check_binomial(input$add_species)
+    if (!nm$ok) { showNotification(paste("Species name:", nm$msg), type = "error"); return() }
+    nd <- CFG$fm$new_photo_dir
+    if (!dir.exists(nd) && !dir.create(nd, recursive = TRUE, showWarnings = FALSE) &&
+        !dir.exists(nd)) {
+      showNotification(paste0("Could not create the folder '", nd, "'."),
+                       type = "error", duration = NULL)
+      return()
+    }
+    # the output format follows the REAL bytes of the source: a PNG stays a PNG
+    path <- intraitR:::.fm_new_photo_path(nd, nm$name, if (add_rv$png) "png" else "jpg")
+    if (is.na(path)) { showNotification("Unusable species name.", type = "error"); return() }
+    wrote <- tryCatch({ intraitR:::.fm_write_img_as(a, path); TRUE },
+                      error = function(e) {
+                        showNotification(paste("Writing failed:", conditionMessage(e)),
+                                         type = "error", duration = NULL)
+                        FALSE })
+    if (!wrote) return()
+    # the FILE AS SUPPLIED is kept beside the queue: the crop and the turns are
+    # gone from the copy, and the backup is the only way back to them
+    bak <- NA_character_
+    bak_dir <- file.path(nd, "_originaux")
+    if (!is.null(add_rv$src) && file.exists(add_rv$src)) {
+      dir.create(bak_dir, showWarnings = FALSE, recursive = TRUE)
+      b <- file.path(bak_dir, paste0(tools::file_path_sans_ext(basename(path)),
+                                     "__", basename(add_rv$srcname %||% "source")))
+      if (!file.exists(b) && file.copy(add_rv$src, b, overwrite = FALSE)) bak <- b
+    }
+    FM$refresh_new()
+    add_rv$log <- list(path = path, backup = bak)
+    # straight to the specimen, in the "new" queue
+    rv$fm_goto <- basename(path)
+    if (identical(cur_mode(), "new")) set_mode("new")
+    else updateRadioButtons(session, "session_mode", selected = "new")
+    updateTabsetPanel(session, "page", selected = "digit")
+    add_rv$orig <- NULL; add_rv$work <- NULL; add_rv$src <- NULL
+    add_rv$srcname <- NULL; add_rv$fbase <- NULL
+    updateTextInput(session, "add_species", value = "")
+    showNotification(paste0("Added: ", basename(path), " (", FM$n("new"),
+                            " photograph(s) in the 'new' queue)."),
+                     type = "message", duration = 8)
+  })
+  output$add_log <- renderUI({
+    lg <- add_rv$log
+    if (is.null(lg)) return(NULL)
+    div(class = "tbhint", style = "margin-top:8px;color:#15803d;",
+        "Written: ", tags$code(basename(lg$path)),
+        if (!is.na(lg$backup)) tagList(" -- original kept in ", tags$code("_originaux/")),
+        " -- no workbook row until the first 'Save & next'.")
+  })
+
+  ## ---- FISHMORPH: bake the flip into the FILE ------------------------------
+  ## "Write what you see": both flips are composed, because in both cases the
+  ## displayed composition is the frame the coordinates belong to. The ORIGINAL
+  ## is re-read at full resolution -- the array on screen is downsampled, and
+  ## writing it would shrink the photograph under full-resolution coordinates.
+  observeEvent(input$flip_write, {
+    if (!IS_FM) return()
+    if (is.null(rv$arr)) { showNotification("No photograph loaded.", type = "error"); return() }
+    if (identical(rv$flip, "none") && identical(rv$dispflip, "none")) {
+      showNotification("No flip to write: both selectors are on None.", type = "message")
+      return()
+    }
+    f <- rv$orig
+    if (is.null(f) || !file.exists(f)) {
+      showNotification("Photograph file not found.", type = "error"); return()
+    }
+    full <- tryCatch(read_image(f), error = function(e) NULL)
+    if (is.null(full)) { showNotification("Could not re-read the photograph.", type = "error"); return() }
+    a <- flip_array(flip_array(full, rv$flip), rv$dispflip)
+    res <- tryCatch(intraitR:::.fm_write_img(a, f), error = function(e) e)
+    if (inherits(res, "error")) {
+      showNotification(paste("Write failed:", conditionMessage(res)), type = "error",
+                       duration = 8)
+      return()
+    }
+    # the session now matches the disk: the points stay where they are (they
+    # were already in the flipped frame), both selectors go back to None
+    if (length(dim(a)) == 2) a <- array(a, c(dim(a), 3))
+    if (dim(a)[3] > 3) a <- a[, , 1:3, drop = FALSE]
+    rv$arr <- downscale(a, disp_max()); rm(a, full)
+    rv$flip <- "none"; rv$dispflip <- "none"
+    updateRadioButtons(session, "flip_mode", selected = "none")
+    updateRadioButtons(session, "flip_disp", selected = "none")
+    rv$img <- make_disp()
+    rv$zoom <- 1; rv$cx <- NULL; rv$cy <- NULL
+    showNotification(paste0(basename(f), " written",
+                            if (isTRUE(res$jpeg)) " (JPEG re-encoded at quality 0.97)" else "",
+                            ". Original kept in _originaux/. Save the specimen as ",
+                            "well if its points changed: this wrote the IMAGE."),
+                     type = "warning", duration = 10)
+  })
+
   output$saved_info <- renderText({
+    if (IS_FM) return(paste0(basename(FM$out_path), "\n",
+                             sprintf("%d record(s) not yet written (flush every %d)",
+                                     rv$pending, CFG$xlsx_flush_every)))
     nm <- if (is.null(rv$meas)) 0L else nrow(rv$meas)
     nb <- if (is.null(rv$bias)) 0L else nrow(rv$bias)
     ni <- if (nb) length(unique(rv$bias$individual)) else 0L
@@ -3259,6 +3787,19 @@ server <- function(input, output, session) {
   ## not rows. A batch is finished when nothing is left in the queue, which is
   ## not the same statement as "n rows have been written".
   output$progress <- renderUI({
+    if (IS_FM) {
+      n <- length(rv$q); e <- fm_entry(); cn <- FM$counts()
+      mpp <- mm_per_px(rv$pred)
+      return(div(class = "progressbox", HTML(sprintf(
+        "<b>%s</b><br>%s<br>Queue: <code>%s</code> &middot; %d to reconstruct &middot; %d to correct &middot; %d new%s",
+        if (is.null(e)) "-" else htmltools::htmlEscape(e$label),
+        if (n) sprintf("Entry %d / %d", rv$qi, n)
+        else sprintf("The '%s' queue is empty.", cur_mode()),
+        cur_mode(), cn[["reconstruct"]], cn[["correct"]], cn[["new"]],
+        if (identical(cur_mode(), "new"))
+          sprintf("<br>Scale: %s", if (is.finite(mpp)) sprintf("%.4f mm/px", mpp)
+                                   else "scale bar 20-21 not placed") else ""))))
+    }
     n <- length(rv$q)
     photo <- if (n && rv$qi > 0L) PHOTO_CODES[rv$q[rv$qi]]
              else if (!is.null(rv$orig)) tools::file_path_sans_ext(basename(rv$orig))
@@ -3285,6 +3826,11 @@ server <- function(input, output, session) {
   ## The session in one line: the paths were declared at the console and cannot
   ## be changed from here, so they are shown, not offered.
   output$session_info <- renderUI({
+    if (IS_FM) return(HTML(sprintf(paste(
+      "FISHMORPH workbook <code>%s</code> &nbsp;&middot;&nbsp; photographs",
+      "<code>%s</code> &nbsp;&middot;&nbsp; journal <code>%s</code>",
+      "&nbsp;&middot;&nbsp; operator <code>%s</code>"),
+      basename(FM$out_path), CFG$fm$photo_dir, basename(journal$path), OPERATOR)))
     HTML(sprintf(paste("Photographs <code>%s</code> (%d) &nbsp;&middot;&nbsp;",
                        "workbook <code>%s</code> &nbsp;&middot;&nbsp;",
                        "journal <code>%s</code> &nbsp;&middot;&nbsp;",

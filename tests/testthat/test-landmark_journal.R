@@ -313,3 +313,36 @@ test_that("the campaign workbook layout converts an old `quality` column", {
   expect_equal(w$quality_score, c(5, 2))
   expect_equal(w$`1_X`, c(1, 2))
 })
+
+test_that("write_xlsx_atomic() refuses to destroy sheets it does not write", {
+  skip_if_not_installed("writexl")
+  d <- tmp_dir(); on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  f <- file.path(d, "ref.xlsx")
+  writexl::write_xlsx(list(Global_segments = data.frame(a = 1),
+                           Global_Landmark = data.frame(b = 2)), f)
+  expect_equal(intraitR:::.xlsx_sheet_names(f), c("Global_segments", "Global_Landmark"))
+  before <- tools::md5sum(f)
+  expect_error(write_xlsx_atomic(list(measurements = data.frame(x = 1)), f),
+               "DESTROY")
+  expect_identical(tools::md5sum(f), before)          # untouched
+  expect_false(file.exists(sub("\\.xlsx$", ".prev.xlsx", f)))
+  # same sheets (or a superset) is the normal rewrite
+  write_xlsx_atomic(list(Global_segments = data.frame(a = 3),
+                         Global_Landmark = data.frame(b = 4)), f)
+  # and an explicit drop is still possible
+  write_xlsx_atomic(list(measurements = data.frame(x = 1)), f, drop_sheets = TRUE)
+  expect_equal(intraitR:::.xlsx_sheet_names(f), "measurements")
+})
+
+test_that("digitize_landmarks() refuses a workbook that is not a campaign workbook", {
+  skip_if_not_installed("writexl")
+  for (pkg in c("shiny", "jpeg", "png")) skip_if_not_installed(pkg)
+  d <- tmp_dir(); on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  ph <- file.path(d, "photos"); dir.create(ph)
+  writeBin(as.raw(c(0xFF, 0xD8)), file.path(ph, "a.jpg"))
+  f <- file.path(d, "FISHMORPH_PUBLI_x_reconstructed.xlsx")
+  writexl::write_xlsx(list(Global_segments = data.frame(a = 1),
+                           Global_Landmark = data.frame(b = 2)), f)
+  expect_error(suppressMessages(digitize_landmarks(ph, xlsx_path = f)),
+               "digitize_fishmorph_reference")
+})

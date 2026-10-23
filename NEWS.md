@@ -1,3 +1,76 @@
+# intraitR 1.43.0
+
+## Fusion des digitizers, etape 3b : la cible FISHMORPH est complete
+
+`digitize_fishmorph_reference()` fait desormais tout ce que faisait
+`Rfishmorph::launch_fishmorph_digitizer()`.
+
+* Page **New species** (onglet a cote de "Digitize") : choisir une photo, la
+  nommer (pre-rempli depuis le nom de fichier, forme du binome verifiee), la
+  CADRER (rotations 90 degres, miroirs, recadrage a la souris, "Reset"), puis
+  l'ajouter : copie dans le dossier des nouvelles photos sous
+  `Genus_species.jpg` (suffixe 2, 3... si l'espece y est deja ; un PNG reste
+  PNG), fichier fourni conserve dans `_originaux/`, file "new" reconstruite et
+  specimen ouvert aussitot. Rien n'est ecrit dans le classeur avant le premier
+  "Save & next".
+* **Verification FishBase** (via `Rfishmorph::validate_species_names()`, qui
+  garde la taxonomie) : signale nom accepte / synonyme / non resolu, ne bloque
+  jamais ; bouton separe pour adopter le nom accepte.
+* **Write the flip into the file** (onglet Display) : ecrit la photo telle
+  qu'affichee, en PLEINE RESOLUTION (l'original est relu : l'image a l'ecran
+  est reduite), original copie une fois dans `_originaux/`, selecteurs remis a
+  None, points inchanges.
+* Tests des fonctions d'integration (rotation, miroir, recadrage, binome,
+  nommage, ecriture avec sauvegarde unique de l'original).
+
+# intraitR 1.42.1
+
+## Correctif de securite : un classeur n'est plus ecrase par un autre format
+
+* INCIDENT du 23/10/2026 : `digitize_landmarks()` lance avec le classeur de
+  reference FISHMORPH comme `xlsx_path` l'a REECRIT en classeur de campagne
+  (`measurements`, `bias`, `bias_summary`), ses trois feuilles disparaissant.
+  Restaure a l'identique depuis son `.prev.xlsx` (MD5 verifie) ; les deux
+  versions sont conservees dans `_backups/fishmorph_restore_20261023/`.
+* `write_xlsx_atomic()` refuse desormais d'ecraser un classeur qui contient des
+  feuilles qu'il n'ecrit pas (erreur qui les nomme, fichier intact) ; argument
+  `drop_sheets = TRUE` pour le faire volontairement. Protege aussi
+  `consolidate_landmarks(xlsx_path =)`.
+* `digitize_landmarks()` refuse de demarrer sur un classeur qui n'est pas un
+  classeur de campagne, et oriente vers `digitize_fishmorph_reference()` quand
+  c'est un classeur FISHMORPH.
+* L'app affiche la vraie raison d'un echec d'ecriture du classeur.
+* `digitize_fishmorph_reference()` : `new_sheet` vaut par defaut `New_specimen`
+  (le nom des classeurs FISHMORPH) ; une feuille au nom approchant est
+  reconnue au lieu d'en creer une nouvelle ; le dossier photo est trouve avec
+  ou sans accents ("Photos utilisees" / "Photos utilisees" accentue) ; un
+  dossier photo qui ne correspond a aucune espece est signale.
+
+# intraitR 1.42.0
+
+## Fusion des digitizers, etape 3a : la cible FISHMORPH dans l'app d'intraitR
+
+* NOUVEAU `digitize_fishmorph_reference()` : l'app de `digitize_landmarks()`
+  ouverte sur le classeur de reference FISHMORPH. Remplace
+  `Rfishmorph::launch_fishmorph_digitizer()` (memes arguments, memes feuilles,
+  memes files `reconstruct` / `correct` / `new`, memes cles de journal : le
+  nom d'espece, ou le nom de fichier pour une nouvelle photo -- l'historique
+  d'une espece continue d'un outil a l'autre).
+* File `reconstruct` : une fois l'axe place, les points sont amorces aux
+  proportions MESUREES de l'espece (ses segments publies ; Eh2/Mo2/PFi2 pour
+  les hauteurs) au lieu des medianes. `seed_configuration()` gagne l'argument
+  `ratios` (defaut : medianes, rien ne change pour la campagne).
+* Tout le reste est celui de l'app de campagne : conventions verifiees a
+  l'enregistrement, regles de points confondus, prediction ml-morph et
+  "Auto", statuts par point, journal commun, note de qualite commune.
+* `R/digitizer_fishmorph.R` : lecture/ecriture du classeur (feuilles
+  `Global_segments`, `Global_Landmark`, `new_specimens` de la copie de
+  travail, editee en place via openxlsx, ecriture atomique), fonctions
+  photo/espece reprises a l'identique de Rfishmorph. `openxlsx` en Suggests.
+* Le lancement est factorise (`.run_digitizer_app()`) entre les deux lanceurs.
+* Pas encore portes (etape 3b) : la page "New species", l'ecriture du
+  retournement dans le fichier photo, la verification FishBase.
+
 # intraitR 1.41.0
 
 ## Une seule echelle de qualite (CHANGEMENT DE CONVENTION)

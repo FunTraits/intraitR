@@ -344,6 +344,27 @@
     names(df) <- hdr
     list(df = df, hdr = hdr)
   }
+  # A sheet named almost like the one asked for IS that sheet: the FISHMORPH
+  # workbooks carry "New_specimen" where the old digitizer defaulted to
+  # "new_specimens", and an exact match then created a fourth sheet -- a second
+  # register of new species, invisible to the first. Case, separators and a
+  # trailing "s" are ignored; the sheet actually used is reported.
+  sheets_in <- openxlsx::getSheetNames(out_path)
+  resolve_sheet <- function(want, create_ok = FALSE) {
+    if (want %in% sheets_in) return(want)
+    norm <- function(x) sub("s$", "", gsub("[^a-z]", "", tolower(x)))
+    hit <- sheets_in[norm(sheets_in) == norm(want)]
+    if (length(hit) == 1L) {
+      message(sprintf("Sheet '%s' not found; using '%s'.", want, hit))
+      return(hit)
+    }
+    if (create_ok) return(want)
+    stop(sprintf("Sheet '%s' not found in %s (sheets: %s).", want,
+                 basename(out_path), paste(sheets_in, collapse = ", ")), call. = FALSE)
+  }
+  seg_sheet <- resolve_sheet(seg_sheet)
+  lm_sheet  <- resolve_sheet(lm_sheet)
+  new_sheet <- resolve_sheet(new_sheet, create_ok = TRUE)
   s1 <- read_sheet(seg_sheet); seg_df <- s1$df
   s2 <- read_sheet(lm_sheet);  lm_df  <- s2$df; lm_hdr <- s2$hdr
   wb <- openxlsx::loadWorkbook(out_path)
@@ -447,6 +468,14 @@
   # alphabetical order of the species, in the C locale (same on every machine):
   # the order of the queue is the order of the work, and congeners come together
   alpha <- function(rows) rows[order(lm_df$Genus.species[rows], method = "radix")]
+  # A workbook whose species find NO photograph is a wrong `photo_dir`, not an
+  # empty queue: said loudly, with what was looked for and what was found.
+  if (nrow(lm_df) && !any(has_photo))
+    warning(sprintf(paste0(
+      "No species of '%s' matches a photograph of %s (%d image(s) indexed). ",
+      "Species keys look like '%s'; photograph keys like '%s'. Check `photo_dir`."),
+      lm_sheet, photo_dir, length(photos), lm_df$.key[1],
+      if (length(photos)) names(photos)[1] else "<none>"), call. = FALSE)
   q_recon <- alpha(which(lm_missing & lm_df$.key %in% rownames(seg_by_key) & has_photo))
   q_corr  <- alpha(which(!lm_missing & has_photo & !is.na(lm_df$.key)))
   list_new <- function()

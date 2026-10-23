@@ -687,6 +687,23 @@ digitize_landmarks <- function(photo_dir,
       stop("Package \"", pkg, "\" is required by digitize_landmarks(); ",
            "install it with install.packages(\"", pkg, "\").", call. = FALSE)
   }
+  # The campaign workbook is REWRITTEN IN FULL by the app. A workbook that is
+  # not one -- typically the FISHMORPH reference workbook, which belongs to
+  # digitize_fishmorph_reference() -- must never be handed to it: its sheets
+  # would be replaced by measurements/bias/bias_summary.
+  if (file.exists(xlsx_path)) {
+    have <- .xlsx_sheet_names(xlsx_path)
+    foreign <- setdiff(have, unname(sheets))
+    if (length(foreign))
+      stop(sprintf(paste0(
+        "`xlsx_path` (%s) is not a campaign workbook: it holds sheet(s) %s, ",
+        "which the app would destroy when it rewrites the file.%s"),
+        basename(xlsx_path), paste(sQuote(foreign, FALSE), collapse = ", "),
+        if (any(c("Global_Landmark", "Global_segments") %in% have))
+          " This is a FISHMORPH workbook: use digitize_fishmorph_reference()."
+        else " Give a new file name, or the campaign workbook itself."),
+        call. = FALSE)
+  }
   # readxl only matters when an existing workbook has to be resumed from.
   if (file.exists(xlsx_path) && !requireNamespace("readxl", quietly = TRUE))
     stop("Package \"readxl\" is required to resume from an existing workbook (",

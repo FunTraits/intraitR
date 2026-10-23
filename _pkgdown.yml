@@ -80,7 +80,6 @@ reference:
       - plot.intrait_traitspace
       - plot_correlation_circle
       - project_fishmorph
-      - plot.intrait_fishmorph_projection
       - plotly_fishmorph
       - itv_proportion
       - shape_space

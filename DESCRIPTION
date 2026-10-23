@@ -1,7 +1,7 @@
 Package: intraitR
 Title: Morphological Trait Analysis Toolkit for Freshwater Fish
-Version: 1.37.0
-Date: 2026-10-21
+Version: 1.38.0
+Date: 2026-10-23
 Authors@R:
     person("Aurele", "Toussaint", , "aurele.toussaint@cnrs.fr", role = c("aut", "cre"))
 Description: A toolkit for the analysis of morphological traits in freshwater
@@ -32,7 +32,7 @@ BugReports: https://github.com/FunTraits/intraitR/issues
 Depends:
     R (>= 4.1.0)
 Imports:
-    Rfishmorph,
+    Rfishmorph (>= 0.17.0),
     geomorph,
     graphics,
     grDevices,

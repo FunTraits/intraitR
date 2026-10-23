@@ -84,7 +84,7 @@ test_that("reset_group_colors() clears the cache so labels can be reassigned fro
   # With a different first-seen label, "A" is no longer necessarily first;
   # what matters is that the cache is genuinely empty (not that the colour
   # differs), which we check via the environment directly.
-  expect_length(ls(envir = intraitR:::.intrait_color_cache), 0)
+  expect_length(ls(envir = Rfishmorph:::.fm_color_cache), 0)
 
   second <- intraitR:::.stable_group_colors("A")
   expect_identical(unname(first["A"]), unname(second["A"]))  # same first slot => same colour again

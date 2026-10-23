@@ -3,7 +3,6 @@
 \name{project_fishmorph}
 \alias{project_fishmorph}
 \alias{print.intrait_fishmorph_projection}
-\alias{plot.intrait_fishmorph_projection}
 \title{Project specimens into the global FISHMORPH functional space}
 \usage{
 project_fishmorph(
@@ -24,31 +23,6 @@ project_fishmorph(
 )
 
 \method{print}{intrait_fishmorph_projection}(x, ...)
-
-\method{plot}{intrait_fishmorph_projection}(
-  x,
-  style = c("hull", "spider", "density", "points"),
-  reference_density = TRUE,
-  reference_points = FALSE,
-  itv_reference = FALSE,
-  arrows = FALSE,
-  arrow_scale = 0.8,
-  arrow_col = "grey20",
-  background = TRUE,
-  background_col = "grey75",
-  density_probs = c(0.25, 0.5, 0.99),
-  density_palette = NULL,
-  select_species = NULL,
-  select_specimens = NULL,
-  ellipse_level = 0.95,
-  density_level = 0.95,
-  legend = TRUE,
-  legend_position = "outside",
-  legend_title = "Species",
-  legend_italic = TRUE,
-  abbreviate_species = TRUE,
-  ...
-)
 }
 \arguments{
 \item{specimens}{A \code{data.frame} (e.g. from \code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, class
@@ -138,86 +112,10 @@ are always dropped (with a message) before the space is built.}
 
 \item{x}{An object of class \code{"intrait_fishmorph_projection"}.}
 
-\item{...}{Further arguments passed to \code{\link[graphics:plot]{graphics::plot()}} (for the
-\code{plot()} method) or currently unused (for \code{print()}).}
-
-\item{style}{Character, one of \code{"hull"} (default; per-species convex hull
-= the ITV footprint), \code{"spider"} (dispersion ellipse + spokes to the
-centroid), \code{"density"} (per-species kernel-density contour of the
-projected specimens), or \code{"points"} (the projected points only, no
-per-group geometry). Note this is the \emph{foreground} per-species geometry
-and is independent of \code{reference_density}, which controls the
-\emph{background} reference heatmap.}
-
-\item{reference_density}{Logical, draw the reference database's
-distribution as a filled kernel-density heatmap (a white-to-red
-gradient with a few nested highest-density-region contour lines) behind
-the projected specimens -- the recommended way to show a ~9,000-species
-morphospace, which is unreadable as raw points. Defaults to \code{TRUE}.}
-
-\item{reference_points}{Logical, draw the reference database species as a
-light background point cloud (the previous default display). Can be
-combined with \code{reference_density}. Defaults to \code{FALSE}.}
-
-\item{itv_reference}{Logical, mark the focal species' \emph{own} entries in
-the reference database -- i.e. the FISHMORPH points of exactly the
-species for which projected ITV is shown -- as filled circles coloured
-to match their species, so the single database morphotype can be
-compared with the spread of the projected individuals. Requires the
-projection to carry reference species labels (\code{x$global_species}, added
-by \code{\link[=project_fishmorph]{project_fishmorph()}}); species with no matching reference row are
-skipped with a warning. Defaults to \code{FALSE}.}
-
-\item{arrows}{Logical, overlay the trait \emph{loadings} (the PCA variable
-contributions stored in \code{x$loadings}) as a biplot: one arrow per trait,
-drawn from the origin in the direction of that trait's loading on the
-two plotted axes, with the trait name at the arrow tip. This turns the
-score plot into a standard PCA biplot, showing which morphological
-ratios drive each axis and hence how a group's position in the
-morphospace should be read ecomorphologically (e.g. an ITV footprint
-stretched along the body-elongation arrow varies mostly in body shape).
-The arrows are a purely visual overlay and do not change the ordination.
-Defaults to \code{FALSE}.}
-
-\item{arrow_scale}{Numeric in \verb{(0, 1]}, how far the longest loading arrow
-reaches, as a fraction of the distance from the origin to the nearest
-plot edge; all arrows are scaled by this same factor so their relative
-lengths and directions are preserved. Loadings are unit-scaled vectors
-with no natural size in score units, so this is a display choice only.
-Smaller values keep the arrows clear of the outer points; larger values
-make short loadings more legible. Only used when \code{arrows = TRUE}.
-Defaults to \code{0.8}.}
-
-\item{arrow_col}{Colour of the loading arrows and their trait labels (when
-\code{arrows = TRUE}). Defaults to \code{"grey20"}.}
-
-\item{background}{Logical master switch: when \code{FALSE}, no reference
-background layer of any kind is drawn (overrides \code{reference_density},
-\code{reference_points} and \code{itv_reference}). Defaults to \code{TRUE}.}
-
-\item{background_col}{Colour of the reference point cloud (when
-\code{reference_points = TRUE}). Defaults to \code{"grey75"}.}
-
-\item{density_probs}{Numeric vector of coverage probabilities for the
-reference heatmap's highest-density-region contour lines. Defaults to
-\code{c(0.25, 0.5, 0.99)}.}
-
-\item{density_palette}{Optional character vector of colours for the
-reference heatmap gradient (low to high density). \code{NULL} (default) uses
-a white-to-dark-red ColorBrewer YlOrRd ramp.}
-
-\item{ellipse_level, density_level}{Coverage probabilities for the
-\code{"spider"} ellipse and \code{"density"} contour respectively. Default
-\code{0.95}.}
-
-\item{legend}{Logical, draw a species legend. Defaults to \code{TRUE}.}
-
-\item{legend_position, legend_title, legend_italic, abbreviate_species}{Legend controls, as in \code{\link[=plot.intrait_traitspace]{plot.intrait_traitspace()}}; defaults here are
-tuned for species names (\code{legend_title = "Species"}, italic,
-abbreviated binomials).}
+\item{...}{Currently unused.}
 }
 \value{
-An object of class \code{"intrait_fishmorph_projection"}, a list with
+An object of class \code{c("intrait_fishmorph_projection", "fishmorph_projection")}, a list with
 elements \code{scores} (data.frame of projected specimen scores on the two
 axes), \code{global_scores} (data.frame of the reference species' own scores
 on the same axes, for the background cloud), \code{global_species} (character
@@ -236,15 +134,14 @@ components), \code{specimen_traits} (the transformed specimen traits, analysis
 scale), \code{trait_ranges_reference} (per-trait reference envelope),
 \code{reference_traits} (the full reference trait matrix on the analysis scale,
 one row per reference species -- used e.g. by
-\code{\link[=plot_fishmorph_density]{plot_fishmorph_density()}} to draw the reference trait distributions),
+\code{\link[Rfishmorph:plot_fishmorph_density]{Rfishmorph::plot_fishmorph_density()}} to draw the reference trait distributions),
 \code{volume_dims}, and \code{itv_proportion} -- an \code{"intrait_itv_proportion"}
 object (see \code{\link[=itv_proportion]{itv_proportion()}}) giving the ITV-to-global proportion per
-trait and per functional volume, pooled and per species. Has dedicated
-\code{\link[=print]{print()}} and \code{\link[=plot]{plot()}} methods.
+trait and per functional volume, pooled and per species. Has a \code{\link[=print]{print()}}
+method (which adds the ITV summary); plotting is done by
+\code{\link[Rfishmorph:plot.fishmorph_projection]{Rfishmorph::plot.fishmorph_projection()}}.
 
 \code{print()} invisibly returns \code{x}.
-
-\code{plot()} invisibly returns \code{x}.
 }
 \description{
 Builds a fixed functional trait space by Principal Component Analysis of
@@ -258,27 +155,16 @@ intraspecific trait variation (ITV) occupies relative to the entire
 diversity of fishes, on axes defined once by the reference alone (so the
 space does not move when specimens are added or removed, and separate
 studies remain comparable).
-
-Draws the reference database as a background layer -- by default a
-kernel-density heatmap of the whole FISHMORPH morphospace -- with the
-projected specimens on top of it, grouped/coloured by species, in any of
-the display styles shared with \code{\link[=plot.intrait_traitspace]{plot.intrait_traitspace()}}. The
-background can equivalently (or additionally) be shown as the raw
-reference point cloud, and the focal species' own positions \emph{in the
-reference database} can be marked, to see how a group's projected
-intraspecific trait variation (ITV) sits relative to its single
-database point.
 }
 \details{
-In the \code{plot()} method, \code{select_species}/\code{select_specimens} restrict
-\emph{this plot} to a subset of the already-projected species or specimen
-identifiers, without recomputing the space (the reference background is
-unchanged); \code{NULL} (default) plots everything projected. When
-\code{itv_reference = TRUE}, the reference points marked follow the same
-selection: only the focal species still shown after
-\code{select_species}/\code{select_specimens} are matched against the reference
-database (matching is case-insensitive and treats spaces and underscores
-as equivalent, so \code{"Squalius cephalus"} and \code{"Squalius_cephalus"} match).
+The projection itself is computed by \code{\link[Rfishmorph:project_fishmorph]{Rfishmorph::project_fishmorph()}},
+which owns the FISHMORPH space and its figures; this function calls it and
+adds what is specific to intraitR, the intraspecific-variability analysis
+(\code{\link[=itv_proportion]{itv_proportion()}}). The result is therefore both an
+\code{"intrait_fishmorph_projection"} and a \code{"fishmorph_projection"}: it is
+drawn by Rfishmorph's \link[Rfishmorph:plot.fishmorph_projection]{plot()}
+method, \code{\link[Rfishmorph:plotly_fishmorph]{Rfishmorph::plotly_fishmorph()}} and \code{\link[Rfishmorph:plot_fishmorph_density]{Rfishmorph::plot_fishmorph_density()}} (re-exported
+from Rfishmorph), which show the ITV results when present.
 }
 \section{Scale of the reference vs the specimens}{
 
@@ -336,7 +222,9 @@ morphological traits of freshwater fishes. Global Ecology and
 Biogeography, 30(11), 2330-2336.
 }
 \seealso{
-\code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=trait_space]{trait_space()}},
-\code{\link[=plot.intrait_fishmorph_projection]{plot.intrait_fishmorph_projection()}}, \code{\link[=plotly_fishmorph]{plotly_fishmorph()}} (the same
-figure as an interactive widget), \code{\link[=plot_fishmorph_density]{plot_fishmorph_density()}}
+\code{\link[Rfishmorph:project_fishmorph]{Rfishmorph::project_fishmorph()}} (the projection itself),
+\code{\link[Rfishmorph:plot.fishmorph_projection]{Rfishmorph::plot.fishmorph_projection()}} (the static figure and its
+options), \code{\link[Rfishmorph:plotly_fishmorph]{Rfishmorph::plotly_fishmorph()}} (the same figure as an
+interactive widget), \code{\link[Rfishmorph:plot_fishmorph_density]{Rfishmorph::plot_fishmorph_density()}},
+\code{\link[=itv_proportion]{itv_proportion()}}, \code{\link[=fishmorph_ratios]{fishmorph_ratios()}}, \code{\link[=trait_space]{trait_space()}}
 }

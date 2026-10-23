@@ -1,3 +1,30 @@
+# intraitR 1.38.0
+
+## Dedoublonnage avec Rfishmorph : la visualisation de l'espace FISHMORPH part dans Rfishmorph
+
+Partage des roles : intraitR MESURE (numerisation, landmarks, segments,
+ratios, erreur de mesure) et analyse l'ITV ; Rfishmorph detient la reference
+FISHMORPH et VISUALISE son espace. Necessite Rfishmorph >= 0.17.0.
+
+* `plotly_fishmorph()`, `plot_fishmorph_density()`, `max_pair_distance()`,
+  `group_colors()` et `reset_group_colors()` sont desormais implementes dans
+  Rfishmorph et **reexportes** ici : les appels `intraitR::...` (scripts,
+  FishInTrait) restent valides sans modification.
+* `project_fishmorph()` appelle `Rfishmorph::project_fishmorph()` (projection
+  unique) puis ajoute `itv_proportion()`. Le resultat est de classe
+  `c("intrait_fishmorph_projection", "fishmorph_projection")` ; memes champs
+  qu'avant. Le trace passe par `Rfishmorph::plot.fishmorph_projection()`
+  (memes arguments ; la methode `plot.intrait_fishmorph_projection()` est
+  supprimee) ; `print()` affiche le resume Rfishmorph puis le bloc ITV.
+* Moteur de trace des ordinations (`trait_space`, `shape_space`,
+  `itv_accumulation`, `species_sensitivity`, `bootstrap_functional_space`) :
+  delegue a Rfishmorph (`fm_plot_ordination()`, `fm_group_palette()`,
+  `fm_abbreviate_species()`). Il n'existe plus qu'un cache de couleurs par
+  session : une espece a la meme couleur dans les figures intraitR et
+  Rfishmorph (il y en avait deux, donc parfois deux couleurs).
+* Bilan : ~2 300 lignes de code R (net) et ~375 lignes de tests en moins dans
+  intraitR ; le code et ses tests vivent dans Rfishmorph.
+
 # intraitR 1.37.0
 
 ## Landmarking tout automatique (sans clic)

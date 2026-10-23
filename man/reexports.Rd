@@ -6,6 +6,11 @@
 \alias{load_fishmorph_phylogeny}
 \alias{load_fishmorph_phylo_axes}
 \alias{phylo_pcoa}
+\alias{group_colors}
+\alias{reset_group_colors}
+\alias{max_pair_distance}
+\alias{plotly_fishmorph}
+\alias{plot_fishmorph_density}
 \title{Objects exported from other packages}
 \keyword{internal}
 \description{
@@ -13,6 +18,6 @@ These objects are imported from other packages. Follow the links
 below to see their documentation.
 
 \describe{
-  \item{Rfishmorph}{\code{\link[Rfishmorph:load_fishmorph_phylo_axes]{load_fishmorph_phylo_axes()}}, \code{\link[Rfishmorph:load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}}, \code{\link[Rfishmorph:phylo_pcoa]{phylo_pcoa()}}}
+  \item{Rfishmorph}{\code{\link[Rfishmorph:group_colors]{group_colors()}}, \code{\link[Rfishmorph:load_fishmorph_phylo_axes]{load_fishmorph_phylo_axes()}}, \code{\link[Rfishmorph:load_fishmorph_phylogeny]{load_fishmorph_phylogeny()}}, \code{\link[Rfishmorph:max_pair_distance]{max_pair_distance()}}, \code{\link[Rfishmorph:phylo_pcoa]{phylo_pcoa()}}, \code{\link[Rfishmorph:plot_fishmorph_density]{plot_fishmorph_density()}}, \code{\link[Rfishmorph:plotly_fishmorph]{plotly_fishmorph()}}, \code{\link[Rfishmorph:reset_group_colors]{reset_group_colors()}}}
 }}
 

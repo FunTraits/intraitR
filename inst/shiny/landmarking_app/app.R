@@ -2201,10 +2201,21 @@ server <- function(input, output, session) {
   ## Place every landmark the operator has not touched at its median FISHMORPH
   ## proportion. Protected from being overwritten: the axis itself (it is the
   ## input), anything placed by hand, and anything marked NA.
-  reseed <- function(quiet = TRUE) {
+  ## `keep_settled`: also leave alone every anatomical point that is placed and
+  ## no longer at its seed -- the points the model PREDICTED, above all. Without
+  ## it, moving a frame point (1, 2, 3, a hinge) after 'Auto' or 'Predict'
+  ## threw the whole prediction away and dropped every point back onto the
+  ## median proportions. Only the explicit 'Re-seed' button starts afresh.
+  reseed <- function(quiet = TRUE, keep_settled = TRUE) {
     P <- rv$pred
     if (is.null(P) || !fin_row(P, 1L) || !fin_row(P, 2L)) return(invisible(FALSE))
     keep <- Reduce(union, list(rv$edited, rv$na, c(1L, 2L), HINGES))
+    if (keep_settled) {
+      anat <- seq_len(N_ANAT)
+      settled <- anat[vapply(anat, function(i) fin_row(P, i), logical(1)) &
+                        !(anat %in% rv$seeded)]
+      keep <- union(keep, settled)
+    }
     P2 <- seed_configuration(P, seed_params(), isTRUE(input$flipdorsal), keep = keep,
                              ratios = fm_ratios())
     if (is.null(P2)) return(invisible(FALSE))
@@ -2215,7 +2226,7 @@ server <- function(input, output, session) {
                      length(setdiff(rv$seeded, DERIVED_LM))))
     invisible(TRUE)
   }
-  observeEvent(input$reseed, reseed(quiet = FALSE))
+  observeEvent(input$reseed, reseed(quiet = FALSE, keep_settled = FALSE))
   ## The scale bar 20-21 is part of the sequence only where a ruler is on the
   ## photograph: the published FISHMORPH photographs carry none, and their
   ## sheet has no column for it.
@@ -2365,7 +2376,15 @@ server <- function(input, output, session) {
     # As soon as the axis is complete, drop the whole configuration onto the
     # median FISHMORPH proportions, so from LM2 onwards the work is
     # repositioning rather than placing on a bare photograph.
-    if (frame_pt && fin_row(rv$pred, 1L) && fin_row(rv$pred, 2L)) reseed()
+    # Only the points still at their seed follow (keep_settled): a predicted or
+    # placed configuration stays where it is, and only the alignment rules that
+    # hang on the moved point are re-applied (perpendicular partner, derived
+    # ventral points, head axis).
+    if (frame_pt && fin_row(rv$pred, 1L) && fin_row(rv$pred, 2L)) {
+      reseed()
+      if (isTRUE(input$auto_constraints))
+        rv$pred <- collapse_pred(propagate_conventions(rv$pred, just))
+    }
   })
 
   ## ---- contextual help ------------------------------------------------------

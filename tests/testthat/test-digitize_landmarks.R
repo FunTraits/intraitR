@@ -22,9 +22,26 @@ make_photo_dir <- function(codes = c("fish_01", "fish_02")) {
 
 test_that("digitize_landmarks() validates `photo_dir`", {
   expect_error(digitize_landmarks(123), "single path")
-  expect_error(digitize_landmarks(c("a", "b")), "single path")
+  expect_error(digitize_landmarks(c("a", "b")), "not found")
   expect_error(digitize_landmarks(file.path(tempdir(), "no_such_dir_xyz")),
                "directory not found")
+})
+
+test_that("`photo_dir` also takes a selection of photographs", {
+  d <- make_photo_dir(c("fish_01", "fish_02", "fish_03"))
+  on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  f <- file.path(d, c("fish_01.jpg", "fish_03.jpg"))
+  expect_error(digitize_landmarks(c(f, file.path(d, "nope.jpg"))), "not found")
+  txt <- file.path(d, "notes.txt"); writeLines("x", txt)
+  expect_error(digitize_landmarks(c(f, txt)), "not an image file")
+  d2 <- make_photo_dir("fish_01"); on.exit(unlink(d2, recursive = TRUE), add = TRUE)
+  expect_error(digitize_landmarks(c(f, file.path(d2, "fish_01.jpg"))),
+               "share the specimen code")
+  # a valid selection goes on to the next checks (here: the workbook path)
+  expect_error(digitize_landmarks(f, xlsx_path = file.path(d, "out.csv")),
+               "must end in")
+  expect_error(digitize_landmarks(f[1], xlsx_path = file.path(d, "out.csv")),
+               "must end in")
 })
 
 test_that("an empty photograph directory is refused", {

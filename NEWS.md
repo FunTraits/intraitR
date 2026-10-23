@@ -1,3 +1,32 @@
+# intraitR 1.45.0
+
+* Digitizer : CORRECTION. Deplacer un point de repere du cadre (1, 2, 3 ou une
+  charniere) apres 'Auto' / 'Predict' relancait le pre-placement sur les
+  proportions medianes FISHMORPH et ecrasait TOUTE la prediction. Desormais
+  seuls les points encore a leur position de graine suivent ; les points
+  predits ou places restent ou ils sont, et seules les regles d'alignement
+  liees au point deplace sont reappliquees (partenaire perpendiculaire, points
+  ventraux derives, axe de la tete). Les curseurs de graine ne touchent plus
+  non plus a une prediction. Le bouton 'Re-seed' repart toujours de zero.
+
+* `digitize_landmarks(photo_dir = )` accepte aussi un VECTEUR de fichiers
+  image : seules ces photos forment la file (une selection faite avant, par
+  ex. une espece d'une date). Noms de fichier distincts exiges (le nom est le
+  code specimen) ; le dossier de la premiere tient lieu de `photo_dir`.
+* `options(intraitR.background = TRUE)` leve le garde `interactive()` pour un
+  lanceur qui fait tourner l'app dans un processus R d'arriere-plan (le hub de
+  mesure de FishInTrait, via callr), avec `launch.browser = FALSE` et un `port`.
+
+* `batch_landmarks(ruler = TRUE, ruler_mm = 10)` : on declare si les photos
+  portent une regle. `TRUE` (defaut, comportement inchange) : la regle (20-21)
+  est detectee par le reseau `mlmorph_run_ruler` (`mm_per_px`, `bl_mm`) et une
+  photo sans regle lisible est signalee `règle` ; un avertissement previent si
+  ce reseau est absent. `FALSE` : aucune detection, aucun drapeau `règle`,
+  mesures en pixels. Le choix est trace par photo dans la colonne `ruler` de
+  `summary.csv` ; `read_batch_landmarks()` met `ruler = TRUE` pour les lots
+  anterieurs. `ruler_mm` (distance 20-21) n'etait pas transmis jusqu'ici :
+  10 mm etait impose. La doc, qui disait la regle non detectee, est corrigee.
+
 # intraitR 1.44.0
 
 ## Fusion des digitizers, etape 4 : la base FISHMORPH rejoint la mesure

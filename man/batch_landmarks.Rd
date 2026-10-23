@@ -11,6 +11,8 @@ batch_landmarks(
   qc = TRUE,
   open_qc = interactive(),
   max_fish = 1L,
+  ruler = TRUE,
+  ruler_mm = 10,
   min_bl_frac = 0.15,
   hinges = FALSE,
   redo = FALSE,
@@ -35,6 +37,16 @@ is skipped unless \code{redo = TRUE}.}
 carrying more is flagged \code{plusieurs}. More (plates): up to \code{max_fish} fish
 are found, numbered \code{individual} 1, 2, ... from top to bottom.}
 
+\item{ruler}{Do the photographs carry a ruler (scale bar)? \code{TRUE}
+(default): it is detected automatically (landmarks 20-21) and a photograph
+without a readable ruler is flagged \code{règle}. \code{FALSE}: no detection, no
+\code{règle} flag, measurements in pixels only. Applies to the whole call: run a
+folder with and a folder without ruler separately (a photograph already in
+\code{out_dir} keeps its first run unless \code{redo = TRUE}).}
+
+\item{ruler_mm}{Real distance between landmarks 20 and 21, in mm (used only
+when \code{ruler = TRUE}).}
+
 \item{min_bl_frac}{Flag threshold (see Details).}
 
 \item{hinges}{Also write the hinges 22/24 of the broken axis predicted by the
@@ -49,8 +61,8 @@ clicked for training, predicted hinges bias the derived points.}
 }
 \value{
 Invisibly, a list: \code{summary} (one row per fish: \code{photo},
-\code{individual}, dimensions, standard length in pixels \code{bl_px}, \code{score},
-\code{flags}, \code{risk}), \code{landmarks} (long: \code{photo}, \code{individual}, \code{landmark},
+\code{individual}, \code{ruler}, dimensions, standard length in pixels \code{bl_px},
+\code{score}, \code{flags}, \code{risk}, and with a ruler \code{mm_per_px}, \code{bl_mm}), \code{landmarks} (long: \code{photo}, \code{individual}, \code{landmark},
 \code{X}, \code{Y}, \code{conf}) and \code{out_dir}.
 }
 \description{
@@ -83,8 +95,16 @@ snout-caudal pair is checked by the fine model, which recognises a real fish
 in the canonical frame; on plates, each fish found is masked before the next
 is searched.
 
-The scale bar (20-21) is not detected: coordinates are in pixels of the raw
-pixel grid (EXIF orientation ignored, as in the applications).
+Scale bar (20-21): when the photographs carry a ruler (\code{ruler = TRUE}, the
+default) and the ruler network \code{mlmorph_run_ruler/model.onnx} is present, the
+two graduations are located automatically and \code{summary} gains \code{mm_per_px},
+\code{scale_quality} and \code{bl_mm}; a photograph whose ruler cannot be read is
+flagged \code{règle}, and one whose graduation period departs from the network's
+order of magnitude is flagged \code{échelle}. With \code{ruler = FALSE} nothing is
+searched and nothing is flagged: measurements stay in pixels. The choice is
+recorded per photograph in the \code{ruler} column of \code{summary}. Coordinates are
+in pixels of the raw pixel grid (EXIF orientation ignored, as in the
+applications).
 }
 \examples{
 \dontrun{

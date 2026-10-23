@@ -31,7 +31,12 @@ digitize_landmarks(
 \item{photo_dir}{Directory of specimen photographs. Every image in it forms
 the working queue (\code{jpg}, \code{jpeg}, \code{png}, \code{gif}, \code{bmp}, \code{tif}, \code{tiff}); the
 file name without its extension is the specimen code. Photographs stay
-where they are -- only their name and pixel size are ever recorded.}
+where they are -- only their name and pixel size are ever recorded.
+Alternatively, a character vector of image FILES: only those photographs
+form the queue (a selection made beforehand, e.g. one species of a sampling
+date). Their file names must be distinct, since the name is the specimen
+code; the folder of the first one stands for \code{photo_dir} (default
+\code{xlsx_path}, messages).}
 
 \item{xlsx_path}{Path of the single output workbook. \code{NULL} (default) uses
 \code{intraitR_landmarks.xlsx} next to \code{photo_dir}. Created if absent; an
@@ -143,6 +148,12 @@ or \code{host}). Do not pass \code{appDir}; the packaged app directory is used.}
 \value{
 Invisibly, the path of the workbook. Called for its side effect of
 running the Shiny application (a blocking call in an interactive session).
+
+The app refuses a non-interactive session, where nobody could click. A
+launcher that runs it in a background R process on purpose (the
+FishInTrait measuring hub does, with \code{callr}) sets
+\code{options(intraitR.background = TRUE)} there, together with
+\code{launch.browser = FALSE} and a \code{port}, and opens the URL itself.
 }
 \description{
 Opens the bundled Shiny application for semi-automatic digitization of fish

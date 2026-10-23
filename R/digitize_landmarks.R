@@ -18,6 +18,11 @@
 #'   the working queue (`jpg`, `jpeg`, `png`, `gif`, `bmp`, `tif`, `tiff`); the
 #'   file name without its extension is the specimen code. Photographs stay
 #'   where they are -- only their name and pixel size are ever recorded.
+#'   Alternatively, a character vector of image FILES: only those photographs
+#'   form the queue (a selection made beforehand, e.g. one species of a sampling
+#'   date). Their file names must be distinct, since the name is the specimen
+#'   code; the folder of the first one stands for `photo_dir` (default
+#'   `xlsx_path`, messages).
 #' @param xlsx_path Path of the single output workbook. `NULL` (default) uses
 #'   `intraitR_landmarks.xlsx` next to `photo_dir`. Created if absent; an
 #'   existing workbook is resumed from (its specimens are excluded from the
@@ -111,6 +116,12 @@
 #'
 #' @return Invisibly, the path of the workbook. Called for its side effect of
 #'   running the Shiny application (a blocking call in an interactive session).
+#'
+#'   The app refuses a non-interactive session, where nobody could click. A
+#'   launcher that runs it in a background R process on purpose (the
+#'   FishInTrait measuring hub does, with `callr`) sets
+#'   `options(intraitR.background = TRUE)` there, together with
+#'   `launch.browser = FALSE` and a `port`, and opens the URL itself.
 #'
 #' @details
 #' The Shiny application is shipped inside the package
@@ -605,10 +616,32 @@ digitize_landmarks <- function(photo_dir,
       stop("`", what, "` must be a single path.", call. = FALSE)
     x
   }
-  photo_dir <- .one_path(photo_dir, "photo_dir")
-  if (!dir.exists(photo_dir))
-    stop("`photo_dir` directory not found: ", photo_dir, call. = FALSE)
-  photo_dir <- normalizePath(photo_dir, mustWork = TRUE)
+  .img_re <- "\\.(jpe?g|png|gif|bmp|tiff?)$"
+  photo_files <- NULL
+  if (is.character(photo_dir) && !anyNA(photo_dir) &&
+      (length(photo_dir) > 1L || (length(photo_dir) == 1L && file.exists(photo_dir) &&
+                                  !dir.exists(photo_dir)))) {
+    # a selection of photographs rather than a folder
+    miss <- photo_dir[!file.exists(photo_dir) | dir.exists(photo_dir)]
+    if (length(miss))
+      stop("`photo_dir`: ", length(miss), " photograph(s) not found, e.g. ",
+           miss[1], call. = FALSE)
+    bad <- photo_dir[!grepl(.img_re, photo_dir, ignore.case = TRUE)]
+    if (length(bad))
+      stop("`photo_dir`: not an image file: ", bad[1], call. = FALSE)
+    photo_files <- unique(normalizePath(photo_dir, mustWork = TRUE))
+    dup <- tools::file_path_sans_ext(basename(photo_files))
+    dup <- unique(dup[duplicated(dup)])
+    if (length(dup))
+      stop("`photo_dir`: two photographs share the specimen code ",
+           sQuote(dup[1], FALSE), " (the file name is the code).", call. = FALSE)
+    photo_dir <- dirname(photo_files[1])
+  } else {
+    photo_dir <- .one_path(photo_dir, "photo_dir")
+    if (!dir.exists(photo_dir))
+      stop("`photo_dir` directory not found: ", photo_dir, call. = FALSE)
+    photo_dir <- normalizePath(photo_dir, mustWork = TRUE)
+  }
 
   if (is.null(xlsx_path))
     xlsx_path <- file.path(dirname(photo_dir), "intraitR_landmarks.xlsx")
@@ -722,11 +755,14 @@ digitize_landmarks <- function(photo_dir,
             "install.packages(\"bslib\") for the themed interface.")
 
   ## ---- the photograph queue -------------------------------------------------
-  photos <- sort(list.files(photo_dir, full.names = TRUE, ignore.case = TRUE,
-                            pattern = "\\.(jpe?g|png|gif|bmp|tiff?)$"))
+  photos <- if (!is.null(photo_files)) sort(photo_files) else
+    sort(list.files(photo_dir, full.names = TRUE, ignore.case = TRUE,
+                    pattern = .img_re))
   if (!length(photos))
     stop("No image found in `photo_dir`: ", photo_dir, call. = FALSE)
-  message(sprintf("%d photograph(s) in %s.", length(photos), photo_dir))
+  message(sprintf("%d photograph(s) %s %s.", length(photos),
+                  if (is.null(photo_files)) "in" else "selected, first folder:",
+                  photo_dir))
 
   ## ---- locate the packaged app and worker -----------------------------------
   app_dir <- system.file("shiny", "landmarking_app", package = "intraitR")
@@ -777,7 +813,7 @@ digitize_landmarks <- function(photo_dir,
       call. = FALSE)
 
   ## ---- guard: the app needs an interactive session --------------------------
-  if (!interactive())
+  if (!interactive() && !isTRUE(getOption("intraitR.background")))
     stop("digitize_landmarks() launches an interactive Shiny application and ",
          "cannot be run non-interactively (e.g. via Rscript, in a knitted ",
          "vignette, or inside automated tests). Run it from an interactive R ",

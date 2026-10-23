@@ -32,7 +32,8 @@ Sorties dans --out-dir :
                        triée par risque décroissant
 Règle (20-21) : détectée automatiquement si le réseau mlmorph_run_ruler existe (mm_per_px,
 scale_quality, bl_mm dans summary.csv ; drapeau « règle » si aucune règle lisible) ; sinon
-les mesures restent en pixels.
+les mesures restent en pixels. --no-ruler : photos sans règle (pas de détection, pas de
+drapeau « règle », colonne ruler = False).
 Reprise : une photo déjà présente dans summary.csv est sautée (--redo pour tout refaire).
 
 Usage (depuis ml_morph/) :
@@ -146,6 +147,9 @@ def main():
     ap.add_argument("--redo", action="store_true")
     ap.add_argument("--no-auto-scale", dest="auto_scale", action="store_false", default=True,
                     help="pas de détection automatique de la règle (mlmorph_run_ruler)")
+    ap.add_argument("--no-ruler", dest="has_ruler", action="store_false", default=True,
+                    help="les photos ne portent pas de règle : ni détection, ni drapeau « règle » "
+                         "(colonne ruler = False dans summary.csv)")
     ap.add_argument("--ruler-mm", type=float, default=10.0, help="distance réelle entre 20 et 21 (mm)")
     ap.add_argument("--no-refine-regions", dest="refine_regions", action="store_false", default=True,
                     help="sans le 2e étage à haute résolution (mlmorph_run_refine_*)")
@@ -171,7 +175,7 @@ def main():
     if a.refine_regions:
         chain.load_refiners(a.predictor)
     chain.ruler = None
-    if a.auto_scale:
+    if a.auto_scale and a.has_ruler:
         chain.load_ruler(a.predictor)
 
     rows, lms, t0 = [], [], time.time()
@@ -179,7 +183,7 @@ def main():
         img = cv2.imread(f, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
         if img is None:
             rows.append(dict(photo=os.path.abspath(f), photo_name=os.path.basename(f), individual=1,
-                             flags="illisible", risk=9.0))
+                             ruler=a.has_ruler, flags="illisible", risk=9.0))
             continue
         H, Wd = img.shape[:2]
         sc = (W.auto_scale(img, chain.ruler, ruler_mm=a.ruler_mm, period_model=chain.period)
@@ -191,7 +195,7 @@ def main():
         V = sorted(V[:a.max_fish], key=lambda h: float((h["snout"][1] + h["caudal"][1]) / 2))
         if not V:
             rows.append(dict(photo=os.path.abspath(f), photo_name=os.path.basename(f), individual=1,
-                             width=Wd, height=H, flags="aucun", risk=9.0))
+                             width=Wd, height=H, ruler=a.has_ruler, flags="aucun", risk=9.0))
             continue
         for ind, h in enumerate(V, 1):
             Q, cf = h["P"], h["conf"]
@@ -211,7 +215,7 @@ def main():
             dorsal_ok = bool(np.sign(side(h["orient"])) == np.sign(side(Q[2])))
             margin = 0.01 * max(H, Wd)
             edge = bool(((Q[:, 0] < margin) | (Q[:, 1] < margin) | (Q[:, 0] > Wd - margin) | (Q[:, 1] > H - margin)).any())
-            r = dict(photo=os.path.abspath(f), photo_name=os.path.basename(f), individual=ind, n_found=len(V),
+            r = dict(photo=os.path.abspath(f), photo_name=os.path.basename(f), individual=ind, n_found=len(V), ruler=a.has_ruler,
                      width=Wd, height=H, bl_px=round(bl, 1), bl_frac=round(bl / max(H, Wd), 3),
                      score=round(h["score"], 4), dorsal_ok=dorsal_ok, edge=edge, extra_fish=extra,
                      curvature_pct=round(float(curv), 2), straightened=bool(redressed),
@@ -247,7 +251,9 @@ def main():
         if not bool(r["dorsal_ok"]): f.append("dorsal")
         if r["bl_frac"] < a.min_bl_frac: f.append("petit")
         if bool(r["edge"]): f.append("bord")
-        if "scale_quality" in r and chain.ruler is not None and not (r["scale_quality"] > 0): f.append("règle")
+        has_r = r.get("ruler", True)          # lots antérieurs à --no-ruler : règle supposée
+        has_r = True if has_r is None or (isinstance(has_r, float) and not np.isfinite(has_r)) else bool(has_r)
+        if has_r and "scale_quality" in r and chain.ruler is not None and not (r["scale_quality"] > 0): f.append("règle")
         # période spectrale éloignée de l'ordre de grandeur du réseau : échelle à vérifier
         svh = r.get("scale_vs_hint", np.nan)
         if np.isfinite(svh) and not (0.8 <= svh <= 1.25): f.append("échelle")

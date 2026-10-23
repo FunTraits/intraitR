@@ -1,3 +1,21 @@
+# intraitR 1.44.0
+
+## Fusion des digitizers, etape 4 : la base FISHMORPH rejoint la mesure
+
+* NOUVEAU (deplaces de Rfishmorph, qui ne mesure plus) : `fishmorph_build_db()`,
+  `fishmorph_validate()`, `fishmorph_db_connect()`. La base DuckDB est
+  construite depuis le journal COMMUN (`consolidate_landmarks(long = TRUE)`),
+  qui relit les journaux de l'ancien digitizer comme ceux de
+  `digitize_fishmorph_reference()`. Vocabulaire des statuts : celui du journal
+  ("placed" devient "clicked" ; la vue `v_specimen_qc` garde `n_placed` comme
+  alias de `n_clicked`, les requetes existantes fonctionnent). DBI et duckdb en
+  Suggests.
+* NOUVEAU `write_workbook_atomic()` : ecriture atomique d'un classeur openxlsx
+  edite en place (remplace `Rfishmorph::fm_save_workbook_atomic()`, utilise par
+  FishInTrait).
+* `inst/MEMO_requetes_db.md` (requetes SQL sur la base) vient de Rfishmorph.
+* Les scripts Python ml-morph n'existent plus qu'ici (`inst/mlmorph/`).
+
 # intraitR 1.43.0
 
 ## Fusion des digitizers, etape 3b : la cible FISHMORPH est complete

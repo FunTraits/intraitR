@@ -1,6 +1,6 @@
 Package: intraitR
 Title: Morphological Trait Analysis Toolkit for Freshwater Fish
-Version: 1.43.0
+Version: 1.44.0
 Date: 2026-10-23
 Authors@R:
     person("Aurele", "Toussaint", , "aurele.toussaint@cnrs.fr", role = c("aut", "cre"))
@@ -42,7 +42,9 @@ Imports:
 Suggests:
     ape,
     bslib,
+    DBI,
     dplyr,
+    duckdb,
     FD,
     future,
     future.apply,

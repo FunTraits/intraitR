@@ -628,3 +628,22 @@
        counts = function() c(reconstruct = length(q_recon),
                              correct = length(q_corr), new = length(new_photos)))
 }
+
+#' Write an openxlsx workbook atomically
+#'
+#' The openxlsx counterpart of [write_xlsx_atomic()], for a workbook EDITED in
+#' place (loaded with `openxlsx::loadWorkbook()`, so its other sheets and
+#' columns are carried along): written to a temporary file in the same
+#' directory, then renamed over the target; the previous generation is kept as
+#' `"<name>.prev.xlsx"` and restored if the rename fails. Used by
+#' [digitize_fishmorph_reference()] for the FISHMORPH workbook, and by
+#' FishInTrait (it replaces `Rfishmorph::fm_save_workbook_atomic()`).
+#'
+#' @param wb An openxlsx `Workbook` object.
+#' @param path Target path.
+#' @param keep_prev Keep the previous generation (default `TRUE`).
+#' @return `TRUE`, invisibly.
+#' @seealso [write_xlsx_atomic()]
+#' @export
+write_workbook_atomic <- function(wb, path, keep_prev = TRUE)
+  .fm_save_workbook_atomic(wb, path, keep_prev = keep_prev)

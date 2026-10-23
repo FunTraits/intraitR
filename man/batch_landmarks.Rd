@@ -12,6 +12,7 @@ batch_landmarks(
   open_qc = interactive(),
   max_fish = 1L,
   min_bl_frac = 0.15,
+  hinges = FALSE,
   redo = FALSE,
   mlmorph_dir = NULL,
   python = NULL
@@ -35,6 +36,10 @@ carrying more is flagged \code{plusieurs}. More (plates): up to \code{max_fish} 
 are found, numbered \code{individual} 1, 2, ... from top to bottom.}
 
 \item{min_bl_frac}{Flag threshold (see Details).}
+
+\item{hinges}{Also write the hinges 22/24 of the broken axis predicted by the
+model (curved fish). Off by default: away from the sites where hinges were
+clicked for training, predicted hinges bias the derived points.}
 
 \item{redo}{Process every photograph again.}
 

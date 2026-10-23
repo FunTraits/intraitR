@@ -40,6 +40,9 @@
 #'   carrying more is flagged `plusieurs`. More (plates): up to `max_fish` fish
 #'   are found, numbered `individual` 1, 2, ... from top to bottom.
 #' @param min_bl_frac Flag threshold (see Details).
+#' @param hinges Also write the hinges 22/24 of the broken axis predicted by the
+#'   model (curved fish). Off by default: away from the sites where hinges were
+#'   clicked for training, predicted hinges bias the derived points.
 #' @param redo Process every photograph again.
 #' @param mlmorph_dir,python As in [digitize_landmarks()]: the ml-morph folder
 #'   (`NULL` auto-detects it) and the Python interpreter (`NULL`:
@@ -58,7 +61,7 @@
 #' @export
 batch_landmarks <- function(photos, out_dir, recursive = FALSE, qc = TRUE,
                             open_qc = interactive(), max_fish = 1L,
-                            min_bl_frac = 0.15, redo = FALSE,
+                            min_bl_frac = 0.15, hinges = FALSE, redo = FALSE,
                             mlmorph_dir = NULL, python = NULL) {
   ml <- .resolve_mlmorph_dir(mlmorph_dir)
   if (is.null(ml)) stop("ml-morph folder not found: pass `mlmorph_dir`.", call. = FALSE)
@@ -82,7 +85,8 @@ batch_landmarks <- function(photos, out_dir, recursive = FALSE, qc = TRUE,
             "--global-model", shQuote(glob), "--predictor", shQuote(fine),
             "--dataset-dir", shQuote(ds), "--max-fish", as.integer(max_fish),
             "--min-bl-frac", min_bl_frac,
-            if (recursive) "--recursive", if (qc) "--qc", if (redo) "--redo")
+            if (recursive) "--recursive", if (qc) "--qc", if (redo) "--redo",
+            if (hinges) "--hinges")
   status <- system2(py, args)
   if (!identical(status, 0L) && !file.exists(file.path(out_dir, "summary.csv")))
     stop("Batch failed (see the messages above).", call. = FALSE)

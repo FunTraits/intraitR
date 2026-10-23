@@ -32,6 +32,22 @@
   caudale reaffinees automatiquement apres le modele fin. Erreur sur les traits
   (variance, % de l'ITV, chaine automatique) : BEl 26 -> 14, CPt 76 -> 34,
   PFs 104 -> 65, RMl 208 -> 101, OGp 76 -> 53 ; aucun trait degrade.
+* Nouveau statut de point **"validated"** et bouton **« Validate points »** :
+  les points encore "predicted" ou "seeded" que l'operateur a regardes et
+  acceptes sans les deplacer passent a "validated" (journal ; un point reclique
+  redevient "clicked", un point reecrit par le modele redevient "predicted").
+  A l'entrainement (`build_combined_dataset.py`), ils servent d'etiquettes avec
+  un poids de 0,5 et ne sont jamais utilises pour evaluer un modele (effaces des
+  blocs val/test). `landmark_journal` : vocabulaire et compteur `n_validated`.
+* Echelle automatique : quand la regle (20-21) n'est pas cliquee, « Predict » et
+  « Auto » la placent sur la regle (reseaux `ruler` et `ruler_period` + analyse
+  spectrale des graduations, `ml_morph/ruler_scale.py`), statut "predicted".
+  Bloc test : ecart median 1,0 % a l'echelle cliquee (repetabilite humaine 1,4 %) ;
+  photos sans regle rejetees. `batch_landmarks()` : colonnes `mm_per_px`,
+  `scale_quality`, `bl_mm`, drapeaux `regle` / `echelle`.
+* Case **« Hinges 22/24 (curved fish) »** (decochee par defaut) : demande au
+  modele de placer aussi les charnieres 22/24 (statut "predicted"), a utiliser
+  au cas par cas sur les poissons courbes ; `batch_landmarks(hinges = TRUE)`.
 * `digitize_landmarks(batch = <dossier de batch_landmarks()>)` : dans la file
   "new", une photo traitee par lot arrive DEJA POINTEE (19 points, tous au
   statut "predicted", LM1 et LM2 compris, avec les conventions FISHMORPH

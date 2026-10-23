@@ -82,11 +82,13 @@
 #   clicked  : placed or moved by hand (or reloaded from an earlier session)
 #   seeded   : still at its median-FISHMORPH seed, never checked by the operator
 #   predicted: still exactly where the ml-morph model put it, never checked
+#   validated: a predicted/seeded position the operator looked at and accepted
+#              ("Validate points") -- checked, not placed by hand
 #   adjusted : snapped by the extreme-point convention (LM3/LM4 -> maximum Bd)
 #   derived  : geometrically computed (8, 9, 11)
 #   na       : explicitly declared non-measurable
 #   missing  : never placed
-.INTRAITR_JOURNAL_STATUS <- c("clicked", "seeded", "predicted", "adjusted",
+.INTRAITR_JOURNAL_STATUS <- c("clicked", "seeded", "predicted", "validated", "adjusted",
                               "derived", "na", "missing")
 
 # ISO 8601 timestamp in UTC, to the millisecond. In UTC and in this format the
@@ -449,6 +451,7 @@ consolidate_landmarks <- function(journal_dir, points = 1:25,
     out$n_clicked   <- sum(st == "clicked")
     out$n_seeded    <- sum(st == "seeded")
     out$n_predicted <- sum(st == "predicted")
+    out$n_validated <- sum(st == "validated")
     out$n_adjusted  <- sum(st == "adjusted")
     out$n_na        <- sum(st == "na")
     out

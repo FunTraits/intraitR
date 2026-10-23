@@ -30,7 +30,9 @@ Sorties dans --out-dir :
   summary.csv          dimensions, Bl (px), confiances, écarts, drapeaux, risque
   qc/<photo>.jpg       vignette annotée (si --qc) ; qc/index.html : planche
                        triée par risque décroissant
-La règle (20-21) n'est pas détectée : les mesures sont en pixels.
+Règle (20-21) : détectée automatiquement si le réseau mlmorph_run_ruler existe (mm_per_px,
+scale_quality, bl_mm dans summary.csv ; drapeau « règle » si aucune règle lisible) ; sinon
+les mesures restent en pixels.
 Reprise : une photo déjà présente dans summary.csv est sautée (--redo pour tout refaire).
 
 Usage (depuis ml_morph/) :
@@ -63,6 +65,14 @@ class Chain:
         self.cnn = W.CNNModel(predictor); self.G = W.GlobalModel(global_model)
         self.ids = W.landmark_ids(self.cnn)
         self.refiners = []
+
+    def load_ruler(self, predictor):
+        p = W.find_ruler_model(predictor)
+        self.ruler = W.GlobalModel(p) if p else None
+        pp = W.find_period_model(predictor)
+        self.period = W.PeriodModel(pp) if (p and pp) else None
+        if self.ruler is not None:
+            print("règle : détection automatique de l'échelle", flush=True)
 
     def load_refiners(self, predictor):
         self.refiners = [W.RefineModel(p) for p in W.find_refiners(predictor)]
@@ -134,6 +144,9 @@ def main():
                     help="poissons par photo (planches : individus i1..iN numérotés de haut en bas)")
     ap.add_argument("--min-bl-frac", type=float, default=0.15)
     ap.add_argument("--redo", action="store_true")
+    ap.add_argument("--no-auto-scale", dest="auto_scale", action="store_false", default=True,
+                    help="pas de détection automatique de la règle (mlmorph_run_ruler)")
+    ap.add_argument("--ruler-mm", type=float, default=10.0, help="distance réelle entre 20 et 21 (mm)")
     ap.add_argument("--no-refine-regions", dest="refine_regions", action="store_false", default=True,
                     help="sans le 2e étage à haute résolution (mlmorph_run_refine_*)")
     ap.add_argument("--hinges", action="store_true",
@@ -157,6 +170,9 @@ def main():
     chain = Chain(a.global_model, a.predictor, a.dataset_dir)
     if a.refine_regions:
         chain.load_refiners(a.predictor)
+    chain.ruler = None
+    if a.auto_scale:
+        chain.load_ruler(a.predictor)
 
     rows, lms, t0 = [], [], time.time()
     for k, f in enumerate(todo):
@@ -166,6 +182,8 @@ def main():
                              flags="illisible", risk=9.0))
             continue
         H, Wd = img.shape[:2]
+        sc = (W.auto_scale(img, chain.ruler, ruler_mm=a.ruler_mm, period_model=chain.period)
+              if chain.ruler is not None else None)
         # on cherche toujours un poisson de plus que demandé : s'il existe, la photo
         # porte plus de poissons qu'annoncé (planche) -> drapeau "plusieurs"
         V = chain(img, a.max_fish + 1)
@@ -196,13 +214,22 @@ def main():
             r = dict(photo=os.path.abspath(f), photo_name=os.path.basename(f), individual=ind, n_found=len(V),
                      width=Wd, height=H, bl_px=round(bl, 1), bl_frac=round(bl / max(H, Wd), 3),
                      score=round(h["score"], 4), dorsal_ok=dorsal_ok, edge=edge, extra_fish=extra,
-                     curvature_pct=round(float(curv), 2), straightened=bool(redressed))
+                     curvature_pct=round(float(curv), 2), straightened=bool(redressed),
+                     mm_per_px=round(float(sc["mm_per_px"]), 6) if sc else np.nan,
+                     scale_quality=round(float(sc["snr"]), 1) if sc else 0.0,
+                     bl_mm=round(bl * float(sc["mm_per_px"]), 2) if sc else np.nan,
+                     scale_vs_hint=(round(float(sc["period_px"] / sc["period_hint"]), 3)
+                                    if sc and sc.get("period_hint") else np.nan))
             rows.append(r)
             for i in range(len(Q)):
                 if chain.ids[i] > 19 and not a.hinges:
                     continue
                 lms.append(dict(photo=r["photo"], individual=ind, landmark=chain.ids[i], X=round(float(Q[i, 0]), 2),
                                 Y=round(float(Q[i, 1]), 2), conf=round(float(cf[i]), 4)))
+            if sc:                    # règle (une par photo, partagée par les individus)
+                for lid, key in ((20, "p20"), (21, "p21")):
+                    lms.append(dict(photo=r["photo"], individual=ind, landmark=lid, X=round(float(sc[key][0]), 2),
+                                    Y=round(float(sc[key][1]), 2), conf=np.nan))
         if (k + 1) % 25 == 0 or k + 1 == len(todo):
             el = time.time() - t0
             print(f"  {k + 1}/{len(todo)}  ({el / (k + 1):.2f} s/photo)", flush=True)
@@ -220,6 +247,10 @@ def main():
         if not bool(r["dorsal_ok"]): f.append("dorsal")
         if r["bl_frac"] < a.min_bl_frac: f.append("petit")
         if bool(r["edge"]): f.append("bord")
+        if "scale_quality" in r and chain.ruler is not None and not (r["scale_quality"] > 0): f.append("règle")
+        # période spectrale éloignée de l'ordre de grandeur du réseau : échelle à vérifier
+        svh = r.get("scale_vs_hint", np.nan)
+        if np.isfinite(svh) and not (0.8 <= svh <= 1.25): f.append("échelle")
         if r["score"] < q10: f.append("confiance")
         return " ".join(f)
     S["flags"] = S.apply(flags, axis=1)

@@ -1707,6 +1707,16 @@ main_panel <- function() tagList(
           actionButton("clear_pt", "Clear point")),
       div(class = "tbsep"),
       actionButton("predict", "Predict 19 landmarks"),
+      tags$span(style = "display:inline-block;vertical-align:middle;margin:0 6px;",
+                title = paste("Also place the hinges 22/24 of the broken axis (curved fish).",
+                              "Off by default: away from the sites where hinges were",
+                              "clicked, predicted hinges tilt the head segment and bias",
+                              "the derived points 8/9. Check them before saving."),
+                checkboxInput("pred_hinges", "Hinges 22/24 (curved fish)", FALSE, width = "auto")),
+      actionButton("validate_pts", "Validate points",
+                   title = paste("Mark every point still 'predicted' or 'seeded' as checked",
+                                 "and accepted (status 'validated'). Use it only after looking",
+                                 "at each point: a validated point is treated as verified.")),
       actionButton("predict_auto", "Auto (no clicks)",
                    title = paste("The global network finds the snout (LM1), the caudal-fin",
                                  "basis (LM2) and the dorsal side on the whole photograph,",
@@ -1855,6 +1865,7 @@ server <- function(input, output, session) {
     placed_order = integer(0),          # points in the order they were placed (for Undo)
     seeded = integer(0),                # points still at their median-proportion seed
     auto12 = integer(0),                # LM1/LM2 placed by the global network, not clicked
+    validated = integer(0),             # predicted/seeded points the operator LOOKED AT and accepted
     na = integer(0),                    # landmarks declared non-measurable
     edited = integer(0),                # landmarks moved by hand this session
     adjusted = integer(0),              # landmarks snapped by the extreme-point
@@ -2682,6 +2693,7 @@ server <- function(input, output, session) {
     rv$pred <- empty_coords(); rv$sel <- 1L
     rv$na <- integer(0); rv$edited <- integer(0); rv$placed_order <- integer(0)
     rv$seeded <- integer(0); rv$adjusted <- integer(0); rv$auto12 <- integer(0)
+    rv$validated <- integer(0)
     rv$zoom <- 1; rv$cx <- NULL; rv$cy <- NULL
     # A declared zero is a statement about ONE fish: it never carries over to
     # the next photograph.
@@ -2792,7 +2804,7 @@ server <- function(input, output, session) {
       return(FALSE)
     d <- BATCH$P[[BATCH$key(rv$orig)]]
     if (is.null(d) || !nrow(d)) return(FALSE)
-    d <- d[(d$landmark >= 1 & d$landmark <= N_ANAT | d$landmark %in% c(CURVE_PT, EXTRA_HINGES[1])) &
+    d <- d[(d$landmark >= 1 & d$landmark <= N_ANAT | d$landmark %in% c(CURVE_PT, EXTRA_HINGES[1], SCALE_PTS)) &
              is.finite(d$X) & is.finite(d$Y), , drop = FALSE]
     # coordinates of another version of the photograph (re-cropped since)
     if (!nrow(d) || any(d$X > rv$w + 1 | d$Y > rv$h + 1)) return(FALSE)
@@ -2802,7 +2814,7 @@ server <- function(input, output, session) {
     rv$pred <- collapse_pred(M)
     rv$auto12 <- intersect(c(1L, 2L), d$landmark)
     rv$edited <- integer(0); rv$placed_order <- integer(0); rv$seeded <- integer(0)
-    rv$sel <- SCALE_PTS[1]
+    rv$sel <- if (all(SCALE_PTS %in% d$landmark)) ANAT_ORDER[1] else SCALE_PTS[1]
     TRUE
   }
   load_queue_photo <- function(k) {
@@ -3504,6 +3516,11 @@ server <- function(input, output, session) {
       # the exported table. Re-clicking it makes it a measurement again.
       else if (p %in% rv$adjusted) "adjusted"
       else if (p %in% rv$edited) "clicked"
+      # "validated": a model (or seed) position the operator explicitly accepted
+      # with "Validate points" -- checked, but not placed by hand. Kept apart from
+      # "clicked" so that the training pipeline can tell the two (it uses
+      # validated points with a lower weight, and never to evaluate a model).
+      else if (p %in% rv$validated) "validated"
       else if (p %in% rv$seeded && !(p %in% DERIVED_LM)) "seeded"
       else if (p %in% DERIVED_LM) "derived"
       # LM1/LM2 found by the global network (Auto, batch) are not clicks
@@ -3907,6 +3924,14 @@ server <- function(input, output, session) {
   ## detection; the automatic ones stay "predicted" (unchecked) until reviewed.
   GLOBAL_MODEL <- file.path(ML, "mlmorph_run_global", "model.onnx")
   observeEvent(input$predict, run_prediction(auto = FALSE))
+  observeEvent(input$validate_pts, {
+    if (is.null(rv$pred)) return()
+    st <- point_status(WB_PTS)
+    tgt <- WB_PTS[st %in% c("predicted", "seeded")]
+    if (!length(tgt)) { notify("No predicted or seeded point to validate."); return() }
+    rv$validated <- union(rv$validated, tgt)
+    notify(sprintf("%d point(s) validated: %s.", length(tgt), paste(sort(tgt), collapse = ", ")))
+  })
   observeEvent(input$predict_auto, {
     if (!file.exists(GLOBAL_MODEL)) {
       notify(paste("Auto mode unavailable: no global model at", GLOBAL_MODEL), "error")
@@ -3934,6 +3959,7 @@ server <- function(input, output, session) {
     img_path <- worker_path()
     args <- c(shQuote(WORKER), "--image", shQuote(img_path),
               if (auto) c("--auto", "--global-model", shQuote(GLOBAL_MODEL)),
+              if (isTRUE(input$pred_hinges)) "--hinges",
               if (has(1L)) c("--snout", xy(1L)), if (has(2L)) c("--caudal", xy(2L)),
               if (has(3L)) c("--dorsal", xy(3L)),   # orientation; = LM3 in pin mode
               if (isTRUE(input$pin) && has(4L))  c("--lm4",  xy(4L)),
@@ -3967,6 +3993,15 @@ server <- function(input, output, session) {
       hk <- d$landmark %in% c(CURVE_PT, EXTRA_HINGES[1]) &
         !(d$landmark %in% rv$edited) & is.finite(d$X) & is.finite(d$Y)
       if (any(hk)) M[as.character(d$landmark[hk]), ] <- as.matrix(d[hk, c("X", "Y")])
+      # Scale bar found automatically on the ruler (mlmorph_run_ruler + spectral
+      # analysis of the millimetre ticks, worker ruler_scale.py): used only when
+      # 20/21 are not already on the photograph; status "predicted" until clicked.
+      sk <- d$landmark %in% SCALE_PTS & is.finite(d$X) & is.finite(d$Y) &
+        !(d$landmark %in% rv$edited) &
+        !vapply(d$landmark, function(i) i %in% SCALE_PTS && fin_row(rv$pred, i), logical(1))
+      scale_auto <- any(sk)
+      if (scale_auto) M[as.character(d$landmark[sk]), ] <- as.matrix(d[sk, c("X", "Y")])
+      scale_msg <- grep("^SCALE:", res, value = TRUE)
       # Pin mode: 1, 2, 3, 4, 7 are already frozen on the clicks by the worker;
       # propagate the FISHMORPH conventions to the dependants (8, 9, 11, 5, 6, 13, 14).
       # Without pin mode the model output is not convention-compliant either
@@ -3985,6 +4020,8 @@ server <- function(input, output, session) {
       # again, except those the worker froze on the operator's clicks.
       rv$edited <- union(setdiff(rv$edited, as.integer(d$landmark[keep])),
                          intersect(pinned_clicks(input$pin), rv$placed_order))
+      # a point the model has just rewritten is no longer the one validated
+      rv$validated <- setdiff(rv$validated, as.integer(d$landmark))
       # LM1/LM2 placed by the global network stay "predicted" until clicked
       rv$auto12 <- setdiff(union(rv$auto12, if (auto) c(1L, 2L)), rv$edited)
       # a landmark the model has just rewritten is no longer the one the
@@ -4002,9 +4039,11 @@ server <- function(input, output, session) {
       } else {
         rv$sel <- ANAT_ORDER[1]   # first anatomical point to review
       }
-      notify(if (length(todo))
+      notify(paste0(if (length(todo))
                sprintf("Prediction done. Click LM%d on the ruler, then review the points.", todo[1])
-             else "Prediction done. Scale bar in place: review the points.")
+             else if (scale_auto) "Prediction done. Scale bar placed AUTOMATICALLY on the ruler: check 20-21, then review the points."
+             else "Prediction done. Scale bar in place: review the points.",
+             if (length(scale_msg)) paste0(" [", sub("^SCALE: ", "", scale_msg[1]), "]") else ""))
     } else {
       notify(paste("Prediction failed:", paste(utils::tail(res, 4), collapse = " | ")),
              "error")

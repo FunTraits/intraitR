@@ -1,5 +1,117 @@
+# intraitR 1.47.0
+
+* CORRECTION de `trait_space(remove_outliers = TRUE)` : une colonne devenue
+  constante une fois les individus aberrants retirés faisait échouer `prcomp()`
+  (« cannot rescale a constant/zero column ») ; elle est maintenant écartée avec
+  un avertissement. Les exemples n'ordonnent plus que les neuf ratios (et non
+  `quality`/`date`), et ceux d'`itv_accumulation()`, `fd_accumulation()` et
+  `tpd_dissimilarity()` utilisent `scale_action = "pixels"` (6 spécimens T-26
+  sans barre d'échelle). `R CMD check` : `fishmorph_db_connect()` documentée,
+  `htmltools::` remplacé par `shiny::`.
+
+* CORRECTION de la vignette d'introduction (`intraitR-intro`), qui ne se
+  construisait pas (`build_vignettes = TRUE`) : six photographies T-26 sans
+  barre d'echelle avaient des ratios NA et `trait_space()` les refusait. La
+  vignette utilise `scale_action = "pixels"` (ratios exacts, mesures en
+  pixels) et l'explique. Et `trait_space()` y recevait toute la table : la
+  DATE et la QUALITE de la photographie entraient dans l'ordination comme des
+  traits (11 "traits") ; elle recoit maintenant les 9 ratios.
+
+* AIDE : deux vignettes jumelles, `vignette("apps-workflow")` (anglais) et
+  `vignette("apps-workflow-fr")` (francais) -- presentation du package et
+  marche a suivre a travers les applications : page d'accueil, hub (Setup,
+  Select, Digitize, Results et ses filtres), digitizer (points, prediction,
+  raccourcis, files new / correct / repeat, controles), analyses et export du
+  projet reproductible, applications de FishInTrait, equivalents en console,
+  depannage. Dans *Articles* du site pkgdown. Menu *? Help* (EN / FR) dans le
+  hub, la page d'accueil et l'application d'analyses.
+* `read_digitizer_workbook()` (exportee) : lit une feuille du classeur du
+  digitizer avec TOUS ses points jusqu'a 25, a leur position (charnieres
+  22/24/25 comprises, 23 absent = NA) ; c'est le lecteur des analyses et du
+  tableau des traits du hub.
+
+* HUB, PAGE *4. Results* : la selection se fait par MENUS DEROULANTS (vide =
+  tout) au lieu des quatre boutons de portee : dossiers (sites), sous-dossiers
+  (dates, limites aux dossiers choisis), especes, PROVENANCE (campaign,
+  museum, ... ; `literature`) et, quand la litterature est choisie, ETUDES.
+  Chaque choix affiche ses effectifs ; une ligne resume la selection
+  (photographies, mesurees, especes, enregistrements de litterature, par
+  provenance). *This sub-folder* et *Clear the filters* ; *Only the
+  photographs selected in 2. Select* remplace la portee *Selection*.
+* Provenance : la table des especes du hub accepte une colonne `source`
+  (ou `data_source`, `provenance`) ; `measure_queue()` la rend (colonne
+  `source`). Nouvel argument `launch_measure_hub(literature = )` : des
+  enregistrements de traits SANS photographie (jeux publies), offerts sous
+  la provenance `literature` ; ils entrent dans le tableau Traits et dans
+  les analyses fondees sur les ratios, jamais dans les tableaux de points,
+  la forme ou l'erreur de mesure.
+* Analyses (`launch_intrait_analyses(literature = )`,
+  `write_analysis_project(literature = )`) : les enregistrements de
+  litterature rejoignent les ratios (provenance dans le tableau 1, filtre
+  *Provenance*, `analysis_params(sources = )`) ; projet sans landmarks
+  possible (litterature seule). CHOIX DES RATIOS (`analysis_params(ratios =
+  )`, cases a cocher) avec, par provenance et par etude, le % d'enregistrements
+  portant chaque ratio : LUIZ2022 n'a pas PFv (0 %), donc AUCUN de ses 4 302
+  enregistrements n'entre avec les neuf ratios ; decocher PFv les fait entrer
+  (16 especes sur la campagne de test). Le rapport dit quels ratios ont ete
+  ecartes et demande de le justifier ; tous les "nine ratios" deviennent le
+  nombre de ratios utilises. Citations du rapport corrigees ("with the
+  itv_index function [@...]" : le prefixe sans reference n'etait pas reconnu
+  par pandoc).
+
+* NOUVELLE APPLICATION D'ANALYSES : `launch_intrait_analyses()`, ouverte
+  depuis l'onglet *4. Results* du hub (bouton *Analyses -> reproducible
+  project (.zip)*) sur les photographies mesurees de la portee choisie, ou
+  seule sur un classeur du digitizer. Onglets Donnees (echantillon, espece
+  avec au moins n individus, sites, corrections), Traits (9 ratios par
+  espece, CV), Espace des traits (+ test de dispersion par permutation,
+  Holm), FISHMORPH (projection, part de l'espace global), ITV (partition
+  inter/intra, emboitee par site ; courbes de rarefaction et n*), Forme (GPA,
+  espace des formes, disparite), Erreur de mesure (feuille `bias`).
+* EXPORT EN PROJET REPRODUCTIBLE : `write_analysis_project()` (et l'onglet
+  *Export*) ecrit l'analyse avec l'architecture des papiers publies --
+  `scripts/00_START ... 01_DATA ... 02_ANALYSIS ... 03_FIGURE ... 04_SUPP ...
+  05_STAT`, `utils/` (dont `parameters.R`, seul endroit des parametres),
+  `data/raw|processed`, `data/metadata.csv`, `results/figures|tables`,
+  `run_all.R`, `README.md`, `.Rproj`, `.gitignore`, `session_info.txt` --
+  puis EXECUTE ses propres scripts (processus R separe) : les tableaux, les
+  figures et le rapport `manuscript/Methods_Results.docx` (Methodes et
+  Resultats seulement, chiffres lus dans `results/tables`, references en
+  `.bib`, style Ecology Letters) sont ceux qu'on obtient en relancant le
+  projet. Zippe. `analysis_params()` donne les parametres et leurs valeurs
+  par defaut. Verifie de bout en bout sur la campagne (554 specimens, 8
+  especes) : le projet tourne en ~20 s et l'echantillon analyse des scripts
+  est identique a celui de l'application.
+* CORRECTION. Le tableau des traits du hub ne lisait que les points 1 a 22 :
+  les charnieres 24 et 25 d'un poisson courbe etaient ignorees et sa longueur
+  standard (donc BEl et PFs) sous-estimee. Les points sont maintenant lus
+  jusqu'a 25, a leur position (le point 23, souvent absent du classeur,
+  reste NA).
+* Documentation : FISHMORPH est dans *Global Ecology and Biogeography*
+  30(12), pas 30(11) ; titre corrige de de Bello et al. (2011) (`itv_index()`).
+* `zip` en Suggests.
+* CORRECTION (signalee par Aurele). Erreur de mesure : une photographie de la
+  feuille `bias` numerisee UNE seule fois faisait echouer `digitization_error()`
+  ("Every individual must have at least 2 digitization replicates"), donc
+  l'onglet, et dans le projet exporte le script `04_SUPP` arretait toute la
+  chaine `run_all.R`. Ces photographies sont maintenant ecartees et nommees
+  (onglet et journal du projet) ; une erreur de placement non calculable
+  n'empeche plus le tableau %ME / R ; sans deux photographies repetees,
+  l'etape est sautee avec un message.
+
+* Page d'accueil du hub, *Upload photographs into a new folder* : une
+  photographie IDENTIQUE (octet pour octet, quel que soit son nom) a une photo
+  deja presente sous le dossier parent, ou envoyee deux fois dans le meme
+  envoi, n'est plus copiee ; une fenetre liste lesquelles et a quoi elles
+  correspondent. Comparaison des tailles d'abord, MD5 seulement pour les
+  tailles egales : un gros dossier ne coute qu'un listage.
+
 # intraitR 1.46.0
 
+* Hub, pre-passe automatique : case *Hinges 22/24* COCHEE par defaut (axe
+  brise 1-22-24-2, poissons courbes) ; les charnieres predites arrivent en
+  `predicted` dans le digitizer. Un dossier deja pre-passe sans charnieres
+  est retraite. `batch_landmarks()` garde `hinges = FALSE` par defaut.
 * Les MODELES DE PREDICTION se distribuent hors du package (7 reseaux ONNX,
   ~290 Mo : trop lourds pour le package et pour l'historique git) :
   - `pack_mlmorph_models()` (mainteneur) : extrait d'un dossier ml_morph ce

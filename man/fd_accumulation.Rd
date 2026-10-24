@@ -177,7 +177,7 @@ identical results.
 # very unequal here -- 288 Gobio gobio against 4 Leuciscus burdigalensis --
 # which is the situation the curve exists to diagnose.
 fish <- load_t26_saudrune_landmarks()
-ratios <- fishmorph_ratios(fishmorph_segments(fish))
+ratios <- fishmorph_ratios(fishmorph_segments(fish, scale_action = "pixels"))
 \donttest{
 acc <- fd_accumulation(
   ratios[, c("BEl", "VEp", "REs", "OGp")],

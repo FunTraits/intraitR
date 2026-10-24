@@ -318,7 +318,8 @@
 #' fish <- load_t26_saudrune_landmarks()
 #' segments <- fishmorph_segments(fish)
 #' ratios <- fishmorph_ratios(segments)
-#' ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
+#' traits <- ratios[, c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")]
+#' ts <- trait_space(traits, groups = fish$metadata$species, na_action = "omit")
 #'
 #' # method = "dendrogram" needs no extra Suggested package
 #' bf_dendro <- bootstrap_functional_space(ts, method = "dendrogram", n_axes = 2, n_boot = 200)

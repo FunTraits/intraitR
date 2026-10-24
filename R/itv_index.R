@@ -89,9 +89,8 @@
 #' Ecology & Evolution, 27(4), 244-252.
 #'
 #' de Bello, F., Lavorel, S., Albert, C. H., Thuiller, W., Grigulis, K.,
-#' Dolezal, J., Janecek, S., & Leps, J. (2011). Quantifying the relative
-#' importance of intraspecific trait variability and interspecific trait
-#' turnover for functional diversity. Methods in Ecology and Evolution,
+#' Dolezal, J., Janecek, S., & Leps, J. (2011). Quantifying the relevance of intraspecific trait
+#' variability for functional diversity. Methods in Ecology and Evolution,
 #' 2(2), 163-174.
 #'
 #' Siefert, A., Violle, C., Chalmandrier, L., et al. (2015). A global

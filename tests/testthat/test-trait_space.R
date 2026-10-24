@@ -431,3 +431,17 @@ test_that("remove_outliers = TRUE messages about what was removed", {
     "remove_outliers: removing 1 specimen"
   )
 })
+
+test_that("trait_space(remove_outliers = TRUE) drops a column left constant by the removal", {
+  set.seed(1)
+  n <- 30
+  d <- data.frame(a = rnorm(n, 10), b = rnorm(n, 5), c = rep(2, n))
+  d[1, ] <- c(60, 40, 9)   # the only specimen where `c` differs is a gross outlier
+  g <- rep("sp1", n)
+  expect_warning(
+    ts <- suppressMessages(trait_space(d, groups = g, remove_outliers = TRUE)),
+    "constant once the outliers are removed"
+  )
+  expect_identical(ts$traits_used, c("a", "b"))
+  expect_gte(nrow(ts$removed_outliers), 1L)
+})

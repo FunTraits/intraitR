@@ -301,7 +301,8 @@ something that happens silently just because a threshold was crossed.
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
 ratios <- fishmorph_ratios(segments)
-ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
+traits <- ratios[, c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")]
+ts <- trait_space(traits, groups = fish$metadata$species, na_action = "omit")
 ts   # flags any within-species outliers found, see ts$outlier_screen
 \donttest{
 plot(ts)
@@ -310,7 +311,7 @@ plot(ts)
 # Once a flagged specimen has been visually confirmed as an error (not
 # just genuine morphological variation), exclude it from the ordination:
 ts_clean <- trait_space(
-  ratios, groups = fish$metadata$species, na_action = "omit",
+  traits, groups = fish$metadata$species, na_action = "omit",
   remove_outliers = TRUE
 )
 ts_clean$removed_outliers   # exactly which specimen(s) were excluded, and why

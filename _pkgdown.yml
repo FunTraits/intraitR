@@ -47,6 +47,17 @@ reference:
       - fishmorph_build_db
       - fishmorph_validate
       - fishmorph_db_connect
+  - title: Analyses exported as a reproducible project
+    desc: >
+      The analysis part of the workflow on measured fishes, in an application
+      opened from the hub, and its export as a project with the architecture
+      of a published paper (numbered scripts, data, results, Methods and
+      Results report), produced by running the project's own scripts.
+    contents:
+      - launch_intrait_analyses
+      - read_digitizer_workbook
+      - write_analysis_project
+      - analysis_params
 
   - title: Landmark import
     desc: >
@@ -175,3 +186,5 @@ articles:
   - title: Get started
     contents:
       - intraitR-intro
+      - apps-workflow
+      - apps-workflow-fr

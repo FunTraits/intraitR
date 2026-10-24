@@ -91,6 +91,19 @@ STATUS_COL <- c(clicked = "#16a34a", validated = "#16a34a", adjusted = "#0ea5e9"
                 predicted = "#f59e0b", seeded = "#dc2626", derived = "#7c3aed",
                 imported = "#6b7280", na = "#9ca3af")
 
+RES_CSS <- tags$style(HTML("
+  .res-filters { background:#fff; border:1px solid var(--fm-line); border-radius:.5rem;
+                 padding:12px 14px 4px 14px; margin-bottom:12px; }
+  .res-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:4px 14px; }
+  .res-grid .form-group { margin-bottom:6px; }
+  .res-actions { display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
+  .res-actions .form-group { margin:0; }
+  .res-sum { color:var(--fm-muted); font-size:13px; margin:6px 0 8px 0; }
+  .res-sum b { color:var(--fm-ink); }
+  .src-chip { display:inline-block; border-radius:999px; padding:0 8px; margin-right:4px;
+              background:var(--fm-wash); font-size:12px; }
+"))
+
 GALLERY_CSS <- tags$style(HTML("
   .gal { display:flex; flex-wrap:wrap; gap:8px; }
   .gal-card { width:170px; border:2px solid var(--fm-line); border-radius:6px; padding:4px;
@@ -219,7 +232,7 @@ GALLERY_JS <- tags$script(HTML("
 ui <- bslib::page_navbar(
   title = CFG$title,
   theme = THEME, id = "nav", fillable = FALSE,
-  header = tagList(GALLERY_CSS, GALLERY_JS, HOME_CSS, HOME_JS),
+  header = tagList(GALLERY_CSS, GALLERY_JS, HOME_CSS, HOME_JS, RES_CSS),
 
   bslib::nav_panel(
     "Home", value = "home",
@@ -324,6 +337,9 @@ ui <- bslib::page_navbar(
                             c("Yes: detect it (20-21)" = "yes",
                               "No: pixels only" = "no"), inline = FALSE),
                numericInput("batch_max_fish", "Fish per photograph", 1, min = 1, step = 1),
+               # on by default here (batch_landmarks() itself keeps them off):
+               # the broken axis 1-22-24-2 follows a curved fish
+               checkboxInput("batch_hinges", "Hinges 22/24 (broken axis, curved fish)", TRUE),
                actionButton("batch_run", "Run the pre-pass", class = "btn-secondary"),
                actionButton("batch_stop", "Stop", class = "btn-sm btn-outline-danger"),
                uiOutput("batch_state"),
@@ -350,14 +366,35 @@ ui <- bslib::page_navbar(
 
   bslib::nav_panel(
     "4. Results", value = "results",
-    div(style = "display:flex;gap:16px;align-items:end;flex-wrap:wrap;",
-        radioButtons("res_scope", "Scope",
-                     stats::setNames(c("sel", "date", "site", "all"),
-                       c("Selection", paste("This", tolower(LV[2])),
-                         paste("This", tolower(LV[1])), "Everything")),
-                     selected = "date", inline = TRUE),
-        actionButton("res_refresh", "Refresh", class = "btn-sm"),
-        uiOutput("res_live")),
+    # What the tables, the traits and the analyses are computed on: dropdown
+    # filters, empty = everything. Sites and sub-folders select photographs;
+    # species select photographs and literature records; the literature (trait
+    # records without photographs) comes in only when chosen in Provenance.
+    div(class = "res-filters",
+        div(class = "res-grid",
+            selectizeInput("res_sites", LV[1], choices = NULL, multiple = TRUE,
+                           options = list(placeholder = "all", plugins = list("remove_button"))),
+            selectizeInput("res_dates", LV[2], choices = NULL, multiple = TRUE,
+                           options = list(placeholder = "all", plugins = list("remove_button"))),
+            selectizeInput("res_species", "Species", choices = NULL, multiple = TRUE,
+                           options = list(placeholder = "all", plugins = list("remove_button"))),
+            selectizeInput("res_source", "Provenance", choices = NULL, multiple = TRUE,
+                           options = list(placeholder = "all photographs",
+                                          plugins = list("remove_button"))),
+            uiOutput("res_studies_ui")),
+        div(class = "res-actions",
+            checkboxInput("res_only_sel", "Only the photographs selected in 2. Select", FALSE),
+            actionLink("res_here", paste("This", tolower(LV[2]))),
+            actionLink("res_reset", "Clear the filters"),
+            actionButton("res_refresh", "Refresh", class = "btn-sm"),
+            actionButton("analyses", "\U0001F4CA Analyses \u2192 reproducible project (.zip)",
+                         class = "btn-sm btn-primary",
+                         title = paste("Open the analyses (traits, trait space, FISHMORPH, ITV, shape,",
+                                       "measurement error) on the measured photographs and the",
+                                       "literature records of these filters, and export them as a",
+                                       "project with scripts, results and a Methods & Results report")),
+            uiOutput("res_live")),
+        uiOutput("res_summary")),
     navset_card_tab(
       id = "res_tabs",
       # each tab's content in a plain div: in the card's fill layout the table
@@ -407,6 +444,11 @@ ui <- bslib::page_navbar(
                   plotOutput("ann_plot", height = "640px")))))
   ),
   bslib::nav_spacer(),
+  bslib::nav_menu(title = "? Help", align = "right",
+    bslib::nav_item(tags$a("Step-by-step guide (English)", target = "_blank",
+      href = "https://funtraits.github.io/intraitR/articles/apps-workflow.html")),
+    bslib::nav_item(tags$a("Guide pas \u00e0 pas (fran\u00e7ais)", target = "_blank",
+      href = "https://funtraits.github.io/intraitR/articles/apps-workflow-fr.html"))),
   if (length(Filter(function(a) !identical(a$place, "photo"), APPS)))
     do.call(bslib::nav_menu, c(list(title = "Apps", align = "right"),
       lapply(unname(Filter(function(a) !identical(a$place, "photo"), APPS)), function(a)
@@ -819,6 +861,12 @@ server <- function(input, output, session) {
     nm <- gsub("[^A-Za-z0-9._-]+", "_", paste(input$site, input$date, sep = "_"))
     file.path(CFG$batch_root, nm)
   })
+  batch_lacks_hinges <- function(od) {
+    f <- file.path(od, "landmarks_long.csv")
+    if (!file.exists(f)) return(FALSE)
+    L <- tryCatch(utils::read.csv(f), error = function(e) NULL)
+    !is.null(L) && nrow(L) > 0 && !any(L$landmark %in% c(22L, 24L))
+  }
   observeEvent(input$batch_run, {
     s <- sel_rows()
     if (!nrow(s)) { showNotification("Select photographs first.", type = "warning"); return() }
@@ -830,6 +878,10 @@ server <- function(input, output, session) {
     args <- list(photos = s$path, out_dir = od,
                  ruler = identical(input$batch_ruler, "yes"), ruler_mm = input$ruler_mm,
                  max_fish = as.integer(input$batch_max_fish),
+                 hinges = isTRUE(input$batch_hinges),
+                 # a folder pre-passed WITHOUT hinges would be skipped as done:
+                 # asked for now, it is processed again
+                 redo = isTRUE(input$batch_hinges) && batch_lacks_hinges(od),
                  mlmorph_dir = nz(input$mlmorph_dir), python = nz(input$python))
     BG$batch <- tryCatch(bg_batch(args, BG$batch_log), error = function(e) {
       showNotification(conditionMessage(e), type = "error", duration = 8); NULL })
@@ -1272,13 +1324,162 @@ server <- function(input, output, session) {
                 "● digitizer open -- tables follow the journal")
   })
 
+  ## what the Results page is computed on: dropdown filters (empty = all)
+  SRC_NA <- "unspecified"
+  src_label <- function(x) ifelse(is.na(x) | !nzchar(x), SRC_NA, x)
+  lit_all <- reactive({                 # literature records, read when needed
+    input$res_refresh
+    if (is.null(CFG$literature)) return(get(".hub_literature", ns)(NULL))
+    get(".hub_literature", ns)(CFG$literature)
+  })
+  lit_wanted <- reactive("literature" %in% input$res_source)
+  count_lab <- function(v, n) sprintf("%s (%d)", v, n)
+
+  observe({                             # choices follow the photographs
+    q <- all_q(); req(q)
+    lit <- if (!is.null(CFG$literature)) lit_all() else NULL
+    keep <- function(id, ch) {          # keep what is still offered
+      cur <- isolate(input[[id]]); intersect(cur, ch)
+    }
+    st <- table(q$site)
+    updateSelectizeInput(session, "res_sites", choices = stats::setNames(names(st),
+                         count_lab(names(st), as.integer(st))), selected = keep("res_sites", names(st)))
+    sp <- c(q$species[!is.na(q$species)], if (!is.null(lit)) lit$species)
+    sp_t <- sort(table(sp), decreasing = TRUE)
+    updateSelectizeInput(session, "res_species", choices = stats::setNames(names(sp_t),
+                         count_lab(names(sp_t), as.integer(sp_t))), selected = keep("res_species", names(sp_t)),
+                         server = TRUE)
+    so <- table(src_label(q$source))
+    ch <- stats::setNames(names(so), sprintf("%s (%d photographs)", names(so), as.integer(so)))
+    if (!is.null(lit) && nrow(lit))
+      ch <- c(ch, stats::setNames("literature", sprintf("literature (%d records, no photograph)", nrow(lit))))
+    updateSelectizeInput(session, "res_source", choices = ch, selected = keep("res_source", ch))
+  })
+  observe({                             # sub-folders of the chosen folders
+    q <- all_q(); req(q)
+    if (length(input$res_sites)) q <- q[q$site %in% input$res_sites, , drop = FALSE]
+    dt <- table(q$date)
+    lab <- if (length(unique(q$site)) > 1)
+      vapply(names(dt), function(d) paste(sort(unique(q$site[q$date == d])), collapse = ", "), "") else ""
+    updateSelectizeInput(session, "res_dates",
+                         choices = stats::setNames(names(dt), sprintf("%s (%d)%s", names(dt), as.integer(dt),
+                                                    if (length(lab) > 1) paste0(" \u2014 ", lab) else "")),
+                         selected = intersect(isolate(input$res_dates), names(dt)))
+  })
+  output$res_studies_ui <- renderUI({
+    if (!lit_wanted()) return(NULL)
+    st <- table(lit_all()$study_id %||% character(0))
+    selectizeInput("res_studies", "Studies (literature)", multiple = TRUE,
+                   choices = stats::setNames(names(st), count_lab(names(st), as.integer(st))),
+                   selected = intersect(isolate(input$res_studies), names(st)),
+                   options = list(placeholder = "all studies", plugins = list("remove_button")))
+  })
+  observeEvent(input$res_here, {
+    updateSelectizeInput(session, "res_sites", selected = input$site)
+    updateSelectizeInput(session, "res_dates", selected = input$date)
+  })
+  observeEvent(input$res_reset, {
+    for (id in c("res_sites", "res_dates", "res_species", "res_source", "res_studies"))
+      updateSelectizeInput(session, id, selected = character(0))
+    updateCheckboxInput(session, "res_only_sel", value = FALSE)
+  })
+
   scope_queue <- reactive({
-    q <- all_q()
-    switch(input$res_scope,
-      sel  = sel_rows(),
-      date = queue(),
-      site = q[q$site == input$site, , drop = FALSE],
-      all  = q)
+    q <- if (isTRUE(input$res_only_sel)) sel_rows() else all_q()
+    if (length(input$res_sites))   q <- q[q$site %in% input$res_sites, , drop = FALSE]
+    if (length(input$res_dates))   q <- q[q$date %in% input$res_dates, , drop = FALSE]
+    if (length(input$res_species)) q <- q[q$species %in% input$res_species, , drop = FALSE]
+    if (length(input$res_source)) {
+      ps <- setdiff(input$res_source, "literature")
+      q <- q[src_label(q$source) %in% ps, , drop = FALSE]   # only literature: no photograph
+    }
+    q
+  })
+  # literature records of the filters (zero rows unless "literature" is chosen)
+  scope_lit <- reactive({
+    if (!lit_wanted()) return(get(".hub_literature", ns)(NULL))
+    l <- lit_all()
+    if (length(input$res_species)) l <- l[l$species %in% input$res_species, , drop = FALSE]
+    if (length(input$res_studies)) l <- l[l$study_id %in% input$res_studies, , drop = FALSE]
+    l
+  })
+  scope_label <- reactive({
+    parts <- c(if (length(input$res_sites)) paste(input$res_sites, collapse = ", "),
+               if (length(input$res_dates)) paste(input$res_dates, collapse = ", "),
+               if (length(input$res_species)) paste(input$res_species, collapse = ", "),
+               if (length(input$res_source)) paste(input$res_source, collapse = " + "))
+    if (!length(parts)) basename(CFG$photo_dir) else paste(parts, collapse = " \u2014 ")
+  })
+  output$res_summary <- renderUI({
+    q <- scope_queue(); l <- scope_lit()
+    so <- table(src_label(q$source[q$measured]))
+    tags$div(class = "res-sum",
+      tags$b(format(nrow(q), big.mark = ",")), " photographs, ",
+      tags$b(format(sum(q$measured), big.mark = ",")), " measured, ",
+      tags$b(length(unique(stats::na.omit(c(q$species, l$species))))), " species",
+      if (nrow(l)) tagList(", ", tags$b(format(nrow(l), big.mark = ",")), " literature records from ",
+                           tags$b(length(unique(l$study_id))),
+                           if (length(unique(l$study_id)) > 1) " studies" else " study"),
+      if (length(so) > 1 || (length(so) == 1 && names(so) != SRC_NA))
+        tagList(tags$span(style = "margin-left:10px;"),
+                lapply(names(so), function(n) tags$span(class = "src-chip", sprintf("%s %d", n, so[[n]])))),
+      if (lit_wanted()) tags$div(style = "font-size:12px;",
+        "Literature records have no photograph: they enter the Traits table and the analyses based on",
+        " the nine ratios, not the landmark tables, shapes or measurement error. ", LV[1], " and ", tolower(LV[2]),
+        " filters apply to photographs only."))
+  })
+
+  ## ---- analyses app, on the measured specimens of the scope ------------------
+  ## The workbook rows whose photograph is measured and in the scope, described
+  ## by the hub's own species / site / date (the folder or the species table),
+  ## handed to launch_intrait_analyses() in its own process and browser tab.
+  observeEvent(input$analyses, {
+    q <- scope_queue(); q <- q[q$measured, , drop = FALSE]
+    lit <- scope_lit()
+    if (!nrow(q) && !nrow(lit)) {
+      showNotification("No measured photograph (and no literature record) in these filters.",
+                       type = "warning"); return() }
+    xl <- xlsx_path(); f <- NULL
+    if (nrow(q)) {
+      wb <- if (file.exists(xl)) tryCatch(as.data.frame(readxl::read_excel(xl, sheet = "measurements")),
+                                          error = function(e) NULL)
+      if (is.null(wb) || is.null(wb$specimen)) {
+        showNotification(paste("No measurements sheet in", xl, "yet: save first."), type = "warning"); return() }
+      pc <- get(".hub_code_of", ns)(wb)
+      k <- match(pc, q$specimen_code); keep <- !is.na(k)
+      if (!any(keep) && !nrow(lit)) {
+        showNotification("None of the measured photographs is in the workbook yet: save first.",
+                         type = "warning"); return() }
+      spec <- data.frame(specimen = as.character(wb$specimen[keep]), photo_code = pc[keep],
+                         species = as.character(q$species[k[keep]]),
+                         site = as.character(q$site[k[keep]] %||% NA),
+                         date = as.character(q$date[k[keep]] %||% NA),
+                         source = src_label(q$source[k[keep]]),
+                         stringsAsFactors = FALSE)
+      if (!is.null(wb$operator)) spec$operator <- as.character(wb$operator[keep])
+      if (nrow(spec)) {
+        f <- tempfile("hub_analyses_", fileext = ".csv")
+        utils::write.csv(spec, f, row.names = FALSE)
+      }
+    }
+    lf <- NULL
+    if (nrow(lit)) { lf <- tempfile("hub_literature_", fileext = ".csv"); utils::write.csv(lit, lf, row.names = FALSE) }
+    cur <- BG$apps[["analyses"]]
+    if (!is.null(cur) && cur$proc$is_alive()) bg_stop(cur$proc)   # new scope: restart
+    port <- free_port(); log <- tempfile("hub_analyses_", fileext = ".log")
+    scope_lbl <- scope_label()
+    pr <- tryCatch(bg_app("intraitR::launch_intrait_analyses",
+                          list(xlsx_path = if (!is.null(f)) xl, specimens = f, literature = lf,
+                               title = paste("Morphology of", scope_lbl),
+                               author = input$operator %||% CFG$operator %||% ""), port, log),
+                   error = function(e) { showNotification(conditionMessage(e), type = "error"); NULL })
+    if (is.null(pr)) return()
+    BG$apps[["analyses"]] <- list(proc = pr, url = sprintf("http://127.0.0.1:%d", port), log = log,
+                                  opened = FALSE, photo = NULL, ended = FALSE,
+                                  label = "Analyses", path = NA, mtime = NA)
+    showNotification(sprintf("Opening the analyses on %d measured photograph(s)%s...", nrow(q),
+                             if (nrow(lit)) sprintf(" and %d literature record(s)", nrow(lit)) else ""),
+                     duration = 6)
   })
 
   prog <- reactive({
@@ -1405,12 +1606,13 @@ server <- function(input, output, session) {
   ## traits
   observeEvent(input$tr_compute, {
     q <- scope_queue(); codes <- q$specimen_code[q$measured]
+    lit <- scope_lit()
     rv$traits <- NULL
-    if (!length(codes)) { rv$tr_msg <- "No measured specimen in this scope."; return() }
-    if (!file.exists(xlsx_path())) {
+    if (!length(codes) && !nrow(lit)) { rv$tr_msg <- "No measured specimen in these filters."; return() }
+    if (length(codes) && !file.exists(xlsx_path())) {
       rv$tr_msg <- paste("No workbook yet:", xlsx_path()); return() }
     warn <- character(0)
-    res <- withProgress(message = "Computing the traits", value = 0.3,
+    res <- if (!length(codes)) NULL else withProgress(message = "Computing the traits", value = 0.3,
       withCallingHandlers(tryCatch({
         tr <- CFG$traits_fun(codes, xlsx_path(), input$ruler_mm,
                              if (isTRUE(input$tr_pixels)) "pixels" else "na")
@@ -1429,9 +1631,22 @@ server <- function(input, output, session) {
       message = function(m) invokeRestart("muffleMessage")))
     if (inherits(res, "error")) {
       rv$tr_msg <- paste("Error:", conditionMessage(res)); return() }
+    if (!is.null(res)) {
+      res$source <- src_label(q$source[match(res$photo_code, q$specimen_code)])
+      front <- intersect(c("specimen_code", "photo_code", "site", "date", "species", "source"), names(res))
+      res <- res[, c(front, setdiff(names(res), front)), drop = FALSE]
+    }
+    nlit <- nrow(lit)
+    if (nlit) {                          # literature records: the ratios as published
+      l <- lit; l$photo_code <- NA_character_
+      cols <- unique(c(names(res %||% l), names(l)))
+      fill <- function(d) { for (cc in setdiff(cols, names(d))) d[[cc]] <- NA; d[, cols, drop = FALSE] }
+      res <- if (is.null(res)) fill(l) else rbind(fill(res), fill(l))
+    }
     rv$traits <- res
     npx <- if (is.null(res$scale_units)) 0L else sum(res$scale_units %in% "px")
-    rv$tr_msg <- sprintf("%d specimen(s)%s.%s", nrow(res),
+    rv$tr_msg <- sprintf("%d specimen(s)%s%s.%s", nrow(res) - nlit,
+                         if (nlit) sprintf(" and %d literature record(s)", nlit) else "",
                          if (npx) sprintf(", of which %d without a ruler (segments in pixels, ratios valid)", npx) else "",
                          if (length(warn)) paste0(" Warnings: ",
                            paste(unique(warn), collapse = " | ")) else "")

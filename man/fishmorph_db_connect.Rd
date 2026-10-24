@@ -6,6 +6,15 @@
 \usage{
 fishmorph_db_connect(db_path, read_only = TRUE)
 }
+\arguments{
+\item{db_path}{Path of the \code{.duckdb} file.}
+
+\item{read_only}{Open the database read-only (default \code{TRUE}). Use \code{FALSE}
+only to rebuild it.}
+}
+\value{
+A DBI connection; close it with \code{DBI::dbDisconnect()}.
+}
 \description{
 Read-only is the normal mode: the database is derived, and must never be
 written to by hand. It also lets several R processes open the same file

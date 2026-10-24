@@ -75,7 +75,7 @@ tutore, L2 BCP BIOMIP, CRBE, unpublished.
 
 Brosse S, Charpin N, Su G, Toussaint A, Herrera-R GA, Tedesco PA,
 Villéger S (2021). FISHMORPH: A global database on morphological
-traits of freshwater fishes. Global Ecology and Biogeography, 30(11),
+traits of freshwater fishes. Global Ecology and Biogeography, 30(12),
 2330-2336.
 
 Fruciano C (2016). Measurement error in geometric morphometrics.

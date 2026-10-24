@@ -13,8 +13,10 @@ measure_queue(photo_dir, species = NULL, journal_dir = NULL, exclude = NULL)
 \code{"folder"}: the name of the folder holding the photograph (one folder per
 species). A data.frame, or the path of a CSV / Excel file, with a column
 \code{species} and a column naming the photograph (\code{photo}, \code{code},
-\code{specimen}, \code{specimen_code} or \code{file}, with or without extension). Or a
-named character vector, code -> species.}
+\code{specimen}, \code{specimen_code} or \code{file}, with or without extension), and
+optionally a column \code{source} (or \code{data_source}, \code{provenance}: campaign,
+museum, ...), which the hub's Results page filters on. Or a named
+character vector, code -> species.}
 
 \item{journal_dir}{Landmark journal of \code{\link[=digitize_landmarks]{digitize_landmarks()}}, or a journal
 already read with \code{\link[=landmark_journal_read]{landmark_journal_read()}}. \code{NULL}: no measured state
@@ -25,7 +27,8 @@ output of \code{\link[=batch_landmarks]{batch_landmarks()}}, whose control thumb
 }
 \value{
 A data.frame, one row per photograph: \code{code}, \code{folder}, \code{subfolder},
-\code{species}, \code{file}, \code{path} (absolute), \code{measured}, \code{n_records} (records in
+\code{species}, \code{source} (provenance, \code{NA} when the species table has none),
+\code{file}, \code{path} (absolute), \code{measured}, \code{n_records} (records in
 the journal: individuals, repeats), \code{operator}, \code{timestamp}, \code{n_missing}
 (expected points absent, worst individual), \code{n_seeded} (points never moved
 from their seed) and \code{has_scale}.

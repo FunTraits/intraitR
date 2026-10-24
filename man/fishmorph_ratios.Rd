@@ -211,7 +211,7 @@ fishmorph_ratios(segments, MBl = MBl, MBw = TRUE)
 Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
 Tedesco, P. A., & Villéger, S. (2021). FISHMORPH: A global database on
 morphological traits of freshwater fishes. Global Ecology and
-Biogeography, 30(11), 2330-2336.
+Biogeography, 30(12), 2330-2336.
 
 Villéger, S., Ramos Miranda, J., Flores Hernandez, D., & Mouillot, D.
 (2010). Contrasting changes in taxonomic vs. functional diversity of

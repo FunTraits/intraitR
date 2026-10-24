@@ -219,7 +219,7 @@ if (file.exists(ref_path)) {
 Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
 Tedesco, P. A., & Villeger, S. (2021). FISHMORPH: A global database on
 morphological traits of freshwater fishes. Global Ecology and
-Biogeography, 30(11), 2330-2336.
+Biogeography, 30(12), 2330-2336.
 }
 \seealso{
 \code{\link[Rfishmorph:project_fishmorph]{Rfishmorph::project_fishmorph()}} (the projection itself),

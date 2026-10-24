@@ -18,6 +18,7 @@ launch_measure_hub(
   apps = NULL,
   default_apps = TRUE,
   sync_fun = NULL,
+  literature = NULL,
   title = "intraitR - measure",
   launch.browser = TRUE,
   ...
@@ -84,6 +85,16 @@ FishInTrait, linking the workbook's specimens in the project manifest).
 It returns a short message, shown in the hub. The landmarks themselves
 need no such step: each \emph{Save & next} of the digitizer writes them to the
 journal at once.}
+
+\item{literature}{Optional individual trait records that have no
+photograph -- published data sets, typically: a data.frame, or a
+function without argument returning one (called when needed), with a
+column \code{species}, the nine FISHMORPH ratios (\code{BEl} ... \code{CPt}) and
+optionally \code{site}, \code{date}, \code{study_id}, \code{specimen_code}. They appear in
+the Results page under the provenance "literature" (one filter per
+study), in its Traits table, and in the analyses it opens
+(\code{\link[=launch_intrait_analyses]{launch_intrait_analyses()}}) for every analysis based on the ratios.
+FishInTrait passes the literature of the project.}
 
 \item{title}{Title shown in the hub.}
 

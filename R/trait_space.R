@@ -257,7 +257,8 @@
 #' fish <- load_t26_saudrune_landmarks()
 #' segments <- fishmorph_segments(fish)
 #' ratios <- fishmorph_ratios(segments)
-#' ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
+#' traits <- ratios[, c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")]
+#' ts <- trait_space(traits, groups = fish$metadata$species, na_action = "omit")
 #' ts   # flags any within-species outliers found, see ts$outlier_screen
 #' \donttest{
 #' plot(ts)
@@ -266,7 +267,7 @@
 #' # Once a flagged specimen has been visually confirmed as an error (not
 #' # just genuine morphological variation), exclude it from the ordination:
 #' ts_clean <- trait_space(
-#'   ratios, groups = fish$metadata$species, na_action = "omit",
+#'   traits, groups = fish$metadata$species, na_action = "omit",
 #'   remove_outliers = TRUE
 #' )
 #' ts_clean$removed_outliers   # exactly which specimen(s) were excluded, and why
@@ -581,6 +582,22 @@ trait_space <- function(traits, groups = NULL, method = c("pca", "pcoa"),
       X <- X[keep, , drop = FALSE]
       traits_df <- traits_df[keep, , drop = FALSE]
       groups <- droplevels(groups[keep])
+      # removing specimens can leave a column constant (e.g. the only
+      # specimens that differed were the outliers): drop it, as above
+      sd_kept <- apply(X, 2, stats::sd)
+      now_const <- colnames(X)[!is.na(sd_kept) & sd_kept == 0]
+      if (length(now_const) > 0) {
+        warning(
+          "Dropping column(s) that are constant once the outliers are removed: ",
+          paste(now_const, collapse = ", "), call. = FALSE
+        )
+        X <- X[, setdiff(colnames(X), now_const), drop = FALSE]
+        numeric_cols <- colnames(X)
+        if (ncol(X) < 2) {
+          stop("Fewer than two non-constant columns remain once the outliers ",
+               "are removed.", call. = FALSE)
+        }
+      }
       X_std <- scale(X, center = TRUE, scale = scale)
       outlier_screen <- outlier_screen[keep, , drop = FALSE]
     } else if (n_flagged > 0) {
@@ -740,7 +757,8 @@ print.intrait_traitspace <- function(x, ...) {
 #' fish <- load_t26_saudrune_landmarks()
 #' segments <- fishmorph_segments(fish)
 #' ratios <- fishmorph_ratios(segments)
-#' ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
+#' traits <- ratios[, c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")]
+#' ts <- trait_space(traits, groups = fish$metadata$species, na_action = "omit")
 #' # species-flavoured legend: titled "Species", italic, abbreviated binomials
 #' plot(ts, legend_title = "Species", legend_italic = TRUE, abbreviate_species = TRUE)
 #' }

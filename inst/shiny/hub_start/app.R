@@ -129,7 +129,9 @@ ui <- bslib::page_navbar(
                                accept = c("image/jpeg", "image/png", "image/tiff",
                                           ".jpg", ".jpeg", ".png", ".tif", ".tiff")),
                      hint("The photographs are COPIED into the new folder; the originals",
-                          "are not touched. A file of the same name already there is left as it is.")))),
+                          "are not touched. A file of the same name already there is left as it is,",
+                          "and a photograph identical to one already under the parent folder",
+                          "(or sent twice) is not copied again.")))),
         card_x("Species",
                radioButtons("sp_mode", NULL,
                             c("Not known yet" = "none",
@@ -171,6 +173,11 @@ ui <- bslib::page_navbar(
     )
   ),
   bslib::nav_spacer(),
+  bslib::nav_menu(title = "? Help", align = "right",
+    bslib::nav_item(tags$a("Step-by-step guide (English)", target = "_blank",
+      href = "https://funtraits.github.io/intraitR/articles/apps-workflow.html")),
+    bslib::nav_item(tags$a("Guide pas \u00e0 pas (fran\u00e7ais)", target = "_blank",
+      href = "https://funtraits.github.io/intraitR/articles/apps-workflow-fr.html"))),
   bslib::nav_item(actionButton("quit", "Close", class = "btn-sm btn-outline-danger"))
 )
 
@@ -509,13 +516,38 @@ server <- function(input, output, session) {
     notimg <- !grepl(IMG_RE, f$name, ignore.case = TRUE)
     to <- file.path(dest, basename(f$name))
     exist <- file.exists(to)
-    cp <- !notimg & !exist
+    # Already on disk under any name (the parent tree, where earlier uploads
+    # of the campaign sit), or sent twice in this upload: not copied again.
+    pres <- withProgress(message = "Checking for photographs already there...",
+      get(".hub_photos_present", ns)(f$datapath[!notimg & !exist], f$name[!notimg & !exist],
+                                     search_dir = parent))
+    same <- f$name %in% pres$name & !notimg & !exist
+    cp <- !notimg & !exist & !same
     done <- if (any(cp)) file.copy(f$datapath[cp], to[cp]) else logical(0)
     updateTextInput(session, "photo_dir", value = dest)
-    showNotification(sprintf("%d photograph(s) copied into %s%s%s.", sum(done), dest,
+    showNotification(sprintf("%d photograph(s) copied into %s%s%s%s.", sum(done), dest,
                              if (any(exist & !notimg)) sprintf("; %d already there, left as they were", sum(exist & !notimg)) else "",
+                             if (any(same)) sprintf("; %d identical to a photograph already there, not copied", sum(same)) else "",
                              if (any(notimg)) sprintf("; %d file(s) that are not photographs ignored", sum(notimg)) else ""),
                      duration = 10)
+    if (nrow(pres)) {
+      shown <- utils::head(pres, 30)
+      showModal(modalDialog(
+        title = sprintf("%d photograph(s) already there", nrow(pres)), easyClose = TRUE,
+        p("These files are byte-for-byte identical to a photograph already on disk ",
+          "(under ", tags$code(parent), ") or sent twice in this upload. They were ",
+          tags$b("not copied"), ", so the same fish is not measured twice."),
+        tags$table(class = "table table-sm", style = "font-size:13px;",
+          tags$thead(tags$tr(tags$th("Uploaded"), tags$th("Identical to"))),
+          tags$tbody(lapply(seq_len(nrow(shown)), function(i) tags$tr(
+            tags$td(shown$name[i]),
+            tags$td(if (shown$where[i] == "on disk")
+              tags$code(sub(paste0("^", gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", parent), "/?"),
+                            "", shown$found[i]))
+              else tagList(shown$found[i], tags$em(" (same upload)"))))))),
+        if (nrow(pres) > 30) p(class = "text-muted", sprintf("... and %d more.", nrow(pres) - 30)),
+        footer = modalButton("OK")))
+    }
   })
 }
 

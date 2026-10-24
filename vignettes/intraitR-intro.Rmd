@@ -286,10 +286,16 @@ plot_fishmorph_points(fishmorph_fish, specimen = 1)
 [fishmorph_segments()] computes the 11 linear measurements of the
 protocol directly from the digitized points, automatically converting
 pixel units to centimetres using the embedded scale bar (landmarks
-20-21):
+20-21). Six photographs of this survey have no usable scale bar: by
+default (`scale_action = "na"`) their measurements, and therefore their
+ratios, would be `NA`. Because the 9 ratios are quotients of segments of the
+same photograph, they do not need the scale: `scale_action = "pixels"` keeps
+these specimens, their segments in pixels (column `scale_units`), their
+ratios exact.
 
 ```{r}
-segments <- fishmorph_segments(fishmorph_fish)
+segments <- fishmorph_segments(fishmorph_fish, scale_action = "pixels")
+table(segments$scale_units)
 head(segments)
 ```
 
@@ -315,7 +321,8 @@ ordination (`log_transform = TRUE`, `scale = TRUE`); set either to
 a spider/ellipse display per group:
 
 ```{r}
-fts <- trait_space(fishmorph_traits, groups = fishmorph_fish$metadata$species)
+ratio_cols <- c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")
+fts <- trait_space(fishmorph_traits[, ratio_cols], groups = fishmorph_traits$species)
 fts
 plot(fts)
 ```

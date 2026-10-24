@@ -558,5 +558,8 @@ test_that(".resolve_mlmorph_dir() returns NULL when nothing looks like ml-morph"
     if (!is.na(old)) Sys.setenv(INTRAITR_MLMORPH_DIR = old)
   }, add = TRUE)
 
+  # the last fallback is the models installed by install_mlmorph_models():
+  # pretend none are installed so the result does not depend on the machine
+  local_mocked_bindings(mlmorph_models_dir = function(...) NULL)
   expect_null(intraitR:::.resolve_mlmorph_dir(NULL))
 })

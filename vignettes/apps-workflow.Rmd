@@ -1,0 +1,298 @@
+---
+title: "From photographs to a paper: the intraitR apps, step by step"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{From photographs to a paper: the intraitR apps, step by step}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+*Version française : `vignette("apps-workflow-fr", package = "intraitR")`.*
+
+## What intraitR is for
+
+**intraitR** measures the morphology of fishes on photographs and analyses it,
+from the first click to a reproducible project ready for a paper. It follows
+the FISHMORPH protocol (Brosse et al. 2021): landmarks placed on a lateral
+photograph give eleven linear measurements and the nine unitless ratios that
+describe locomotion and food acquisition (Villéger et al. 2010). Because each
+specimen is measured individually, intraitR is built for **intraspecific trait
+variability** (ITV): how much individuals of one species differ, compared with
+how much species differ.
+
+Everything can be done from R, but the usual path goes through four
+applications that open in the browser, one after the other:
+
+| Step | Application | Opened by | What you do there |
+|---|---|---|---|
+| 1 | **Start page** | `launch_measure_hub()` without arguments | choose (or upload) the photographs, the species, where results are saved |
+| 2 | **Measurement hub** | the start page, or `launch_measure_hub(photo_dir, ...)` | select photographs, run the automatic pre-pass, follow progress, check results |
+| 3 | **Digitizer** | the hub (*3. Digitize*) | place, predict and correct the landmarks, photograph by photograph |
+| 4 | **Analyses** | the hub (*4. Results*), or `launch_intrait_analyses()` | traits, trait space, FISHMORPH, ITV, shape, measurement error; export a reproducible project |
+
+Two companion packages plug into the same hub: **Rfishmorph** (the FISHMORPH
+reference database and its functional space) and, for a campaign database,
+**FishInTrait** (see the last section).
+
+## Before the first session
+
+```{r}
+install.packages("remotes")
+remotes::install_github("FunTraits/Rfishmorph")
+remotes::install_github("FunTraits/intraitR")
+
+# Once per computer, optional: the models that predict the landmarks
+# (~290 MB, downloaded from the GitHub release of intraitR) and their
+# Python environment. Without them every point is placed by hand.
+intraitR::install_mlmorph_models()
+intraitR::install_mlmorph_python()
+```
+
+The start page shows whether the models are installed, and offers the same two
+installations with a button.
+
+**Photographs.** One fish (or several, see *plates*) per photograph, lateral
+view, head to the left if possible, with a **scale bar** of known length in the
+plane of the fish. The file name without its extension becomes the specimen
+code. Organise the folder in two levels if you can — for example
+`site/date/photo.jpg` — the hub uses them as *folder* and *sub-folder*.
+
+## Step 1 — the start page
+
+```{r}
+library(intraitR)
+res <- launch_measure_hub()
+```
+
+1. **Photographs.** *Browse* to the folder (the number of photographs in each
+   sub-folder is shown), or upload photographs into a new folder. An upload
+   never copies a photograph that is already there under another name, nor the
+   same file twice: a window lists them.
+2. **Species.** *Not known yet*; *one folder per species* (the folder names are
+   the species); or *from a table* (CSV or Excel: one row per photograph, a
+   column naming the photograph and a column `species`, optionally `source`
+   for the provenance — campaign, museum...).
+3. **Where to save.** The workbook (`.xlsx`) and the journal folder. Defaults
+   are next to the photographs. **The journal is the source of truth**: every
+   saved specimen is appended to it at once and never rewritten; the workbook
+   is an export that can always be rebuilt from it
+   (`consolidate_landmarks()`).
+4. **Session.** Operator (traced in every record), length of the scale bar.
+5. *Open the photographs*. The bottom of the page shows the equivalent console call, to start
+   the same session from a script next time; the last sessions are listed and
+   can be reopened in one click.
+
+## Step 2 — the measurement hub
+
+The hub keeps running during the whole session; the other applications open
+in their own browser tabs and the hub follows what they write.
+
+**Home.** Progress of the folder (measured / to measure, per folder), the last
+saves, *Resume* where you stopped, and the other applications.
+
+**1. Setup.** Operator, scale-bar length, where the predictor lives; the
+applications currently open (and *Close them all*).
+
+**2. Select.** Choose a folder, then a sub-folder: the gallery shows every
+photograph with its species and its state (measured or not). Click to select;
+*Select shown not measured* takes everything left to do. The magnifier opens a
+photograph in large. *Next: digitize the selection →*.
+
+**3. Digitize.**
+
+- *Automatic pre-pass (optional)*: `batch_landmarks()` predicts the points of
+  the whole selection in the background, hinges 22/24 included (useful for
+  curved fish). The predictions arrive in the digitizer as **predicted**
+  points, to be checked.
+- *Open the digitizer* on exactly the selection (step 3 below).
+- *Accept the pre-pass without review* records the predictions as they are,
+  after a warning: use it only for photographs you will not check, and know
+  that they stay marked `predicted` / not reviewed in the journal.
+
+**4. Results.** The menus at the top choose what the tables, the traits and the
+analyses are computed on — empty means everything:
+
+| Menu | Selects |
+|---|---|
+| Folder, Sub-folder | photographs (e.g. sites, dates) |
+| Species | photographs and literature records |
+| Provenance | campaign, museum… and **literature** (trait records without photographs, when the hub has them) |
+| Studies | the published data sets, when *literature* is chosen |
+
+A line summarises the selection (photographs, measured, species, literature
+records). Tabs:
+
+- *Progress*: measured / to measure per folder, sub-folder and species.
+- *Landmarks & statuses*: for each specimen, how its points were obtained —
+  `clicked`/`validated` (checked by the operator), `adjusted` (moved by a
+  protocol convention), `predicted` (model, not reviewed), `seeded` (never
+  moved: not measured), `derived`, `na` — and how many expected points are
+  missing.
+- *Traits*: *Compute the FISHMORPH traits* — the eleven measurements (cm, or
+  pixels for a photograph without a scale bar: its ratios remain exact) and
+  the nine ratios, plus the literature records chosen.
+- *Annotated photograph*: the points drawn on the photograph;
+  *Correct the points in the digitizer* reopens this photograph alone, in
+  correct mode.
+
+*💾 Save to the database* re-reads everything and registers the measurements
+(with FishInTrait: in the project manifest). *Finish* closes the digitizer and
+the hub and returns to R.
+
+## Step 3 — the digitizer
+
+One photograph at a time. The landmark buttons on the right say which point
+the next click places; numbering follows FISHMORPH: **1** snout, **2** caudal
+fin base, **3–19** the anatomical points, **20–21** the two ends of the scale
+bar, **22, 24, 25** hinges along the body midline of a curved fish (standard
+length is then measured along the bent line), 23 the head base (derived).
+
+| Action | How |
+|---|---|
+| Place a point | click on the photograph |
+| Predict the 19 anatomical points | click 1 (snout) and 2 (caudal fin base), then *Predict 19 landmarks*; the scale bar is predicted too if not placed (status `predicted` until clicked) |
+| Predict without clicking | *Auto (no clicks)* (needs the global model) |
+| Undo / redo | **Ctrl+Z** / **Ctrl+Shift+Z** (Cmd on a Mac), or the buttons |
+| Validate the points | *Validate points* |
+| Save and go to the next photograph | **Enter**, or *Save & next* |
+| A point that cannot be seen | *Mark NA* |
+| Zoom, pan | *Zoom + / −*, *Whole view*, the arrows |
+| Write the workbook now | *💾 Write the workbook now* (it is also written regularly) |
+
+Three queues, from the action bar: **new** (photographs not yet measured),
+**correct** (measured specimens, points reloaded, to move the wrong ones) and
+**repeat** (the same photograph measured several times, blind by default:
+these passes go to the `bias` sheet and give the measurement error). Several
+fish on one photograph: *+ individual* (the codes become `<photo>_i1`,
+`_i2`… and share the scale bar).
+
+Before saving, protocol checks run: eye vertical, extreme points 3/4, the
+coincidence rules of FISHMORPH. A suspicious specimen is shown with *Measure
+again*, *Auto-correct and save* or *Save without correcting*.
+
+*Finish* writes the workbook and closes the digitizer; the hub notices and
+refreshes.
+
+## Step 4 — the analyses, and a project ready for a paper
+
+In *4. Results*, set the menus, then **📊 Analyses → reproducible project
+(.zip)**. The analyses application opens on the measured photographs (and the
+literature records) of the selection. It also runs on its own:
+
+```{r}
+launch_intrait_analyses(xlsx_path = "landmarks.xlsx")
+```
+
+| Tab | Content | Functions |
+|---|---|---|
+| 1. Data | sample per species (Table 1); minimum number of individuals per species, species, sites, provenance; **ratios used** (with the share of records that have each ratio, per provenance and study); landmark corrections | `fishmorph_segments()`, `fishmorph_ratios()` |
+| 2. Traits | the ratios per species, coefficients of variation | `summary_traits()`, `intraspecific_variability()` |
+| 3. Trait space | PCA of the log-transformed, standardised ratios; dispersion per species, permutation tests (Holm) | `trait_space()`, `trait_disparity()` |
+| 4. FISHMORPH | the sample in the space of ~9,000 freshwater species; share of the global space | `project_fishmorph()` |
+| 5. ITV | variance between vs within species (and between sites); rarefaction and the number of individuals needed (n\*) | `itv_index()`, `itv_accumulation()` |
+| 6. Shape | Procrustes superimposition, shape space, shape disparity | `gpa_fish()`, `shape_space()` |
+| 7. Measurement error | %ME and repeatability per measurement, placement error per landmark (repeat passes) | `measurement_error()`, `digitization_error()` |
+| 8. Export | the project (.zip) and its report | `write_analysis_project()` |
+
+**Export.** Give a title, the authors and a folder name, then *Build the
+project*. The project has the architecture of a published paper:
+
+```
+my_project/
+├── scripts/      00_START, 01_DATA, 02_ANALYSIS, 03_FIGURE_*, 04_SUPP_*, 05_STAT_*
+├── utils/        library.R, parameters.R (every parameter, one place), functions.R
+├── data/         raw/ (landmarks as digitized, literature records), processed/, metadata.csv
+├── results/      figures/ (Fig*, FigS*: png + pdf), tables/ (Table*, TableS*: csv)
+├── manuscript/   Methods_Results.Rmd and .docx, references.bib
+├── run_all.R     runs everything, then renders the report
+└── README.md, <project>.Rproj, .gitignore, session_info.txt
+```
+
+The tables, figures and report are not copies of the screen: the export
+**runs the project's own scripts** (`run_all.R`, in a separate R session), so
+the archive contains exactly what anyone obtains by running it again. Change a
+value in `utils/parameters.R` and re-run `run_all.R` to update everything.
+
+The report (`manuscript/Methods_Results.docx`) contains the Methods and the
+Results only, with every number read from `results/tables/` and the
+references. Text in [square brackets] is for you to complete (sampling,
+photographic protocol, data sets used) — the application cannot know it.
+
+## Other applications of the hub
+
+The *Apps* menu opens, in their own tabs: the **FISHMORPH functional space**
+(Rfishmorph) and, when the hub is started by FishInTrait, the applications of
+the campaign database.
+
+## With FishInTrait (campaign database)
+
+FishInTrait manages a sampling campaign: photographs received from the field,
+specimen codes, sites, dates, identifications, published data sets. It opens
+the same hub on its project:
+
+```{r}
+library(FishInTrait)
+p <- fit_project_open("path/to/00_project")
+launch_fishintrait_measure(p, operator = "AT")
+```
+
+| Need | Application (from the hub's *Apps* menu or a photograph) |
+|---|---|
+| Bring in photographs, a field sheet, landmarks | *Import* — `launch_fishintrait_import()`: project, delivery (with a check of the photographs **already imported**), field sheet, photographs (species, count, pose), import, corrections, quality & export |
+| Add published trait data | *Literature* — `launch_fishintrait_literature()` |
+| Crop, turn, re-identify one photograph | *Edit this photograph* — `launch_fishintrait_photo()` |
+| Check identifications | *Review* — `launch_fishintrait_review()` |
+| Explore traits by site, species, in the FISHMORPH space | *Explore* — `launch_fishintrait_explorer()` |
+
+The hub then knows the **provenance** of every photograph (campaign or
+museum) and offers the project's **literature** in *4. Results*. Published
+records have no photograph: they enter the traits and every analysis based on
+the ratios, never the landmark tables, the shape or the measurement error. A
+data set may lack a ratio (for instance one without PFv): the *Data* tab of
+the analyses shows it, and unchecking that ratio brings its records in — say
+so, and why, in the Methods.
+
+## Without the applications
+
+Every step has its function, to script or to reproduce a session:
+
+```{r}
+q   <- measure_queue("photos", species = "folder", journal_dir = "journal")
+batch_landmarks(...)                          # automatic pre-pass
+digitize_landmarks(photo_dir = "photos", xlsx_path = "landmarks.xlsx",
+                   journal_dir = "journal", operator = "AT")
+consolidate_landmarks("journal", xlsx_path = "landmarks.xlsx")  # workbook rebuilt from the journal
+fish <- read_digitizer_workbook("landmarks.xlsx")  # every point, hinges 24/25 included
+seg <- fishmorph_segments(fish, scale_cm = 1)
+rat <- fishmorph_ratios(seg)
+write_analysis_project(fish, "my_project", params = analysis_params(min_n = 10))
+```
+
+## When something goes wrong
+
+| Symptom | Cause, remedy |
+|---|---|
+| *Predict* says no model is available | `install_mlmorph_models()` then `install_mlmorph_python()`, once per computer |
+| A specimen measured before reappears as *new* | it was saved in another workbook or journal: always give the same `xlsx_path`, `journal_dir` and `operator` |
+| Measurement error: "every individual must have at least 2 replicates" (older versions) | a photograph of the `bias` sheet was digitized once; it is now left out and named — digitize it a second time |
+| Literature records never analysed | a ratio is missing from the data set: see the coverage table of *1. Data* |
+| Bl and BEl seem too low on curved fish | place the hinges 22/24(/25) on the midline; standard length then follows the body |
+| A workbook looks wrong | rebuild it from the journal: *Rebuild from the journal* in the digitizer, or `consolidate_landmarks()` |
+
+## References
+
+Brosse S, Charpin N, Su G, Toussaint A, Herrera-R GA, Tedesco PA, Villéger S
+(2021) FISHMORPH: a global database on morphological traits of freshwater
+fishes. *Global Ecology and Biogeography* 30: 2330–2336.
+
+Villéger S, Ramos Miranda J, Flores Hernández D, Mouillot D (2010) Contrasting
+changes in taxonomic vs. functional diversity of tropical fish communities
+after habitat degradation. *Ecological Applications* 20: 1512–1522.
+
+Violle C, Enquist BJ, McGill BJ, Jiang L, Albert CH, Hulshof C, Jung V,
+Messier J (2012) The return of the variance: intraspecific variability in
+community ecology. *Trends in Ecology & Evolution* 27: 244–252.

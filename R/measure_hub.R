@@ -49,7 +49,13 @@
   k <- tools::file_path_sans_ext(basename(as.character(d[[which(nm == key)[1]]])))
   v <- as.character(d[[which(nm == "species")[1]]])
   ok <- !is.na(k) & nzchar(k)
-  stats::setNames(v[ok], k[ok])
+  out <- stats::setNames(v[ok], k[ok])
+  # optional provenance of each photograph (campaign, museum, ...), carried as
+  # an attribute so that the resolved table stays a code -> species vector
+  src <- intersect(c("source", "data_source", "provenance"), nm)[1]
+  if (!is.na(src))
+    attr(out, "source") <- stats::setNames(as.character(d[[which(nm == src)[1]]])[ok], k[ok])
+  out
 }
 
 # One row per photograph code measured in the landmark journal.
@@ -121,15 +127,18 @@
 #'   `"folder"`: the name of the folder holding the photograph (one folder per
 #'   species). A data.frame, or the path of a CSV / Excel file, with a column
 #'   `species` and a column naming the photograph (`photo`, `code`,
-#'   `specimen`, `specimen_code` or `file`, with or without extension). Or a
-#'   named character vector, code -> species.
+#'   `specimen`, `specimen_code` or `file`, with or without extension), and
+#'   optionally a column `source` (or `data_source`, `provenance`: campaign,
+#'   museum, ...), which the hub's Results page filters on. Or a named
+#'   character vector, code -> species.
 #' @param journal_dir Landmark journal of [digitize_landmarks()], or a journal
 #'   already read with [landmark_journal_read()]. `NULL`: no measured state
 #'   (everything is "to measure").
 #' @param exclude Folders under `photo_dir` to leave out (for example the
 #'   output of [batch_landmarks()], whose control thumbnails are images too).
 #' @return A data.frame, one row per photograph: `code`, `folder`, `subfolder`,
-#'   `species`, `file`, `path` (absolute), `measured`, `n_records` (records in
+#'   `species`, `source` (provenance, `NA` when the species table has none),
+#'   `file`, `path` (absolute), `measured`, `n_records` (records in
 #'   the journal: individuals, repeats), `operator`, `timestamp`, `n_missing`
 #'   (expected points absent, worst individual), `n_seeded` (points never moved
 #'   from their seed) and `has_scale`.
@@ -143,7 +152,7 @@
 #' @export
 measure_queue <- function(photo_dir, species = NULL, journal_dir = NULL,
                           exclude = NULL) {
-  cols <- c("code", "folder", "subfolder", "species", "file", "path", "measured",
+  cols <- c("code", "folder", "subfolder", "species", "source", "file", "path", "measured",
             "n_records", "operator", "timestamp", "n_missing", "n_seeded",
             "has_scale")
   if (!is.character(photo_dir) || length(photo_dir) != 1L || !dir.exists(photo_dir))
@@ -173,7 +182,7 @@ measure_queue <- function(photo_dir, species = NULL, journal_dir = NULL,
     folder = vapply(parts, function(p) if (length(p)) p[1] else "", ""),
     subfolder = vapply(parts, function(p) if (length(p) > 1L)
       paste(p[-1], collapse = "/") else "", ""),
-    species = NA_character_, file = basename(f), path = f,
+    species = NA_character_, source = NA_character_, file = basename(f), path = f,
     stringsAsFactors = FALSE)
 
   if (identical(species, "folder")) {
@@ -181,6 +190,8 @@ measure_queue <- function(photo_dir, species = NULL, journal_dir = NULL,
   } else if (!is.null(species)) {
     tab <- .hub_species_table(species)
     out$species <- unname(tab[out$code])
+    src <- attr(tab, "source")
+    if (!is.null(src)) out$source <- unname(src[out$code])
   }
 
   st <- .hub_journal_state(journal_dir)
@@ -200,9 +211,9 @@ measure_queue <- function(photo_dir, species = NULL, journal_dir = NULL,
 # segments -> the nine FISHMORPH ratios, restricted to `codes` (photograph
 # codes; individuals of a plate are matched through `photo_file`).
 .hub_traits_default <- function(codes, xlsx_path, ruler_mm, scale_action = "pixels") {
-  lm <- read_landmarks_xlsx(xlsx_path, sheet = "measurements", n_landmarks = 22L,
-                            x_pattern = "{i}_X", y_pattern = "{i}_Y",
-                            id_cols = "specimen")
+  # every landmark up to 25: hinges 24 and 25 of a curved specimen count in Bl
+  # (reading 1-22 only shortened it); see .ana_read_workbook()
+  lm <- .ana_read_workbook(xlsx_path, sheet = "measurements")
   seg <- fishmorph_segments(lm, scale_cm = ruler_mm / 10, scale_action = scale_action)
   rat <- fishmorph_ratios(seg)
   out <- as.data.frame(rat, stringsAsFactors = FALSE)
@@ -401,6 +412,15 @@ measure_queue <- function(photo_dir, species = NULL, journal_dir = NULL,
 #'   It returns a short message, shown in the hub. The landmarks themselves
 #'   need no such step: each *Save & next* of the digitizer writes them to the
 #'   journal at once.
+#' @param literature Optional individual trait records that have no
+#'   photograph -- published data sets, typically: a data.frame, or a
+#'   function without argument returning one (called when needed), with a
+#'   column `species`, the nine FISHMORPH ratios (`BEl` ... `CPt`) and
+#'   optionally `site`, `date`, `study_id`, `specimen_code`. They appear in
+#'   the Results page under the provenance "literature" (one filter per
+#'   study), in its Traits table, and in the analyses it opens
+#'   ([launch_intrait_analyses()]) for every analysis based on the ratios.
+#'   FishInTrait passes the literature of the project.
 #' @param default_apps Add the FISHMORPH functional space
 #'   ([Rfishmorph::launch_fishmorph_space()]) to the Apps menu.
 #' @param title Title shown in the hub.
@@ -428,7 +448,7 @@ launch_measure_hub <- function(photo_dir = NULL, xlsx_path = NULL, journal_dir =
                                mlmorph_dir = NULL, python = NULL,
                                levels = c("Folder", "Sub-folder"),
                                traits_fun = NULL, apps = NULL, default_apps = TRUE,
-                               sync_fun = NULL,
+                               sync_fun = NULL, literature = NULL,
                                title = "intraitR - measure",
                                launch.browser = TRUE, ...) {
   miss <- .HUB_DEPS[!vapply(.HUB_DEPS, requireNamespace, logical(1), quietly = TRUE)]
@@ -440,7 +460,8 @@ launch_measure_hub <- function(photo_dir = NULL, xlsx_path = NULL, journal_dir =
                species = species, operator = operator, ruler_mm = ruler_mm,
                mlmorph_dir = mlmorph_dir, python = python, levels = levels,
                traits_fun = traits_fun, apps = apps, default_apps = default_apps,
-               sync_fun = sync_fun, title = title, from_start = FALSE)
+               sync_fun = sync_fun, literature = literature, title = title,
+               from_start = FALSE)
   # Checked at once when given: an error belongs in the console, not in a page.
   if (!is.null(photo_dir)) .hub_cfg(args)
   dots <- list(...)
@@ -505,6 +526,9 @@ launch_measure_hub <- function(photo_dir = NULL, xlsx_path = NULL, journal_dir =
     stop("`traits_fun` must be a function.", call. = FALSE)
   if (!is.null(args$sync_fun) && !is.function(args$sync_fun))
     stop("`sync_fun` must be a function.", call. = FALSE)
+  if (!is.null(args$literature) && !is.function(args$literature) &&
+      !is.data.frame(args$literature))
+    stop("`literature` must be a data.frame or a function returning one.", call. = FALSE)
   ruler_mm <- suppressWarnings(as.numeric(args$ruler_mm))
   if (length(ruler_mm) != 1L || !is.finite(ruler_mm) || ruler_mm <= 0)
     stop("`ruler_mm` must be a single positive number.", call. = FALSE)
@@ -525,7 +549,8 @@ launch_measure_hub <- function(photo_dir = NULL, xlsx_path = NULL, journal_dir =
          normalizePath(mlmorph_dir, winslash = "/"),
        python = args$python %||% "",
        traits_fun = args$traits_fun %||% .hub_traits_default, apps = apps,
-       sync_fun = args$sync_fun, title = args$title %||% "intraitR - measure",
+       sync_fun = args$sync_fun, literature = args$literature,
+       title = args$title %||% "intraitR - measure",
        from_start = isTRUE(args$from_start))
 }
 
@@ -579,7 +604,7 @@ launch_measure_hub <- function(photo_dir = NULL, xlsx_path = NULL, journal_dir =
 # particular species), shown on the start page and the home page of the hub.
 # The dots appear one after the other (CSS), none when less motion is asked.
 .hub_fish_svg <- function() {
-  tags <- htmltools::tags; HTML <- htmltools::HTML
+  tags <- shiny::tags; HTML <- shiny::HTML
   # landmarks on the outline: snout, caudal-fin base, body depth above and below,
   # eye, mouth corner, dorsal-fin origin and end, pectoral insertion and tip,
   # caudal peduncle, tips of the caudal lobes
@@ -629,3 +654,78 @@ launch_measure_hub <- function(photo_dir = NULL, xlsx_path = NULL, journal_dir =
   @keyframes lm-in { from { opacity:0; r:9; } to { opacity:1; } }
   @media (prefers-reduced-motion: reduce) { .home-fish .lm { animation:none; opacity:1; } }
 "
+
+# Photographs about to be uploaded that are already on disk. `files` are the
+# uploaded copies (temporary paths), `names` their original names, `search_dir`
+# the folder whose tree is searched (the parent of the new folder: earlier
+# uploads of the same campaign sit next to it). Sizes are compared first and
+# only the files of an equal size are hashed, so a large tree costs a directory
+# listing, not a read of every photograph. A file repeated within the upload
+# itself is reported too (`in_upload`). Returns one row per uploaded file
+# found: `name`, `found` (the path of the identical file) and `where`.
+.hub_photos_present <- function(files, names = basename(files), search_dir = NULL,
+                                max_files = 20000L) {
+  out <- data.frame(name = character(0), found = character(0),
+                    where = character(0), stringsAsFactors = FALSE)
+  if (!length(files)) return(out)
+  sz  <- file.size(files)
+  md5 <- rep(NA_character_, length(files))
+  hash <- function(i) { i <- i[is.na(md5[i])]
+    if (length(i)) md5[i] <<- unname(tools::md5sum(files[i])) }
+  res <- list()
+  if (!is.null(search_dir) && nzchar(search_dir) && dir.exists(search_dir)) {
+    ex <- list.files(search_dir, .HUB_IMG_RE, recursive = TRUE,
+                     full.names = TRUE, ignore.case = TRUE)
+    if (length(ex) > max_files) ex <- ex[seq_len(max_files)]
+    ex <- ex[!normalizePath(ex, mustWork = FALSE) %in%
+               normalizePath(files, mustWork = FALSE)]
+    if (length(ex)) {
+      exs  <- file.size(ex)
+      cand <- which(sz %in% exs)
+      if (length(cand)) {
+        hash(cand)
+        exc <- ex[exs %in% sz[cand]]
+        exm <- unname(tools::md5sum(exc))
+        j <- match(md5[cand], exm)
+        ok <- !is.na(j)
+        if (any(ok)) res[[1]] <- data.frame(name = names[cand][ok], found = exc[j[ok]],
+                                            where = "on disk", stringsAsFactors = FALSE)
+      }
+    }
+  }
+  dsz <- which(duplicated(sz) | duplicated(sz, fromLast = TRUE))
+  if (length(dsz)) {
+    hash(dsz)
+    k <- dsz[duplicated(md5[dsz])]
+    k <- setdiff(k, which(names %in% unlist(lapply(res, `[[`, "name"))))
+    if (length(k)) res[[2]] <- data.frame(
+      name = names[k], found = names[match(md5[k], md5)],
+      where = "in this upload", stringsAsFactors = FALSE)
+  }
+  if (!length(res)) out else do.call(rbind, res)
+}
+
+# Literature trait records of a hub session, as a data.frame with the columns
+# the Results page and the analyses use (never NULL; zero rows when none).
+.HUB_LIT_COLS <- c("specimen_code", "species", "site", "date", "study_id", "source")
+.hub_literature <- function(lit) {
+  d <- tryCatch(if (is.function(lit)) lit() else lit, error = function(e) {
+    warning("Literature records not read: ", conditionMessage(e), call. = FALSE); NULL })
+  rc <- c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")
+  empty <- as.data.frame(stats::setNames(c(replicate(length(.HUB_LIT_COLS), character(0), simplify = FALSE),
+                                           replicate(length(rc), numeric(0), simplify = FALSE)),
+                                         c(.HUB_LIT_COLS, rc)))
+  if (is.null(d) || !is.data.frame(d) || !nrow(d) || is.null(d$species)) return(empty)
+  d <- as.data.frame(d, stringsAsFactors = FALSE)
+  n <- nrow(d)
+  ch <- function(v) if (is.null(v)) rep(NA_character_, n) else as.character(v)
+  out <- data.frame(specimen_code = ch(d$specimen_code %||% d$specimen),
+                    species = ch(d$species), site = ch(d$site), date = ch(d$date),
+                    study_id = ch(d$study_id), source = "literature",
+                    stringsAsFactors = FALSE)
+  miss <- is.na(out$specimen_code) | !nzchar(out$specimen_code)
+  out$specimen_code[miss] <- sprintf("%s_lit%05d", ifelse(is.na(out$study_id[miss]), "LIT",
+                                                          out$study_id[miss]), which(miss))
+  for (r in rc) out[[r]] <- suppressWarnings(as.numeric(d[[r]] %||% rep(NA_real_, n)))
+  out[!is.na(out$species) & nzchar(out$species), , drop = FALSE]
+}

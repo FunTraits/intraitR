@@ -345,6 +345,10 @@ fishmorph_build_db <- function(journal_dir,
 #' Read-only is the normal mode: the database is derived, and must never be
 #' written to by hand. It also lets several R processes open the same file
 #' simultaneously.
+#' @param db_path Path of the `.duckdb` file.
+#' @param read_only Open the database read-only (default `TRUE`). Use `FALSE`
+#'   only to rebuild it.
+#' @return A DBI connection; close it with `DBI::dbDisconnect()`.
 #' @export
 fishmorph_db_connect <- function(db_path, read_only = TRUE) {
   for (p in c("DBI", "duckdb")) if (!requireNamespace(p, quietly = TRUE))

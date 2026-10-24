@@ -1,0 +1,198 @@
+---
+title: "{{TITLE}} — Methods and Results"
+author: "{{AUTHOR}}"
+date: "Generated on {{DATE}} by intraitR {{INTRAITR_VERSION}}; numbers read from results/tables/"
+bibliography: references.bib
+csl: ecology-letters.csl
+output:
+  word_document:
+    fig_caption: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+```
+
+```{r data}
+source("utils/parameters.R")
+tab <- function(name) {
+  f <- file.path("results", "tables", paste0(name, ".csv"))
+  if (file.exists(f)) utils::read.csv(f, stringsAsFactors = FALSE) else NULL
+}
+fig <- function(name) {
+  f <- file.path("results", "figures", paste0(name, ".png"))
+  if (file.exists(f)) normalizePath(f) else NULL
+}
+f1 <- function(x, d = 1) formatC(x, format = "f", digits = d, big.mark = ",")
+f0 <- function(x) formatC(round(x), format = "d", big.mark = ",")
+pval <- function(p) if (p < 0.001) "< 0.001" else paste("=", formatC(p, format = "f", digits = 3))
+it <- function(s) paste0("*", s, "*")
+enum <- function(x) if (length(x) < 2) x else paste(paste(x[-length(x)], collapse = ", "), "and", x[length(x)])
+RATIO_NAMES <- c(BEl = "body elongation", VEp = "vertical eye position", REs = "relative eye size",
+                 OGp = "oral gape position", RMl = "relative maxillary length",
+                 BLs = "body lateral shape", PFv = "pectoral fin vertical position",
+                 PFs = "pectoral fin size", CPt = "caudal peduncle throttling")
+rn <- function(t) paste0(RATIO_NAMES[t], " (", t, ")")
+RAT <- if (!is.null(PARAMS$ratios)) PARAMS$ratios else names(RATIO_NAMES)
+RW <- c("one", "two", "three", "four", "five", "six", "seven", "eight", "nine")[length(RAT)]
+DROPPED <- setdiff(names(RATIO_NAMES), RAT)
+cap1 <- function(x) paste0(toupper(substring(x, 1, 1)), substring(x, 2))
+
+t1 <- tab("Table1_sample")
+has_lm <- file.exists("data/raw/landmarks.csv")
+seg <- if (has_lm) utils::read.csv("data/processed/fishmorph_segments.csv", stringsAsFactors = FALSE) else data.frame()
+n_hinged <- 0
+if (has_lm) {
+  fish <- readRDS("data/processed/landmarks_clean.rds")
+  lmk <- dimnames(fish$coords)[[1]]
+  hinged <- vapply(intersect(c("22", "24", "25"), lmk), function(h) {
+    m <- fish$coords[h, , , drop = TRUE]
+    if (is.null(dim(m))) m <- matrix(m, nrow = 2)
+    sum(colSums(is.finite(m)) == 2 & colSums(abs(m), na.rm = TRUE) > 0)
+  }, numeric(1))
+  n_hinged <- if (length(hinged)) max(hinged) else 0
+}
+lit_raw <- if (file.exists("data/raw/traits_literature.csv"))
+  utils::read.csv("data/raw/traits_literature.csv", stringsAsFactors = FALSE) else NULL
+tr_an <- utils::read.csv("data/processed/traits_analysed.csv", stringsAsFactors = FALSE)
+src_an <- table(tr_an$source)
+lit_an <- tr_an[tr_an$source %in% "literature", , drop = FALSE]
+n_px <- if (has_lm && !is.null(seg$scale_units)) sum(seg$scale_units %in% "px") else 0
+an <- t1[t1$analysed, , drop = FALSE]
+N_an <- sum(an$n_analysed); S_an <- nrow(an)
+site_txt <- if (is.null(an$sites)) character(0) else as.character(an$sites)
+site_txt <- site_txt[!is.na(site_txt) & nzchar(site_txt)]
+sites_an <- sort(unique(unlist(strsplit(site_txt, "; "))))
+vers <- function(p) tryCatch(as.character(utils::packageVersion(p)), error = function(e) "NA")
+has <- function(name) !is.null(tab(name))
+```
+
+# Material and methods
+
+## Specimens and landmarks
+
+`r if (has_lm) '' else '<!--'`
+`r if (has_lm) paste0("We measured ", f0(nrow(seg)), " photographed specimens. ") else ""`[*Describe the sampling: sites, dates, capture method, permits, and the photographic protocol (lateral view of the left side, scale bar in the plane of the fish).*] On each photograph, landmarks were placed with the digitizer of the R package intraitR following the FISHMORPH protocol [@brosse2021fishmorph]: nineteen anatomical landmarks and the two ends of a scale bar (points 20–21) of known length (`r f1(PARAMS$scale_cm, 2)` cm).`r if (n_hinged > 0) paste0(" For the ", f0(n_hinged), " specimens on which hinge points had been placed along the body midline between the snout and the caudal fin base (points 22, 24 and 25, used for specimens photographed curved), standard length was measured as the curvilinear length of the resulting polyline rather than as the snout–caudal base chord.") else ""``r if (isTRUE(PARAMS$impute) || isTRUE(PARAMS$orientation) || isTRUE(PARAMS$geometry)) paste0(" Before computing the traits, ", enum(c(if (isTRUE(PARAMS$impute)) "missing anatomical landmarks were estimated (impute_landmarks)", if (isTRUE(PARAMS$orientation)) "all configurations were oriented head to the left and belly down (standardize_orientation)", if (isTRUE(PARAMS$geometry)) "the geometric conventions of the FISHMORPH protocol were enforced (correct_geometry)")), ".") else ""`
+`r if (has_lm) '' else '-->'`
+
+`r if (!is.null(lit_raw)) paste0("We added ", f0(nrow(lit_raw)), " individual records of ", length(unique(lit_raw$species)), " species taken from ", length(unique(stats::na.omit(lit_raw$study_id))), " published data set", if (length(unique(stats::na.omit(lit_raw$study_id))) > 1) "s" else "", " (", paste(sort(unique(stats::na.omit(lit_raw$study_id))), collapse = ", "), "), for which the nine ratios below were taken as published. [*Cite each data set and check that its measurements follow the FISHMORPH protocol.*] These records have no photograph: they enter the analyses based on the ratios", if (has_lm) ", not the shape analyses or the measurement error" else "", ".") else ""`
+
+## Morphological traits
+
+`r if (has_lm) "From the landmarks we computed" else "On the photographed specimens, FISHMORPH computes"` the eleven linear measurements of the FISHMORPH protocol — standard length (Bl), body depth (Bd), head depth (Hd), eye position (Eh), mouth position (Mo), pectoral fin position (PFi), pectoral fin length (PFl), eye diameter (Ed), maxillary jaw length (Jl), caudal peduncle depth (CPd) and caudal fin depth (CFd) — converted to centimetres with the scale bar of each photograph. From these we derived the nine unitless ratios describing locomotion and food acquisition [@villeger2010; @brosse2021fishmorph]: body elongation (BEl = Bl/Bd), vertical eye position (VEp = Eh/Bd), relative eye size (REs = Ed/Hd), oral gape position (OGp = Mo/Bd), relative maxillary length (RMl = Jl/Hd), body lateral shape (BLs = Hd/Bd), pectoral fin vertical position (PFv = PFi/Bd), pectoral fin size (PFs = PFl/Bl) and caudal peduncle throttling (CPt = CFd/CPd).`r if (n_px > 0 && identical(PARAMS$scale_action, "pixels")) paste0(" For ", f0(n_px), " specimens without a usable scale bar, measurements were kept in pixels; the ratios, being scale-free, are unaffected, but the absolute measurements of these specimens were not used.") else ""``r if (isTRUE(PARAMS$no_caudal_fin) || isTRUE(PARAMS$ventral_mouth) || isTRUE(PARAMS$no_pectoral_fin)) paste0(" Special morphologies were coded following Villéger et al. (2010): ", enum(c(if (isTRUE(PARAMS$no_caudal_fin)) "CPt = 1 for species without a visible caudal fin", if (isTRUE(PARAMS$ventral_mouth)) "OGp = RMl = 0 for species with a ventral mouth", if (isTRUE(PARAMS$no_pectoral_fin)) "PFv = 0 for species without pectoral fins")), ".") else ""``r if (length(DROPPED)) paste0(" ", cap1(enum(rn(DROPPED))), if (length(DROPPED) > 1) " were" else " was", " not used in the analyses [*justify: e.g. not reported in a literature data set*].") else ""` The analyses used the specimens with all `r RW` ratios used, of species represented by at least `r PARAMS$min_n` such individuals (`r f0(N_an)` specimens of `r S_an` species; Table 1).
+
+## Functional trait space
+
+The `r RW` ratios used were log~10~(x + 1)-transformed, standardised to zero mean and unit variance, and summarised by a principal component analysis (trait_space function of intraitR). Within each species, specimens farther from the species centroid than the median plus three median absolute deviations of these distances were flagged as potential outliers`r if (isTRUE(PARAMS$ts_remove_outliers)) " and removed before the ordination" else " (flagged, not removed)"`. `r if (has("Table4_trait_disparity")) paste0("Differences in trait dispersion between species were tested with the trait_disparity function: the dispersion of each species is its trait variance (the trace of its covariance matrix on the transformed, standardised ratios), and pairwise differences were compared with a null distribution obtained from ", f0(PARAMS$disparity_iter), " random permutations of the species labels [@anderson2001]; p-values were adjusted for the number of pairs with Holm's procedure [@holm1979].") else ""`
+
+## Position in the global morphological space
+
+`r if (has("Table5_fishmorph_space_occupancy")) paste0("To place the sample in the morphological diversity of the world's freshwater fishes, the specimens were projected, without refitting, into the principal component analysis of the FISHMORPH database (one value per species, n = ", f0(tab("TableS5b_fishmorph_axes")$n_reference_species[1]), " species) built on the same transformation of the ", RW, " ratios, using the project_fishmorph function [@brosse2021fishmorph]. The share of the global space occupied by each species and by the whole sample was measured as the convex-hull area on the first two axes relative to that of the database [@villeger2008], and, trait by trait, as the range of each ratio relative to its global range.") else ""`
+
+## Intraspecific trait variability
+
+`r if (has("Table6_itv_partition")) { nst <- !is.null(tab("Table6_itv_partition")$pct_itv_between_pop); paste0("For each ratio, the total variance was partitioned into a between-species (interspecific) and a within-species component (intraspecific trait variability, ITV) with the one-way sum-of-squares identity SS~total~ = SS~between~ + SS~within~, ITV being 100 × SS~within~/SS~total~ with the itv_index function [@debello2011; @violle2012].", if (nst) " The within-species component was further split into a between-site (within species) and a within-site part [@siefert2015]." else "", " A multivariate summary added the sums of squares of the standardised ratios. The coefficient of variation of each ratio was computed per species.") } else ""`
+
+`r if (has("Table7_itv_accumulation")) paste0("The sampling effort needed to estimate ITV was assessed by rarefaction with the itv_accumulation function [@gotelli2001]: for each species and each sub-sample size n from 2 to the number of individuals N, ", f0(PARAMS$acc_n_perm), " sub-samples of n individuals were drawn without replacement and the ", if (PARAMS$acc_metric == "variance") paste0("multivariate variance of the log-transformed ratios (standardised on the pooled sample and summed over the ", RW, " ratios)") else paste("metric", PARAMS$acc_metric), " was computed on each. ", if (PARAMS$acc_metric %in% c("variance", "sd", "cv")) paste0("Because a variance is an unbiased estimator whatever the sample size, the curve is expected to be flat and what sampling effort buys is precision: the required sample size n\\* was defined as the smallest n beyond which the half-width of the 95% resampling band, relative to the full-sample value, remained at or below ", f0(100 * PARAMS$acc_conv_tol), "%.") else paste0("n\\* was the sample size reaching ", f0(100 * PARAMS$acc_asymptote), "% of the fitted asymptote.")) else ""`
+
+`r if (has("Table8_shape_space_axes")) paste0("## Body shape\n\nThe anatomical landmarks were superimposed by generalised Procrustes analysis with the gpa_fish function [@rohlf1990], built on geomorph [@adams2013; @baken2021], Procrustes-distance outliers being flagged with the same median + 3 MAD rule", if (isTRUE(PARAMS$shape_remove_outliers)) " and removed" else "", ", and the aligned coordinates were summarised by a principal component analysis (shape_space).", if (has("Table9_shape_disparity")) paste0(" Shape disparity was measured per species as the Procrustes variance and pairwise differences tested by permutation [", f0(PARAMS$shape_disparity_iter), " permutations; @zelditch2012]; p-values were adjusted with Holm's procedure.") else "") else ""`
+
+`r if (has("TableS7_repeatability_segments")) paste0("## Measurement error\n\nA subset of photographs was digitized repeatedly. For each linear measurement, the percentage of measurement error (%ME) and the repeatability (R) were obtained from a one-way analysis of variance on individual identity with the measurement_error function [@bailey1990; @yezerinac1992], and the placement error of each landmark was measured as the distance of the replicates to their consensus position, as a percentage of standard length (digitization_error).") else ""`
+
+## Software
+
+All analyses were run in R (version `r paste(R.version$major, R.version$minor, sep = ".")`) with intraitR `r vers("intraitR")` and Rfishmorph `r vers("Rfishmorph")``r if (has("Table8_shape_space_axes")) paste0(" and geomorph ", vers("geomorph")) else ""`. The scripts reproducing every number, table and figure are in scripts/ (run_all.R).
+
+# Results
+
+```{r res-sample}
+rng <- range(an$n_analysed)
+excl <- t1[!t1$analysed, , drop = FALSE]
+```
+
+The analysed sample comprised `r f0(N_an)` specimens of `r S_an` species`r if (length(sites_an)) paste0(" from ", length(sites_an), " site", if (length(sites_an) > 1) "s" else "") else ""`, with `r rng[1]` to `r rng[2]` individuals per species (Table 1)`r if (length(src_an) > 1) paste0("; by provenance: ", enum(sprintf("%s %s", f0(as.integer(src_an)), names(src_an)))) else ""`.`r if (nrow(excl)) paste0(" ", nrow(excl), " species with fewer than ", PARAMS$min_n, " complete specimens were not analysed.") else ""`
+
+```{r tab1}
+k1 <- intersect(c("species", "n_measured", "n_analysed", "n_sites", "sources"), names(an))
+knitr::kable(an[, k1],
+             col.names = c(species = "Species", n_measured = "Records", n_analysed = "Analysed",
+                           n_sites = "Sites", sources = "Provenance (analysed)")[k1],
+             row.names = FALSE, caption = "Table 1. Records and analysed specimens per species, with their provenance.")
+```
+
+```{r res-ts}
+ax <- tab("Table3_trait_space_axes"); L <- tab("TableS2_trait_space_loadings")
+top <- function(pc, k = 3) {
+  o <- order(abs(L[[pc]]), decreasing = TRUE)[seq_len(k)]
+  paste0(L$trait[o], " (", ifelse(L[[pc]][o] > 0, "+", "−"), ")")
+}
+outl <- tab("TableS3_trait_space_outliers")
+```
+
+The first two axes of the trait space accounted for `r f1(ax$pct_variance[1])`% and `r f1(ax$pct_variance[2])`% of the variance of the `r RW` ratios (`r f1(ax$cumulative_pct[2])`% together; Fig. 1). PC1 was mostly associated with `r enum(top("PC1"))` and PC2 with `r enum(top("PC2"))` (Table S2). `r if (!is.null(outl)) paste0(nrow(outl), " specimens were flagged as within-species outliers (Table S3).") else "No specimen was flagged as a within-species outlier."`
+
+```{r fig1, fig.cap = paste0("Figure 1. Functional trait space of the sample: principal component analysis of the ", RW, " log-transformed, standardised FISHMORPH ratios; one colour per species.")}
+if (!is.null(fig("Fig1_trait_space"))) knitr::include_graphics(fig("Fig1_trait_space"), error = FALSE)
+```
+
+```{r res-td}
+td <- tab("Table4_trait_disparity"); tp <- tab("TableS4_trait_disparity_pairwise")
+```
+
+`r if (!is.null(td)) { o <- order(td$trait_variance); paste0("Trait dispersion ranged from ", f1(td$trait_variance[o[1]], 2), " in ", it(td$species[o[1]]), " to ", f1(td$trait_variance[o[length(o)]], 2), " in ", it(td$species[o[length(o)]]), " (Table 4); ", sum(tp$p_holm < 0.05), " of the ", nrow(tp), " pairwise differences remained significant after Holm correction (Table S4).") } else ""`
+
+```{r res-pf}
+vol <- tab("Table5_fishmorph_space_occupancy"); rg <- tab("TableS5_fishmorph_trait_ranges")
+```
+
+`r if (!is.null(vol)) { all <- vol[grepl("^\\(all", vol$group), ]; spv <- vol[!grepl("^\\(all", vol$group), ]; o <- order(spv$pct_global); ro <- order(rg$proportion_pooled); paste0("Projected into the FISHMORPH space, the sample occupied ", f1(all$pct_global[1]), "% of the area of the global hull on its first two axes (Fig. 2); individual species occupied from ", f1(spv$pct_global[o[1]]), "% (", it(spv$group[o[1]]), ") to ", f1(spv$pct_global[o[length(o)]]), "% (", it(spv$group[o[length(o)]]), "; Table 5). Trait by trait, the pooled within-species range covered from ", f0(100 * rg$proportion_pooled[ro[1]]), "% of the global range for ", rn(rg$trait[ro[1]]), " to ", f0(100 * rg$proportion_pooled[ro[length(ro)]]), "% for ", rn(rg$trait[ro[length(ro)]]), " (Table S5).") } else ""`
+
+```{r fig2, fig.cap = "Figure 2. Specimens of the sample projected into the morphological space of the world's freshwater fishes (FISHMORPH; background: density of the reference species)."}
+if (!is.null(fig("Fig2_fishmorph_projection"))) knitr::include_graphics(fig("Fig2_fishmorph_projection"), error = FALSE)
+```
+
+```{r res-itv}
+it6 <- tab("Table6_itv_partition"); mv <- tab("Table6b_itv_multivariate"); cvt <- tab("TableS1_cv_by_species_trait")
+```
+
+`r if (!is.null(it6)) { o <- order(it6$pct_itv); paste0("Across the ", RW, " ratios together, ", f1(mv$pct_itv[1]), "% of the variance lay within species (Fig. 3). ITV ranged from ", f1(it6$pct_itv[o[1]]), "% for ", rn(it6$trait[o[1]]), " to ", f1(it6$pct_itv[o[length(o)]]), "% for ", rn(it6$trait[o[length(o)]]), ", and exceeded the interspecific component for ", sum(it6$pct_itv > 50), " of the ", RW, " ratios (Table 6).", if (!is.null(it6$pct_itv_between_pop)) paste0(" Between-site differences within species accounted for ", f1(mean(it6$pct_itv_between_pop)), "% of the total variance on average across ratios, and within-site variability for ", f1(mean(it6$pct_itv_within_pop)), "%.") else "") } else ""``r if (!is.null(cvt)) { m <- tapply(cvt$cv_percent, cvt$trait, stats::median, na.rm = TRUE); o <- order(m); paste0(" The median within-species coefficient of variation ranged from ", f1(m[o[1]]), "% (", names(m)[o[1]], ") to ", f1(m[o[length(o)]]), "% (", names(m)[o[length(o)]], "; Table S1).") } else ""`
+
+```{r tab6}
+if (!is.null(it6)) knitr::kable(transform(it6[, c("trait", "pct_interspecific", "pct_itv")],
+                                          pct_interspecific = round(pct_interspecific, 1), pct_itv = round(pct_itv, 1)),
+                                col.names = c("Ratio", "Interspecific (%)", "Intraspecific (%)"), row.names = FALSE,
+                                caption = "Table 6. Partition of the variance of each ratio between and within species.")
+```
+
+```{r fig3, fig.cap = "Figure 3. Share of the variance of each FISHMORPH ratio lying between species (interspecific) and within species (intraspecific trait variability)."}
+if (!is.null(fig("Fig3_itv_partition"))) knitr::include_graphics(fig("Fig3_itv_partition"), error = FALSE)
+```
+
+```{r res-acc}
+ac <- tab("Table7_itv_accumulation")
+```
+
+`r if (!is.null(ac)) { a <- ac[is.finite(ac$n_star), , drop = FALSE]; full <- sum(a$n_star >= a$n_max); paste0("The sample size needed for a precise estimate of within-species variability (n\\*) ranged from ", f0(min(a$n_star)), " to ", f0(max(a$n_star)), " individuals (median ", f0(stats::median(a$n_star)), "; Fig. 4, Table 7)", if (full) paste0("; for ", full, " species, n\\* equalled the number of individuals measured, i.e. the required precision was only reached with the full sample") else "", if (nrow(a) < nrow(ac)) paste0("; it could not be estimated for ", nrow(ac) - nrow(a), " species") else "", ".") } else ""`
+
+```{r fig4, fig.cap = "Figure 4. Rarefaction of within-species variability: mean and 95% resampling band of the metric against the number of individuals, per species."}
+if (!is.null(fig("Fig4_itv_accumulation"))) knitr::include_graphics(fig("Fig4_itv_accumulation"), error = FALSE)
+```
+
+```{r res-shape}
+sx <- tab("Table8_shape_space_axes"); sd9 <- tab("Table9_shape_disparity"); sp6 <- tab("TableS6_shape_disparity_pairwise")
+```
+
+`r if (!is.null(sx)) paste0("In shape space (", f0(sx$n_specimens[1]), " specimens), the first two axes accounted for ", f1(sx$pct_variance[1]), "% and ", f1(sx$pct_variance[2]), "% of the Procrustes shape variance (Fig. 5).", if (!is.null(sd9)) { o <- order(sd9$procrustes_variance); paste0(" Procrustes variance ranged from ", formatC(sd9$procrustes_variance[o[1]], format = "g", digits = 3), " (", it(sd9$species[o[1]]), ") to ", formatC(sd9$procrustes_variance[o[length(o)]], format = "g", digits = 3), " (", it(sd9$species[o[length(o)]]), "; Table 9)", if (!is.null(sp6)) paste0("; ", sum(sp6$p_holm < 0.05), " of ", nrow(sp6), " pairwise differences were significant after Holm correction") else "", ".") } else "") else ""`
+
+```{r fig5, fig.cap = "Figure 5. Shape space: principal component analysis of the Procrustes-aligned landmark configurations; one colour per species."}
+if (!is.null(fig("Fig5_shape_space"))) knitr::include_graphics(fig("Fig5_shape_space"), error = FALSE)
+```
+
+```{r res-me}
+me <- tab("TableS7_repeatability_segments"); pe <- tab("TableS8_landmark_placement_error")
+```
+
+`r if (!is.null(me)) { m <- me[is.finite(me$pct_ME), ]; o <- order(m$pct_ME); paste0("Measurement error was ", if (max(m$pct_ME) < 10) "low" else "variable", " across the eleven measurements: %ME ranged from ", f1(m$pct_ME[o[1]]), "% (", m$segment[o[1]], ") to ", f1(m$pct_ME[o[length(o)]]), "% (", m$segment[o[length(o)]], "), and repeatability from ", f1(min(m$R), 3), " to ", f1(max(m$R), 3), " (Table S7).", if (!is.null(pe) && !is.null(pe$landmark)) { mcol <- intersect(c("median_sd_dist_pct", "median", "median_bias"), names(pe)); if (length(mcol)) { oo <- order(pe[[mcol[1]]], decreasing = TRUE); paste0(" The least precisely placed landmarks were ", enum(as.character(pe$landmark[oo[seq_len(min(3, nrow(pe)))]])), " (Table S8, Fig. S1).") } else "" } else "") } else ""`
+
+# References

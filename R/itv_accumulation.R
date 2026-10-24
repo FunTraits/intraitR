@@ -159,7 +159,7 @@
 #' # The T-26 campaign: real specimens, and therefore genuinely unequal
 #' # sample sizes -- which is the question this function is asked.
 #' fish <- load_t26_saudrune_landmarks()
-#' ratios <- fishmorph_ratios(fishmorph_segments(fish))
+#' ratios <- fishmorph_ratios(fishmorph_segments(fish, scale_action = "pixels"))
 #'
 #' # multivariate trait variance: how many individuals until the
 #' # intraspecific-variability estimate converges (resampling band within

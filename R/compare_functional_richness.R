@@ -87,7 +87,8 @@
 #' fish <- load_t26_saudrune_landmarks()
 #' segments <- fishmorph_segments(fish)
 #' ratios <- fishmorph_ratios(segments)
-#' ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
+#' traits <- ratios[, c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")]
+#' ts <- trait_space(traits, groups = fish$metadata$species, na_action = "omit")
 #'
 #' # "dendrogram" always runs; "convexhull"/"tpd"/"hypervolume" are
 #' # skipped gracefully (not fatal) if their package is not installed

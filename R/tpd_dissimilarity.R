@@ -74,7 +74,7 @@
 #'
 #' @examples
 #' fish <- load_t26_saudrune_landmarks()
-#' ratios <- fishmorph_ratios(fishmorph_segments(fish))
+#' ratios <- fishmorph_ratios(fishmorph_segments(fish, scale_action = "pixels"))
 #' \donttest{
 #' if (requireNamespace("TPD", quietly = TRUE)) {
 #'   d <- tpd_dissimilarity(

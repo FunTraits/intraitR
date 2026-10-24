@@ -411,13 +411,34 @@ caudal peduncle depth, caudal fin depth) plus an embedded scale bar, and
 optionally a 22nd point to correct standard length for body curvature in
 the picture.
 
-We simulate a small data set following this exact scheme with
-\[simulate_fishmorph_points()\], and inspect the digitization of one
-specimen with \[plot_fishmorph_points()\]:
+From here on the vignette works on **real data**: the T-26
+electrofishing survey of the Saudrune, 494 fish of seven species
+photographed in the field on two dates and digitized specimen by
+specimen with \[digitize_landmarks()\]. This is the data set the package
+ships as its reference example, and the one the rest of this document
+uses; the simulated generators above remain useful for teaching a
+function’s shape, but the behaviour that matters — missing points,
+unequal sample sizes, specimens whose scale bar was never placed — only
+appears on a real survey.
+
+The campaign was digitized on the 25-point scheme: the 19 anatomical
+landmarks and the scale bar as above, plus the curvature point 22, the
+derived head base 23, and the two entry hinges 24–25 that record the
+broken axis a bent specimen was digitized under.
 
 ``` r
 
-fishmorph_fish <- simulate_fishmorph_points(n_per_species = 15, n_replicates = 1)
+fishmorph_fish <- load_t26_saudrune_landmarks()
+dim(fishmorph_fish$coords)
+#> [1]  25   2 494
+table(fishmorph_fish$metadata$species)
+#> 
+#>     Barbatula barbatula           Barbus barbus             Gobio gobio 
+#>                      17                      30                     288 
+#>        Lepomis gibbosus Leuciscus burdigalensis       Perca fluviatilis 
+#>                       9                       4                      20 
+#>       Squalius cephalus 
+#>                     126
 plot_fishmorph_points(fishmorph_fish, specimen = 1)
 ```
 
@@ -426,33 +447,81 @@ plot_fishmorph_points(fishmorph_fish, specimen = 1)
 \[fishmorph_segments()\] computes the 11 linear measurements of the
 protocol directly from the digitized points, automatically converting
 pixel units to centimetres using the embedded scale bar (landmarks
-20-21):
+20-21). Six photographs of this survey have no usable scale bar: by
+default (`scale_action = "na"`) their measurements, and therefore their
+ratios, would be `NA`. Because the 9 ratios are quotients of segments of
+the same photograph, they do not need the scale:
+`scale_action = "pixels"` keeps these specimens, their segments in
+pixels (column `scale_units`), their ratios exact.
 
 ``` r
 
-segments <- fishmorph_segments(fishmorph_fish)
+segments <- fishmorph_segments(fishmorph_fish, scale_action = "pixels")
+#> scale_action = "pixels": 6 specimen(s) have a zero-length or missing scale bar (points 20-21); their measurements are returned in PIXELS (scale_units == "px"), the other 488 in centimetres. The nine ratios are unaffected; absolute values are not comparable across the two units.
+table(segments$scale_units)
+#> 
+#>  cm  px 
+#> 488   6
 head(segments)
-#>                                  specimen      individual   species population
-#> Species_A_ind01_rep1 Species_A_ind01_rep1 Species_A_ind01 Species_A      Pop_1
-#> Species_A_ind02_rep1 Species_A_ind02_rep1 Species_A_ind02 Species_A      Pop_2
-#> Species_A_ind03_rep1 Species_A_ind03_rep1 Species_A_ind03 Species_A      Pop_1
-#> Species_A_ind04_rep1 Species_A_ind04_rep1 Species_A_ind04 Species_A      Pop_2
-#> Species_A_ind05_rep1 Species_A_ind05_rep1 Species_A_ind05 Species_A      Pop_1
-#> Species_A_ind06_rep1 Species_A_ind06_rep1 Species_A_ind06 Species_A      Pop_2
-#>                      replicate       Bl       Bd       Hd        Eh        Mo
-#> Species_A_ind01_rep1         1 8.505350 2.096153 1.099342 0.9813917 0.5309971
-#> Species_A_ind02_rep1         1 8.506875 2.038591 1.155773 1.1397534 0.6165428
-#> Species_A_ind03_rep1         1 8.319205 2.120556 1.050294 1.0492159 0.5064802
-#> Species_A_ind04_rep1         1 8.506154 2.075662 1.056533 1.1718556 0.5348889
-#> Species_A_ind05_rep1         1 8.554518 1.966602 1.094286 0.9623947 0.5805282
-#> Species_A_ind06_rep1         1 8.550856 2.052173 1.192548 0.9765573 0.5046539
-#>                            PFi       PFl        Ed        Jl       CPd      CFd
-#> Species_A_ind01_rep1 0.4506103 0.8983300 0.2685877 0.6028402 1.0077335 1.815952
-#> Species_A_ind02_rep1 0.4396170 0.8322191 0.3487057 0.6891087 1.0049738 1.830840
-#> Species_A_ind03_rep1 0.6083178 0.8785836 0.2197641 0.5406393 0.8104273 1.897427
-#> Species_A_ind04_rep1 0.4856911 0.7611511 0.3046655 0.7375663 1.0091663 1.792895
-#> Species_A_ind05_rep1 0.5435835 0.8017112 0.2160107 0.6351791 0.9251790 1.776199
-#> Species_A_ind06_rep1 0.6873056 0.9063088 0.2659785 0.6358050 1.0062022 1.806302
+#>                                                            specimen
+#> SAUDRUNESUDTOULOUSE_20260427_0001 SAUDRUNESUDTOULOUSE_20260427_0001
+#> SAUDRUNESUDTOULOUSE_20260427_0002 SAUDRUNESUDTOULOUSE_20260427_0002
+#> SAUDRUNESUDTOULOUSE_20260427_0003 SAUDRUNESUDTOULOUSE_20260427_0003
+#> SAUDRUNESUDTOULOUSE_20260427_0004 SAUDRUNESUDTOULOUSE_20260427_0004
+#> SAUDRUNESUDTOULOUSE_20260427_0005 SAUDRUNESUDTOULOUSE_20260427_0005
+#> SAUDRUNESUDTOULOUSE_20260427_0006 SAUDRUNESUDTOULOUSE_20260427_0006
+#>                                                          individual
+#> SAUDRUNESUDTOULOUSE_20260427_0001 SAUDRUNESUDTOULOUSE_20260427_0001
+#> SAUDRUNESUDTOULOUSE_20260427_0002 SAUDRUNESUDTOULOUSE_20260427_0002
+#> SAUDRUNESUDTOULOUSE_20260427_0003 SAUDRUNESUDTOULOUSE_20260427_0003
+#> SAUDRUNESUDTOULOUSE_20260427_0004 SAUDRUNESUDTOULOUSE_20260427_0004
+#> SAUDRUNESUDTOULOUSE_20260427_0005 SAUDRUNESUDTOULOUSE_20260427_0005
+#> SAUDRUNESUDTOULOUSE_20260427_0006 SAUDRUNESUDTOULOUSE_20260427_0006
+#>                                             species population replicate
+#> SAUDRUNESUDTOULOUSE_20260427_0001       Gobio gobio       <NA>         1
+#> SAUDRUNESUDTOULOUSE_20260427_0002       Gobio gobio       <NA>         1
+#> SAUDRUNESUDTOULOUSE_20260427_0003       Gobio gobio       <NA>         1
+#> SAUDRUNESUDTOULOUSE_20260427_0004 Squalius cephalus       <NA>         1
+#> SAUDRUNESUDTOULOUSE_20260427_0005       Gobio gobio       <NA>         1
+#> SAUDRUNESUDTOULOUSE_20260427_0006       Gobio gobio       <NA>         1
+#>                                   operator species_code quality     date
+#> SAUDRUNESUDTOULOUSE_20260427_0001       AT       GOBGOB       3 20260427
+#> SAUDRUNESUDTOULOUSE_20260427_0002       AT       GOBGOB       3 20260427
+#> SAUDRUNESUDTOULOUSE_20260427_0003       AT       GOBGOB       3 20260427
+#> SAUDRUNESUDTOULOUSE_20260427_0004       AT       SQUCEP       3 20260427
+#> SAUDRUNESUDTOULOUSE_20260427_0005       AT       GOBGOB       3 20260427
+#> SAUDRUNESUDTOULOUSE_20260427_0006       AT       GOBGOB       3 20260427
+#>                                                                 uid        Bl
+#> SAUDRUNESUDTOULOUSE_20260427_0001 SAUDRUNESUDTOULOUSE_20260427_0001  6.967764
+#> SAUDRUNESUDTOULOUSE_20260427_0002 SAUDRUNESUDTOULOUSE_20260427_0002  8.432734
+#> SAUDRUNESUDTOULOUSE_20260427_0003 SAUDRUNESUDTOULOUSE_20260427_0003  7.253563
+#> SAUDRUNESUDTOULOUSE_20260427_0004 SAUDRUNESUDTOULOUSE_20260427_0004 18.141961
+#> SAUDRUNESUDTOULOUSE_20260427_0005 SAUDRUNESUDTOULOUSE_20260427_0005  5.647264
+#> SAUDRUNESUDTOULOUSE_20260427_0006 SAUDRUNESUDTOULOUSE_20260427_0006  7.870956
+#>                                         Bd        Hd       Eh        Mo
+#> SAUDRUNESUDTOULOUSE_20260427_0001 1.797753 0.9478351 1.444919 1.1367640
+#> SAUDRUNESUDTOULOUSE_20260427_0002 2.019094 1.1130886 1.639988 1.3758999
+#> SAUDRUNESUDTOULOUSE_20260427_0003 1.737973 1.0128922 1.310671 1.1169357
+#> SAUDRUNESUDTOULOUSE_20260427_0004 4.565275 1.9679574 2.797703 2.6759801
+#> SAUDRUNESUDTOULOUSE_20260427_0005 1.218095 0.8027899 1.021271 0.8658812
+#> SAUDRUNESUDTOULOUSE_20260427_0006 1.938835 1.1548407 1.473838 1.2392734
+#>                                         PFi      PFl        Ed        Jl
+#> SAUDRUNESUDTOULOUSE_20260427_0001 0.7850315 1.233118 0.2058680 0.3064680
+#> SAUDRUNESUDTOULOUSE_20260427_0002 0.9330140 1.424398 0.2466172 0.4087650
+#> SAUDRUNESUDTOULOUSE_20260427_0003 0.6674649 1.381436 0.3119971 0.3677807
+#> SAUDRUNESUDTOULOUSE_20260427_0004 1.2356384 3.087450 0.8790524 0.8318649
+#> SAUDRUNESUDTOULOUSE_20260427_0005 0.5061989 1.171174 0.2621636 0.2881316
+#> SAUDRUNESUDTOULOUSE_20260427_0006 0.8213690 1.433144 0.3206749 0.4364443
+#>                                         CPd      CFd scale_units
+#> SAUDRUNESUDTOULOUSE_20260427_0001 0.6882458 2.450131          cm
+#> SAUDRUNESUDTOULOUSE_20260427_0002 0.7987811 2.933587          cm
+#> SAUDRUNESUDTOULOUSE_20260427_0003 0.6404500 1.717469          cm
+#> SAUDRUNESUDTOULOUSE_20260427_0004 1.9823793 6.980833          cm
+#> SAUDRUNESUDTOULOUSE_20260427_0005 0.5609858 1.334465          cm
+#> SAUDRUNESUDTOULOUSE_20260427_0006 0.6964284 2.776055          cm
+#> # 6 of 6 specimen(s) measured in PIXELS (no valid scale bar): SAUDRUNESUDTOULOUSE_20260427_0019, SAUDRUNESUDTOULOUSE_20260427_0126, SAUDRUNESUDTOULOUSE_20260427_0250_i4, ...
+#> # The 9 FISHMORPH ratios are valid; absolute values are not comparable across units.
+#> #   Use subset(x, scale_units == "cm") for any analysis of absolute size.
 ```
 
 \[fishmorph_ratios()\] then derives the 9 unitless FISHMORPH ratios from
@@ -465,27 +534,55 @@ caudal fin, a ventrally positioned mouth, or no pectoral fins):
 
 fishmorph_traits <- fishmorph_ratios(segments)
 head(fishmorph_traits)
-#>                                  specimen      individual   species population
-#> Species_A_ind01_rep1 Species_A_ind01_rep1 Species_A_ind01 Species_A      Pop_1
-#> Species_A_ind02_rep1 Species_A_ind02_rep1 Species_A_ind02 Species_A      Pop_2
-#> Species_A_ind03_rep1 Species_A_ind03_rep1 Species_A_ind03 Species_A      Pop_1
-#> Species_A_ind04_rep1 Species_A_ind04_rep1 Species_A_ind04 Species_A      Pop_2
-#> Species_A_ind05_rep1 Species_A_ind05_rep1 Species_A_ind05 Species_A      Pop_1
-#> Species_A_ind06_rep1 Species_A_ind06_rep1 Species_A_ind06 Species_A      Pop_2
-#>                      replicate    BEl    VEp    REs    OGp    RMl    BLs    PFv
-#> Species_A_ind01_rep1         1 4.0576 0.4682 0.2443 0.2533 0.5484 0.5245 0.2150
-#> Species_A_ind02_rep1         1 4.1729 0.5591 0.3017 0.3024 0.5962 0.5669 0.2156
-#> Species_A_ind03_rep1         1 3.9231 0.4948 0.2092 0.2388 0.5148 0.4953 0.2869
-#> Species_A_ind04_rep1         1 4.0980 0.5646 0.2884 0.2577 0.6981 0.5090 0.2340
-#> Species_A_ind05_rep1         1 4.3499 0.4894 0.1974 0.2952 0.5805 0.5564 0.2764
-#> Species_A_ind06_rep1         1 4.1667 0.4759 0.2230 0.2459 0.5331 0.5811 0.3349
-#>                         PFs    CPt
-#> Species_A_ind01_rep1 0.1056 1.8020
-#> Species_A_ind02_rep1 0.0978 1.8218
-#> Species_A_ind03_rep1 0.1056 2.3413
-#> Species_A_ind04_rep1 0.0895 1.7766
-#> Species_A_ind05_rep1 0.0937 1.9198
-#> Species_A_ind06_rep1 0.1060 1.7952
+#>                                                            specimen
+#> SAUDRUNESUDTOULOUSE_20260427_0001 SAUDRUNESUDTOULOUSE_20260427_0001
+#> SAUDRUNESUDTOULOUSE_20260427_0002 SAUDRUNESUDTOULOUSE_20260427_0002
+#> SAUDRUNESUDTOULOUSE_20260427_0003 SAUDRUNESUDTOULOUSE_20260427_0003
+#> SAUDRUNESUDTOULOUSE_20260427_0004 SAUDRUNESUDTOULOUSE_20260427_0004
+#> SAUDRUNESUDTOULOUSE_20260427_0005 SAUDRUNESUDTOULOUSE_20260427_0005
+#> SAUDRUNESUDTOULOUSE_20260427_0006 SAUDRUNESUDTOULOUSE_20260427_0006
+#>                                                          individual
+#> SAUDRUNESUDTOULOUSE_20260427_0001 SAUDRUNESUDTOULOUSE_20260427_0001
+#> SAUDRUNESUDTOULOUSE_20260427_0002 SAUDRUNESUDTOULOUSE_20260427_0002
+#> SAUDRUNESUDTOULOUSE_20260427_0003 SAUDRUNESUDTOULOUSE_20260427_0003
+#> SAUDRUNESUDTOULOUSE_20260427_0004 SAUDRUNESUDTOULOUSE_20260427_0004
+#> SAUDRUNESUDTOULOUSE_20260427_0005 SAUDRUNESUDTOULOUSE_20260427_0005
+#> SAUDRUNESUDTOULOUSE_20260427_0006 SAUDRUNESUDTOULOUSE_20260427_0006
+#>                                             species population replicate
+#> SAUDRUNESUDTOULOUSE_20260427_0001       Gobio gobio       <NA>         1
+#> SAUDRUNESUDTOULOUSE_20260427_0002       Gobio gobio       <NA>         1
+#> SAUDRUNESUDTOULOUSE_20260427_0003       Gobio gobio       <NA>         1
+#> SAUDRUNESUDTOULOUSE_20260427_0004 Squalius cephalus       <NA>         1
+#> SAUDRUNESUDTOULOUSE_20260427_0005       Gobio gobio       <NA>         1
+#> SAUDRUNESUDTOULOUSE_20260427_0006       Gobio gobio       <NA>         1
+#>                                   operator species_code quality     date
+#> SAUDRUNESUDTOULOUSE_20260427_0001       AT       GOBGOB       3 20260427
+#> SAUDRUNESUDTOULOUSE_20260427_0002       AT       GOBGOB       3 20260427
+#> SAUDRUNESUDTOULOUSE_20260427_0003       AT       GOBGOB       3 20260427
+#> SAUDRUNESUDTOULOUSE_20260427_0004       AT       SQUCEP       3 20260427
+#> SAUDRUNESUDTOULOUSE_20260427_0005       AT       GOBGOB       3 20260427
+#> SAUDRUNESUDTOULOUSE_20260427_0006       AT       GOBGOB       3 20260427
+#>                                                                 uid scale_units
+#> SAUDRUNESUDTOULOUSE_20260427_0001 SAUDRUNESUDTOULOUSE_20260427_0001          cm
+#> SAUDRUNESUDTOULOUSE_20260427_0002 SAUDRUNESUDTOULOUSE_20260427_0002          cm
+#> SAUDRUNESUDTOULOUSE_20260427_0003 SAUDRUNESUDTOULOUSE_20260427_0003          cm
+#> SAUDRUNESUDTOULOUSE_20260427_0004 SAUDRUNESUDTOULOUSE_20260427_0004          cm
+#> SAUDRUNESUDTOULOUSE_20260427_0005 SAUDRUNESUDTOULOUSE_20260427_0005          cm
+#> SAUDRUNESUDTOULOUSE_20260427_0006 SAUDRUNESUDTOULOUSE_20260427_0006          cm
+#>                                      BEl    VEp    REs    OGp    RMl    BLs
+#> SAUDRUNESUDTOULOUSE_20260427_0001 3.8758 0.8037 0.2172 0.6323 0.3233 0.5272
+#> SAUDRUNESUDTOULOUSE_20260427_0002 4.1765 0.8122 0.2216 0.6814 0.3672 0.5513
+#> SAUDRUNESUDTOULOUSE_20260427_0003 4.1736 0.7541 0.3080 0.6427 0.3631 0.5828
+#> SAUDRUNESUDTOULOUSE_20260427_0004 3.9739 0.6128 0.4467 0.5862 0.4227 0.4311
+#> SAUDRUNESUDTOULOUSE_20260427_0005 4.6361 0.8384 0.3266 0.7108 0.3589 0.6591
+#> SAUDRUNESUDTOULOUSE_20260427_0006 4.0596 0.7602 0.2777 0.6392 0.3779 0.5956
+#>                                      PFv    PFs    CPt
+#> SAUDRUNESUDTOULOUSE_20260427_0001 0.4367 0.1770 3.5600
+#> SAUDRUNESUDTOULOUSE_20260427_0002 0.4621 0.1689 3.6726
+#> SAUDRUNESUDTOULOUSE_20260427_0003 0.3840 0.1904 2.6817
+#> SAUDRUNESUDTOULOUSE_20260427_0004 0.2707 0.1702 3.5214
+#> SAUDRUNESUDTOULOUSE_20260427_0005 0.4156 0.2074 2.3788
+#> SAUDRUNESUDTOULOUSE_20260427_0006 0.4236 0.1821 3.9861
 ```
 
 Finally, \[trait_space()\] builds a functional trait space from any
@@ -502,17 +599,21 @@ spider/ellipse display per group:
 
 ``` r
 
-fts <- trait_space(fishmorph_traits, groups = fishmorph_fish$metadata$species)
-#> Warning: Dropping non-numeric column(s) from the ordination: individual,
-#> population
-#> Warning: Dropping constant (zero-variance) column(s) from the ordination:
-#> replicate
+ratio_cols <- c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")
+fts <- trait_space(fishmorph_traits[, ratio_cols], groups = fishmorph_traits$species)
+#> flag_outliers: 10 specimen(s) flagged as within-group outlier(s) across 2 group(s) (Gobio gobio, Lepomis gibbosus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
+#> flag_outliers: 1 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
 fts
 #> <intrait_traitspace> (pca)
-#>   Axes PC1/PC2, variance explained: 31.1% / 19.3%
-#>   45 observations, 9 traits (BEl, VEp, REs, OGp, RMl, BLs, PFv, PFs, CPt)
-#>   3 groups
-#>   No within-group outliers flagged (see $outlier_screen)
+#>   Axes PC1/PC2, variance explained: 32.2% / 17.6%
+#>   494 observations, 9 traits (BEl, VEp, REs, OGp, RMl, BLs, PFv, PFs, CPt)
+#>   7 groups
+#>   10 potential within-group outlier(s) flagged (see $outlier_screen); most atypical:
+#>     SAUDRUNESUDTOULOUSE_20260518_0143_i1 (Gobio gobio): distance = 5.748 (group median 2.192)
+#>     SAUDRUNESUDTOULOUSE_20260518_0159_i2 (Gobio gobio): distance = 5.450 (group median 2.192)
+#>     SAUDRUNESUDTOULOUSE_20260427_0249 (Gobio gobio): distance = 5.438 (group median 2.192)
+#>     SAUDRUNESUDTOULOUSE_20260427_0263 (Barbatula barbatula): distance = 5.028 (group median 2.807)
+#>     SAUDRUNESUDTOULOUSE_20260427_0250_i2 (Gobio gobio): distance = 4.932 (group median 2.192)
 plot(fts)
 ```
 
@@ -554,14 +655,38 @@ td <- trait_disparity(fts, iter = 199)
 td
 #> <intrait_disparity> (199 permutations)
 #> -- Trait variance (dispersion) by group --
-#> Species_A Species_B Species_C 
-#>    8.7706    5.6112    5.3026 
+#>     Barbatula barbatula           Barbus barbus             Gobio gobio 
+#>                 10.2014                  4.5090                  5.9711 
+#>        Lepomis gibbosus Leuciscus burdigalensis       Perca fluviatilis 
+#>                  2.1619                  3.9901                  9.8204 
+#>       Squalius cephalus 
+#>                  7.3011 
 #> 
 #> -- Pairwise absolute differences (lower triangle) / p-values (upper triangle) --
-#>           Species_A Species_B Species_C
-#> Species_A        NA    0.1000      0.07
-#> Species_B    3.1594        NA      0.89
-#> Species_C    3.4680    0.3086        NA
+#>                         Barbatula barbatula Barbus barbus Gobio gobio
+#> Barbatula barbatula                      NA        0.0100      0.0050
+#> Barbus barbus                        5.6924            NA      0.2350
+#> Gobio gobio                          4.2303        1.4621          NA
+#> Lepomis gibbosus                     8.0395        2.3471      3.8092
+#> Leuciscus burdigalensis              6.2112        0.5189      1.9810
+#> Perca fluviatilis                    0.3809        5.3115      3.8493
+#> Squalius cephalus                    2.9003        2.7921      1.3300
+#>                         Lepomis gibbosus Leuciscus burdigalensis
+#> Barbatula barbatula               0.0050                  0.0900
+#> Barbus barbus                     0.3800                  0.8900
+#> Gobio gobio                       0.0400                  0.5950
+#> Lepomis gibbosus                      NA                  0.6700
+#> Leuciscus burdigalensis           1.8283                      NA
+#> Perca fluviatilis                 7.6586                  5.8303
+#> Squalius cephalus                 5.1392                  3.3109
+#>                         Perca fluviatilis Squalius cephalus
+#> Barbatula barbatula                0.8600             0.075
+#> Barbus barbus                      0.0050             0.045
+#> Gobio gobio                        0.0250             0.025
+#> Lepomis gibbosus                   0.0050             0.015
+#> Leuciscus burdigalensis            0.1050             0.375
+#> Perca fluviatilis                      NA             0.105
+#> Squalius cephalus                  2.5194                NA
 ```
 
 \[bootstrap_functional_space()\] asks a related but different question:
@@ -578,10 +703,10 @@ requires the `geometry` package (Suggested, not installed by default):
 bf <- bootstrap_functional_space(fts, n_axes = 2, n_boot = 100)
 bf
 #> <intrait_bootstrap_fspace> (method = "convexhull")
-#>   2 PCA axes retained (50.4% of variance), 3 species
-#>   Centroid-based reference richness (FD_ref): 0.713
-#>   Bootstrap richness (FD_boot, 100 draws): mean = 1.951, SD = 1.534, 5-95% = [0.1196, 4.938]
-#>   Difference (mean FD_boot - FD_ref): 1.238 (one-sided bootstrap p = 0.2079)
+#>   2 PCA axes retained (49.8% of variance), 7 species
+#>   Centroid-based reference richness (FD_ref): 11.08
+#>   Bootstrap richness (FD_boot, 100 draws): mean = 14.19, SD = 5.244, 5-95% = [6.877, 23.95]
+#>   Difference (mean FD_boot - FD_ref): 3.113 (one-sided bootstrap p = 0.3168)
 plot(bf)
 ```
 
@@ -599,12 +724,16 @@ is summarised per species as a mean effect and a min-max range
 ss <- species_sensitivity(fts, n_axes = 2)
 ss
 #> <intrait_species_sensitivity> (method = "convexhull")
-#>   2 PCA axes retained (50.4% of variance), 3 species, FD_ref = 0.713
-#>   Top 3 species by |mean %change in functional richness|:
-#>    species  n mean_dFD           range_dFD
-#>  Species_B 15 +142.19% [-96.21%, +641.01%]
-#>  Species_C 15  +69.26% [-60.63%, +418.62%]
-#>  Species_A 15  +68.76% [-77.99%, +301.56%]
+#>   2 PCA axes retained (49.8% of variance), 7 species, FD_ref = 11.08
+#>   Top 7 species by |mean %change in functional richness|:
+#>                  species   n mean_dFD          range_dFD
+#>        Squalius cephalus 126   +7.95%  [+0.00%, +69.60%]
+#>              Gobio gobio 288   +4.16% [-26.19%, +99.56%]
+#>        Perca fluviatilis  20   +4.03%  [+0.00%, +17.41%]
+#>      Barbatula barbatula  17   +3.68% [-17.46%, +44.84%]
+#>            Barbus barbus  30   +2.96%  [+0.00%, +24.61%]
+#>  Leuciscus burdigalensis   4   +2.07% [-17.57%, +40.92%]
+#>         Lepomis gibbosus   9   +0.00% [-11.49%, +18.18%]
 plot(ss)
 ```
 
@@ -627,8 +756,8 @@ cmp
 #> <intrait_richness_comparison>
 #>   2 method(s) requested, 2 succeeded
 #>      method status fd_ref fd_boot_mean pct_diff p_value significant
-#>  dendrogram     ok  7.784        9.352   +20.1%  0.1881       FALSE
-#>  convexhull     ok  0.713         2.43  +240.9%   0.198       FALSE
+#>  dendrogram     ok   16.9        19.49   +15.3%  0.1881       FALSE
+#>  convexhull     ok  11.08        14.58   +31.6%  0.2772       FALSE
 #> 
 #>   0/2 method(s) agree that individual-based richness significantly
 #>   exceeds the centroid-based reference (p < 0.05).

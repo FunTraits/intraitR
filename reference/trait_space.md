@@ -115,7 +115,7 @@ print(x, ...)
   `groups` (when available) as an additional predictor;
   `"missforest_phylo"` does the same but also augments the predictor
   matrix with phylogenetic PCoA axes (see
-  [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md),
+  [`phylo_pcoa()`](https://rdrr.io/pkg/Rfishmorph/man/phylo_pcoa.html),
   `tree`/`missforest_phylo_k`) for the species in `groups`, so that
   phylogenetically related species can inform each other's imputed
   values in addition to shared species identity – falling back to plain
@@ -142,7 +142,7 @@ print(x, ...)
   `"phylo"` (e.g. from
   [`ape::read.tree()`](https://rdrr.io/pkg/ape/man/read.tree.html)), or
   `NULL` (default) to use the bundled
-  [`load_fishmorph_phylogeny()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylogeny.md)
+  [`load_fishmorph_phylogeny()`](https://rdrr.io/pkg/Rfishmorph/man/load_fishmorph_phylogeny.html)
   tree.
 
 - missforest_phylo_k:
@@ -163,7 +163,7 @@ print(x, ...)
 
   Used only by `"missforest_phylo"`. `NULL` (default) uses the
   **precomputed** axes of
-  [`load_fishmorph_phylo_axes()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylo_axes.md),
+  [`load_fishmorph_phylo_axes()`](https://rdrr.io/pkg/Rfishmorph/man/load_fishmorph_phylo_axes.html),
   so that every call shares one and the same phylogenetic coordinate
   system. Supply a data frame (a `species` column plus one column per
   axis) to use your own.
@@ -289,16 +289,16 @@ installed by default; see `Suggests`) and is stochastic, so results vary
 run to run unless [`set.seed()`](https://rdrr.io/r/base/Random.html) is
 called beforehand. `na_action = "missforest_phylo"` extends this further
 with phylogenetic PCoA axes (see
-[`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md))
-as additional predictors, so species can also borrow information from
-their close relatives, not only from shared species identity; this can
-help when a species has very few (or zero) complete specimens of its own
-for `missForest` to learn from, but adds a phylogenetic assumption
-(trait similarity correlates with relatedness) that should be reasonable
-for the trait in question. If a very large fraction of values is
-missing, no automated imputation method is a substitute for reviewing
-the missing-data mechanism directly. This function does not implement
-Gower distance for mixed (numeric and categorical) trait tables; for
+[`phylo_pcoa()`](https://rdrr.io/pkg/Rfishmorph/man/phylo_pcoa.html)) as
+additional predictors, so species can also borrow information from their
+close relatives, not only from shared species identity; this can help
+when a species has very few (or zero) complete specimens of its own for
+`missForest` to learn from, but adds a phylogenetic assumption (trait
+similarity correlates with relatedness) that should be reasonable for
+the trait in question. If a very large fraction of values is missing, no
+automated imputation method is a substitute for reviewing the
+missing-data mechanism directly. This function does not implement Gower
+distance for mixed (numeric and categorical) trait tables; for
 mixed-trait functional spaces, standard tools such as the `mFD` or `FD`
 packages should be used instead.
 
@@ -380,23 +380,24 @@ challenges. Aquatic Sciences, 79(4), 783-801.
 # landmarks (see ?load_t26_saudrune_landmarks)
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
+#> Warning: 6 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. Use scale_action = "pixels" to measure them in pixels instead (the 9 unitless ratios are unaffected), or see fishmorph_ratios()'s `landmarks` argument to recover those ratios from an existing cm table.
 ratios <- fishmorph_ratios(segments)
-ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
-#> Warning: Dropping non-numeric column(s) from the ordination: individual, population, operator
-#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
-#> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
+traits <- ratios[, c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")]
+ts <- trait_space(traits, groups = fish$metadata$species, na_action = "omit")
+#> na_action = "omit": removing 6 row(s) out of 494 with missing values.
+#> flag_outliers: 10 specimen(s) flagged as within-group outlier(s) across 2 group(s) (Gobio gobio, Lepomis gibbosus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
+#> flag_outliers: 1 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
 ts   # flags any within-species outliers found, see ts$outlier_screen
 #> <intrait_traitspace> (pca)
-#>   Axes PC1/PC2, variance explained: 35.7% / 17.8%
-#>   743 observations, 10 traits (replicate, BEl, VEp, REs, OGp, RMl, BLs, PFv, PFs, CPt)
+#>   Axes PC1/PC2, variance explained: 32.2% / 17.5%
+#>   488 observations, 9 traits (BEl, VEp, REs, OGp, RMl, BLs, PFv, PFs, CPt)
 #>   7 groups
-#>   31 potential within-group outlier(s) flagged (see $outlier_screen); most atypical:
-#>     T-26-0050_Operator_4 (Gobio occitaniae): distance = 41.208 (group median 1.709)
-#>     T-26-0052_Operator_1 (Squalius cephalus): distance = 20.271 (group median 1.963)
-#>     T-26-0050_Operator_2 (Gobio occitaniae): distance = 14.566 (group median 1.709)
-#>     T-26-0230-1_Operator_2 (Barbatula barbatula): distance = 14.515 (group median 2.158)
-#>     T-26-0209_Operator_4 (Gobio occitaniae): distance = 13.519 (group median 1.709)
+#>   10 potential within-group outlier(s) flagged (see $outlier_screen); most atypical:
+#>     SAUDRUNESUDTOULOUSE_20260518_0143_i1 (Gobio gobio): distance = 5.737 (group median 2.190)
+#>     SAUDRUNESUDTOULOUSE_20260518_0159_i2 (Gobio gobio): distance = 5.450 (group median 2.190)
+#>     SAUDRUNESUDTOULOUSE_20260427_0249 (Gobio gobio): distance = 5.438 (group median 2.190)
+#>     SAUDRUNESUDTOULOUSE_20260427_0263 (Barbatula barbatula): distance = 5.025 (group median 2.799)
+#>     SAUDRUNESUDTOULOUSE_20260427_0250_i2 (Gobio gobio): distance = 4.952 (group median 2.190)
 # \donttest{
 plot(ts)
 
@@ -405,75 +406,44 @@ plot(ts)
 # Once a flagged specimen has been visually confirmed as an error (not
 # just genuine morphological variation), exclude it from the ordination:
 ts_clean <- trait_space(
-  ratios, groups = fish$metadata$species, na_action = "omit",
+  traits, groups = fish$metadata$species, na_action = "omit",
   remove_outliers = TRUE
 )
-#> Warning: Dropping non-numeric column(s) from the ordination: individual, population, operator
-#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
-#> remove_outliers: removing 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus) before building the ordination; see $removed_outliers for exactly which ones, and why, before relying on this in a publication -- always confirm each removal corresponds to a real error (e.g. via plot_landmarks()/ plot_fishmorph_points()), not just genuine morphological variation.
+#> na_action = "omit": removing 6 row(s) out of 494 with missing values.
+#> remove_outliers: removing 10 specimen(s) flagged as within-group outlier(s) across 2 group(s) (Gobio gobio, Lepomis gibbosus) before building the ordination; see $removed_outliers for exactly which ones, and why, before relying on this in a publication -- always confirm each removal corresponds to a real error (e.g. via plot_landmarks()/ plot_fishmorph_points()), not just genuine morphological variation.
+#> flag_outliers: 1 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
 ts_clean$removed_outliers   # exactly which specimen(s) were excluded, and why
-#>                                      group n_group  distance median_distance
-#> T-26-0011_Operator_2     Squalius cephalus     174  3.566762        1.963433
-#> T-26-0011_Operator_4     Squalius cephalus     174 12.393995        1.963433
-#> T-26-0012_Operator_2      Gobio occitaniae     396  4.667991        1.708645
-#> T-26-0050_Operator_2      Gobio occitaniae     396 14.565939        1.708645
-#> T-26-0050_Operator_4      Gobio occitaniae     396 41.208138        1.708645
-#> T-26-0052_Operator_1     Squalius cephalus     174 20.270649        1.963433
-#> T-26-0052_Operator_4     Squalius cephalus     174  3.891057        1.963433
-#> T-26-0056_Operator_4      Gobio occitaniae     396  7.958313        1.708645
-#> T-26-0087_Operator_2      Gobio occitaniae     396  4.583600        1.708645
-#> T-26-0089_Operator_4     Phoxinus phoxinus      71  5.409752        2.061789
-#> T-26-0112_Operator_4     Phoxinus phoxinus      71 10.944601        2.061789
-#> T-26-0115_Operator_4      Gobio occitaniae     396  7.372290        1.708645
-#> T-26-0117_Operator_4      Gobio occitaniae     396  3.527803        1.708645
-#> T-26-0179_Operator_4      Gobio occitaniae     396  5.997112        1.708645
-#> T-26-0190_Operator_4      Gobio occitaniae     396 11.502579        1.708645
-#> T-26-0209_Operator_4      Gobio occitaniae     396 13.518535        1.708645
-#> T-26-0221_Operator_1     Squalius cephalus     174  3.626615        1.963433
-#> T-26-0226_Operator_1      Gobio occitaniae     396  3.571533        1.708645
-#> T-26-0230-1_Operator_2 Barbatula barbatula      38 14.514860        2.157784
-#> T-26-0244_Operator_3     Phoxinus phoxinus      71  3.966291        2.061789
-#> T-26-0252_Operator_3     Squalius cephalus     174  4.526159        1.963433
-#> T-26-0261-5_Operator_1    Gobio occitaniae     396  3.620993        1.708645
-#> T-26-0262-2_Operator_1    Gobio occitaniae     396  4.062232        1.708645
-#> T-26-0264-2_Operator_1    Gobio occitaniae     396  4.809770        1.708645
-#> T-26-0264-4_Operator_1    Gobio occitaniae     396  4.349872        1.708645
-#> T-26-0264-4_Operator_2    Gobio occitaniae     396  4.158950        1.708645
-#> T-26-0272_Operator_4   Barbatula barbatula      38  5.605694        2.157784
-#> T-26-0276_Operator_1     Squalius cephalus     174  5.040183        1.963433
-#> T-26-0276_Operator_2     Squalius cephalus     174  3.961633        1.963433
-#> T-26-0276_Operator_3     Squalius cephalus     174  4.252423        1.963433
-#> T-26-0276_Operator_4     Squalius cephalus     174  3.574918        1.963433
-#>                        mad_distance threshold_value flagged
-#> T-26-0011_Operator_2      0.4982126        3.458071    TRUE
-#> T-26-0011_Operator_4      0.4982126        3.458071    TRUE
-#> T-26-0012_Operator_2      0.5877915        3.472019    TRUE
-#> T-26-0050_Operator_2      0.5877915        3.472019    TRUE
-#> T-26-0050_Operator_4      0.5877915        3.472019    TRUE
-#> T-26-0052_Operator_1      0.4982126        3.458071    TRUE
-#> T-26-0052_Operator_4      0.4982126        3.458071    TRUE
-#> T-26-0056_Operator_4      0.5877915        3.472019    TRUE
-#> T-26-0087_Operator_2      0.5877915        3.472019    TRUE
-#> T-26-0089_Operator_4      0.6258120        3.939225    TRUE
-#> T-26-0112_Operator_4      0.6258120        3.939225    TRUE
-#> T-26-0115_Operator_4      0.5877915        3.472019    TRUE
-#> T-26-0117_Operator_4      0.5877915        3.472019    TRUE
-#> T-26-0179_Operator_4      0.5877915        3.472019    TRUE
-#> T-26-0190_Operator_4      0.5877915        3.472019    TRUE
-#> T-26-0209_Operator_4      0.5877915        3.472019    TRUE
-#> T-26-0221_Operator_1      0.4982126        3.458071    TRUE
-#> T-26-0226_Operator_1      0.5877915        3.472019    TRUE
-#> T-26-0230-1_Operator_2    0.8072921        4.579660    TRUE
-#> T-26-0244_Operator_3      0.6258120        3.939225    TRUE
-#> T-26-0252_Operator_3      0.4982126        3.458071    TRUE
-#> T-26-0261-5_Operator_1    0.5877915        3.472019    TRUE
-#> T-26-0262-2_Operator_1    0.5877915        3.472019    TRUE
-#> T-26-0264-2_Operator_1    0.5877915        3.472019    TRUE
-#> T-26-0264-4_Operator_1    0.5877915        3.472019    TRUE
-#> T-26-0264-4_Operator_2    0.5877915        3.472019    TRUE
-#> T-26-0272_Operator_4      0.8072921        4.579660    TRUE
-#> T-26-0276_Operator_1      0.4982126        3.458071    TRUE
-#> T-26-0276_Operator_2      0.4982126        3.458071    TRUE
-#> T-26-0276_Operator_3      0.4982126        3.458071    TRUE
-#> T-26-0276_Operator_4      0.4982126        3.458071    TRUE
+#>                                                 group n_group distance
+#> SAUDRUNESUDTOULOUSE_20260427_0009    Lepomis gibbosus       9 2.118306
+#> SAUDRUNESUDTOULOUSE_20260427_0022         Gobio gobio     283 4.805470
+#> SAUDRUNESUDTOULOUSE_20260427_0025         Gobio gobio     283 4.305989
+#> SAUDRUNESUDTOULOUSE_20260427_0212         Gobio gobio     283 4.489106
+#> SAUDRUNESUDTOULOUSE_20260427_0221         Gobio gobio     283 4.674435
+#> SAUDRUNESUDTOULOUSE_20260427_0249         Gobio gobio     283 5.438353
+#> SAUDRUNESUDTOULOUSE_20260427_0250_i2      Gobio gobio     283 4.951867
+#> SAUDRUNESUDTOULOUSE_20260518_0124_i3      Gobio gobio     283 4.292452
+#> SAUDRUNESUDTOULOUSE_20260518_0143_i1      Gobio gobio     283 5.737112
+#> SAUDRUNESUDTOULOUSE_20260518_0159_i2      Gobio gobio     283 5.450247
+#>                                      median_distance mad_distance
+#> SAUDRUNESUDTOULOUSE_20260427_0009           1.335428    0.1311026
+#> SAUDRUNESUDTOULOUSE_20260427_0022           2.190415    0.6904292
+#> SAUDRUNESUDTOULOUSE_20260427_0025           2.190415    0.6904292
+#> SAUDRUNESUDTOULOUSE_20260427_0212           2.190415    0.6904292
+#> SAUDRUNESUDTOULOUSE_20260427_0221           2.190415    0.6904292
+#> SAUDRUNESUDTOULOUSE_20260427_0249           2.190415    0.6904292
+#> SAUDRUNESUDTOULOUSE_20260427_0250_i2        2.190415    0.6904292
+#> SAUDRUNESUDTOULOUSE_20260518_0124_i3        2.190415    0.6904292
+#> SAUDRUNESUDTOULOUSE_20260518_0143_i1        2.190415    0.6904292
+#> SAUDRUNESUDTOULOUSE_20260518_0159_i2        2.190415    0.6904292
+#>                                      threshold_value flagged
+#> SAUDRUNESUDTOULOUSE_20260427_0009           1.728735    TRUE
+#> SAUDRUNESUDTOULOUSE_20260427_0022           4.261703    TRUE
+#> SAUDRUNESUDTOULOUSE_20260427_0025           4.261703    TRUE
+#> SAUDRUNESUDTOULOUSE_20260427_0212           4.261703    TRUE
+#> SAUDRUNESUDTOULOUSE_20260427_0221           4.261703    TRUE
+#> SAUDRUNESUDTOULOUSE_20260427_0249           4.261703    TRUE
+#> SAUDRUNESUDTOULOUSE_20260427_0250_i2        4.261703    TRUE
+#> SAUDRUNESUDTOULOUSE_20260518_0124_i3        4.261703    TRUE
+#> SAUDRUNESUDTOULOUSE_20260518_0143_i1        4.261703    TRUE
+#> SAUDRUNESUDTOULOUSE_20260518_0159_i2        4.261703    TRUE
 ```

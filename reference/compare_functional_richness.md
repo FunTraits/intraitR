@@ -137,12 +137,13 @@ unpublished, supervised by A. Toussaint and S. Brosse.
 # \donttest{
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
+#> Warning: 6 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. Use scale_action = "pixels" to measure them in pixels instead (the 9 unitless ratios are unaffected), or see fishmorph_ratios()'s `landmarks` argument to recover those ratios from an existing cm table.
 ratios <- fishmorph_ratios(segments)
-ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
-#> Warning: Dropping non-numeric column(s) from the ordination: individual, population, operator
-#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
-#> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
+traits <- ratios[, c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")]
+ts <- trait_space(traits, groups = fish$metadata$species, na_action = "omit")
+#> na_action = "omit": removing 6 row(s) out of 494 with missing values.
+#> flag_outliers: 10 specimen(s) flagged as within-group outlier(s) across 2 group(s) (Gobio gobio, Lepomis gibbosus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
+#> flag_outliers: 1 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
 
 # "dendrogram" always runs; "convexhull"/"tpd"/"hypervolume" are
 # skipped gracefully (not fatal) if their package is not installed
@@ -557,12 +558,12 @@ cmp
 #> <intrait_richness_comparison>
 #>   4 method(s) requested, 4 succeeded
 #>       method status fd_ref fd_boot_mean pct_diff p_value significant
-#>   convexhull     ok  2.488        5.273  +111.9%  0.1881       FALSE
-#>   dendrogram     ok  7.234        11.73   +62.2%  0.0396        TRUE
-#>          tpd     ok  26.31        33.42   +27.1% 0.07921       FALSE
-#>  hypervolume     ok   11.4        15.84   +38.9% 0.05941       FALSE
+#>   convexhull     ok  10.89        14.34   +31.6%  0.2376       FALSE
+#>   dendrogram     ok  16.72        19.12   +14.4%  0.2475       FALSE
+#>          tpd     ok  43.31        46.18    +6.6%  0.2376       FALSE
+#>  hypervolume     ok  24.78        24.39    -1.6%  0.5743       FALSE
 #> 
-#>   1/4 method(s) agree that individual-based richness significantly
+#>   0/4 method(s) agree that individual-based richness significantly
 #>   exceeds the centroid-based reference (p < 0.05).
 plot(cmp)
 

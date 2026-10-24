@@ -10,7 +10,7 @@ cross-volume rename being in fact a copy – then switches by renaming.
 ## Usage
 
 ``` r
-write_xlsx_atomic(x, path, keep_prev = TRUE)
+write_xlsx_atomic(x, path, keep_prev = TRUE, drop_sheets = FALSE)
 ```
 
 ## Arguments
@@ -28,6 +28,13 @@ write_xlsx_atomic(x, path, keep_prev = TRUE)
 - keep_prev:
 
   Keep the previous generation (default `TRUE`).
+
+- drop_sheets:
+
+  Logical (default `FALSE`). An existing workbook holding sheets that
+  `x` does not carry is NOT overwritten – the write stops with an error
+  naming them – since rewriting it would destroy them. `TRUE` overwrites
+  anyway.
 
 ## Value
 

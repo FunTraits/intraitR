@@ -137,10 +137,9 @@ intraspecific variability in community ecology. Trends in Ecology &
 Evolution, 27(4), 244-252.
 
 de Bello, F., Lavorel, S., Albert, C. H., Thuiller, W., Grigulis, K.,
-Dolezal, J., Janecek, S., & Leps, J. (2011). Quantifying the relative
-importance of intraspecific trait variability and interspecific trait
-turnover for functional diversity. Methods in Ecology and Evolution,
-2(2), 163-174.
+Dolezal, J., Janecek, S., & Leps, J. (2011). Quantifying the relevance
+of intraspecific trait variability for functional diversity. Methods in
+Ecology and Evolution, 2(2), 163-174.
 
 Siefert, A., Violle, C., Chalmandrier, L., et al. (2015). A global
 meta-analysis of the relative extent of intraspecific trait variation in
@@ -159,7 +158,7 @@ plant communities. Ecology Letters, 18(12), 1406-1419.
 # trait_space()'s na_action, so incomplete rows are filtered explicitly
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
+#> Warning: 6 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. Use scale_action = "pixels" to measure them in pixels instead (the 9 unitless ratios are unaffected), or see fishmorph_ratios()'s `landmarks` argument to recover those ratios from an existing cm table.
 ratios <- fishmorph_ratios(segments)
 complete <- stats::complete.cases(ratios[, c("BEl", "VEp", "REs")])
 itv <- itv_index(
@@ -171,14 +170,14 @@ itv
 #>   3 trait(s), 7 groups
 #> 
 #> -- Per trait --
-#>  trait    ss_total ss_between   ss_within pct_interspecific pct_itv
-#>    BEl 141839.8737   230.1186 141609.7552            0.1622 99.8378
-#>    VEp     75.9100     3.5807     72.3293            4.7170 95.2830
-#>    REs      7.0095     2.3236      4.6859           33.1492 66.8508
+#>  trait ss_total ss_between ss_within pct_interspecific pct_itv
+#>    BEl 117.4369    62.2623   55.1745           53.0177 46.9823
+#>    VEp   5.9946     3.4175    2.5770           57.0104 42.9896
+#>    REs   4.0637     1.4533    2.6104           35.7636 64.2364
 #> 
 #> -- Multivariate summary (standardised traits) --
 #>  ss_total ss_between ss_within pct_interspecific pct_itv
-#>      2286   289.7772  1996.223           12.6762 87.3238
+#>      1461   710.0059  750.9941           48.5973 51.4027
 
 # split ITV into between-/within-population components: the real T-26
 # survey sampled a single site (no population structure to report), so

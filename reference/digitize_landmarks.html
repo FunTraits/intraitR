@@ -25,7 +25,7 @@ points are reviewed and corrected by hand, quality-scored, and saved."></head><b
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -75,12 +75,19 @@ points are reviewed and corrected by hand, quality-scored, and saved.</p>
 <span>  mode <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"new"</span>, <span class="st">"correct"</span>, <span class="st">"repeat"</span><span class="op">)</span>,</span>
 <span>  n_repeats <span class="op">=</span> <span class="fl">3L</span>,</span>
 <span>  ruler_mm <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  individuals_per_photo <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  individual_order <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"top"</span>, <span class="st">"left"</span>, <span class="st">"reading"</span><span class="op">)</span>,</span>
+<span>  individuals_per_row <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  xlsx_flush_every <span class="op">=</span> <span class="fl">10L</span>,</span>
+<span>  provenance <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  mlmorph_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  predictor <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  python <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  batch <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  batch_order <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"risk"</span>, <span class="st">"photo"</span><span class="op">)</span>,</span>
 <span>  sheets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>measurements <span class="op">=</span> <span class="st">"measurements"</span>, bias <span class="op">=</span> <span class="st">"bias"</span>, summary <span class="op">=</span> <span class="st">"bias_summary"</span><span class="op">)</span>,</span>
-<span>  launch.browser <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"shiny.launch.browser"</span>, <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  display <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"canvas"</span>, <span class="st">"plot"</span><span class="op">)</span>,</span>
+<span>  launch.browser <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -93,7 +100,12 @@ points are reviewed and corrected by hand, quality-scored, and saved.</p>
 <dd><p>Directory of specimen photographs. Every image in it forms
 the working queue (<code>jpg</code>, <code>jpeg</code>, <code>png</code>, <code>gif</code>, <code>bmp</code>, <code>tif</code>, <code>tiff</code>); the
 file name without its extension is the specimen code. Photographs stay
-where they are – only their name and pixel size are ever recorded.</p></dd>
+where they are – only their name and pixel size are ever recorded.
+Alternatively, a character vector of image FILES: only those photographs
+form the queue (a selection made beforehand, e.g. one species of a sampling
+date). Their file names must be distinct, since the name is the specimen
+code; the folder of the first one stands for <code>photo_dir</code> (default
+<code>xlsx_path</code>, messages).</p></dd>
 
 
 <dt id="arg-xlsx-path">xlsx_path<a class="anchor" aria-label="anchor" href="#arg-xlsx-path"></a></dt>
@@ -136,6 +148,32 @@ landmarks 20-21. Changeable in the app, specimen by specimen. Defaults to
 <code>10</code>.</p></dd>
 
 
+<dt id="arg-individuals-per-photo">individuals_per_photo<a class="anchor" aria-label="anchor" href="#arg-individuals-per-photo"></a></dt>
+<dd><p>Number of fish lying on one photograph.
+Defaults to <code>1</code>. Any value above 1 turns on the plate workflow: the
+individuals of a photograph are saved as <code>"&lt;photo&gt;_i1"</code>, <code>"&lt;photo&gt;_i2"</code>
+..., the scale bar is placed once and inherited by all of them, and the
+photograph leaves the queue only when every individual on it is measured.
+The count is adjustable photograph by photograph in the app; the value
+given here is the default a photograph inherits.</p></dd>
+
+
+<dt id="arg-individual-order">individual_order<a class="anchor" aria-label="anchor" href="#arg-individual-order"></a></dt>
+<dd><p>Order the numbering of the individuals runs in:
+<code>"top"</code> (top to bottom, the default), <code>"left"</code> (left to right), or
+<code>"reading"</code> (rows from top to bottom, and within a row from left to
+right, the way text is read). The number is SPATIAL, not chronological –
+see the section on plates.</p></dd>
+
+
+<dt id="arg-individuals-per-row">individuals_per_row<a class="anchor" aria-label="anchor" href="#arg-individuals-per-row"></a></dt>
+<dd><p>Number of fish per row, used only by
+<code>individual_order = "reading"</code>. Giving it makes the rows EXACT – fish
+<code>k</code> belongs to row <code>ceiling(k / individuals_per_row)</code>, whatever the
+spacing. <code>NULL</code> (default) infers the rows from the snouts already placed,
+which works but has to guess where one row ends.</p></dd>
+
+
 <dt id="arg-xlsx-flush-every">xlsx_flush_every<a class="anchor" aria-label="anchor" href="#arg-xlsx-flush-every"></a></dt>
 <dd><p>Number of records between two workbook writes. The
 workbook is REWRITTEN IN FULL each time, so taking it out of the
@@ -144,10 +182,24 @@ in memory, are written when the session ends or on demand, and are in the
 journal in any case. <code>1</code> writes after every specimen. Defaults to <code>10</code>.</p></dd>
 
 
+<dt id="arg-provenance">provenance<a class="anchor" aria-label="anchor" href="#arg-provenance"></a></dt>
+<dd><p>Where to find the record of which source image became
+which specimen, used to match back photographs renamed BEFORE <code>photo_hash</code>
+was recorded (see <em>A specimen renamed is not a specimen rediscovered</em>).
+<code>NULL</code> (default) looks for a directory of import journals at
+<code>&lt;project&gt;/journal</code>, alongside <code>&lt;project&gt;/measurements/&lt;workbook&gt;.xlsx</code>.
+A path points at that directory explicitly; a NAMED character vector
+(photograph code -&gt; provenance key, as returned by <code><a href="photo_provenance_keys.html">photo_provenance_keys()</a></code>)
+is used as is; <code>FALSE</code> disables the lookup. Without it, a specimen renamed
+before the column existed stays in the <code>"new"</code> queue – the behaviour of
+every earlier version, and never a silent guess.</p></dd>
+
+
 <dt id="arg-mlmorph-dir">mlmorph_dir<a class="anchor" aria-label="anchor" href="#arg-mlmorph-dir"></a></dt>
 <dd><p>Path to the ml-morph resource directory holding the
-trained predictor(s) (<code>mlmorph_run_app/predictor.dat</code>,
-<code>mlmorph_run_aligned/predictor.dat</code>), the aligned dataset
+trained predictor(s) (<code>mlmorph_run_campaign/predictor.dat</code>,
+<code>mlmorph_run_app/predictor.dat</code>, <code>mlmorph_run_aligned/predictor.dat</code>),
+the matching dataset (<code>mlmorph_dataset_campaign/</code>, ...), the aligned dataset
 (<code>mlmorph_dataset_aligned/</code>) and, optionally, a Python virtual environment
 (<code>.venv_mlmorph/</code>). <code>NULL</code> (default) auto-detects it from the
 <code>INTRAITR_MLMORPH_DIR</code> environment variable, then from <code>ml_morph/</code>,
@@ -168,14 +220,41 @@ the prediction worker; it needs <code>numpy</code>, <code>opencv-python</code> a
 <code>.venv_mlmorph/</code> inside <code>mlmorph_dir</code>, then <code>python3</code> on the search path.</p></dd>
 
 
+<dt id="arg-batch">batch<a class="anchor" aria-label="anchor" href="#arg-batch"></a></dt>
+<dd><p>Optional output folder of <code><a href="batch_landmarks.html">batch_landmarks()</a></code> (or the list it
+returns). In the "new" queue, a photograph found there arrives with its 19
+landmarks already placed by the automatic chain – status "predicted",
+LM1 and LM2 included, until each is checked – and the ruler (20-21) is the
+first thing to click. Photographs are matched by file name; plates
+(<code>individuals_per_photo &gt; 1</code>) are not pre-filled.</p></dd>
+
+
+<dt id="arg-batch-order">batch_order<a class="anchor" aria-label="anchor" href="#arg-batch-order"></a></dt>
+<dd><p>With <code>batch</code>: <code>"risk"</code> (default) puts the photographs the
+batch flagged first in the "new" queue, by decreasing risk; <code>"photo"</code>
+keeps the folder order.</p></dd>
+
+
 <dt id="arg-sheets">sheets<a class="anchor" aria-label="anchor" href="#arg-sheets"></a></dt>
 <dd><p>Named character vector giving the three sheet names. Defaults
 to <code>c(measurements = "measurements", bias = "bias", summary = "bias_summary")</code>.</p></dd>
 
 
+<dt id="arg-display">display<a class="anchor" aria-label="anchor" href="#arg-display"></a></dt>
+<dd><p>How the photograph is drawn. <code>"canvas"</code> (default): in the
+browser – R sends the image once and, after each click, only the overlay
+(points, segments, guides) as a list of shapes; zoom (mouse wheel, at the
+cursor) and pan (right-button drag) happen in the browser, without a round
+trip to R. <code>"plot"</code>: the previous display, re-rendered by R at each click.
+The overlay is the same code in both.</p></dd>
+
+
 <dt id="arg-launch-browser">launch.browser<a class="anchor" aria-label="anchor" href="#arg-launch-browser"></a></dt>
-<dd><p>Passed to <code><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">shiny::runApp()</a></code>. Defaults to the
-<code>shiny.launch.browser</code> option, or to <code><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive()</a></code>.</p></dd>
+<dd><p>Where the application opens. <code>TRUE</code> (default) or
+<code>"browser"</code> forces the system browser, past the RStudio Viewer pane –
+which is a few hundred pixels wide and the wrong place to click landmarks
+on a photograph. <code>"viewer"</code> restores the pane, <code>FALSE</code> opens nothing and
+prints the URL, and a function is used as given.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -187,6 +266,11 @@ or <code>host</code>). Do not pass <code>appDir</code>; the packaged app directo
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Invisibly, the path of the workbook. Called for its side effect of
 running the Shiny application (a blocking call in an interactive session).</p>
+<p>The app refuses a non-interactive session, where nobody could click. A
+launcher that runs it in a background R process on purpose (the
+FishInTrait measuring hub does, with <code>callr</code>) sets
+<code>options(intraitR.background = TRUE)</code> there, together with
+<code>launch.browser = FALSE</code> and a <code>port</code>, and opens the URL itself.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -207,14 +291,14 @@ and restored on exit.</p>
     <div class="section level2">
     <h2 id="one-workbook-three-sheets">One workbook, three sheets<a class="anchor" aria-label="anchor" href="#one-workbook-three-sheets"></a></h2>
     <p><code>measurements</code> holds one row per specimen, in the wide FISHMORPH layout
-(<code>1_X, 1_Y, ... 24_X, 24_Y</code>) read back by <code><a href="read_landmarks_xlsx.html">read_landmarks_xlsx()</a></code>
-(<code>n_landmarks = 22</code>, <code>x_pattern = "{i}_X"</code>, <code>y_pattern = "{i}_Y"</code>), together
+(<code>1_X, 1_Y, ... 25_X, 25_Y</code>) read back by <code><a href="read_landmarks_xlsx.html">read_landmarks_xlsx()</a></code>
+(<code>n_landmarks = 23</code>, <code>x_pattern = "{i}_X"</code>, <code>y_pattern = "{i}_Y"</code>), together
 with the operator, the photograph, its pixel size, the quality score,
 <code>mm_per_px</code>, and the per-record status counts (<code>n_seeded</code>, <code>n_predicted</code>,
 ...) that say how much of the configuration was actually looked at. The last
-two coordinate pairs are the entry hinges 23-24 (see <em>Curved specimens</em>
+two coordinate pairs are the entry hinges 24-25 (see <em>Curved specimens</em>
 below): recorded so that a specimen can be reopened in the axis it was
-digitized under, and deliberately outside the <code>n_landmarks = 22</code> an analysis
+digitized under, and deliberately outside the <code>n_landmarks = 23</code> an analysis
 reads.</p>
 <p><code>bias</code> has the same layout but one row per <em>repeated</em> digitization, with
 <code>individual</code>, <code>operator</code> and <code>replicate</code> columns: it is the input of
@@ -230,14 +314,58 @@ interrupted session costs at most the specimen being digitized. See
 <code><a href="landmark_journal_open.html">landmark_journal_open()</a></code> and <code><a href="consolidate_landmarks.html">consolidate_landmarks()</a></code>.</p>
     </div>
     <div class="section level2">
+    <h2 id="a-specimen-renamed-is-not-a-specimen-rediscovered">A specimen renamed is not a specimen rediscovered<a class="anchor" aria-label="anchor" href="#a-specimen-renamed-is-not-a-specimen-rediscovered"></a></h2>
+    <p>The specimen code is the photograph's file name without its extension, and
+that name is metadata: it carries the site, the date, the species and the
+specimen number, every one of which can turn out to be wrong. Correcting a
+determination – <em>Squalius cephalus</em> read again as <em>Barbus barbus</em> – renames
+the file, and the code with it, without moving a single pixel.</p>
+<p>Matching the queues on the name alone therefore took the measurements away
+from the fish: the workbook still held the row under the old code, the queue
+matched on the new one, and an already-digitized specimen reappeared in the
+<code>"new"</code> queue with nothing to say it had ever been measured – no error, no
+warning, and a duplicate the day it was measured again. The bookkeeping was
+quietly deciding what the taxonomy was allowed to say.</p>
+<p>So each record also carries <code>photo_hash</code>, the fingerprint of the image FILE
+(<code><a href="photo_hash.html">photo_hash()</a></code>), which changes if and only if the pixels do. At launch the
+sheets are reconciled against the folder on that column
+(<code><a href="reconcile_photo_names.html">reconcile_photo_names()</a></code>): rows written before it existed are back-filled,
+rows whose photograph now has another name are re-keyed – carrying the
+<code>_i&lt;k&gt;</code> of a plate and the <code>_&lt;operator&gt;_rep&lt;N&gt;</code> of a repeat across untouched
+– and a renamed specimen stays out of the <code>"new"</code> queue. Ambiguities (the
+same image present twice, a target code already taken) are reported and left
+alone: a wrong automatic merge is invisible afterwards, a rename done by hand
+is not. The reconciliation is in memory; the journal keeps the old key, which
+is what makes the re-keying auditable rather than a quiet rewriting of
+history.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="what-the-entry-is-worth-as-opposed-to-how-it-was-obtained">What the entry is worth, as opposed to how it was obtained<a class="anchor" aria-label="anchor" href="#what-the-entry-is-worth-as-opposed-to-how-it-was-obtained"></a></h2>
+    <p>The per-point <code>status</code> says how each landmark was obtained. Four further
+columns say what the ENTRY as a whole is worth, which only the operator
+looking at the photograph can decide: <code>quality</code> (1 = very good to 5 = poor),
+<code>reviewed</code>, <code>reviewed_by</code> and <code>review_date</code>. The score and the tick are
+independent on purpose – a specimen can be checked AND poor, which is
+exactly the row a re-photographing list is built from – and the author and
+date are stamped only when something is actually declared, so that "nobody
+has looked at it" stays distinguishable from "somebody looked and said
+nothing".</p>
+<p><code>collapse_rules</code> records the coincidences DECLARED on the specimen
+(<code>"Mo;Hd6"</code>) rather than leaving them to be read back out of the geometry
+they produced. A declared zero is a measurement: inferring it from the
+coordinates cannot tell a rule that was applied from two points that happened
+to land on each other, and cannot see it at all once the points have been
+moved apart.</p>
+    </div>
+    <div class="section level2">
     <h2 id="working-in-the-app">Working in the app<a class="anchor" aria-label="anchor" href="#working-in-the-app"></a></h2>
     <p>Everything follows one <em>active-landmark</em> model, from the first click to the
 last: a single point is active, a click on the photograph places it, and the
-selection advances along one sequence, <code>1, 22, 23, 2, 3 ... 19, 20, 21</code> –
+selection advances along one sequence, <code>1, 22, 24, 2, 3 ... 19, 20, 21</code> –
 the axis first and complete, then the anatomical landmarks, then the scale
-bar. Only the derived points 8, 9 and 11 and the spare hinge 24 are skipped,
-and they stay reachable from the button bar, as does any other landmark at
-any moment.</p>
+bar. Only the derived points 8, 9, 11 and 23 and the spare hinge 25 are
+skipped, and they stay reachable from the button bar, as does any other
+landmark at any moment.</p>
 <p>The moment LM2 goes down the whole configuration is seeded, so placing by
 hand is the default way to work rather than a mode to switch into. Running
 the predictor is optional and available throughout: it refines the
@@ -270,23 +398,49 @@ rather than their file extension, so the <code>.jpg</code> files that are in fac
 through <code>magick</code> when it is installed.</p>
     </div>
     <div class="section level2">
+    <h2 id="lm-the-head-base">LM23, the head base<a class="anchor" aria-label="anchor" href="#lm-the-head-base"></a></h2>
+    <p>LM23 is DERIVED, never clicked: the intersection of the line (1, 9) – the
+mouth-height line – with the line through LM6 parallel to the head axis
+(1 -&gt; 22). Segment 23-6 is therefore parallel to that axis, and 1 -&gt; 23 is
+the axial distance from the snout to the base of the head. It is rebuilt
+after every move of LM1, LM6, LM9 or the axis, so it cannot drift out of step
+with the landmarks it is computed from; a click on it is refused, with the
+reason, rather than silently undone.</p>
+<p>It returns nothing when the construction is degenerate – LM1 and LM9
+coincident, or the two directions parallel – because a derived point with a
+degenerate input has no value, and inventing one would be worse than leaving
+it empty. The <code>Mo = 0</code> rule is what then puts LM23 on LM1.</p>
+<p>This is the <strong>FISHMORPH numbering</strong>, the one Rfishmorph and the published
+database use: 22 the curvature point, 23 the derived head base, 24 and 25 the
+entry hinges. The alignment is deliberate – landmark tables travel between
+the two packages, and a "23" meaning the head base in one and an entry hinge
+in the other is the kind of divergence that produces two incomparable corpora
+without anyone noticing.</p>
+    </div>
+    <div class="section level2">
     <h2 id="curved-specimens-the-broken-axis">Curved specimens: the broken axis<a class="anchor" aria-label="anchor" href="#curved-specimens-the-broken-axis"></a></h2>
-    <p>The FISHMORPH conventions (segment 3-4 perpendicular to the body axis, the
-eye group on one vertical, the ventral group on one line) are defined
+    <p>The FISHMORPH conventions (every depth pair perpendicular to the body axis,
+the eye group on one vertical, the ventral group on one line) are defined
 against the antero-posterior axis. On a fish photographed with a bent body a
 single straight axis 1-2 misstates all of them at once. The app therefore
 accepts <em>hinge</em> points that break the axis into up to four segments, each
 convention being applied in the frame of the segment it belongs to: head
-conventions on 1-22, body depth and pectoral fin on 22-23, caudal peduncle
-and fin on 23-2. Landmark 22 is a genuine landmark – <code><a href="fishmorph_segments.html">fishmorph_segments()</a></code>
+conventions on 1-22, body depth and pectoral fin on 22-24, caudal peduncle
+and fin on 24-2. The five perpendicular pairs are 1-9 (mouth height) on the
+head segment, 3-4 (body depth) and 10-11 (pectoral insertion) on the mid
+segment, and 16-17 (caudal-peduncle depth) and 18-19 (caudal-fin depth) on
+the caudal segment – each is squared onto the perpendicular of ITS OWN
+segment, and re-squared whenever the axis itself is moved, so a depth is
+never returned as a hypotenuse.
+Landmark 22 is a genuine landmark – <code><a href="fishmorph_segments.html">fishmorph_segments()</a></code>
 already uses it to split the standard length into (1-22) + (22-2) – and is
-exported. Landmarks 23 and 24 are entry aids rather than landmarks, but they
-are written out all the same, in their own <code>23_X ... 24_Y</code> columns: they
+exported. Landmarks 24 and 25 are entry aids rather than landmarks, but they
+are written out all the same, in their own <code>24_X ... 25_Y</code> columns: they
 define the frames every convention was applied in, so without them a
 specimen reopened for correction comes back with a straight axis and its
 geometry silently stops matching the one it was digitized under. They must
-be left out of any shape analysis – read the first 22 points
-(<code>n_landmarks = 22</code>), not every column ending in <code>_X</code>. Placing no hinge
+be left out of any shape analysis – read the first 23 points
+(<code>n_landmarks = 23</code>), not every column ending in <code>_X</code>. Placing no hinge
 reproduces exactly the straight-axis behaviour.</p>
     </div>
     <div class="section level2">
@@ -306,6 +460,51 @@ keeps the counts per specimen. Both are worth auditing before the
 coordinates are analysed.</p>
     </div>
     <div class="section level2">
+    <h2 id="plates-several-individuals-on-one-photograph">Plates: several individuals on one photograph<a class="anchor" aria-label="anchor" href="#plates-several-individuals-on-one-photograph"></a></h2>
+    <p>Photographing four fish side by side over a single ruler is the normal field
+object; one photograph = one specimen was an assumption of the app, not a
+property of the data. Set <code>individuals_per_photo</code> (or the field in the
+Specimen panel, which is adjustable plate by plate) and the photograph
+becomes a queue of its own: each fish is saved as <code>"&lt;photo&gt;_i1"</code>,
+<code>"&lt;photo&gt;_i2"</code> and so on, the repeat convention composing on top of it
+unchanged (<code>"PLATE12_i2_AT_rep3"</code>). A photograph leaves the queue only when
+every individual declared on it has been measured, so a plate is never left
+with three of its four fish done because the operator was following the
+photograph counter.</p>
+<p><strong>The scale bar is placed once per plate.</strong> Landmarks 20-21 are kept when the
+app moves to the next individual: one ruler in one focal plane calibrates
+every fish lying on it, and re-digitizing the pair for each of them would add
+an independent scale error to each. The caveat is worth stating – an
+individual far from the ruler carries whatever residual perspective and lens
+distortion the plate has – so the ruler belongs in the plane of the fish, not
+on the bench beside them.</p>
+<p><strong>The number is spatial, not chronological.</strong> <code>_i2</code> must name the same fish
+for every operator: two operators digitizing one plate in opposite orders
+would otherwise be compared fish against fish, and the operator bias that
+comes out of such a comparison measures nothing. The numbering therefore runs
+top to bottom (<code>individual_order = "top"</code>), left to right (<code>"left"</code>), or in
+READING ORDER (<code>"reading"</code>: rows from top to bottom, and within a row from
+left to right), and the app enforces it ON THE CLICK THAT PLACES LM1 – the
+first click of a fish
+– refusing a snout that falls outside the interval left by the individuals
+already placed. The operator is stopped before digitizing the wrong fish
+rather than told about it afterwards, and no identifier already written to
+the journal ever has to be rewritten. The individuals already measured are
+drawn faintly on the photograph, with their number, so the plate can be read
+at a glance.</p>
+<p>A plate laid out as a GRID – four fish in two rows of two, the commonest
+way a tray is photographed – cannot be ordered by one coordinate: the
+second fish of the first row is to the RIGHT of the first, and the third is
+BELOW them both. Either one-dimensional rule refuses a correct click on half
+such a plate, and an operator who is refused when right soon stops reading
+the message. <code>"reading"</code> compares both coordinates: same row, the snout must
+be further right; new row, it must be lower. Set <code>individuals_per_row</code> and
+the rows are exact whatever the spacing; leave it empty and they are
+inferred from the snouts already placed, two being taken to share a row when
+they are within a fifth of the frame height of each other – a stated guess,
+which is why the exact route is offered first.</p>
+    </div>
+    <div class="section level2">
     <h2 id="repeated-digitization-measurement-error-and-operator-bias">Repeated digitization: measurement error and operator bias<a class="anchor" aria-label="anchor" href="#repeated-digitization-measurement-error-and-operator-bias"></a></h2>
     <p>A landmark coordinate is a measurement, and like any measurement it has a
 technical variance that has to be estimated before a biological one is
@@ -315,7 +514,7 @@ place, and two operators disagree more than one operator with themselves. In
 until the individual has <code>n_repeats</code> digitizations.</p>
 <p>Each pass is saved under an identifier of its own – <code>"&lt;code&gt;_rep&lt;N&gt;"</code>, or
 <code>"&lt;code&gt;_&lt;operator&gt;_rep&lt;N&gt;"</code> when an operator is named, the convention of
-the T-26 repeatability set (<code><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks()</a></code>, <code>source = "repeatability"</code>). The replicate number is always the last
+the T-26 repeat trial (<code><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks()</a></code>, <code>source = "repeatability"</code>). The replicate number is always the last
 underscore-separated token and the operator label is stripped of
 underscores, so an identifier decomposes unambiguously from the right;
 <code><a href="read_mlmorph_landmarks.html">read_mlmorph_landmarks()</a></code> reverses it with <code>replicate = "parse"</code> and
@@ -358,7 +557,7 @@ back into the expected range.</p>
 specimen in view. A zero is a measurement like any other – neither a missing
 value nor a placement error – and the FISHMORPH ratios are defined to take
 it: <code>OGp = 0</code> for a mouth opening on the ventral profile, <code>PFv = 0</code> for a
-pectoral fin inserted on the belly. Four rules are offered:</p>
+pectoral fin inserted on the belly. Five rules are offered:</p>
 <dl><dt><code>Mo = 0</code></dt>
 <dd><p>LM9 takes the coordinates of LM1 – the mouth sits on the
 ventral profile.</p></dd>
@@ -375,8 +574,31 @@ inserts on the belly.</p></dd>
 <dd><p>LM5 takes the coordinates of LM13 – the eye reaches
 the top of the head.</p></dd>
 
+<dt><code>LM4 on 22-24</code></dt>
+<dd><p>LM4 is PROJECTED perpendicularly onto the mid axis,
+the segment LM22 -&gt; LM24: it keeps the abscissa that was clicked along
+the axis and its height becomes zero.</p></dd>
 
-</dl><p><strong>Nothing is deleted.</strong> Both landmarks keep a position, both are drawn on the
+
+</dl><p>The last rule is of a different KIND: its partner is a LINE, not a landmark,
+so nothing is copied – LM4 is projected. The line is not bounded by its two
+hinges; the foot of the perpendicular may fall on their prolongation, as
+everywhere else in the constrained editing. Three consequences follow, and
+they are deliberate:</p>
+<ul><li><p>LM4 being the MASTER of the belly line, the projection is applied
+BEFORE the conventions and the ventral chain is replayed behind it, so
+LM11 and then LM8 and LM9 are re-derived from the projected LM4;</p></li>
+<li><p>the VENTRAL half of the extreme-point check is suspended while the
+rule is on. LM4 no longer claims to be the most ventral landmark, so
+reporting LM6, LM10 or LM14 below it would flag the rule itself. The
+dorsal half, on LM3, is untouched;</p></li>
+<li><p>LM4 stays in <code>edited</code> rather than being taken over by the rule: only
+its height is imposed, its position along the body remains the operator's
+measurement and survives a re-seed. It is reported <code>"adjusted"</code> in the
+journal all the same, since a rule did place it.</p></li>
+</ul><p>Unticking the rule does not restore the height LM4 had before it: that value
+is not stored anywhere, and LM4 stays on the axis until it is clicked again.</p>
+<p><strong>Nothing is deleted.</strong> Both landmarks keep a position, both are drawn on the
 photograph and both are written to the workbook; one simply takes the
 coordinates of the other, so the segment between them measures zero. A
 coincidence is a measurement, an absence is <code>NA</code>, and the two must not be
@@ -483,10 +705,10 @@ images. Methods in Ecology and Evolution, 11(4), 500-512.
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Read the workbook back, one object per sheet.</span></span></span>
 <span class="r-in"><span><span class="va">lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_landmarks_xlsx.html">read_landmarks_xlsx</a></span><span class="op">(</span><span class="st">"T26/T26_landmarks.xlsx"</span>, sheet <span class="op">=</span> <span class="st">"measurements"</span>,</span></span>
-<span class="r-in"><span>                          n_landmarks <span class="op">=</span> <span class="fl">22</span>, x_pattern <span class="op">=</span> <span class="st">"{i}_X"</span>,</span></span>
+<span class="r-in"><span>                          n_landmarks <span class="op">=</span> <span class="fl">23</span>, x_pattern <span class="op">=</span> <span class="st">"{i}_X"</span>,</span></span>
 <span class="r-in"><span>                          y_pattern <span class="op">=</span> <span class="st">"{i}_Y"</span>, id_cols <span class="op">=</span> <span class="st">"specimen"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">rep_lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_landmarks_xlsx.html">read_landmarks_xlsx</a></span><span class="op">(</span><span class="st">"T26/T26_landmarks.xlsx"</span>, sheet <span class="op">=</span> <span class="st">"bias"</span>,</span></span>
-<span class="r-in"><span>                              n_landmarks <span class="op">=</span> <span class="fl">22</span>, x_pattern <span class="op">=</span> <span class="st">"{i}_X"</span>,</span></span>
+<span class="r-in"><span>                              n_landmarks <span class="op">=</span> <span class="fl">23</span>, x_pattern <span class="op">=</span> <span class="st">"{i}_X"</span>,</span></span>
 <span class="r-in"><span>                              y_pattern <span class="op">=</span> <span class="st">"{i}_Y"</span>,</span></span>
 <span class="r-in"><span>                              id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"individual"</span>, <span class="st">"operator"</span>, <span class="st">"replicate"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="measurement_error.html">measurement_error</a></span><span class="op">(</span><span class="fu"><a href="gpa_fish.html">gpa_fish</a></span><span class="op">(</span><span class="va">rep_lm</span><span class="op">)</span>, individual <span class="op">=</span> <span class="va">rep_lm</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">individual</span>,</span></span>

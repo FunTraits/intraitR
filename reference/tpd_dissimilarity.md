@@ -146,8 +146,9 @@ based on TPD with R. Ecology, 100(12), e02876.
 ## Examples
 
 ``` r
-fish <- simulate_fishmorph_points(n_per_species = 20, n_replicates = 1)
-ratios <- fishmorph_ratios(fishmorph_segments(fish))
+fish <- load_t26_saudrune_landmarks()
+ratios <- fishmorph_ratios(fishmorph_segments(fish, scale_action = "pixels"))
+#> scale_action = "pixels": 6 specimen(s) have a zero-length or missing scale bar (points 20-21); their measurements are returned in PIXELS (scale_units == "px"), the other 488 in centimetres. The nine ratios are unaffected; absolute values are not comparable across the two units.
 # \donttest{
 if (requireNamespace("TPD", quietly = TRUE)) {
   d <- tpd_dissimilarity(

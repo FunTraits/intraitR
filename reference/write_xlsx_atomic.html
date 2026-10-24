@@ -17,7 +17,7 @@ renaming."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,7 +55,7 @@ renaming.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">write_xlsx_atomic</span><span class="op">(</span><span class="va">x</span>, <span class="va">path</span>, keep_prev <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">write_xlsx_atomic</span><span class="op">(</span><span class="va">x</span>, <span class="va">path</span>, keep_prev <span class="op">=</span> <span class="cn">TRUE</span>, drop_sheets <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -73,6 +73,13 @@ renaming.</p>
 
 <dt id="arg-keep-prev">keep_prev<a class="anchor" aria-label="anchor" href="#arg-keep-prev"></a></dt>
 <dd><p>Keep the previous generation (default <code>TRUE</code>).</p></dd>
+
+
+<dt id="arg-drop-sheets">drop_sheets<a class="anchor" aria-label="anchor" href="#arg-drop-sheets"></a></dt>
+<dd><p>Logical (default <code>FALSE</code>). An existing workbook holding
+sheets that <code>x</code> does not carry is NOT overwritten – the write stops with
+an error naming them – since rewriting it would destroy them. <code>TRUE</code>
+overwrites anyway.</p></dd>
 
 </dl></div>
     <div class="section level2">

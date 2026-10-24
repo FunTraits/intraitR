@@ -23,12 +23,19 @@ digitize_landmarks(
   mode = c("new", "correct", "repeat"),
   n_repeats = 3L,
   ruler_mm = 10,
+  individuals_per_photo = 1L,
+  individual_order = c("top", "left", "reading"),
+  individuals_per_row = NULL,
   xlsx_flush_every = 10L,
+  provenance = NULL,
   mlmorph_dir = NULL,
   predictor = NULL,
   python = NULL,
+  batch = NULL,
+  batch_order = c("risk", "photo"),
   sheets = c(measurements = "measurements", bias = "bias", summary = "bias_summary"),
-  launch.browser = getOption("shiny.launch.browser", interactive()),
+  display = c("canvas", "plot"),
+  launch.browser = TRUE,
   ...
 )
 ```
@@ -41,6 +48,11 @@ digitize_landmarks(
   queue (`jpg`, `jpeg`, `png`, `gif`, `bmp`, `tif`, `tiff`); the file
   name without its extension is the specimen code. Photographs stay
   where they are – only their name and pixel size are ever recorded.
+  Alternatively, a character vector of image FILES: only those
+  photographs form the queue (a selection made beforehand, e.g. one
+  species of a sampling date). Their file names must be distinct, since
+  the name is the specimen code; the folder of the first one stands for
+  `photo_dir` (default `xlsx_path`, messages).
 
 - xlsx_path:
 
@@ -84,6 +96,32 @@ digitize_landmarks(
   Real length, in millimetres, of the scale bar digitized by landmarks
   20-21. Changeable in the app, specimen by specimen. Defaults to `10`.
 
+- individuals_per_photo:
+
+  Number of fish lying on one photograph. Defaults to `1`. Any value
+  above 1 turns on the plate workflow: the individuals of a photograph
+  are saved as `"<photo>_i1"`, `"<photo>_i2"` ..., the scale bar is
+  placed once and inherited by all of them, and the photograph leaves
+  the queue only when every individual on it is measured. The count is
+  adjustable photograph by photograph in the app; the value given here
+  is the default a photograph inherits.
+
+- individual_order:
+
+  Order the numbering of the individuals runs in: `"top"` (top to
+  bottom, the default), `"left"` (left to right), or `"reading"` (rows
+  from top to bottom, and within a row from left to right, the way text
+  is read). The number is SPATIAL, not chronological – see the section
+  on plates.
+
+- individuals_per_row:
+
+  Number of fish per row, used only by `individual_order = "reading"`.
+  Giving it makes the rows EXACT – fish `k` belongs to row
+  `ceiling(k / individuals_per_row)`, whatever the spacing. `NULL`
+  (default) infers the rows from the snouts already placed, which works
+  but has to guess where one row ends.
+
 - xlsx_flush_every:
 
   Number of records between two workbook writes. The workbook is
@@ -92,12 +130,28 @@ digitize_landmarks(
   are written when the session ends or on demand, and are in the journal
   in any case. `1` writes after every specimen. Defaults to `10`.
 
+- provenance:
+
+  Where to find the record of which source image became which specimen,
+  used to match back photographs renamed BEFORE `photo_hash` was
+  recorded (see *A specimen renamed is not a specimen rediscovered*).
+  `NULL` (default) looks for a directory of import journals at
+  `<project>/journal`, alongside
+  `<project>/measurements/<workbook>.xlsx`. A path points at that
+  directory explicitly; a NAMED character vector (photograph code -\>
+  provenance key, as returned by
+  [`photo_provenance_keys()`](https://funtraits.github.io/intraitR/reference/photo_provenance_keys.md))
+  is used as is; `FALSE` disables the lookup. Without it, a specimen
+  renamed before the column existed stays in the `"new"` queue – the
+  behaviour of every earlier version, and never a silent guess.
+
 - mlmorph_dir:
 
   Path to the ml-morph resource directory holding the trained
-  predictor(s) (`mlmorph_run_app/predictor.dat`,
-  `mlmorph_run_aligned/predictor.dat`), the aligned dataset
-  (`mlmorph_dataset_aligned/`) and, optionally, a Python virtual
+  predictor(s) (`mlmorph_run_campaign/predictor.dat`,
+  `mlmorph_run_app/predictor.dat`, `mlmorph_run_aligned/predictor.dat`),
+  the matching dataset (`mlmorph_dataset_campaign/`, ...), the aligned
+  dataset (`mlmorph_dataset_aligned/`) and, optionally, a Python virtual
   environment (`.venv_mlmorph/`). `NULL` (default) auto-detects it from
   the `INTRAITR_MLMORPH_DIR` environment variable, then from
   `ml_morph/`, `../ml_morph/` and the working directory. The app runs
@@ -117,17 +171,43 @@ digitize_landmarks(
   `.venv_mlmorph/` inside `mlmorph_dir`, then `python3` on the search
   path.
 
+- batch:
+
+  Optional output folder of
+  [`batch_landmarks()`](https://funtraits.github.io/intraitR/reference/batch_landmarks.md)
+  (or the list it returns). In the "new" queue, a photograph found there
+  arrives with its 19 landmarks already placed by the automatic chain –
+  status "predicted", LM1 and LM2 included, until each is checked – and
+  the ruler (20-21) is the first thing to click. Photographs are matched
+  by file name; plates (`individuals_per_photo > 1`) are not pre-filled.
+
+- batch_order:
+
+  With `batch`: `"risk"` (default) puts the photographs the batch
+  flagged first in the "new" queue, by decreasing risk; `"photo"` keeps
+  the folder order.
+
 - sheets:
 
   Named character vector giving the three sheet names. Defaults to
   `c(measurements = "measurements", bias = "bias", summary = "bias_summary")`.
 
+- display:
+
+  How the photograph is drawn. `"canvas"` (default): in the browser – R
+  sends the image once and, after each click, only the overlay (points,
+  segments, guides) as a list of shapes; zoom (mouse wheel, at the
+  cursor) and pan (right-button drag) happen in the browser, without a
+  round trip to R. `"plot"`: the previous display, re-rendered by R at
+  each click. The overlay is the same code in both.
+
 - launch.browser:
 
-  Passed to
-  [`shiny::runApp()`](https://rdrr.io/pkg/shiny/man/runApp.html).
-  Defaults to the `shiny.launch.browser` option, or to
-  [`interactive()`](https://rdrr.io/r/base/interactive.html).
+  Where the application opens. `TRUE` (default) or `"browser"` forces
+  the system browser, past the RStudio Viewer pane – which is a few
+  hundred pixels wide and the wrong place to click landmarks on a
+  photograph. `"viewer"` restores the pane, `FALSE` opens nothing and
+  prints the URL, and a function is used as given.
 
 - ...:
 
@@ -141,6 +221,12 @@ digitize_landmarks(
 Invisibly, the path of the workbook. Called for its side effect of
 running the Shiny application (a blocking call in an interactive
 session).
+
+The app refuses a non-interactive session, where nobody could click. A
+launcher that runs it in a background R process on purpose (the
+FishInTrait measuring hub does, with `callr`) sets
+`options(intraitR.background = TRUE)` there, together with
+`launch.browser = FALSE` and a `port`, and opens the URL itself.
 
 ## Details
 
@@ -165,16 +251,16 @@ call and restored on exit.
 ## One workbook, three sheets
 
 `measurements` holds one row per specimen, in the wide FISHMORPH layout
-(`1_X, 1_Y, ... 24_X, 24_Y`) read back by
+(`1_X, 1_Y, ... 25_X, 25_Y`) read back by
 [`read_landmarks_xlsx()`](https://funtraits.github.io/intraitR/reference/read_landmarks_xlsx.md)
-(`n_landmarks = 22`, `x_pattern = "{i}_X"`, `y_pattern = "{i}_Y"`),
+(`n_landmarks = 23`, `x_pattern = "{i}_X"`, `y_pattern = "{i}_Y"`),
 together with the operator, the photograph, its pixel size, the quality
 score, `mm_per_px`, and the per-record status counts (`n_seeded`,
 `n_predicted`, ...) that say how much of the configuration was actually
-looked at. The last two coordinate pairs are the entry hinges 23-24 (see
+looked at. The last two coordinate pairs are the entry hinges 24-25 (see
 *Curved specimens* below): recorded so that a specimen can be reopened
 in the axis it was digitized under, and deliberately outside the
-`n_landmarks = 22` an analysis reads.
+`n_landmarks = 23` an analysis reads.
 
 `bias` has the same layout but one row per *repeated* digitization, with
 `individual`, `operator` and `replicate` columns: it is the input of
@@ -194,15 +280,67 @@ an interrupted session costs at most the specimen being digitized. See
 and
 [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md).
 
+## A specimen renamed is not a specimen rediscovered
+
+The specimen code is the photograph's file name without its extension,
+and that name is metadata: it carries the site, the date, the species
+and the specimen number, every one of which can turn out to be wrong.
+Correcting a determination – *Squalius cephalus* read again as *Barbus
+barbus* – renames the file, and the code with it, without moving a
+single pixel.
+
+Matching the queues on the name alone therefore took the measurements
+away from the fish: the workbook still held the row under the old code,
+the queue matched on the new one, and an already-digitized specimen
+reappeared in the `"new"` queue with nothing to say it had ever been
+measured – no error, no warning, and a duplicate the day it was measured
+again. The bookkeeping was quietly deciding what the taxonomy was
+allowed to say.
+
+So each record also carries `photo_hash`, the fingerprint of the image
+FILE
+([`photo_hash()`](https://funtraits.github.io/intraitR/reference/photo_hash.md)),
+which changes if and only if the pixels do. At launch the sheets are
+reconciled against the folder on that column
+([`reconcile_photo_names()`](https://funtraits.github.io/intraitR/reference/reconcile_photo_names.md)):
+rows written before it existed are back-filled, rows whose photograph
+now has another name are re-keyed – carrying the `_i<k>` of a plate and
+the `_<operator>_rep<N>` of a repeat across untouched – and a renamed
+specimen stays out of the `"new"` queue. Ambiguities (the same image
+present twice, a target code already taken) are reported and left alone:
+a wrong automatic merge is invisible afterwards, a rename done by hand
+is not. The reconciliation is in memory; the journal keeps the old key,
+which is what makes the re-keying auditable rather than a quiet
+rewriting of history.
+
+## What the entry is worth, as opposed to how it was obtained
+
+The per-point `status` says how each landmark was obtained. Four further
+columns say what the ENTRY as a whole is worth, which only the operator
+looking at the photograph can decide: `quality` (1 = very good to 5 =
+poor), `reviewed`, `reviewed_by` and `review_date`. The score and the
+tick are independent on purpose – a specimen can be checked AND poor,
+which is exactly the row a re-photographing list is built from – and the
+author and date are stamped only when something is actually declared, so
+that "nobody has looked at it" stays distinguishable from "somebody
+looked and said nothing".
+
+`collapse_rules` records the coincidences DECLARED on the specimen
+(`"Mo;Hd6"`) rather than leaving them to be read back out of the
+geometry they produced. A declared zero is a measurement: inferring it
+from the coordinates cannot tell a rule that was applied from two points
+that happened to land on each other, and cannot see it at all once the
+points have been moved apart.
+
 ## Working in the app
 
 Everything follows one *active-landmark* model, from the first click to
 the last: a single point is active, a click on the photograph places it,
 and the selection advances along one sequence,
-`1, 22, 23, 2, 3 ... 19, 20, 21` – the axis first and complete, then the
-anatomical landmarks, then the scale bar. Only the derived points 8, 9
-and 11 and the spare hinge 24 are skipped, and they stay reachable from
-the button bar, as does any other landmark at any moment.
+`1, 22, 24, 2, 3 ... 19, 20, 21` – the axis first and complete, then the
+anatomical landmarks, then the scale bar. Only the derived points 8, 9,
+11 and 23 and the spare hinge 25 are skipped, and they stay reachable
+from the button bar, as does any other landmark at any moment.
 
 The moment LM2 goes down the whole configuration is seeded, so placing
 by hand is the default way to work rather than a mode to switch into.
@@ -238,26 +376,53 @@ by their magic bytes rather than their file extension, so the `.jpg`
 files that are in fact `PNG`, `GIF` or `BMP` – common in specimen
 archives – open correctly, through `magick` when it is installed.
 
+## LM23, the head base
+
+LM23 is DERIVED, never clicked: the intersection of the line (1, 9) –
+the mouth-height line – with the line through LM6 parallel to the head
+axis (1 -\> 22). Segment 23-6 is therefore parallel to that axis, and 1
+-\> 23 is the axial distance from the snout to the base of the head. It
+is rebuilt after every move of LM1, LM6, LM9 or the axis, so it cannot
+drift out of step with the landmarks it is computed from; a click on it
+is refused, with the reason, rather than silently undone.
+
+It returns nothing when the construction is degenerate – LM1 and LM9
+coincident, or the two directions parallel – because a derived point
+with a degenerate input has no value, and inventing one would be worse
+than leaving it empty. The `Mo = 0` rule is what then puts LM23 on LM1.
+
+This is the **FISHMORPH numbering**, the one Rfishmorph and the
+published database use: 22 the curvature point, 23 the derived head
+base, 24 and 25 the entry hinges. The alignment is deliberate – landmark
+tables travel between the two packages, and a "23" meaning the head base
+in one and an entry hinge in the other is the kind of divergence that
+produces two incomparable corpora without anyone noticing.
+
 ## Curved specimens: the broken axis
 
-The FISHMORPH conventions (segment 3-4 perpendicular to the body axis,
-the eye group on one vertical, the ventral group on one line) are
+The FISHMORPH conventions (every depth pair perpendicular to the body
+axis, the eye group on one vertical, the ventral group on one line) are
 defined against the antero-posterior axis. On a fish photographed with a
 bent body a single straight axis 1-2 misstates all of them at once. The
 app therefore accepts *hinge* points that break the axis into up to four
 segments, each convention being applied in the frame of the segment it
 belongs to: head conventions on 1-22, body depth and pectoral fin on
-22-23, caudal peduncle and fin on 23-2. Landmark 22 is a genuine
-landmark –
+22-24, caudal peduncle and fin on 24-2. The five perpendicular pairs are
+1-9 (mouth height) on the head segment, 3-4 (body depth) and 10-11
+(pectoral insertion) on the mid segment, and 16-17 (caudal-peduncle
+depth) and 18-19 (caudal-fin depth) on the caudal segment – each is
+squared onto the perpendicular of ITS OWN segment, and re-squared
+whenever the axis itself is moved, so a depth is never returned as a
+hypotenuse. Landmark 22 is a genuine landmark –
 [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
 already uses it to split the standard length into (1-22) + (22-2) – and
-is exported. Landmarks 23 and 24 are entry aids rather than landmarks,
-but they are written out all the same, in their own `23_X ... 24_Y`
+is exported. Landmarks 24 and 25 are entry aids rather than landmarks,
+but they are written out all the same, in their own `24_X ... 25_Y`
 columns: they define the frames every convention was applied in, so
 without them a specimen reopened for correction comes back with a
 straight axis and its geometry silently stops matching the one it was
 digitized under. They must be left out of any shape analysis – read the
-first 22 points (`n_landmarks = 22`), not every column ending in `_X`.
+first 23 points (`n_landmarks = 23`), not every column ending in `_X`.
 Placing no hinge reproduces exactly the straight-axis behaviour.
 
 ## Auditing a batch
@@ -276,6 +441,55 @@ image, whereas a `"seeded"` one was measured on no specimen at all. The
 journal keeps them point by point; the workbook keeps the counts per
 specimen. Both are worth auditing before the coordinates are analysed.
 
+## Plates: several individuals on one photograph
+
+Photographing four fish side by side over a single ruler is the normal
+field object; one photograph = one specimen was an assumption of the
+app, not a property of the data. Set `individuals_per_photo` (or the
+field in the Specimen panel, which is adjustable plate by plate) and the
+photograph becomes a queue of its own: each fish is saved as
+`"<photo>_i1"`, `"<photo>_i2"` and so on, the repeat convention
+composing on top of it unchanged (`"PLATE12_i2_AT_rep3"`). A photograph
+leaves the queue only when every individual declared on it has been
+measured, so a plate is never left with three of its four fish done
+because the operator was following the photograph counter.
+
+**The scale bar is placed once per plate.** Landmarks 20-21 are kept
+when the app moves to the next individual: one ruler in one focal plane
+calibrates every fish lying on it, and re-digitizing the pair for each
+of them would add an independent scale error to each. The caveat is
+worth stating – an individual far from the ruler carries whatever
+residual perspective and lens distortion the plate has – so the ruler
+belongs in the plane of the fish, not on the bench beside them.
+
+**The number is spatial, not chronological.** `_i2` must name the same
+fish for every operator: two operators digitizing one plate in opposite
+orders would otherwise be compared fish against fish, and the operator
+bias that comes out of such a comparison measures nothing. The numbering
+therefore runs top to bottom (`individual_order = "top"`), left to right
+(`"left"`), or in READING ORDER (`"reading"`: rows from top to bottom,
+and within a row from left to right), and the app enforces it ON THE
+CLICK THAT PLACES LM1 – the first click of a fish – refusing a snout
+that falls outside the interval left by the individuals already placed.
+The operator is stopped before digitizing the wrong fish rather than
+told about it afterwards, and no identifier already written to the
+journal ever has to be rewritten. The individuals already measured are
+drawn faintly on the photograph, with their number, so the plate can be
+read at a glance.
+
+A plate laid out as a GRID – four fish in two rows of two, the commonest
+way a tray is photographed – cannot be ordered by one coordinate: the
+second fish of the first row is to the RIGHT of the first, and the third
+is BELOW them both. Either one-dimensional rule refuses a correct click
+on half such a plate, and an operator who is refused when right soon
+stops reading the message. `"reading"` compares both coordinates: same
+row, the snout must be further right; new row, it must be lower. Set
+`individuals_per_row` and the rows are exact whatever the spacing; leave
+it empty and they are inferred from the snouts already placed, two being
+taken to share a row when they are within a fifth of the frame height of
+each other – a stated guess, which is why the exact route is offered
+first.
+
 ## Repeated digitization: measurement error and operator bias
 
 A landmark coordinate is a measurement, and like any measurement it has
@@ -287,7 +501,7 @@ same photograph, until the individual has `n_repeats` digitizations.
 
 Each pass is saved under an identifier of its own – `"<code>_rep<N>"`,
 or `"<code>_<operator>_rep<N>"` when an operator is named, the
-convention of the T-26 repeatability set
+convention of the T-26 repeat trial
 ([`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md),
 `source = "repeatability"`). The replicate number is always the last
 underscore-separated token and the operator label is stripped of
@@ -335,7 +549,7 @@ A bar under the photograph declares the segments that are ZERO on the
 specimen in view. A zero is a measurement like any other – neither a
 missing value nor a placement error – and the FISHMORPH ratios are
 defined to take it: `OGp = 0` for a mouth opening on the ventral
-profile, `PFv = 0` for a pectoral fin inserted on the belly. Four rules
+profile, `PFv = 0` for a pectoral fin inserted on the belly. Five rules
 are offered:
 
 - `Mo = 0`:
@@ -357,6 +571,36 @@ are offered:
 
   LM5 takes the coordinates of LM13 – the eye reaches the top of the
   head.
+
+- `LM4 on 22-24`:
+
+  LM4 is PROJECTED perpendicularly onto the mid axis, the segment LM22
+  -\> LM24: it keeps the abscissa that was clicked along the axis and
+  its height becomes zero.
+
+The last rule is of a different KIND: its partner is a LINE, not a
+landmark, so nothing is copied – LM4 is projected. The line is not
+bounded by its two hinges; the foot of the perpendicular may fall on
+their prolongation, as everywhere else in the constrained editing. Three
+consequences follow, and they are deliberate:
+
+- LM4 being the MASTER of the belly line, the projection is applied
+  BEFORE the conventions and the ventral chain is replayed behind it, so
+  LM11 and then LM8 and LM9 are re-derived from the projected LM4;
+
+- the VENTRAL half of the extreme-point check is suspended while the
+  rule is on. LM4 no longer claims to be the most ventral landmark, so
+  reporting LM6, LM10 or LM14 below it would flag the rule itself. The
+  dorsal half, on LM3, is untouched;
+
+- LM4 stays in `edited` rather than being taken over by the rule: only
+  its height is imposed, its position along the body remains the
+  operator's measurement and survives a re-seed. It is reported
+  `"adjusted"` in the journal all the same, since a rule did place it.
+
+Unticking the rule does not restore the height LM4 had before it: that
+value is not stored anywhere, and LM4 stays on the axis until it is
+clicked again.
 
 **Nothing is deleted.** Both landmarks keep a position, both are drawn
 on the photograph and both are written to the workbook; one simply takes
@@ -486,10 +730,10 @@ digitize_landmarks(
 
 # Read the workbook back, one object per sheet.
 lm <- read_landmarks_xlsx("T26/T26_landmarks.xlsx", sheet = "measurements",
-                          n_landmarks = 22, x_pattern = "{i}_X",
+                          n_landmarks = 23, x_pattern = "{i}_X",
                           y_pattern = "{i}_Y", id_cols = "specimen")
 rep_lm <- read_landmarks_xlsx("T26/T26_landmarks.xlsx", sheet = "bias",
-                              n_landmarks = 22, x_pattern = "{i}_X",
+                              n_landmarks = 23, x_pattern = "{i}_X",
                               y_pattern = "{i}_Y",
                               id_cols = c("individual", "operator", "replicate"))
 measurement_error(gpa_fish(rep_lm), individual = rep_lm$metadata$individual,

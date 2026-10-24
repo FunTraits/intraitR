@@ -2,13 +2,14 @@
 
 Screens a landmark data set in which the *same* physical individuals
 were each digitized once (or a few times) by *several* independent
-operators – as produced by
+operators – e.g.
 [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
-with `source = "operators"` – and returns, for every individual, a
-single inter-operator disagreement index together with an automatic
-"at-risk" flag and, where identifiable, the operator responsible for the
-disagreement. It is the population-level, one-number-per-individual
-companion to the by-eye, one-individual-at-a-time overlay of
+with `source = "repeatability"` once two operators have digitized the
+same fish – and returns, for every individual, a single inter-operator
+disagreement index together with an automatic "at-risk" flag and, where
+identifiable, the operator responsible for the disagreement. It is the
+population-level, one-number-per-individual companion to the by-eye,
+one-individual-at-a-time overlay of
 [`plot_fishmorph_shapes()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_shapes.md)
 (`operator = TRUE`): rather than paging through every fish to spot the
 ones whose operators drew visibly different shapes,
@@ -67,7 +68,7 @@ plot(x, type = c("individual", "operator", "landmark"), ...)
   who produced each digitization. Defaults to
   `landmarks$metadata$operator` if present (as produced by
   [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
-  with `source = "operators"`). When an operator digitized the same
+  with `source = "repeatability"`). When an operator digitized the same
   individual more than once, that operator's replicate configurations
   are first averaged (landmark-wise mean, ignoring `NA`) into a single
   per-operator configuration, so every operator contributes exactly one
@@ -325,98 +326,32 @@ summarises),
 ## Examples
 
 ``` r
-# T-26 Saudrune: every fish digitized once by each of several operators.
-fish <- load_t26_saudrune_landmarks(source = "operators")
+# T-26 Saudrune repeat trial: the same individuals digitized several times.
+# The index needs at least two operators per individual; the shipped trial
+# has one so far, so the example runs once a second operator's passes are in.
+fish <- load_t26_saudrune_landmarks("repeatability")
+if (length(unique(fish$metadata$operator)) >= 2) {
+  # FISHMORPH scheme: drop the scale bar (landmarks 20-21) before screening.
+  od <- operator_disagreement(fish, exclude_landmarks = c(20, 21))
+  od
 
-# FISHMORPH scheme: drop the scale bar (landmarks 20-21) before screening.
-od <- operator_disagreement(fish, exclude_landmarks = c(20, 21))
-od
-#> <intrait_operator_disagreement>
-#>  Normalization: centroid_size
-#>  Excluded landmark(s): 20, 21
-#> 
-#>  5 at-risk individual(s) out of 281 (threshold disagreement = 122.2310% of reference)
-#> 
-#>  Most discordant individual(s):
-#>  individual           species n_operators
-#>   T-26-0152  Gobio occitaniae           4
-#>   T-26-0249 Phoxinus phoxinus           4
-#>   T-26-0250 Phoxinus phoxinus           4
-#>   T-26-0248 Phoxinus phoxinus           4
-#>   T-26-0166  Gobio occitaniae           4
-#>                                    operators disagreement_pct max_landmark_pct
-#>  Operator_1,Operator_2,Operator_3,Operator_4         145.1953         169.2665
-#>  Operator_1,Operator_2,Operator_3,Operator_4         139.1907         141.6057
-#>  Operator_1,Operator_2,Operator_3,Operator_4         136.7167         142.5785
-#>  Operator_1,Operator_2,Operator_3,Operator_4         131.6107         134.5320
-#>  Operator_1,Operator_2,Operator_3,Operator_4         124.2112         127.0097
-#>  at_risk responsible_operator responsible_deviation_pct attribution_margin_pct
-#>     TRUE           Operator_3                  331.1370               195.6850
-#>     TRUE           Operator_3                  321.4837               214.0608
-#>     TRUE           Operator_3                  314.4153               206.4166
-#>     TRUE           Operator_3                  304.0011               202.4727
-#>     TRUE           Operator_3                  286.8979               191.2021
-#> 
-#>  Operator disagreement summary:
-#>    operator n_individuals mean_deviation_pct sd_deviation_pct n_responsible
-#>  Operator_3           220            92.3006          43.7165           218
-#>  Operator_4           258            27.1487          17.6727             5
-#>  Operator_1           279            25.3458          18.0812            20
-#>  Operator_2           279            25.2475          18.1154            13
-#>  pct_responsible
-#>          85.1562
-#>           1.9531
-#>           7.8125
-#>           5.0781
+  # the ranked, flagged table of individuals and their culprit operator:
+  head(od$by_individual)
 
-# the ranked, flagged table of individuals and their culprit operator:
-head(od$by_individual)
-#>   individual           species n_operators
-#> 1  T-26-0152  Gobio occitaniae           4
-#> 2  T-26-0249 Phoxinus phoxinus           4
-#> 3  T-26-0250 Phoxinus phoxinus           4
-#> 4  T-26-0248 Phoxinus phoxinus           4
-#> 5  T-26-0166  Gobio occitaniae           4
-#> 6  T-26-0145 Phoxinus phoxinus           4
-#>                                     operators disagreement_pct max_landmark_pct
-#> 1 Operator_1,Operator_2,Operator_3,Operator_4         145.1953         169.2665
-#> 2 Operator_1,Operator_2,Operator_3,Operator_4         139.1907         141.6057
-#> 3 Operator_1,Operator_2,Operator_3,Operator_4         136.7167         142.5785
-#> 4 Operator_1,Operator_2,Operator_3,Operator_4         131.6107         134.5320
-#> 5 Operator_1,Operator_2,Operator_3,Operator_4         124.2112         127.0097
-#> 6 Operator_1,Operator_2,Operator_3,Operator_4         117.6103         129.7445
-#>   at_risk responsible_operator responsible_deviation_pct attribution_margin_pct
-#> 1    TRUE           Operator_3                  331.1370               195.6850
-#> 2    TRUE           Operator_3                  321.4837               214.0608
-#> 3    TRUE           Operator_3                  314.4153               206.4166
-#> 4    TRUE           Operator_3                  304.0011               202.4727
-#> 5    TRUE           Operator_3                  286.8979               191.2021
-#> 6   FALSE           Operator_3                  269.1258               173.5160
+  # which operator is systematically the most discordant?
+  od$by_operator
 
-# which operator is systematically the most discordant?
-od$by_operator
-#>     operator n_individuals mean_deviation_pct sd_deviation_pct n_responsible
-#> 1 Operator_3           220            92.3006          43.7165           218
-#> 2 Operator_4           258            27.1487          17.6727             5
-#> 3 Operator_1           279            25.3458          18.0812            20
-#> 4 Operator_2           279            25.2475          18.1154            13
-#>   pct_responsible
-#> 1         85.1562
-#> 2          1.9531
-#> 3          7.8125
-#> 4          5.0781
+  # visually confirm a flagged individual (the overlay this summarises):
+  risky <- od$by_individual$individual[od$by_individual$at_risk]
+  if (length(risky) > 0) {
+    plot_fishmorph_shapes(fish, individuals = risky[1],
+                          operator = TRUE, alpha = 0.6)
+  }
 
-# visually confirm a flagged individual (the overlay this summarises):
-risky <- od$by_individual$individual[od$by_individual$at_risk]
-if (length(risky) > 0) {
-  plot_fishmorph_shapes(fish, individuals = risky[1],
-                        operator = TRUE, alpha = 0.6)
+  # treat one operator as an expert reference so two-operator fish can also
+  # have their culprit named:
+  od_ref <- operator_disagreement(
+    fish, exclude_landmarks = c(20, 21), reference_operator = "AT"
+  )
 }
-
-
-# treat Operator_1 as an expert reference so two-operator fish can also
-# have their culprit named:
-od_ref <- operator_disagreement(
-  fish, exclude_landmarks = c(20, 21), reference_operator = "Operator_1"
-)
 ```

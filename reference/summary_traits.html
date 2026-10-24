@@ -11,7 +11,7 @@ down by a grouping variable such as species or population."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -82,14 +82,14 @@ columns <code>group</code>, <code>trait</code>, <code>n</code>, <code>mean</code
 <span class="r-in"><span><span class="va">distances</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>SL <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, BD <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="morpho_ratios.html">morpho_ratios</a></span><span class="op">(</span><span class="va">fish</span>, <span class="va">distances</span>, norm_by <span class="op">=</span> <span class="st">"SL"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">summary_traits</span><span class="op">(</span><span class="va">ratios</span><span class="op">[</span>, <span class="st">"BD_ratio"</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>, <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     group    trait   n      mean         sd    min     max</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1     Barbatula barbatula BD_ratio  58 0.2839431 0.70899456 0.1203  5.5873</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2        Gobio occitaniae BD_ratio 637 0.2725691 0.41578074 0.0027 10.7273</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3        Lepomis gibbosus BD_ratio   8 0.4069125 0.02060745 0.3827  0.4337</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 Leuciscus burdigalensis BD_ratio  27 0.2587185 0.02699531 0.2161  0.3091</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5       Perca fluviatilis BD_ratio  36 0.2773917 0.02248770 0.2172  0.3082</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6       Phoxinus phoxinus BD_ratio  90 0.2376356 0.02757381 0.0469  0.2767</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7       Squalius cephalus BD_ratio 180 0.2552672 0.02652021 0.0618  0.3517</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                     group    trait   n      mean         sd    min    max</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1     Barbatula barbatula BD_ratio  17 0.1916235 0.01972887 0.1604 0.2338</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2           Barbus barbus BD_ratio  30 0.2380433 0.01499487 0.2093 0.2745</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3             Gobio gobio BD_ratio 288 0.2585097 0.02040952 0.2014 0.3013</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4        Lepomis gibbosus BD_ratio   9 0.3898333 0.02093006 0.3586 0.4272</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 Leuciscus burdigalensis BD_ratio   4 0.2447750 0.01711712 0.2215 0.2613</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6       Perca fluviatilis BD_ratio  20 0.3212650 0.05064929 0.2295 0.3947</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7       Squalius cephalus BD_ratio 126 0.2508476 0.02175640 0.1914 0.3119</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

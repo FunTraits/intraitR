@@ -19,7 +19,7 @@ Pease et al., 2012)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -133,20 +133,48 @@ assemblages in a large tropical catchment. Freshwater Biology, 57(5),
 <span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">distances</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>SL <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, BD <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">4</span><span class="op">)</span>, ED <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">13</span>, <span class="fl">14</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">morpho_ratios</span><span class="op">(</span><span class="va">fish</span>, <span class="va">distances</span>, norm_by <span class="op">=</span> <span class="st">"SL"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                  specimen individual          species</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0001_Operator_1 T-26-0001_Operator_1  T-26-0001 Gobio occitaniae</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0001_Operator_2 T-26-0001_Operator_2  T-26-0001 Gobio occitaniae</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0001_Operator_3 T-26-0001_Operator_3  T-26-0001 Gobio occitaniae</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0001_Operator_4 T-26-0001_Operator_4  T-26-0001 Gobio occitaniae</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0002_Operator_1 T-26-0002_Operator_1  T-26-0002 Gobio occitaniae</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0002_Operator_2 T-26-0002_Operator_2  T-26-0002 Gobio occitaniae</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                      population replicate   operator BD_ratio ED_ratio</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0001_Operator_1       &lt;NA&gt;         1 Operator_1   0.2605   0.0507</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0001_Operator_2       &lt;NA&gt;         2 Operator_2   0.2598   0.0486</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0001_Operator_3       &lt;NA&gt;         3 Operator_3   0.2672   0.0512</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0001_Operator_4       &lt;NA&gt;         4 Operator_4   0.2570   0.0466</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0002_Operator_1       &lt;NA&gt;         1 Operator_1   0.2398   0.0461</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> T-26-0002_Operator_2       &lt;NA&gt;         2 Operator_2   0.2459   0.0419</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                            specimen</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0001 SAUDRUNESUDTOULOUSE_20260427_0001</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0002 SAUDRUNESUDTOULOUSE_20260427_0002</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0003 SAUDRUNESUDTOULOUSE_20260427_0003</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0004 SAUDRUNESUDTOULOUSE_20260427_0004</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0005 SAUDRUNESUDTOULOUSE_20260427_0005</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0006 SAUDRUNESUDTOULOUSE_20260427_0006</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                          individual</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0001 SAUDRUNESUDTOULOUSE_20260427_0001</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0002 SAUDRUNESUDTOULOUSE_20260427_0002</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0003 SAUDRUNESUDTOULOUSE_20260427_0003</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0004 SAUDRUNESUDTOULOUSE_20260427_0004</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0005 SAUDRUNESUDTOULOUSE_20260427_0005</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0006 SAUDRUNESUDTOULOUSE_20260427_0006</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                             species population replicate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0001       Gobio gobio       &lt;NA&gt;         1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0002       Gobio gobio       &lt;NA&gt;         1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0003       Gobio gobio       &lt;NA&gt;         1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0004 Squalius cephalus       &lt;NA&gt;         1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0005       Gobio gobio       &lt;NA&gt;         1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0006       Gobio gobio       &lt;NA&gt;         1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                   operator species_code quality     date</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0001       AT       GOBGOB       3 20260427</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0002       AT       GOBGOB       3 20260427</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0003       AT       GOBGOB       3 20260427</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0004       AT       SQUCEP       3 20260427</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0005       AT       GOBGOB       3 20260427</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0006       AT       GOBGOB       3 20260427</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                 uid BD_ratio</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0001 SAUDRUNESUDTOULOUSE_20260427_0001   0.2592</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0002 SAUDRUNESUDTOULOUSE_20260427_0002   0.2403</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0003 SAUDRUNESUDTOULOUSE_20260427_0003   0.2412</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0004 SAUDRUNESUDTOULOUSE_20260427_0004   0.2517</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0005 SAUDRUNESUDTOULOUSE_20260427_0005   0.2162</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0006 SAUDRUNESUDTOULOUSE_20260427_0006   0.2484</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                   ED_ratio</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0001   0.0297</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0002   0.0294</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0003   0.0433</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0004   0.0485</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0005   0.0465</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SAUDRUNESUDTOULOUSE_20260427_0006   0.0411</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

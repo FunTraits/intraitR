@@ -1,18 +1,22 @@
 # Real freshwater fish landmark data set from an electrofishing campaign (T-26, La Saudrune)
 
-Loads one of four cleaned, analysis-ready tables from the T-26 electric
-fishing survey conducted on the Saudrune (Adour-Garonne basin, south of
-Toulouse, France), the first **real** (non-simulated) data set shipped
-with intraitR. Individuals were photographed in the field and later
-digitized on the 21-landmark FISHMORPH scheme (Brosse et al., 2021; see
-[`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md))
-directly from the photographs.
+Loads one of the four analysis-ready tables of the T-26 electric fishing
+survey of the Saudrune (Adour-Garonne basin, south of Toulouse, France),
+the real (non-simulated) data set shipped with intraitR. Fish were
+photographed in the field on two dates (27 April and 18 May 2026) and
+digitized with
+[`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+on the 25-point scheme: the 19 FISHMORPH anatomical landmarks (Brosse et
+al., 2021; see
+[`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)),
+the scale bar (20-21), the curvature point (22), the derived head base
+(23) and the entry hinges (24-25).
 
 ## Usage
 
 ``` r
 load_t26_saudrune(
-  dataset = c("operators", "repeatability", "identifications", "qc_log"),
+  dataset = c("landmarks", "specimens", "repeatability", "qc_log"),
   operator = NULL,
   species = FALSE
 )
@@ -20,127 +24,95 @@ load_t26_saudrune(
 
 ## Source
 
-T-26 electrofishing campaign, Saudrune (Adour-Garonne basin, France), 21
-April 2026. Landmarks digitized by several independent operators;
-identifications curated with AI-vision assistance by A. Toussaint
-(CNRS). Raw spreadsheets are not distributed with the package (only the
-cleaned, analysis-ready tables are); see
-`data-raw/t26_saudrune_prepare.R` for the full cleaning/QC pipeline.
-Operator identity is not itself of biological interest and is not
-personally identifiable in the shipped data: the `operator` column
-records anonymous labels (`"Operator_1"`, `"Operator_2"`) rather than
-the real names recorded in the original field spreadsheets, assigned
-consistently across the `"operators"` and `"repeatability"` tables (see
-`data-raw/t26_saudrune_prepare.R`).
+T-26 electrofishing campaign, Saudrune (Adour-Garonne basin, France), 27
+April and 18 May 2026; digitized by A. Toussaint (CNRS) with
+[`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md).
+The raw workbook and photographs are not distributed;
+`data-raw/t26_campaign_prepare.R` rebuilds the tables.
 
 ## Arguments
 
 - dataset:
 
-  Character, one of `"operators"` (default), `"repeatability"`,
-  `"identifications"`, or `"qc_log"`. See Details.
+  Character, one of `"landmarks"` (default), `"specimens"`,
+  `"repeatability"` or `"qc_log"`. See Value.
 
 - operator:
 
-  `NULL` (default, all data returned), or a character vector of one or
-  more operator labels (e.g. `"Operator_1"`) to restrict the returned
-  rows to. Modular by design: if `dataset` has no `operator` column (as
-  for `"identifications"` and `"qc_log"`, or any future dataset added
-  without one), `operator` is ignored with a warning and every row is
-  returned, rather than erroring. Useful to build two separate
-  functional trait spaces, one per operator, from the `"operators"`
-  table (see
-  [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
-  for the more convenient `"intrait_landmarks"`-object version of this).
+  `NULL` (default, all rows returned), or a character vector of one or
+  more operator labels (e.g. `"AT"`) to restrict the returned rows to.
+  Modular by design: if `dataset` has no `operator` column, `operator`
+  is ignored with a warning and every row is returned.
 
 - species:
 
   Logical, defaults to `FALSE`. If `TRUE`, left-joins the `species` and
-  `id_status` columns from the `"identifications"` table onto `dataset`,
-  matched by `code` (a plain
-  [`match()`](https://rdrr.io/r/base/match.html) lookup, not
-  [`merge()`](https://rdrr.io/r/base/merge.html), so that the many rows
-  sharing the same `code` in the long-format
-  `"operators"`/`"repeatability"` tables – one per landmark, and per
-  operator/replicate – keep their original row order exactly). `species`
-  is deliberately `FALSE` by default: the landmark tables and the
-  identification table are two separate, independently versioned data
-  products (a landmark measurement never needs to know a species; an
-  identification can be revised without touching a single coordinate),
-  and joining them ties every landmark row to a species call that – per
-  `id_status` – is not always fully curated. Modular by design: if
-  `dataset` has no `code` column, `species` is ignored with a warning
-  rather than erroring; if `dataset = "identifications"` (which already
-  has `species`), it is a harmless no-op.
+  `species_code` columns of the `"specimens"` table onto `dataset`,
+  matched by `code` with a plain
+  [`match()`](https://rdrr.io/r/base/match.html) lookup (not
+  [`merge()`](https://rdrr.io/r/base/merge.html)), so the many rows
+  sharing one `code` in the long-format tables keep their order exactly.
+  `FALSE` by default because a landmark never needs to know a species
+  and a determination can be revised without touching a coordinate: the
+  two tables are kept apart on purpose. Ignored with a warning if
+  `dataset` has no `code` column; a no-op on `"specimens"` itself.
 
 ## Value
 
 A `data.frame`:
 
-- `"operators"`:
+- `"landmarks"`:
 
-  Long-format landmark coordinates (columns `specimen`, `code`,
-  `operator`, `landmark`, `X`, `Y`), one row per specimen x landmark
-  combination. The T-26 fish digitized by four operators (826
-  specimen-level digitizations, 21 landmarks each): Operator_1 and
-  Operator_2 each digitized the full set of 279 fish once, Operator_3
-  and Operator_4 a subset. The `specimen` id embeds the operator (e.g.
-  `"T-26-0173_Operator_4"`), so it is unique. Use
-  [`read_landmarks_csv()`](https://funtraits.github.io/intraitR/reference/read_landmarks_csv.md)
-  to import this table as an `"intrait_landmarks"` object; see
-  `demo(pipeline_T26_saudrune)`.
+  Long-format coordinates (`specimen`, `code`, `operator`, `landmark`,
+  `X`, `Y`), 25 rows per specimen, one digitization per specimen.
+  Coordinates are pixels of the prepared photograph. Points a specimen
+  does not carry are `NA` rather than absent rows, so the table is
+  rectangular; point 25 is reserved by the digitizer and currently
+  always `NA`. `specimen` and `code` are the campaign's immutable
+  identifier `SITE_YYYYMMDD_NNNN`, with the suffix `_iK` for the K-th
+  fish of a multi-individual plate.
+
+- `"specimens"`:
+
+  One row per digitized specimen (`code`): `uid` (the photograph),
+  `individual` (position on the plate, 1 for a single fish), `photo`,
+  the current determination (`species`, `species_code`, `confidence`,
+  `determined_by`), `site`, `date`, `operator`, the operator's `quality`
+  score on the scale of intraitR \<= 1.40 (1 = very good .. 5 = poor;
+  the digitizer now records `quality_score`, 5 = excellent). 491 of the
+  494 specimens carry 3, the old DEFAULT of the app: read it as "not
+  scored", not as a judgement. Then `reviewed`, `n_landmarks` placed,
+  `ruler_mm`, `mm_per_px`, image size, `photo_hash` (see
+  [`photo_hash()`](https://funtraits.github.io/intraitR/reference/photo_hash.md)),
+  `app_version` and the `digitized` date.
 
 - `"repeatability"`:
 
-  Long-format landmark coordinates (columns `specimen`, `code`,
-  `replicate`, `operator`, `site`, `landmark`, `X`, `Y`) for the
-  repeatability trial: 25 individuals, each digitized 9-10 times, by two
-  operators (`Operator_1` and `Operator_6`). Here `specimen` (e.g.
-  `"T-26-0004_rep1"`) encodes only the fish and replicate, so it is
-  shared across the two operators in this table;
-  [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
-  appends the operator to keep each digitization uniquely identified.
-  Intended for
+  Long-format coordinates (`specimen`, `code`, `operator`, `replicate`,
+  `landmark`, `X`, `Y`) of the blind repeat trial run in
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)'s
+  repeat mode: the same individuals (`code`) re-digitized several times.
+  `specimen` is `<code>_<operator>_rep<N>` and is unique. Input of
+  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md),
   [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
-  and
-  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md).
-
-- `"identifications"`:
-
-  One row per fish (`code`), with `species` (binomial), `id_status`
-  (`"curated"`, `"preliminary"` – from AI-vision-assisted identification
-  not yet manually confirmed, or `"unresolved"`), `french_name`,
-  `stage`, `confidence`, `n_individus`, `date_capture`, `site`. As noted
-  in `metadonnees`/`stats` of the original identification file,
-  identifications are a curated-but-not-fully-audited pilot data set: a
-  handful of entries may still contain errors, which is why `id_status`
-  is exposed explicitly rather than silently treating every row as
-  ground truth.
+  and, once a second operator has digitized the same fish,
+  [`operator_disagreement()`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md).
 
 - `"qc_log"`:
 
-  One row per specimen excluded during data cleaning (e.g. a code
-  present in the measurement sheet with no match in the identification
-  sheet), with a `reason` column, kept for full transparency of the
-  cleaning pipeline (see `data-raw/t26_saudrune_prepare.R`).
+  One row per digitization excluded from the shipped tables, with the
+  `reason` (see `data-raw/t26_campaign_prepare.R`).
 
 ## Details
 
-Coordinates are in pixel units of the original photographs; landmarks
-20-21 are the two ends of a 1 cm calibration segment digitized on a
-ruler placed alongside each fish, following the same convention as
-[`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)'s
-`scale_cm` argument (so
+Identity follows the campaign's own rule: the code is the photograph,
+never the species. Species names are the last non-superseded
+determination recorded in the campaign (`export/determinations.csv`) at
+the time the tables were built, and may be revised in a later release
+without any coordinate changing. Landmarks 20-21 are the two ends of a
+10 mm segment on a ruler placed alongside each fish, so
 [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
-can be called directly on `"intrait_landmarks"` objects built from these
-tables with its default `scale_cm = 1`).
-
-Per the explicit instruction of the data owner, taxonomic
-identifications have not been re-audited as part of building this data
-set: some species calls (in particular the 16 entries with
-`id_status == "preliminary"`, and the single `"unresolved"` juvenile)
-should be treated with caution for any analysis sensitive to species
-identity, and are flagged via `id_status` for exactly that reason.
+can be called on these data with its default `scale_cm = 1`.
 
 ## References
 
@@ -151,55 +123,63 @@ Biogeography, 30(12), 2330-2336.
 
 ## See also
 
+[`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md),
 [`read_landmarks_csv()`](https://funtraits.github.io/intraitR/reference/read_landmarks_csv.md),
 [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md),
-[`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md),
 [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md),
 [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md);
-`demo(pipeline_T26_saudrune)` for a complete worked analysis of this
-data set using intraitR.
+`demo(pipeline_T26_saudrune)` for a complete worked analysis.
 
 ## Examples
 
 ``` r
-ops <- load_t26_saudrune("operators")
-str(ops)
-#> 'data.frame':    21756 obs. of  6 variables:
-#>  $ specimen: chr  "T-26-0001_Operator_1" "T-26-0001_Operator_1" "T-26-0001_Operator_1" "T-26-0001_Operator_1" ...
-#>  $ code    : chr  "T-26-0001" "T-26-0001" "T-26-0001" "T-26-0001" ...
-#>  $ operator: chr  "Operator_1" "Operator_1" "Operator_1" "Operator_1" ...
+lm <- load_t26_saudrune()
+str(lm)
+#> 'data.frame':    12350 obs. of  6 variables:
+#>  $ specimen: chr  "SAUDRUNESUDTOULOUSE_20260427_0001" "SAUDRUNESUDTOULOUSE_20260427_0001" "SAUDRUNESUDTOULOUSE_20260427_0001" "SAUDRUNESUDTOULOUSE_20260427_0001" ...
+#>  $ code    : chr  "SAUDRUNESUDTOULOUSE_20260427_0001" "SAUDRUNESUDTOULOUSE_20260427_0001" "SAUDRUNESUDTOULOUSE_20260427_0001" "SAUDRUNESUDTOULOUSE_20260427_0001" ...
+#>  $ operator: chr  "AT" "AT" "AT" "AT" ...
 #>  $ landmark: int  1 2 3 4 5 6 7 8 9 10 ...
-#>  $ X       : num  2462 3487 2946 2932 NA ...
-#>  $ Y       : num  1986 1967 1842 2108 NA ...
-ident <- load_t26_saudrune("identifications")
-table(ident$species, ident$id_status)
+#>  $ X       : num  220 1247 647 641 312 ...
+#>  $ Y       : num  300 271 159 425 213 ...
+spec <- load_t26_saudrune("specimens")
+table(spec$species, spec$date)
 #>                          
-#>                           curated
-#>   Barbatula barbatula          19
-#>   Gobio occitaniae            171
-#>   Lepomis gibbosus              2
-#>   Leuciscus burdigalensis       7
-#>   Perca fluviatilis             9
-#>   Phoxinus phoxinus            26
-#>   Squalius cephalus            48
+#>                           20260427 20260518
+#>   Barbatula barbatula           17        0
+#>   Barbus barbus                  5       25
+#>   Gobio gobio                  176      112
+#>   Lepomis gibbosus               2        7
+#>   Leuciscus burdigalensis        4        0
+#>   Perca fluviatilis              8       12
+#>   Squalius cephalus             66       60
 
-# restrict to a single operator's digitizations (see `operator`); ignored
-# with a warning, rather than an error, for tables with no operator
-# column, e.g. "identifications":
-unique(ops$operator)
-#> [1] "Operator_1" "Operator_2" "Operator_4" "Operator_3"
-op1 <- load_t26_saudrune("operators", operator = "Operator_1")
-nrow(op1) < nrow(ops)
+# the landmark table carries `code`, not `species` (species lives in
+# "specimens" by design); species = TRUE joins it back, in row order:
+lm_sp <- load_t26_saudrune(species = TRUE)
+identical(lm_sp$code, lm$code)
 #> [1] TRUE
 
-# the raw "operators"/"repeatability" tables carry `code`, not `species`
-# (species lives in "identifications" by design, see @param species);
-# species = TRUE restores it, one join, in original row order:
-"species" %in% names(ops)
-#> [1] FALSE
-ops_sp <- load_t26_saudrune("operators", species = TRUE)
-c("species", "id_status") %in% names(ops_sp)
-#> [1] TRUE TRUE
-identical(ops_sp$code, ops$code)
-#> [1] TRUE
+# the blind repeat trial: one `code` digitized several times
+rep_df <- load_t26_saudrune("repeatability")
+table(unique(rep_df[c("code", "replicate")])$code)
+#> 
+#> SAUDRUNESUDTOULOUSE_20260427_0001 SAUDRUNESUDTOULOUSE_20260427_0002 
+#>                                 4                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0003 SAUDRUNESUDTOULOUSE_20260427_0004 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0005 SAUDRUNESUDTOULOUSE_20260427_0006 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0007 SAUDRUNESUDTOULOUSE_20260427_0008 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0009 SAUDRUNESUDTOULOUSE_20260427_0010 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0011 SAUDRUNESUDTOULOUSE_20260427_0012 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0013 SAUDRUNESUDTOULOUSE_20260427_0014 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0015 SAUDRUNESUDTOULOUSE_20260427_0016 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0017 
+#>                                 3 
 ```

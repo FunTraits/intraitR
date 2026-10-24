@@ -27,7 +27,7 @@ quantile band."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -283,30 +283,34 @@ diversity based on multiple traits. Journal of Vegetation Science, 16(5),
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="simulate_fishmorph_points.html">simulate_fishmorph_points</a></span><span class="op">(</span>n_per_species <span class="op">=</span> <span class="fl">25</span>, n_replicates <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># The T-26 campaign: 494 fish of seven species, digitized once each.</span></span></span>
+<span class="r-in"><span><span class="co"># Sampling effort is exactly what an accumulation curve is about, and it is</span></span></span>
+<span class="r-in"><span><span class="co"># very unequal here -- 288 Gobio gobio against 4 Leuciscus burdigalensis --</span></span></span>
+<span class="r-in"><span><span class="co"># which is the situation the curve exists to diagnose.</span></span></span>
+<span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span>, scale_action <span class="op">=</span> <span class="st">"pixels"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> scale_action = "pixels": 6 specimen(s) have a zero-length or missing scale bar (points 20-21); their measurements are returned in PIXELS (scale_units == "px"), the other 488 in centimetres. The nine ratios are unaffected; absolute values are not comparable across the two units.</span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">acc</span> <span class="op">&lt;-</span> <span class="fu">fd_accumulation</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">ratios</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"BEl"</span>, <span class="st">"VEp"</span>, <span class="st">"REs"</span>, <span class="st">"OGp"</span><span class="op">)</span><span class="op">]</span>,</span></span>
 <span class="r-in"><span>  groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>,</span></span>
 <span class="r-in"><span>  indices <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fric"</span>, <span class="st">"fdis"</span>, <span class="st">"rao"</span><span class="op">)</span>, n_perm <span class="op">=</span> <span class="fl">30</span>, min_n <span class="op">=</span> <span class="fl">10</span>, seed <span class="op">=</span> <span class="fl">1</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Rarefying 3 species, effort n = 2..25 individuals/species, in 4 PCA axes.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>NAs introduced by coercion to integer range</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rarefying 5 species, effort n = 2..17 individuals/species, in 4 PCA axes.</span>
 <span class="r-in"><span><span class="va">acc</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_fd_accumulation&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   3 index/indices on 3 species, effort n = 2..25, 30 permutation(s)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   3 index/indices on 5 species, effort n = 2..17, 30 permutation(s)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   functional richness method = convexhull</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> -- Stabilisation effort n* per index --</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  index                                framing  v_full asymptote prop_reached  k</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   fric accumulation (no asymptote identified) 75.8800        NA           NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   fdis                            convergence  1.8679        NA           NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    rao                            convergence  2.6120        NA           NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   fric accumulation (no asymptote identified) 55.7137        NA           NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   fdis                            convergence  2.1503        NA           NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    rao                            convergence  3.0499        NA           NA NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  n_star</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      18</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      19</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      13</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">acc</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="fd_accumulation-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>

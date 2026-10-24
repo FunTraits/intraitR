@@ -45,12 +45,12 @@ fish <- load_t26_saudrune_landmarks()
 distances <- list(SL = c(1, 2), BD = c(3, 4))
 ratios <- morpho_ratios(fish, distances, norm_by = "SL")
 summary_traits(ratios[, "BD_ratio", drop = FALSE], fish$metadata$species)
-#>                     group    trait   n      mean         sd    min     max
-#> 1     Barbatula barbatula BD_ratio  58 0.2839431 0.70899456 0.1203  5.5873
-#> 2        Gobio occitaniae BD_ratio 637 0.2725691 0.41578074 0.0027 10.7273
-#> 3        Lepomis gibbosus BD_ratio   8 0.4069125 0.02060745 0.3827  0.4337
-#> 4 Leuciscus burdigalensis BD_ratio  27 0.2587185 0.02699531 0.2161  0.3091
-#> 5       Perca fluviatilis BD_ratio  36 0.2773917 0.02248770 0.2172  0.3082
-#> 6       Phoxinus phoxinus BD_ratio  90 0.2376356 0.02757381 0.0469  0.2767
-#> 7       Squalius cephalus BD_ratio 180 0.2552672 0.02652021 0.0618  0.3517
+#>                     group    trait   n      mean         sd    min    max
+#> 1     Barbatula barbatula BD_ratio  17 0.1916235 0.01972887 0.1604 0.2338
+#> 2           Barbus barbus BD_ratio  30 0.2380433 0.01499487 0.2093 0.2745
+#> 3             Gobio gobio BD_ratio 288 0.2585097 0.02040952 0.2014 0.3013
+#> 4        Lepomis gibbosus BD_ratio   9 0.3898333 0.02093006 0.3586 0.4272
+#> 5 Leuciscus burdigalensis BD_ratio   4 0.2447750 0.01711712 0.2215 0.2613
+#> 6       Perca fluviatilis BD_ratio  20 0.3212650 0.05064929 0.2295 0.3947
+#> 7       Squalius cephalus BD_ratio 126 0.2508476 0.02175640 0.1914 0.3119
 ```

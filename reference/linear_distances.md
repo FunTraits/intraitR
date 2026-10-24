@@ -58,11 +58,11 @@ identifiers) and one column per entry in `pairs`.
 fish <- load_t26_saudrune_landmarks()
 pairs <- list(SL = c(1, 2), BD = c(3, 4), HD = c(5, 6))
 head(linear_distances(fish, pairs))
-#>                             SL       BD       HD
-#> T-26-0001_Operator_1 1025.0122 267.0342       NA
-#> T-26-0001_Operator_2 1019.1438 264.7499       NA
-#> T-26-0001_Operator_3  743.2028 198.5971       NA
-#> T-26-0001_Operator_4 1024.2443 263.2533 148.6835
-#> T-26-0002_Operator_1 1228.8421 294.6678       NA
-#> T-26-0002_Operator_2 1228.4952 302.1350       NA
+#>                                          SL       BD       HD
+#> SAUDRUNESUDTOULOUSE_20260427_0001 1027.0085 266.1601 140.3284
+#> SAUDRUNESUDTOULOUSE_20260427_0002 1249.6162 300.2998 165.5497
+#> SAUDRUNESUDTOULOUSE_20260427_0003 1045.9472 252.3055 147.0438
+#> SAUDRUNESUDTOULOUSE_20260427_0004 2676.8360 673.7648 290.4404
+#> SAUDRUNESUDTOULOUSE_20260427_0005  824.3423 178.1926 117.4385
+#> SAUDRUNESUDTOULOUSE_20260427_0006 1131.5148 281.1218 167.4464
 ```

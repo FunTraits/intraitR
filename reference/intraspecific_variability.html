@@ -15,7 +15,7 @@ variation (CV%) of linear traits or ratios per group."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -134,9 +134,8 @@ Biologists: A Primer (2nd ed). Academic Press.</p>
 <span class="r-in"><span><span class="co"># scale bar and incomplete/unidentified specimens are dropped first):</span></span></span>
 <span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fish_shape</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_shape_landmarks.html">fishmorph_shape_landmarks</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> fishmorph_shape_landmarks(): dropping 274 specimen(s) with a missing landmark or unresolved species identification.</span>
 <span class="r-in"><span><span class="va">gpa</span> <span class="op">&lt;-</span> <span class="fu"><a href="gpa_fish.html">gpa_fish</a></span><span class="op">(</span><span class="va">fish_shape</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 183 specimen(s) flagged as potential Procrustes-distance outlier(s) (threshold = median + 3.0 x MAD): T-26-0009_Operator_2, T-26-0009_Operator_3, T-26-0009_Operator_4, T-26-0011_Operator_2, T-26-0011_Operator_3, T-26-0052_Operator_1, T-26-0052_Operator_4, T-26-0056_Operator_4, T-26-0067_Operator_1, T-26-0067_Operator_2, T-26-0067_Operator_3, T-26-0067_Operator_4, T-26-0068_Operator_1, T-26-0068_Operator_2, T-26-0068_Operator_3, T-26-0068_Operator_4, T-26-0070_Operator_1, T-26-0070_Operator_2, T-26-0070_Operator_3, T-26-0070_Operator_4, T-26-0071_Operator_1, T-26-0071_Operator_2, T-26-0071_Operator_4, T-26-0072_Operator_2, T-26-0072_Operator_4, T-26-0073_Operator_2, T-26-0073_Operator_4, T-26-0074_Operator_1, T-26-0074_Operator_2, T-26-0074_Operator_4, T-26-0075_Operator_1, T-26-0075_Operator_2, T-26-0075_Operator_4, T-26-0076_Operator_1, T-26-0076_Operator_2, T-26-0076_Operator_3, T-26-0076_Operator_4, T-26-0077_Operator_2, T-26-0077_Operator_4, T-26-0078_Operator_2, T-26-0078_Operator_4, T-26-0079_Operator_2, T-26-0079_Operator_4, T-26-0080_Operator_1, T-26-0080_Operator_2, T-26-0080_Operator_3, T-26-0080_Operator_4, T-26-0081_Operator_3, T-26-0081_Operator_4, T-26-0082_Operator_1, T-26-0082_Operator_2, T-26-0082_Operator_3, T-26-0082_Operator_4, T-26-0083_Operator_3, T-26-0083_Operator_4, T-26-0084_Operator_3, T-26-0084_Operator_4, T-26-0085_Operator_1, T-26-0085_Operator_3, T-26-0085_Operator_4, T-26-0086_Operator_2, T-26-0086_Operator_3, T-26-0086_Operator_4, T-26-0088_Operator_3, T-26-0088_Operator_4, T-26-0090_Operator_2, T-26-0090_Operator_3, T-26-0090_Operator_4, T-26-0091_Operator_1, T-26-0091_Operator_2, T-26-0091_Operator_3, T-26-0091_Operator_4, T-26-0092_Operator_3, T-26-0092_Operator_4, T-26-0093_Operator_3, T-26-0093_Operator_4, T-26-0094_Operator_1, T-26-0094_Operator_3, T-26-0094_Operator_4, T-26-0095_Operator_4, T-26-0096_Operator_1, T-26-0096_Operator_2, T-26-0096_Operator_4, T-26-0097_Operator_1, T-26-0097_Operator_2, T-26-0097_Operator_4, T-26-0098_Operator_2, T-26-0098_Operator_4, T-26-0099_Operator_2, T-26-0099_Operator_4, T-26-0100_Operator_4, T-26-0101_Operator_4, T-26-0102_Operator_4, T-26-0103_Operator_1, T-26-0103_Operator_2, T-26-0103_Operator_4, T-26-0104_Operator_2, T-26-0104_Operator_4, T-26-0107_Operator_4, T-26-0108_Operator_4, T-26-0109_Operator_4, T-26-0111_Operator_4, T-26-0112-2_Operator_1, T-26-0112-2_Operator_2, T-26-0113_Operator_1, T-26-0113_Operator_4, T-26-0114_Operator_4, T-26-0115_Operator_4, T-26-0116_Operator_1, T-26-0116_Operator_4, T-26-0117_Operator_4, T-26-0118_Operator_4, T-26-0120_Operator_1, T-26-0120_Operator_2, T-26-0120_Operator_4, T-26-0121_Operator_4, T-26-0122_Operator_1, T-26-0122_Operator_4, T-26-0123_Operator_4, T-26-0125_Operator_4, T-26-0126_Operator_4, T-26-0127_Operator_4, T-26-0128_Operator_1, T-26-0128_Operator_2, T-26-0128_Operator_4, T-26-0130_Operator_1, T-26-0130_Operator_2, T-26-0130_Operator_4, T-26-0138_Operator_3, T-26-0140_Operator_3, T-26-0141_Operator_3, T-26-0142_Operator_3, T-26-0167_Operator_3, T-26-0168_Operator_3, T-26-0190_Operator_4, T-26-0209_Operator_4, T-26-0230-1_Operator_2, T-26-0261-3_Operator_1, T-26-0261-5_Operator_1, T-26-0263_Operator_1, T-26-0263_Operator_2, T-26-0263_Operator_4, T-26-0264-2_Operator_1, T-26-0264-2_Operator_2, T-26-0264-3_Operator_1, T-26-0264-4_Operator_1, T-26-0264-4_Operator_2, T-26-0265_Operator_1, T-26-0265_Operator_2, T-26-0265_Operator_4, T-26-0266_Operator_1, T-26-0266_Operator_2, T-26-0266_Operator_4, T-26-0268_Operator_1, T-26-0268_Operator_2, T-26-0268_Operator_4, T-26-0269_Operator_1, T-26-0269_Operator_2, T-26-0269_Operator_4, T-26-0270-1_Operator_1, T-26-0270-1_Operator_2, T-26-0270-2_Operator_1, T-26-0270-2_Operator_2, T-26-0271_Operator_1, T-26-0271_Operator_2, T-26-0271_Operator_4, T-26-0272_Operator_1, T-26-0272_Operator_2, T-26-0272_Operator_4, T-26-0273_Operator_1, T-26-0273_Operator_2, T-26-0273_Operator_4, T-26-0274_Operator_4, T-26-0275_Operator_4, T-26-0276_Operator_1, T-26-0276_Operator_2, T-26-0276_Operator_4, T-26-0277_Operator_1, T-26-0277_Operator_4, T-26-0278-1_Operator_1, T-26-0278-2_Operator_1, T-26-0278-2_Operator_2, T-26-0279_Operator_4; this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them and re-align, or see $outlier_screen for details.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> flag_outliers: 11 specimen(s) flagged as potential Procrustes-distance outlier(s) (threshold = median + 3.0 x MAD): SAUDRUNESUDTOULOUSE_20260427_0009, SAUDRUNESUDTOULOUSE_20260518_0012, SAUDRUNESUDTOULOUSE_20260518_0015, SAUDRUNESUDTOULOUSE_20260518_0017, SAUDRUNESUDTOULOUSE_20260518_0024, SAUDRUNESUDTOULOUSE_20260518_0030, SAUDRUNESUDTOULOUSE_20260518_0036, SAUDRUNESUDTOULOUSE_20260518_0039_i2, SAUDRUNESUDTOULOUSE_20260518_0044, SAUDRUNESUDTOULOUSE_20260518_0050_i1, SAUDRUNESUDTOULOUSE_20260518_0055; this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them and re-align, or see $outlier_screen for details.</span>
 <span class="r-in"><span><span class="va">distances</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>SL <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, BD <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="morpho_ratios.html">morpho_ratios</a></span><span class="op">(</span><span class="va">fish_shape</span>, <span class="va">distances</span>, norm_by <span class="op">=</span> <span class="st">"SL"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
@@ -158,77 +157,77 @@ Biologists: A Primer (2nd ed). Academic Press.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 100 Permutations</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Procrustes variances for defined groups</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     Barbatula barbatula        Gobio occitaniae        Lepomis gibbosus </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              0.05003387              0.03729353              0.04020467 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis       Perca fluviatilis       Phoxinus phoxinus </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              0.01157969              0.03407003              0.05472135 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Barbatula barbatula           Barbus barbus             Gobio gobio </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             0.006040160             0.004154417             0.004043715 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Lepomis gibbosus Leuciscus burdigalensis       Perca fluviatilis </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             0.014434314             0.005134001             0.012281008 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       Squalius cephalus </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              0.02571753 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             0.004935003 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Pairwise absolute differences between variances</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                         Barbatula barbatula Gobio occitaniae Lepomis gibbosus</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula             0.000000000      0.012740337      0.009829195</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae                0.012740337      0.000000000      0.002911142</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                0.009829195      0.002911142      0.000000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis         0.038454176      0.025713839      0.028624981</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis               0.015963842      0.003223505      0.006134647</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus               0.004687484      0.017427821      0.014516679</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus               0.024316339      0.011576002      0.014487144</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                         Leuciscus burdigalensis Perca fluviatilis</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                  0.03845418       0.015963842</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae                     0.02571384       0.003223505</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                     0.02862498       0.006134647</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis              0.00000000       0.022490334</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                    0.02249033       0.000000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus                    0.04314166       0.020651326</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus                    0.01413784       0.008352497</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                         Phoxinus phoxinus Squalius cephalus</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula           0.004687484       0.024316339</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae              0.017427821       0.011576002</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus              0.014516679       0.014487144</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis       0.043141660       0.014137837</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis             0.020651326       0.008352497</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus             0.000000000       0.029003823</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus             0.029003823       0.000000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                         Barbatula barbatula Barbus barbus  Gobio gobio</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula            0.0000000000  0.0018857430 0.0019964453</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbus barbus                  0.0018857430  0.0000000000 0.0001107023</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio gobio                    0.0019964453  0.0001107023 0.0000000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus               0.0083941540  0.0102798969 0.0103905992</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis        0.0009061589  0.0009795841 0.0010902863</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis              0.0062408477  0.0081265906 0.0082372929</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus              0.0011051573  0.0007805857 0.0008912880</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                         Lepomis gibbosus Leuciscus burdigalensis</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula          0.008394154            0.0009061589</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbus barbus                0.010279897            0.0009795841</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio gobio                  0.010390599            0.0010902863</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus             0.000000000            0.0093003129</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis      0.009300313            0.0000000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis            0.002153306            0.0071470066</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus            0.009499311            0.0001989984</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                         Perca fluviatilis Squalius cephalus</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula           0.006240848      0.0011051573</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbus barbus                 0.008126591      0.0007805857</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio gobio                   0.008237293      0.0008912880</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus              0.002153306      0.0094993112</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis       0.007147007      0.0001989984</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis             0.000000000      0.0073460049</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus             0.007346005      0.0000000000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> P-Values</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                         Barbatula barbatula Gobio occitaniae Lepomis gibbosus</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                    1.00             0.08             0.50</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae                       0.08             1.00             0.89</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                       0.50             0.89             1.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis                0.04             0.04             0.15</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                      0.14             0.65             0.75</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus                      0.56             0.01             0.44</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus                      0.04             0.02             0.40</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                         Leuciscus burdigalensis Perca fluviatilis</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                        0.04              0.14</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae                           0.04              0.65</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                           0.15              0.75</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis                    1.00              0.08</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                          0.08              1.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus                          0.01              0.04</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus                          0.17              0.28</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                         Phoxinus phoxinus Squalius cephalus</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                  0.56              0.04</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio occitaniae                     0.01              0.02</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                     0.44              0.40</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis              0.01              0.17</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                    0.04              0.28</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Phoxinus phoxinus                    1.00              0.01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                         Barbatula barbatula Barbus barbus Gobio gobio</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                    1.00          0.05        0.03</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbus barbus                          0.05          1.00        0.88</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio gobio                            0.03          0.88        1.00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                       0.01          0.01        0.01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis                0.61          0.52        0.46</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                      0.01          0.01        0.01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus                      0.19          0.23        0.03</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                         Lepomis gibbosus Leuciscus burdigalensis</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                 0.01                    0.61</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbus barbus                       0.01                    0.52</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio gobio                         0.01                    0.46</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                    1.00                    0.01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis             0.01                    1.00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                   0.08                    0.01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus                   0.01                    0.91</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                         Perca fluviatilis Squalius cephalus</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbatula barbatula                  0.01              0.19</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Barbus barbus                        0.01              0.23</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Gobio gobio                          0.01              0.03</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Lepomis gibbosus                     0.08              0.01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Leuciscus burdigalensis              0.01              0.91</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perca fluviatilis                    1.00              0.01</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Squalius cephalus                    0.01              1.00</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> -- Coefficient of variation (%) of linear traits --</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    group    trait   n      mean         sd cv_percent</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      Barbatula barbatula BD_ratio  39 0.3261308 0.86496555 265.220469</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Gobio occitaniae BD_ratio 406 0.2550200 0.03108347  12.188643</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Lepomis gibbosus BD_ratio   6 0.4080833 0.02154181   5.278778</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Leuciscus burdigalensis BD_ratio  26 0.2569731 0.02592970  10.090434</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        Perca fluviatilis BD_ratio  34 0.2767676 0.02297231   8.300216</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        Phoxinus phoxinus BD_ratio  72 0.2378667 0.02895935  12.174617</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        Squalius cephalus BD_ratio 179 0.2551777 0.02656728  10.411288</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      Barbatula barbatula BD_ratio  17 0.1916235 0.01972887  10.295639</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            Barbus barbus BD_ratio  30 0.2380433 0.01499487   6.299217</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              Gobio gobio BD_ratio 288 0.2585097 0.02040952   7.895067</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         Lepomis gibbosus BD_ratio   9 0.3898333 0.02093006   5.368977</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Leuciscus burdigalensis BD_ratio   4 0.2447750 0.01711712   6.993002</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Perca fluviatilis BD_ratio  20 0.3212650 0.05064929  15.765581</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Squalius cephalus BD_ratio 126 0.2508476 0.02175640   8.673154</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

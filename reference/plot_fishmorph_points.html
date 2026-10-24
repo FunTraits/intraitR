@@ -13,7 +13,7 @@ scale bar, for quality control of digitization."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,8 +94,8 @@ package to link digitizations of the same fish (see
 <code><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks()</a></code> this is identical to the <code>code</code>
 column). This is useful when <code>landmarks</code> holds one row per
 specimen/operator or specimen/replicate combination (e.g.
-<code>load_t26_saudrune_landmarks("operators")</code>, with two rows per fish, one
-per operator) and it is more natural to look a fish up by its code than
+<code>load_t26_saudrune_landmarks("repeatability")</code>, with several rows per
+fish, one per pass) and it is more natural to look a fish up by its code than
 by the exact specimen identifier. If <code>individual</code> matches more than one
 specimen (e.g. two operators, or several replicate digitizations), all
 matches are plotted side by side in a single figure (one panel per
@@ -314,19 +314,19 @@ the data level, rather than a per-plot display toggle),
 <span class="r-in"><span><span class="fu">plot_fishmorph_points</span><span class="op">(</span><span class="va">fish</span>, specimen <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_fishmorph_points-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># look a fish up by its code rather than by specimen/operator: the raw</span></span></span>
-<span class="r-in"><span><span class="co"># operator-level data has two rows (one per operator) per fish, so both</span></span></span>
-<span class="r-in"><span><span class="co"># digitizations are plotted side by side for comparison</span></span></span>
-<span class="r-in"><span><span class="va">fish_ops</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="st">"operators"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">one_code</span> <span class="op">&lt;-</span> <span class="va">fish_ops</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">individual</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span></span>
-<span class="r-in"><span><span class="fu">plot_fishmorph_points</span><span class="op">(</span><span class="va">fish_ops</span>, individual <span class="op">=</span> <span class="va">one_code</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># look a fish up by its code rather than by specimen/replicate: the repeat</span></span></span>
+<span class="r-in"><span><span class="co"># trial has several rows (one per pass) per fish, so every digitization is</span></span></span>
+<span class="r-in"><span><span class="co"># plotted side by side for comparison</span></span></span>
+<span class="r-in"><span><span class="va">fish_rep</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="st">"repeatability"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">one_code</span> <span class="op">&lt;-</span> <span class="va">fish_rep</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">individual</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span></span>
+<span class="r-in"><span><span class="fu">plot_fishmorph_points</span><span class="op">(</span><span class="va">fish_rep</span>, individual <span class="op">=</span> <span class="va">one_code</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_fishmorph_points-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># if some specimens appear upside down or mirrored left-right, fix the</span></span></span>
 <span class="r-in"><span><span class="co"># underlying coordinates (not just the display) for every specimen at</span></span></span>
 <span class="r-in"><span><span class="co"># once, using landmarks that are always present and in the same role:</span></span></span>
 <span class="r-in"><span><span class="va">fish_oriented</span> <span class="op">&lt;-</span> <span class="fu"><a href="standardize_orientation.html">standardize_orientation</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> standardize_orientation(): 1006 of 1036 specimen(s) mirrored (234 horizontally, 1004 vertically) to a consistent head-left, belly-down orientation.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> standardize_orientation(): 494 of 494 specimen(s) mirrored (0 horizontally, 494 vertically) to a consistent head-left, belly-down orientation.</span>
 <span class="r-in"><span><span class="fu">plot_fishmorph_points</span><span class="op">(</span><span class="va">fish_oriented</span>, specimen <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_fishmorph_points-3.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
@@ -338,19 +338,20 @@ the data level, rather than a per-plot display toggle),
 <span class="r-in"><span><span class="co"># points estimated by impute_landmarks() are highlighted in red:</span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">fish_imputed</span> <span class="op">&lt;-</span> <span class="fu"><a href="impute_landmarks.html">impute_landmarks</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): estimated 304 missing anatomical landmark coordinate(s) using method = "tps".</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>6 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> impute_landmarks(): no missing anatomical landmark (1-19) found; nothing to impute.</span>
 <span class="r-in"><span><span class="fu">plot_fishmorph_points</span><span class="op">(</span><span class="va">fish_imputed</span>, specimen <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_fishmorph_points-5.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># points fixed by correct_landmarks() are highlighted in blue:</span></span></span>
+<span class="r-in"><span><span class="va">spec</span> <span class="op">&lt;-</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">specimen</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span></span>
 <span class="r-in"><span><span class="va">fish_fixed</span> <span class="op">&lt;-</span> <span class="fu"><a href="correct_landmarks.html">correct_landmarks</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  <span class="va">fish</span>, specimen <span class="op">=</span> <span class="st">"T-26-0010_Operator_1"</span>,</span></span>
+<span class="r-in"><span>  <span class="va">fish</span>, specimen <span class="op">=</span> <span class="va">spec</span>,</span></span>
 <span class="r-in"><span>  points <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">9</span>, <span class="fl">8</span>, <span class="fl">11</span>, <span class="fl">4</span><span class="op">)</span>, correct <span class="op">=</span> <span class="fl">11</span>, axis <span class="op">=</span> <span class="st">"y"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> correct_landmarks(): specimen 'T-26-0010_Operator_1', landmark(s) 11: y set to 1664.167 (median of point(s) 4, 8, 9).</span>
-<span class="r-in"><span><span class="fu">plot_fishmorph_points</span><span class="op">(</span><span class="va">fish_fixed</span>, specimen <span class="op">=</span> <span class="st">"T-26-0010_Operator_1"</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> correct_landmarks(): specimen 'SAUDRUNESUDTOULOUSE_20260427_0001', landmark(s) 11: y set to 441.859 (median of point(s) 4, 8, 9).</span>
+<span class="r-in"><span><span class="fu">plot_fishmorph_points</span><span class="op">(</span><span class="va">fish_fixed</span>, specimen <span class="op">=</span> <span class="va">spec</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_fishmorph_points-6.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># landmarks implicated in a failed check_geometry() convention are</span></span></span>

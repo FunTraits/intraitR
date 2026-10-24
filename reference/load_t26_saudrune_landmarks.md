@@ -2,13 +2,12 @@
 
 Loads the real T-26 Saudrune electrofishing landmark data (see
 [`load_t26_saudrune()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune.md))
-directly as an object of class `"intrait_landmarks"`, in exactly the
-format returned by
+directly as an object of class `"intrait_landmarks"`, in the format
+returned by
 [`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md):
-a `p x k x n` coordinate array (21 FISHMORPH landmarks; Brosse et al.,
-2021) together with a `metadata` data.frame carrying `specimen`,
-`individual`, `species`, `population` and `replicate` columns. This
-makes the real data set a drop-in replacement for
+a `p x k x n` coordinate array together with a `metadata` data.frame
+carrying `specimen`, `individual`, `species`, `population` and
+`replicate`. The real data set is therefore a drop-in replacement for
 [`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md)
 wherever a FISHMORPH-scheme `"intrait_landmarks"` object is expected,
 e.g.
@@ -16,7 +15,7 @@ e.g.
 [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md),
 [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
 [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md),
-[`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md),
+[`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
 and
 [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md).
 
@@ -24,7 +23,7 @@ and
 
 ``` r
 load_t26_saudrune_landmarks(
-  source = c("operators", "repeatability"),
+  source = c("landmarks", "repeatability"),
   species = NULL,
   operator = NULL
 )
@@ -34,71 +33,59 @@ load_t26_saudrune_landmarks(
 
 - source:
 
-  Character, one of `"operators"` (default: 826 digitizations of the
-  T-26 fish across four operators – Operator_1 and Operator_2 each
-  digitized the full set of 279 fish once, Operator_3 and Operator_4 a
-  subset) or `"repeatability"` (25 individuals, each digitized 9-10
-  times, by two operators; see
-  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md)
-  and
-  [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)).
+  Character, one of:
+
+  `"landmarks"`
+
+  :   **Default.** Every specimen of the campaign, digitized once with
+      [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+      on the 25-point scheme. `metadata$replicate` is 1 throughout and
+      `metadata$individual` equals `specimen`.
+
+  `"repeatability"`
+
+  :   The blind repeat trial: the same individuals re-digitized several
+      times in the digitizer's repeat mode. `metadata$individual` is the
+      fish (`code`), `metadata$replicate` the pass; the input of
+      [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md),
+      [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
+      and
+      [`operator_disagreement()`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md).
 
 - species:
 
   Optional character vector of species names: if supplied, only
-  specimens identified (curated or preliminary) as one of these species
-  are kept. Defaults to `NULL` (every fish is kept, including the single
-  specimen with an unresolved identification, for which
-  `metadata$species` is `NA`; see
-  [`load_t26_saudrune()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune.md)).
+  specimens currently determined as one of these species are kept.
+  Defaults to `NULL` (every fish is kept).
 
 - operator:
 
-  `NULL` (default, every operator's digitizations are returned), or a
-  character vector of one or more anonymous operator labels (e.g.
-  `"Operator_1"`; see `unique(load_t26_saudrune(source)$operator)` for
-  the labels available for a given `source`) to restrict to. This is the
-  natural way to build **two separate functional trait spaces**, one per
-  operator, from `source = "operators"` (each fish was digitized once by
-  each operator) — e.g. to check whether
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  or
-  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
-  results are sensitive to who did the digitizing, complementing the
-  landmark-level view of
-  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md).
-  Modular by design: if the requested `source` has no `operator` column,
-  `operator` is ignored with a warning and every row is returned (in
-  practice every `source` currently offered here does have one, but this
-  keeps the function robust to future `source` options that might not).
+  `NULL` (default, every operator's digitizations), or a character
+  vector of operator labels (e.g. `"AT"`; see
+  `unique(load_t26_saudrune(source)$operator)`) to restrict to. With two
+  operators in `"repeatability"` this is the natural way to build two
+  separate trait spaces and check whether results depend on who
+  digitized.
 
 ## Value
 
-An object of class `"intrait_landmarks"`, a list with elements `coords`
-(a `21 x 2 x n` array), `scale` (`NULL`; the scale bar is embedded as
-landmarks 20-21, as in
-[`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md)),
-and `metadata` (a `data.frame` with, in addition to the five standard
-columns shared with
-[`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md)'s
-output, an `operator` column and, for `source = "repeatability"`, a
-`site` column carried over from the raw data).
+An object of class `"intrait_landmarks"`: `coords` (a `25 x 2 x n`
+array), `scale` (`NULL`; the scale bar is embedded as landmarks 20-21,
+as in
+[`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md))
+and `metadata` (the five standard columns plus `operator`, and
+`species_code`, `quality`, `date` and `uid` carried over from the
+`"specimens"` table).
 
 ## Details
 
-Unlike
-[`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md),
-real specimens are not all fully digitized: some coordinates (chiefly
-landmark 5, in roughly a quarter of specimens) are missing. Functions
-that require a complete configuration (e.g.
-[`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md),
-which is not intended for this mixed shape/scale-bar landmark scheme in
-any case; see
-[`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md))
-should filter on complete cases first. `metadata$population` is set to
-`NA` throughout, because the T-26 survey sampled a single electrofishing
-point: unlike the simulated data set, there is no genuine sub-population
-structure in this real sample to report, and none is fabricated here.
+Point 25 is reserved by the digitizer and currently always `NA`; a few
+specimens lack the scale bar (20-21). Functions that require a complete
+configuration (e.g.
+[`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md))
+should filter on complete cases of the landmarks they use.
+`metadata$population` is `NA` throughout: the survey sampled one
+electrofishing point and no sub-population structure is fabricated.
 
 ## References
 
@@ -120,41 +107,44 @@ Biogeography, 30(12), 2330-2336.
 fish <- load_t26_saudrune_landmarks()
 fish
 #> <intrait_landmarks>
-#>   1036 specimens, 21 landmarks, 2 dimensions
-#>   Metadata columns: specimen, individual, species, population, replicate, operator 
-table(fish$metadata$species, useNA = "ifany")
+#>   494 specimens, 25 landmarks, 2 dimensions
+#>   Metadata columns: specimen, individual, species, population, replicate, operator, species_code, quality, date, uid 
+table(fish$metadata$species)
 #> 
-#>     Barbatula barbatula        Gobio occitaniae        Lepomis gibbosus 
-#>                      58                     637                       8 
-#> Leuciscus burdigalensis       Perca fluviatilis       Phoxinus phoxinus 
-#>                      27                      36                      90 
+#>     Barbatula barbatula           Barbus barbus             Gobio gobio 
+#>                      17                      30                     288 
+#>        Lepomis gibbosus Leuciscus burdigalensis       Perca fluviatilis 
+#>                       9                       4                      20 
 #>       Squalius cephalus 
-#>                     180 
+#>                     126 
 
 # restrict to the two most abundant species
 gobio_squalius <- load_t26_saudrune_landmarks(
-  species = c("Gobio occitaniae", "Squalius cephalus")
+  species = c("Gobio gobio", "Squalius cephalus")
 )
 dim(gobio_squalius$coords)
-#> [1]  21   2 817
+#> [1]  25   2 414
 
-# build two separate functional trait spaces, one per operator, to check
-# whether the two digitizers' shape spaces agree:
-fish_op1 <- load_t26_saudrune_landmarks(operator = "Operator_1")
-fish_op2 <- load_t26_saudrune_landmarks(operator = "Operator_2")
-ratios_op1 <- fishmorph_ratios(fishmorph_segments(fish_op1))
-#> Warning: 1 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
-ratios_op2 <- fishmorph_ratios(fishmorph_segments(fish_op2))
-#> Warning: 2 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
-ts_op1 <- trait_space(ratios_op1, groups = fish_op1$metadata$species, na_action = "omit")
-#> Warning: Dropping non-numeric column(s) from the ordination: individual, population, operator
-#> na_action = "omit": removing 139 row(s) out of 279 with missing values.
-#> Warning: Dropping constant (zero-variance) column(s) from the ordination: replicate
-#> flag_outliers: 6 specimen(s) flagged as within-group outlier(s) across 3 group(s) (Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
-ts_op2 <- trait_space(ratios_op2, groups = fish_op2$metadata$species, na_action = "omit")
-#> Warning: Dropping non-numeric column(s) from the ordination: individual, population, operator
-#> na_action = "omit": removing 91 row(s) out of 279 with missing values.
-#> Warning: Dropping constant (zero-variance) column(s) from the ordination: replicate
-#> flag_outliers: 11 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Leuciscus burdigalensis, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
-#> flag_outliers: 1 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
+# the repeat trial: several configurations per individual
+rep_fish <- load_t26_saudrune_landmarks("repeatability")
+table(rep_fish$metadata$individual)
+#> 
+#> SAUDRUNESUDTOULOUSE_20260427_0001 SAUDRUNESUDTOULOUSE_20260427_0002 
+#>                                 4                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0003 SAUDRUNESUDTOULOUSE_20260427_0004 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0005 SAUDRUNESUDTOULOUSE_20260427_0006 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0007 SAUDRUNESUDTOULOUSE_20260427_0008 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0009 SAUDRUNESUDTOULOUSE_20260427_0010 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0011 SAUDRUNESUDTOULOUSE_20260427_0012 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0013 SAUDRUNESUDTOULOUSE_20260427_0014 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0015 SAUDRUNESUDTOULOUSE_20260427_0016 
+#>                                 3                                 3 
+#> SAUDRUNESUDTOULOUSE_20260427_0017 
+#>                                 3 
 ```

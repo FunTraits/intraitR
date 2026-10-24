@@ -46,8 +46,8 @@ plot_fishmorph_shapes(
 
   Character vector of individual/specimen identifiers to plot. Matched
   against `landmarks$metadata$individual` if that column exists (so a
-  fish's code selects every digitization of it, e.g. two rows from
-  `load_t26_saudrune_landmarks("operators")`, one per operator), and
+  fish's code selects every digitization of it, e.g. several rows from
+  `load_t26_saudrune_landmarks("repeatability")`, one per pass), and
   otherwise directly against the specimen identifiers (`dimnames`).
   Exactly one of `species`/`individuals` must be supplied.
 
@@ -94,7 +94,7 @@ plot_fishmorph_shapes(
   operator who digitized it (requires an `operator` column in
   `landmarks$metadata`, as produced by
   [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
-  with `source = "operators"`). Cannot be combined with an explicit
+  with `source = "repeatability"`). Cannot be combined with an explicit
   `color_by`. Defaults to `FALSE`.
 
 - palette:
@@ -187,12 +187,14 @@ variability)
 
 ``` r
 fish <- load_t26_saudrune_landmarks()
-plot_fishmorph_shapes(fish, species = "Gobio occitaniae")
+plot_fishmorph_shapes(fish, species = "Gobio gobio")
 
 
 # colour each outline by the operator who digitized it (raise alpha so
-# the two operators' colours stay legible through the overlap):
-plot_fishmorph_shapes(fish, species = "Gobio occitaniae",
+# the operators' colours stay legible through the overlap); on the repeat
+# trial, every pass of the same fish is overlaid:
+rep_fish <- load_t26_saudrune_landmarks("repeatability")
+plot_fishmorph_shapes(rep_fish, individuals = rep_fish$metadata$individual[1],
                       operator = TRUE, alpha = 0.4)
 
 

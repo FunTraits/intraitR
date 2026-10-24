@@ -25,9 +25,15 @@ landmark_journal_append(
   target_sheet = NA,
   img_w = NA,
   img_h = NA,
-  quality = NA,
+  quality_score = NA,
   ruler_mm = NA,
-  mm_per_px = NA
+  mm_per_px = NA,
+  photo_hash = NA,
+  reviewed = NA,
+  reviewed_by = NA,
+  review_date = NA,
+  collapse_rules = NA,
+  species = NA
 )
 ```
 
@@ -61,9 +67,43 @@ landmark_journal_append(
 
   Record-level metadata, recycled over the points.
 
-- img_w, img_h, quality, ruler_mm, mm_per_px:
+- img_w, img_h, ruler_mm, mm_per_px:
 
   Further record-level metadata.
+
+- quality_score:
+
+  Score of the entry, 1 (unusable) to 5 (excellent); `NA` when not
+  scored. (Until intraitR 1.40.0 this was `quality`, on the reversed
+  scale.)
+
+- photo_hash:
+
+  Optional MD5 of the image FILE, as returned by
+  [`photo_hash()`](https://funtraits.github.io/intraitR/reference/photo_hash.md).
+  This is the identity a rename cannot change: a specimen re-determined,
+  and therefore renamed, is matched back to its own measurements on this
+  column rather than on `photo_file`.
+
+- reviewed, reviewed_by, review_date:
+
+  Optional review of the ENTRY as a whole – whether anyone has looked at
+  it, who, and when. `quality_score` says how good the entry is; these
+  say whether the judgement has been made at all, which is a different
+  statement: a specimen can be checked AND poor, and that is the state a
+  re-photographing list is built from.
+
+- collapse_rules:
+
+  Optional character string listing the coincidence rules DECLARED on
+  the specimen, separated by `";"` (for example `"Mo;Hd6"`). A declared
+  zero is a measurement, and recording only the geometry it produced
+  leaves a reader unable to tell it from an accidental coincidence.
+
+- species:
+
+  Optional species name (`"Genus species"`), recorded by the FISHMORPH
+  reference target, whose `row_key` is the species itself.
 
 ## Value
 
@@ -80,7 +120,7 @@ write.
 ``` r
 d <- file.path(tempdir(), "journal_demo2")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/Rtmp4iyaek/journal_demo2/landmarks_AT_20260727T151212Z.tsv
+#> Session journal: /tmp/RtmpgJS8xD/journal_demo2/landmarks_AT_20261024T184944Z.tsv
 P <- cbind(X = c(10, 60), Y = c(20, 22))
 landmark_journal_append(jr, row_key = "fish_01", coords = P, points = 1:2,
                         specimen = "fish_01", individual = "fish_01")

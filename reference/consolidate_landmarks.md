@@ -3,7 +3,7 @@
 Reconstructs, from every journal in `journal_dir`, one row per
 digitization in the "wide" layout of the workbook written by
 [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-(`1_X, 1_Y, ... 24_X, 24_Y`), keeping for each key the LAST record – so
+(`1_X, 1_Y, ... 25_X, 25_Y`), keeping for each key the LAST record – so
 a specimen digitized, then corrected, appears once, corrected. This is
 the recovery path: the workbook can be deleted, corrupted, or left
 behind by a crashed session, and the data are still there.
@@ -13,9 +13,12 @@ behind by a crashed session, and the data are still there.
 ``` r
 consolidate_landmarks(
   journal_dir,
-  points = 1:24,
+  points = 1:25,
   history = FALSE,
-  xlsx_path = NULL
+  xlsx_path = NULL,
+  long = FALSE,
+  drop_na_points = TRUE,
+  status_columns = FALSE
 )
 ```
 
@@ -23,17 +26,19 @@ consolidate_landmarks(
 
 - journal_dir:
 
-  Journal directory, or a vector of directories.
+  Journal directory, a vector of directories, or a journal already read
+  with
+  [`landmark_journal_read()`](https://funtraits.github.io/intraitR/reference/landmark_journal_read.md).
 
 - points:
 
-  Landmark numbers to lay out as columns. Defaults to `1:24`, what
+  Landmark numbers to lay out as columns. Defaults to `1:25`, what
   [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
   records: the 19 FISHMORPH landmarks, the scale bar (20-21), the
-  curvature point (22) and the two entry hinges (23-24). The hinges are
-  not landmarks and belong in no shape analysis; they are rebuilt here
-  because they define the axis a specimen was digitized under. Pass
-  `1:22` to leave them out.
+  curvature point (22), the derived head-base point (23) and the two
+  entry hinges (24-25). The hinges are not landmarks and belong in no
+  shape analysis; they are rebuilt here because they define the axis a
+  specimen was digitized under. Pass `1:23` to leave them out.
 
 - history:
 
@@ -49,12 +54,30 @@ consolidate_landmarks(
   one sheet per group of `target_sheet` (typically `measurements` and
   `bias`).
 
+- long:
+
+  Logical. `TRUE` returns the kept records in the LONG layout of the
+  journal (one row per point) instead of the wide table.
+
+- drop_na_points:
+
+  Logical (default `TRUE`): points whose status is `"na"` (declared
+  non-measurable) come out with `NA` coordinates.
+
+- status_columns:
+
+  Logical (default `FALSE`): add one `<n>_status` column per point after
+  the coordinates – the per-point quality information a coordinate table
+  cannot otherwise carry.
+
 ## Value
 
 A `data.frame`, one row per digitization, with the identification
 columns (`specimen`, `individual`, `replicate`, `operator`,
 `photo_file`, ...), the coordinate columns, and the per-record status
-counts (`n_clicked`, `n_seeded`, `n_predicted`, `n_adjusted`, `n_na`).
+counts (`n_clicked`, `n_seeded`, `n_predicted`, `n_validated`,
+`n_adjusted`, `n_na`); with `long = TRUE`, the journal rows of the kept
+records.
 
 ## See also
 
@@ -67,7 +90,7 @@ counts (`n_clicked`, `n_seeded`, `n_predicted`, `n_adjusted`, `n_na`).
 ``` r
 d <- file.path(tempdir(), "journal_demo4")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/Rtmp4iyaek/journal_demo4/landmarks_AT_20260727T151019Z.tsv
+#> Session journal: /tmp/RtmpgJS8xD/journal_demo4/landmarks_AT_20261024T184849Z.tsv
 P <- cbind(c(10, 60), c(20, 22))
 landmark_journal_append(jr, "fish_01", P, 1:2, specimen = "fish_01",
                         individual = "fish_01", target_sheet = "measurements")

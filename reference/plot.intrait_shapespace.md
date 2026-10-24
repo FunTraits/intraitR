@@ -118,7 +118,7 @@ across separate calls to `plot.intrait_shapespace()` and
 – including when built from the same dataset but retaining different
 subsets of specimens (and so, potentially, different subsets of species)
 after each function's own missing-data or outlier handling. Call
-[`reset_group_colors()`](https://funtraits.github.io/intraitR/reference/reset_group_colors.md)
+[`reset_group_colors()`](https://rdrr.io/pkg/Rfishmorph/man/reset_group_colors.html)
 to clear this cache, e.g. before moving on to an unrelated dataset.
 
 ## References

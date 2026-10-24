@@ -471,7 +471,7 @@ derr$global
 # biological landmark, and should be excluded from the bias
 # decomposition (they can still be examined separately if desired, but
 # should not be pooled with anatomical landmarks in by_landmark/global):
-fish_fm <- load_t26_saudrune_landmarks(source = "repeatability")
+fish_fm <- load_t26_saudrune_landmarks("repeatability")
 derr_fm <- digitization_error(
   fish_fm,
   individual = fish_fm$metadata$individual,
@@ -480,25 +480,29 @@ derr_fm <- digitization_error(
 #> Warning: Unequal numbers of digitization replicates across individuals; bias estimates for individuals with fewer replicates will be noisier.
 derr_fm$by_landmark
 #>    landmark n_individuals mean_bias_pct median_bias_pct sd_bias_pct
-#> 1         5            25        0.0927          0.0836      0.0340
-#> 2        13            25        0.0996          0.0903      0.0402
-#> 3        14            25        0.1049          0.0993      0.0344
-#> 4         7            25        0.1246          0.1162      0.0436
-#> 5         6            25        0.1315          0.1178      0.0514
-#> 6         9            25        0.1521          0.1368      0.0546
-#> 7        11            25        0.1663          0.1428      0.1021
-#> 8        18            25        0.1591          0.1439      0.0808
-#> 9        10            25        0.1926          0.1561      0.1499
-#> 10        8            25        0.1799          0.1609      0.0636
-#> 11       19            25        0.2017          0.1849      0.0787
-#> 12        1            25        0.1853          0.1862      0.0644
-#> 13        2            25        0.2733          0.2121      0.1349
-#> 14       15            25        0.2555          0.2270      0.1055
-#> 15       12            25        0.4310          0.2655      0.4559
-#> 16       16            25        0.2943          0.2855      0.1322
-#> 17       17            25        0.2967          0.2953      0.1073
-#> 18        4            25        0.8756          0.7955      0.5148
-#> 19        3            25        0.8799          0.8245      0.5101
+#> 1         7            17        0.0598          0.0555      0.0281
+#> 2        13            17        0.0939          0.0759      0.0484
+#> 3         1            17        0.1002          0.0862      0.0592
+#> 4         5            17        0.1042          0.0945      0.0447
+#> 5        19            17        0.2216          0.1095      0.3915
+#> 6        14            17        0.1028          0.1125      0.0505
+#> 7        23            17        0.1690          0.1551      0.0881
+#> 8        15            17        0.1885          0.1570      0.1472
+#> 9        10            17        0.1812          0.1719      0.0876
+#> 10        6            17        0.2188          0.1828      0.1463
+#> 11        2            17        0.2140          0.1923      0.1345
+#> 12       11            17        0.1777          0.1998      0.1010
+#> 13        8            17        0.2938          0.2171      0.1848
+#> 14       17            17        0.2392          0.2214      0.1282
+#> 15       12            17        0.5885          0.2555      0.9726
+#> 16       16            17        0.3130          0.2947      0.1451
+#> 17        9            17        0.3018          0.2990      0.1526
+#> 18       18            17        0.5885          0.4310      0.5104
+#> 19        4            17        0.5506          0.5474      0.2571
+#> 20        3            17        0.4897          0.5736      0.2884
+#> 21       22            17        0.6663          0.6094      0.3715
+#> 22       24            17        0.8775          0.6363      0.7775
+#> 23       25            17           NaN              NA          NA
 
 # level = "segments": does raw-landmark digitization noise survive into
 # the 11 linear FISHMORPH measurements? (mixes body-landmark placement
@@ -507,19 +511,20 @@ derr_seg <- digitization_error(
   fish_fm, individual = fish_fm$metadata$individual, level = "segments"
 )
 #> Warning: Unequal numbers of digitization replicates across individuals; bias estimates for individuals with fewer replicates will be noisier.
+#> Warning: 4 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. Use scale_action = "pixels" to measure them in pixels instead (the 9 unitless ratios are unaffected), or see fishmorph_ratios()'s `landmarks` argument to recover those ratios from an existing cm table.
 derr_seg$by_segment
 #>    segment n_individuals mean_bias_pct median_bias_pct sd_bias_pct
-#> 1       Bl            25        0.8227          0.7374      0.4190
-#> 2      CFd            25        0.9518          0.8088      0.4743
-#> 3       Bd            25        0.9995          0.9101      0.4003
-#> 4       Hd            25        1.0817          1.0067      0.3496
-#> 5       Eh            25        1.2951          1.2771      0.5264
-#> 6      CPd            25        1.4863          1.3922      0.5542
-#> 7       Mo            25        1.6123          1.4095      0.7269
-#> 8      PFl            25        2.8275          2.1001      2.1797
-#> 9      PFi            25        2.8269          2.4606      1.4327
-#> 10      Ed            25        2.8284          2.4914      1.3657
-#> 11      Jl            25        4.9409          4.7549      1.9794
+#> 1       Bl            17        0.9691          0.7687      0.6854
+#> 2       Bd            17        1.0084          0.8114      0.7868
+#> 3      CFd            17        1.0296          0.8174      0.7186
+#> 4       Eh            17        1.1182          0.8326      0.8484
+#> 5       Hd            17        2.2297          1.2854      1.7735
+#> 6      CPd            17        1.7976          1.6074      1.0292
+#> 7       Mo            17        1.8202          1.6616      1.0264
+#> 8      PFi            17        2.3004          2.1108      1.4475
+#> 9      PFl            17        2.5309          2.3108      1.1194
+#> 10      Jl            17        3.1476          3.3010      2.0395
+#> 11      Ed            17        5.0029          3.9543      3.1328
 
 # level = "ratios": the 9 dimensionless ratios cancel out any per-
 # replicate scale-bar noise, isolating body-shape digitization error --
@@ -528,15 +533,16 @@ derr_rat <- digitization_error(
   fish_fm, individual = fish_fm$metadata$individual, level = "ratios"
 )
 #> Warning: Unequal numbers of digitization replicates across individuals; bias estimates for individuals with fewer replicates will be noisier.
+#> Warning: 4 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. Use scale_action = "pixels" to measure them in pixels instead (the 9 unitless ratios are unaffected), or see fishmorph_ratios()'s `landmarks` argument to recover those ratios from an existing cm table.
 derr_rat$by_ratio
 #>   ratio n_individuals mean_bias_pct median_bias_pct sd_bias_pct
-#> 1   BEl            25        0.4935          0.4988      0.1256
-#> 2   BLs            25        0.8618          0.8081      0.2304
-#> 3   VEp            25        1.0740          1.0086      0.3675
-#> 4   OGp            25        1.3485          1.2575      0.4138
-#> 5   CPt            25        1.3057          1.3167      0.5832
-#> 6   PFs            25        2.6786          1.6868      2.2987
-#> 7   REs            25        2.7127          2.2737      1.4285
-#> 8   PFv            25        2.6025          2.2920      1.3109
-#> 9   RMl            25        4.8902          4.6114      1.8582
+#> 1   BEl            17        0.7724          0.6460      0.4775
+#> 2   VEp            17        1.0940          1.0745      0.5822
+#> 3   BLs            17        1.4891          1.1437      0.9212
+#> 4   PFv            17        1.6201          1.5491      1.0583
+#> 5   PFs            17        1.8933          1.7705      1.1344
+#> 6   OGp            17        1.9307          1.8731      1.1398
+#> 7   CPt            17        2.1072          2.2676      1.2272
+#> 8   REs            17        4.2274          3.0572      2.8086
+#> 9   RMl            17        3.9262          4.2017      2.0438
 ```

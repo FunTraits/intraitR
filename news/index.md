@@ -1,2174 +1,1019 @@
 # Changelog
 
-## intraitR 1.17.0
-
-### Coincident landmarks: a measurement of zero
-
-- A bar under the photograph declares the segments that are ZERO on the
-  specimen in view. A zero is a measurement like any other – neither a
-  missing value nor a placement error – and the FISHMORPH ratios are
-  defined to take it: `OGp = 0` for a mouth opening on the ventral
-  profile, `PFv = 0` for a pectoral fin inserted on the belly. Four
-  rules: **`Mo = 0`** (LM9 takes the coordinates of LM1),
-  **`LM6 = LM8`** (the bottom of the head is the body underside),
-  **`PFi = 0`** (LM10 takes the coordinates of LM11) and
-  **`LM5 = LM13`** (an eye reaching the top of the head).
-- **Nothing is deleted.** Both landmarks keep a position, both are drawn
-  on the photograph and both are written to the workbook; one simply
-  takes the coordinates of the other, so the segment between them
-  measures zero. A coincidence is a measurement, an absence is `NA`, and
-  the two must not be confused downstream.
-- Clicking two landmarks onto the same pixel expresses the same thing
-  but does not SURVIVE: the conventions re-derive the ventral points on
-  the belly line and `enforce_head_order()` re-separates the eye group
-  by its margin, so the zero was undone at the next click. A declared
-  rule is re-applied after every propagation, every re-seed and every
-  prediction – which is what makes a zero a stable statement about the
-  fish rather than a position that drifts.
-- Which landmark moves is a protocol decision and is not the same for
-  every rule. For the mouth the fixed point is LM1, the snout, which
-  must not move. For the two ventral rules the BELLY LINE holds: LM8 and
-  LM11 are its intersections with the eye and the pectoral verticals, so
-  the head bottom and the fin insertion come onto them – a global fit is
-  steadier than a single click. For the eye at the top of the head, LM5
-  comes onto LM13, since moving LM13 would change `Ed`, a measurement in
-  its own right.
-- Landmarks moved by a rule are exported with status `"adjusted"`, whose
-  meaning widens accordingly: placed by a rule the operator invoked,
-  neither pointed at by hand nor left at a seed.
-- Declarations are reset for every specimen, and read back from the
-  coordinates when one is reopened in the `"correct"` queue: two
-  coincident landmarks re-tick their box, so a zero saved yesterday is
-  still visibly a zero today.
-
-### The eye vertical is checked, in order
-
-- The save-time check of
-  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-  now also verifies the ORDER of the six landmarks the FISHMORPH
-  conventions put on one vertical – 5, 13, 7, 14, 6, 8, read from the
-  back downwards: top of the head, top of the eye, centre of the eye,
-  bottom of the eye, bottom of the head, body underside. Two things are
-  tested and they are not the same statement: that **LM5 tops the
-  group** (the `Hd` analogue of the LM3/LM4 rule for `Bd`), and that
-  **every consecutive pair is in order**, which catches a local swap the
-  first cannot see.
-- This is the failure no other check catches, because each pair stays
-  internally consistent: with 13 and 14 exchanged – the eye clicked
-  bottom-first – `Ed` (13-14) keeps its exact length while `Eh` (7-8)
-  silently measures to the wrong edge of the eye. Neither a coordinate
-  table nor a Procrustes fit shows it.
-- Settled on the data, like the extreme-point rule. The expected order
-  already holds for **98.6 %** of the 1,036 digitized T-26
-  configurations (13 above 5 in 9 specimens, 0.87 %, the same nine as
-  “LM5 does not top the group”; 7 above 13 in 4; 14 above 7 in 1; 8
-  above 6 in 1) and for **100 %** of the 250 repeatability
-  configurations. An order a hand-digitized corpus already satisfies to
-  that degree is a convention, not a preference.
-- An inversion is reported but **never auto-corrected**: moving a
-  landmark to satisfy the order would invent a measurement rather than
-  repair one. The dialog offers *Measure again* – which selects the
-  landmark found on the wrong side, not the reference it was compared
-  with – and *Save without correcting*; *Auto-correct* only appears when
-  there is an extreme-point violation, the only kind a snap can repair.
-- Same tolerance as the extremes, `max(5 px, 0.003 * Bl)`, and the same
-  invariances: heights are read perpendicular to the body axis, segment
-  by segment on a curved specimen, and the dorsal side from the relative
-  position of LM3 and LM4 – so the test holds head left or right,
-  photograph flipped or mirrored. A landmark left out is stepped over
-  rather than breaking the chain.
-- New internals `eye_order_violations()` and `convention_violations()`
-  in the bundled app; the violation tables gain a `kind` column
-  (`"extreme"` / `"order"`).
-
-## intraitR 1.16.0
-
-### `digitize_landmarks()` is now a console-declared session
-
-- The whole session is declared **at the console** and nothing about it
-  can be changed by hand once the app is open: `photo_dir`, `xlsx_path`,
-  `journal_dir`, `operator`, `mode`, `n_repeats`, `xlsx_flush_every`.
-  The folder text box, the single-photograph upload and the CSV
-  re-import are gone with it. A digitizing session is a piece of a
-  protocol, not a set of choices to re-make every morning: written down
-  in a script it is reproducible, and it stops being one of the things
-  that can silently differ between two operators.
-
-``` r
-
-digitize_landmarks(
-  photo_dir        = "T26/photos",
-  xlsx_path        = "T26/T26_landmarks.xlsx",
-  journal_dir      = "T26/landmark_journal",   # default
-  operator         = "AT",
-  xlsx_flush_every = 10,
-  mode             = "new")
-```
-
-- The **entry hinges 23 and 24 are now recorded** (`23_X ... 24_Y`), in
-  the workbook and in the journal. They are not landmarks and belong in
-  no shape analysis – `n_landmarks = 22` still reads a configuration,
-  and the TPS export still contains 22 points – but they define the
-  frames every FISHMORPH convention was applied in. Without them, a
-  specimen reopened for correction came back with a straight axis, and
-  its geometry silently stopped matching the one it had been digitized
-  under.
-  [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
-  now defaults to `points = 1:24` accordingly.
-- **One workbook, three sheets.** `measurements` (one row per specimen)
-  and `bias` (one row per repeated digitization, with `individual`,
-  `operator` and `replicate` columns) share the wide FISHMORPH layout
-  `1_X, 1_Y, ... 22_X, 22_Y`, read back by
-  `read_landmarks_xlsx(x_pattern = "{i}_X", y_pattern = "{i}_Y")`.
-  `bias_summary` is recomputed at every write: per individual and per
-  landmark, the median distance of the repeats to their own mean
-  position, in pixels and as a percentage of standard length, plus a
-  per-landmark overview across individuals. It says which points the
-  protocol places reproducibly while the session is still open, rather
-  than a month later.
-- **Three queues**, switchable from the action bar: `new` (photographs
-  absent from the workbook), `correct` (specimens already digitized,
-  whose points are reloaded onto the photograph for review – this
-  replaces the old CSV re-import) and `repeat` (the same photograph,
-  blind, until the individual has its complement of repeats).
-
-### An append-only journal behind the workbook
-
-- Every save is written FIRST to a session journal
-  (`landmarks_<operator>_<timestamp>.tsv`, one immutable line per
-  landmark, never rewritten), and only then to the in-memory sheets; the
-  workbook itself is rewritten in full every `xlsx_flush_every` records
-  and **atomically** (temporary file, then rename, keeping one
-  generation as `.prev.xlsx`). The previous design rewrote a single
-  table on every specimen, in a cloud-synced folder: a crash, a sync
-  lock or a power cut during that rewrite could cost the whole file
-  rather than the last specimen. The volume was never the problem; the
-  write pattern was.
-- New exported functions
-  [`landmark_journal_open()`](https://funtraits.github.io/intraitR/reference/landmark_journal_open.md),
-  [`landmark_journal_append()`](https://funtraits.github.io/intraitR/reference/landmark_journal_append.md),
-  [`landmark_journal_read()`](https://funtraits.github.io/intraitR/reference/landmark_journal_read.md),
-  [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
-  and
-  [`write_xlsx_atomic()`](https://funtraits.github.io/intraitR/reference/write_xlsx_atomic.md).
-  [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
-  rebuilds the wide sheets from the journals – keeping the last record
-  per specimen, or every record with `history = TRUE`, which makes each
-  correction auditable – and can write the workbook itself. It is the
-  recovery path, and the app exposes it as a button.
-- A line truncated mid-write is detected and dropped on read; journals
-  from two workstations merge by plain concatenation; a journal written
-  by an earlier version is filled with `NA` rather than refused.
-
-### A tabbed, themed interface
-
-- The side panel is a **tabset** – `Specimen`, `Repeats`, `Display`,
-  `Checks`, `Seed` – instead of one long scroll. The controls fall into
-  groups touched at different rhythms (once per specimen, once per
-  batch, once per session), and stacking them in one column put the ones
-  used constantly below the ones used never.
-- With `bslib` (new, in `Suggests`) the app uses a Bootstrap 5 theme,
-  cards and a wider sidebar; without it, the same content falls back to
-  the standard Shiny layout. No feature depends on `bslib`, only the
-  appearance does.
-- The header strip shows what the session IS – photograph folder,
-  workbook, journal, operator – since those are declared at the console
-  and are no longer editable. The `Repeats` tab shows the running
-  per-landmark bias table.
-
-### Breaking changes
-
-- [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-  now requires `photo_dir`; `autosave` is gone (the workbook and the
-  journal replace the CSV autosave), and `mlmorph_dir`, `predictor` and
-  `python` are still available but are no longer the first arguments.
-- `writexl` is required by
-  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-  (it writes the workbook), and `readxl` as soon as an existing workbook
-  is resumed from. Both were already in `Suggests`.
-
-## intraitR 1.15.0
-
-### Repeated digitization in the landmarking app
-
-- The
-  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-  app gains a **`Session type`** selector. Alongside `New photographs` –
-  the previous behaviour, unchanged and still the default – a
-  `Repeats (measurement error / operator bias)` mode keeps “Save & next”
-  on the **same photograph** and saves each pass separately, until the
-  individual carries the number of repeats asked for. This is what turns
-  a digitization batch into an estimate of its own technical variance,
-  which
-  [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
-  and
-  [`operator_disagreement()`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md)
-  need and which no amount of care in a single pass can supply.
-- Each pass is written under `"<code>_rep<N>"`, or
-  `"<code>_<operator>_rep<N>"` when the optional operator field is
-  filled – the convention already carried by the T-26 repeatability set.
-  The replicate number is always the last underscore-separated token and
-  the operator label is stripped of underscores, so identifiers
-  decompose unambiguously from the right. The exported CSV schema is
-  unchanged.
-- Repeats are **blind by default**: the configuration is cleared after
-  each save, so the next pass starts from the snout. A pass resumed from
-  the one just saved measures the operator’s reluctance to revise their
-  own points rather than the precision of the protocol, and drives `%ME`
-  towards zero. The box can be unticked, with a standing warning on
-  screen that the repeats are then not independent.
-- Progress, the `Skip` action and the saved-table summary now count
-  **individuals** rather than rows: an individual is done once it has
-  its full complement of repeats, and reopening a photograph half-way
-  through its series continues it instead of overwriting it.
-
-### Replicated identifiers read back by the importer
-
-- [`read_mlmorph_landmarks()`](https://funtraits.github.io/intraitR/reference/read_mlmorph_landmarks.md)
-  gains `replicate = "parse"` and `operator = "parse"`, which decompose
-  `"<individual>[_<operator>]_rep<N>"` identifiers into
-  `metadata$individual`, `metadata$operator` and `metadata$replicate` –
-  the grouping
-  [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
-  (`method = "procrustes"`) and
-  [`operator_disagreement()`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md)
-  expect. Parsing is never silent: `"fish_rep2"` is a valid individual
-  name, so the decomposition must be asked for. Identifiers without a
-  suffix keep `replicate = 1`, so a table mixing single and repeated
-  digitizations imports in one pass. The defaults (`replicate = 1L`,
-  `operator = "ml_morph"`) are unchanged.
-
-## intraitR 1.14.0
-
-### Extreme-point convention checked on save
-
-- The
-  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-  app now verifies, when “Save & next” is pressed, that **LM3 is the
-  most dorsal and LM4 the most ventral** landmark of the body outline –
-  the definition of `Bd` as the maximum body depth. Nothing is written
-  until the specimen passes or the operator decides. A dialog offers
-  three routes: **measure again** (the offending landmark becomes active
-  and the view centres on it), **auto-correct** (LM3, resp. LM4, takes
-  the height of the point overshooting it while keeping its position
-  along the axis, so `Bd` grows and the 3-4 perpendicularity is
-  preserved), or **save without correcting**. Toggled by the new “Check
-  LM3 / LM4 (extremes) on save” box, on by default.
-- Heights are perpendicular coordinates read **in each point’s own body
-  segment** (the frames `propagate_conventions()` already uses), so a
-  specimen photographed bent or tilted is not flagged for its posture,
-  and the dorsal side is inferred from the relative position of LM3 and
-  LM4 rather than from the image – the test holds head left or right,
-  photograph flipped, “Flip dorsal / ventral” ticked.
-- Excluded from the comparison: the caudal peduncle and fin (16-19),
-  outside the outline by definition; the appendage tips (12, 15); and
-  the **derived ventral points 8, 9 and 11**, which are computed from
-  LM4 itself, so testing LM4 against them is circular. That last
-  exclusion was settled on the data: over the 1,036 digitized T-26
-  specimens, including 8/9/11 flags 20.6% of the batch (198 of 213 flags
-  are those three points, median overshoot 0.5% of `Bl` – belly-line
-  noise); excluding them flags 1.5%, median overshoot 6.8% of `Bl`, and
-  the rate is flat from 0.003 to 0.02 `Bl`, so what remains is gross
-  error cleanly separated from noise.
-- Tolerance is `max(5 px, 0.003 * Bl)`. The absolute floor matters on
-  small photographs, where the relative term falls below click noise; it
-  costs no detection, since compliant T-26 specimens top out at -0.4 px
-  of overshoot (p98) while the smallest real breach is 11.8 px.
-- New export status **`"adjusted"`** for landmarks moved by that
-  correction, distinct from `"clicked"`: an auto-corrected `Bd` stays
-  auditable in the measurement table, is counted on the status line and
-  in the save message, and the landmark shows mauve in the numbered bar.
-
-## intraitR 1.13.0
-
-### The landmarking app rewritten around the operator
-
-The Shiny application behind
-[`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-has been rebuilt along the lines of the FISHMORPH digitizer, and its
-interface and comments are now entirely in English.
-
-- **Active-landmark model, from the first click.** The separate
-  “calibration clicks” list is gone: a coordinate matrix exists as soon
-  as a photograph is loaded, so the numbered bar is usable immediately
-  and any landmark can be selected and placed at any moment. The
-  calibration points are simply the landmarks the predictor needs.
-  Previously the bar only appeared *after* `Predict`, which left the
-  first five clicks with no way to revisit a mis-placed point except
-  starting over, and made the scale bar and the curvature point
-  unreachable until the model had run. A prediction now also preserves
-  the points already placed instead of replacing the whole matrix.
-
-- One point is active at a time; a click places it and the selection
-  advances. The numbered button bar doubles as a status display: active,
-  placed by hand, marked `NA`, automatic or derived, hinge, scale bar,
-  and *not yet placed* are now distinguishable at a glance. An
-  unreviewed point is therefore visible **before** it is exported rather
-  than after — which is the whole point of the change.
-
-- **One auto-advance sequence**, printed in the help from its own
-  definition so the two cannot drift apart:
-
-  ``` R
-  1 > 22 > 23 > 2 > 3 ... 19 > 20 > 21
-  ```
-
-  The axis first and complete, then the anatomical landmarks in numeric
-  order, then the scale bar. The only numbers skipped are the derived
-  points 8, 9 and 11 — stopping on them would invite a click that the
-  next derivation immediately undoes — and LM24, the spare hinge; both
-  stay reachable from the button bar, which is laid out in the same
-  order. Hinges are ordinary stops in that sequence — a special case
-  that skipped them left the selection stuck on LM22.
-
-- **Placing by hand is the default, not a mode.** The seed fires the
-  moment LM2 goes down, so from there the work is repositioning; there
-  is no button to press to get into that state and no calibration/review
-  phase distinction left. `Predict` stays available throughout as an
-  optional accelerator over the seeded configuration, rather than a step
-  to get past first — which also means the app is fully usable with no
-  trained predictor at all.
-
-- **One action bar above the photograph**, as in the FISHMORPH
-  digitizer: Previous / Next, Mark NA, Clear point, Save & next, Skip,
-  Write the table and the jump-to-photograph field, all on one row where
-  the eye already is. These used to be split between the side panel and
-  a phase-dependent block, which meant a trip across the window for
-  actions taken once per specimen. Only the editing *modes* (move the
-  block, auto constraints) stay below, since they change how the next
-  click is interpreted.
-
-- `Skip` advances to the next photograph **not yet saved**, wrapping
-  round to earlier gaps, rather than simply the next one — which is what
-  skipping is for in a batch, and is what distinguishes it from `Next`.
-
-- The bar is laid out as in the FISHMORPH digitizer, and in the same
-  order as the auto-advance: the broken axis first (1, 22, 23, 2), then
-  the anatomical points, then the derived points, the spare hinge and
-  the scale bar.
-
-- **Per-point provenance.** The exported table gains a `status` column
-  (`"clicked"`, `"predicted"`, `"derived"`, `"na"`, `"missing"`).
-  `"predicted"` flags a landmark still sitting exactly where the model
-  put it, never verified by eye; the count is shown on screen and
-  repeated when a specimen is saved. A coordinate table cannot carry
-  this distinction, and without it a measurement and a plausible guess
-  are indistinguishable downstream.
-
-### The configuration is seeded, not placed point by point
-
-- The calibration sequence is now the **axis, complete and first**: 1,
-  22, 23, 2 (the hinges on the bends; anywhere on the midline if the
-  fish is straight). Every convention downstream is expressed in the
-  frame of a body segment, so defining the axis last meant seeding
-  everything against the wrong reference.
-- As soon as that axis is placed, **every remaining landmark is dropped
-  onto the median FISHMORPH proportion** of the body (medians of
-  segment/`Bl` over 6,492 to 7,706 species) and the conventions are
-  applied, so the operator repositions points instead of placing them
-  one by one on a bare photograph. Sliders expose what the ratios do not
-  fix — position along the body, dorsal/ventral split, fin and jaw
-  angles — and a dorsal/ventral switch. **A point moved by hand is never
-  re-seeded.**
-- New per-point status `"seeded"`, distinct from `"predicted"`: a seeded
-  point was measured on *no* specimen, which is worse than one the model
-  guessed from this image. Both are reported on screen and again when a
-  specimen is saved, and seeded points are amber in the button bar.
-
-### Broken axis for curved specimens
-
-- The FISHMORPH conventions are defined against the antero-posterior
-  axis, so a fish photographed with a bent body had all of them
-  misstated at once by a single straight axis 1-2. Hinge points now
-  break the axis into up to four segments and each convention is applied
-  in the frame of the segment it belongs to: head on 1-22, body depth
-  and pectoral fin on 22-23, caudal peduncle and fin on 23-2.
-- Fixed an ordering fault in the derivation of the ventral points 8, 9
-  and 11: their abscissas were set *after* their heights had been
-  propagated, and since moving a point changes its coordinate in the
-  other segment’s frame, this pulled 8 and 9 off the belly line — by 9.8
-  px on a fish bent 35 degrees. Abscissas are now fixed first; the
-  residual is at machine precision up to at least 55 degrees of bend.
-- Landmark **22 is exported** —
-  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
-  already used it to split the standard length into (1-22) + (22-2) —
-  while 23 and 24 are entry aids and are never written out. Placing no
-  hinge reproduces the previous straight-axis behaviour exactly, so
-  nothing changes for straight specimens.
-
-### Large photographs no longer make the app unusable
-
-Field photographs are routinely 12 to 24 Mpx, and the plot redraws on
-*every* click, slider and checkbox. Three changes, none of which touch
-the coordinates — landmarks stay in original-pixel space, so nothing
-downstream is affected:
-
-- The image is **downsampled once at load and the full-resolution array
-  is dropped**. A `Display` selector above the photograph offers 800 /
-  1200 / 1600 / 2400 px or full resolution; 1200 px is the default. The
-  predictor still receives the file itself, at full resolution.
-- The display bitmap is **converted to a raster once**, instead of
-  handing [`rasterImage()`](https://rdrr.io/r/graphics/rasterImage.html)
-  a numeric array that it re-converts to colours on every redraw.
-- **Only the visible crop is drawn** when zoomed, rather than
-  rasterizing the whole bitmap and letting the device clip it: 8.8 % of
-  the pixels at 3.4x, 1.8 % at 7.6x. The crop arithmetic was checked
-  against the full-image draw over 105 view windows — the sub-image
-  lands on exactly the same coordinates and always covers the view.
-
-Zoom moved to a bar directly above the photograph: at high magnification
-the operator alternates between placing a point and re-framing, and a
-trip to the side panel between the two breaks that loop. The seed
-sliders moved to the bottom of the side panel, being set once per batch
-and then left alone.
-
-### Robustness and quality control
-
-- **Images are routed by their magic bytes, not their file extension.**
-  A sizeable minority of `.jpg` files in specimen archives are in fact
-  `PNG`, `GIF` or `BMP`; these used to fail outright and now open
-  through `magick` (added to `Suggests`; a message on start-up says so
-  when it is missing).
-- **Flipping a photograph remaps the points already placed** instead of
-  discarding them, and a separate display-only flip mirrors the image
-  while leaving the coordinates untouched — for the case where a
-  reloaded table is mirrored relative to its photograph.
-- **On-screen control table** of the eleven FISHMORPH segments as
-  digitized: in pixels, as a ratio to the standard length (comparable
-  across specimens, which raw pixels are not) and, once the scale bar is
-  placed, in millimetres. `Bl` is measured along the broken axis.
-- **Reference lines** (body outline, belly line, eye vertical, eye
-  circle, broken axis) drawn over the photograph, alongside the existing
-  FISHMORPH geometry check, which is now evaluated segment by segment.
-- Jump straight to a photograph by name (server-side `selectize`),
-  notifications on every state change, zoom centred on the active
-  landmark, and a “Clear this point” action distinct from “Mark NA” —
-  *not placed* and *not measurable* are different claims and no longer
-  collapse into the same `NA`.
-
-## intraitR 1.12.0
-
-### Phylogenetic imputation now works on precomputed eigenvalues
-
-- New
-  [`load_fishmorph_phylo_axes()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylo_axes.md):
-  reads `inst/extdata/Phylogeny/pcoaPhylogenyFish.rds`, the
-  **precomputed** PCoA axes of the bundled fish phylogeny (8,970
-  species, 10 axes), cached once per R session. Shipped as a compressed
-  `.rds` (540 kB); the loader also accepts the whitespace-separated text
-  format, dispatching on the file extension.
-- Every `"missforest_phylo"` option — in
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
-  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md),
-  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
-  and
-  [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
-  — now uses that table by default instead of eigendecomposing the
-  patristic distance matrix on every call. Beyond the cost (that matrix
-  is *n* × *n*, and the decomposition cubic in *n*), this fixes a
-  **comparability** problem: axes recomputed on whichever species
-  happened to be present defined a different coordinate system for each
-  analysis, so two imputations on two subsets did not live in the same
-  phylogenetic space. A `phylo_axes` argument accepts an alternative
-  table; passing `tree` still recomputes from that tree, as before.
-- The imputation message now names the **source** of the axes, so two
-  runs can be told apart.
-
-### `species` is now separate from `groups`
-
-- [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
-  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md),
-  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
-  and
-  [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
-  gain a `species` argument. The two roles were conflated under
-  `groups`, so `"missforest_phylo"` refused to work without a grouping
-  vector — yet the phylogeny only needs to know which species each row
-  belongs to, not a categorical predictor for the forest.
-- `species` is auto-detected (a `species` / `Species` / `Genus.species`
-  column, the metadata, or the specimen names). **`groups` is no longer
-  auto-filled with species**, except for `"impute_group_mean"`, where
-  the species genuinely is the group.
-- A `groups` factor with more than 53 levels is now dropped from the
-  missForest predictors with a warning instead of failing:
-  `randomForest` cannot handle more than 53 categories, so auto-filling
-  `groups` with thousands of species names would have made the
-  imputation error out.
-- Row subsets (`na_action = "omit"`, dropping rows with an unresolved
-  group) now carry `species` along, so the phylogenetic axes cannot end
-  up attached to the wrong specimens.
-
-## intraitR 1.11.0
-
-- [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-  has been re-implemented as a launcher for the bundled ml-morph
-  landmarking Shiny application, replacing the former point-and-click
-  wrapper around
-  [`geomorph::digitize2d()`](https://rdrr.io/pkg/geomorph/man/digitize2d.html).
-  Instead of digitizing every landmark by hand, the user loads a
-  photograph (or a folder of photographs), places a few calibration
-  clicks, and a trained ml-morph shape predictor proposes the 19
-  anatomical FISHMORPH landmarks for review, correction, quality scoring
-  and export to `CSV`/`tpsDig` (import the result with
-  [`read_mlmorph_landmarks()`](https://funtraits.github.io/intraitR/reference/read_mlmorph_landmarks.md)).
-  The Shiny app now ships inside the package
-  (`inst/shiny/landmarking_app/`) together with its Python worker
-  (`inst/mlmorph/`); the heavier ml-morph assets (trained predictor,
-  aligned dataset, `dlib`-enabled Python environment) remain external
-  and are located through the new `mlmorph_dir`, `predictor` and
-  `python` arguments (with auto-detection from the working directory and
-  `INTRAITR_MLMORPH_*` environment variables). The former `images`,
-  `scheme`, `n_landmarks`, `curvature` and `tpsfile` arguments are
-  removed. `shiny` is a new Suggested dependency, and
-  [`geomorph::digitize2d()`](https://rdrr.io/pkg/geomorph/man/digitize2d.html)
-  is no longer imported.
-
-## intraitR 1.10.0
-
-- [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
-  gains an `MBw` argument (`FALSE` by default). When `TRUE`, it adds a
-  maximum body weight (`MBw`) column derived from the supplied `MBl`
-  through the species-level allometric length-weight relationship
-  `W = a * MBl^b`, whose coefficients `a` and `b` are looked up in
-  FishBase with
-  [`rfishbase::length_weight()`](https://docs.ropensci.org/rfishbase/reference/length_weight.html)
-  (per species, the study with the highest coefficient of determination,
-  selected in base R). Species names are taken from `groups` or a
-  `species` column in `segments`; species without usable FishBase
-  coefficients yield `NA`, with a warning. The new `MBw` column is
-  placed immediately after `MBl`, and is subset consistently under
-  `na_action = "omit"`. `rfishbase` is a Suggested dependency, loaded
-  only when `MBw = TRUE`.
-
-## intraitR 1.9.0
-
-- New
-  [`plot_fishmorph_density()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_density.md)
-  draws, for a
-  [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
-  projection, a panel of kernel-density curves per functional axis and
-  per morphological ratio, comparing the whole FISHMORPH reference
-  database (a filled grey curve) with each focal species (a coloured,
-  translucently filled curve, using the same session-stable colours as
-  the ordination). Each curve is rescaled to a percentage of its own
-  maximum (peak = 100%) and drawn on a shared 0-100% axis, so species
-  with very different spreads or sample sizes stay directly comparable
-  in position and width rather than in raw height. Axis panels use the
-  projected PCA scores; ratio panels use the trait values on the
-  analysis (log) scale, so the reference and species curves are always
-  directly comparable. Arguments select which axes/ratios and which
-  species/specimens to show, and control the reference fill, the
-  per-species translucent fill (`species_fill`, `species_fill_alpha`),
-  rug, legend and panel grid. To support the ratio panels,
-  [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
-  now also stores the full reference trait matrix (analysis scale) as
-  `reference_traits` in its returned object (older projections without
-  it are handled by exact reconstruction from the frozen PCA).
-
-- [`plot.intrait_fishmorph_projection()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
-  gains an `arrows` argument (with `arrow_scale` and `arrow_col`) that
-  overlays the PCA trait loadings (`x$loadings`) on the FISHMORPH
-  functional space as biplot arrows – one per trait, drawn from the
-  origin along its loading on the two plotted axes and labelled with the
-  trait name – so a reader can see which morphological ratios drive each
-  axis. The loadings are unit-scaled direction vectors with no natural
-  length in score units, so they are rescaled to the current plot: the
-  longest arrow reaches `arrow_scale` (default `0.8`) of the distance
-  from the origin to the nearest plot edge, all arrows sharing that one
-  factor so their relative lengths and directions are preserved. The
-  overlay is purely visual and does not change the ordination. Works
-  with every `style` and composes with the reference background and
-  `itv_reference` layers.
-
-## intraitR 1.8.0
-
-- [`itv_proportion()`](https://funtraits.github.io/intraitR/reference/itv_proportion.md)
-  gains a `metric` argument selecting how the multivariate
-  functional-volume proportion is measured:
-  - `metric = "hull"` (default, unchanged): the convex-hull volume ratio
-    (Villeger, Mason & Mouillot, 2008) – an *extent*-based richness
-    driven by the outermost specimens.
-  - `metric = "tpd"`: a *density*-based richness, the Trait Probability
-    Density FRichness (Carmona et al. 2016, 2019), via
-    [`TPD::TPDs()`](https://rdrr.io/pkg/TPD/man/TPDs.html)/`TPDc()`/
-    `REND()`. A kernel density is estimated from the individuals and the
-    proportion is the volume of trait space it occupies above a
-    `tpd_alpha` density threshold, so sparse outliers are down-weighted
-    instead of stretching the volume as they do under a convex hull.
-    Every unit (the reference, the pooled focal set, each species) is
-    evaluated on the same fixed grid, keeping the volumes comparable; it
-    typically returns a smaller, more conservative proportion than the
-    hull for a centrally-clustered focal set. New arguments `tpd_alpha`
-    (default `0.99`) and `tpd_n_divisions` (default `NULL`, auto-scaled
-    with `volume_dims`) tune the density threshold and grid resolution.
-    Requires the Suggested ‘TPD’ package.
-- The `"intrait_itv_proportion"` object now records the metric used
-  (`$metric`) and a `$volume_scale` note; its
-  [`print()`](https://rdrr.io/r/base/print.html) method labels the
-  volume as “convex hull” or “TPD FRichness” accordingly. The per-trait
-  (range) proportions are identical under either metric.
-
-## intraitR 1.7.0
-
-- New
-  [`itv_proportion()`](https://funtraits.github.io/intraitR/reference/itv_proportion.md):
-  quantifies how much of the global functional diversity of the
-  reference database a group’s projected intraspecific trait variation
-  (ITV) occupies, from a
-  [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
-  projection, along two decompositions – **per trait** (univariate range
-  ratio: focal ITV range divided by the whole-reference range, on the
-  analysis scale) and **per functional volume** (multivariate
-  convex-hull volume ratio in the `volume_dims` leading principal
-  components, Villeger, Mason & Mouillot, 2008). Both are reported
-  pooled over all focal specimens and per species. Returns an
-  `"intrait_itv_proportion"` object with a dedicated
-  [`print()`](https://rdrr.io/r/base/print.html) method.
-- [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
-  gains a `volume_dims` argument (default `2L`) and now bundles the ITV
-  proportion in its result as `$itv_proportion` (an
-  `"intrait_itv_proportion"` object). The returned projection
-  additionally stores `scores_all`/`global_scores_all` (scores on all
-  components), `specimen_traits` (transformed specimen traits) and
-  `trait_ranges_reference` (per-trait reference envelope) so the
-  proportion can be recomputed on a different number of axes. Its
-  [`print()`](https://rdrr.io/r/base/print.html) method now reports the
-  pooled ITV-to-global volume and trait-range proportions.
-- The convex-hull volume uses the Suggested `geometry` package; when it
-  is not installed the volume proportions degrade to `NA` (never an
-  error), while the per-trait proportions are always available.
-
-## intraitR 1.6.0
-
-- [`plot.intrait_fishmorph_projection()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
-  now renders the FISHMORPH reference database as a **kernel-density
-  heatmap** by default (a white-to-red gradient with nested
-  highest-density-region contour lines), instead of an unreadably dense
-  ~9,000-point cloud. New arguments control the background and overlays:
-  - `reference_density` (default `TRUE`): draw the reference
-    distribution as the density heatmap. `density_probs` and
-    `density_palette` tune its contour probabilities and colour ramp.
-  - `reference_points` (default `FALSE`): draw the reference species as
-    the previous light point cloud (can be combined with the heatmap).
-    This is the explicit yes/no toggle for the reference species points;
-    the old `background = TRUE` default cloud is now off unless
-    requested.
-  - `itv_reference` (default `FALSE`): mark each focal species’ *own*
-    entry in the FISHMORPH database as a filled circle coloured to match
-    its species, so the single database morphotype can be compared with
-    the spread of the projected intraspecific trait variation. Matching
-    is case-insensitive and treats spaces/underscores as equivalent.
-  - `background` remains a master off-switch (`FALSE` suppresses every
-    reference layer).
-- [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
-  now stores `global_species`, the reference species labels aligned
-  row-for-row to `global_scores` (from a `"Species"` column when
-  present, else the reference row names), used by `itv_reference` above.
-- New internal helper `.density_field()` (kernel-density grid + HDR
-  contour levels) backing the reference heatmap; `.plot_ordination()`
-  gains `background_density`/`background_points`/`highlight` support,
-  shared with any ordination that supplies a background cloud.
-
-## intraitR 1.5.0
-
-- New
-  [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md):
-  builds a **fixed** functional trait space by PCA of a reference
-  FISHMORPH database (e.g. the ~9,000-species `fishmorph_data.csv`) and
-  projects new specimens – typically the individuals of a few focal
-  species from
-  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
-  – into that *same, frozen* space with
-  [`stats::predict()`](https://rdrr.io/r/stats/predict.html), without
-  re-fitting the ordination. This shows how much of the global
-  morphospace a group’s intraspecific trait variation (ITV) occupies
-  relative to the whole diversity of fishes, on axes defined once by the
-  reference alone. Arguments `select_species`/`select_specimens`
-  restrict which specimens are projected. The published FISHMORPH
-  database ships already `log10(x + 1)`-transformed while
-  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
-  returns raw ratios; the
-  `reference_prelogged`/`specimens_prelogged`/`log_transform` defaults
-  encode the correct combination so the two never end up on incompatible
-  scales (which would otherwise displace the projected points by a
-  large, spurious offset). A
-  [`print()`](https://rdrr.io/r/base/print.html) method summarises the
-  space, and a [`plot()`](https://rdrr.io/r/graphics/plot.default.html)
-  method draws the reference database as a light background cloud with
-  the projected specimens on top, in `style = "hull"` (per-species ITV
-  footprint), `"spider"`, `"density"`, or `"points"`.
-
-- [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)/[`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)’s
-  shared internal plotting engine gained an optional background point
-  cloud (used by
-  [`plot.intrait_fishmorph_projection()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md));
-  existing plots are unchanged.
-
-## intraitR 1.4.0
-
-- New
-  [`operator_disagreement()`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md):
-  screens a landmark data set in which the **same individuals were
-  digitized by several independent operators** (as produced by
-  `load_t26_saudrune_landmarks(source = "operators")`) and returns, for
-  every individual, a single inter-operator disagreement index, an
-  automatic robust “at-risk” flag (median + `threshold`\*MAD, the same
-  rule as
-  [`detect_outliers()`](https://funtraits.github.io/intraitR/reference/detect_outliers.md)),
-  and – where identifiable – the operator responsible for the
-  disagreement. It is the population-level, one-number-per-individual
-  companion to the by-eye overlay of
-  `plot_fishmorph_shapes(..., operator = TRUE)`: instead of paging
-  through each fish to spot the ones whose operators drew visibly
-  different shapes, it ranks all individuals and names the outlier
-  operator. The magnitude is the mean across landmarks of the
-  root-mean-square across-operator displacement from the per-landmark
-  consensus, normalised (per individual) by centroid size, an
-  inter-landmark reference distance, or standard length – the
-  inter-operator analogue of the intra-operator
-  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md).
-  Operator attribution uses a leave-one-out consensus of the other
-  operators (identifiable for three or more operators); a
-  `reference_operator` argument (e.g. a trusted expert) makes
-  attribution identifiable for two-operator individuals as well. Returns
-  `by_individual`, `by_operator` (which operator is systematically
-  discordant), and `by_landmark` (which anatomical points operators
-  disagree on most) tables, with dedicated
-  [`print()`](https://rdrr.io/r/base/print.html) and
-  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods
-  (`type = "individual"`/`"operator"`/`"landmark"`).
-
-## intraitR 1.3.0
-
-- New
-  [`read_mlmorph_landmarks()`](https://funtraits.github.io/intraitR/reference/read_mlmorph_landmarks.md):
-  imports the long-format measure table exported by the **ml-morph**
-  shape predictor or by the interactive landmarking Shiny app (columns
-  `specimen`, `landmark`, `X`, `Y`, optional `mm_per_px`) directly into
-  an `"intrait_landmarks"` object. It carries the per-specimen
-  calibration scale into `metadata$mm_per_px`, flags uncalibrated
-  individuals via `metadata$has_scalebar`, and optionally joins a
-  specimen-level metadata table (e.g. species identifications) by a key
-  column. Wraps
-  [`read_landmarks_csv()`](https://funtraits.github.io/intraitR/reference/read_landmarks_csv.md).
-
-- [`plot()`](https://rdrr.io/r/graphics/plot.default.html) for
-  [`itv_accumulation()`](https://funtraits.github.io/intraitR/reference/itv_accumulation.md)
-  objects gains a `legend` argument. With many groups or trait panels
-  the per-panel colour/line-type keys overplotted the curves; the
-  default is now `legend = "panel"`, which draws a single shared legend
-  in a dedicated cell of the panel grid. `legend = "each"` restores the
-  previous per-panel keys and `legend = "none"` suppresses them.
-
-- New
-  [`fd_accumulation()`](https://funtraits.github.io/intraitR/reference/fd_accumulation.md):
-  rarefies community **functional diversity indices** against
-  intraspecific sampling effort – the community-level companion to
-  [`itv_accumulation()`](https://funtraits.github.io/intraitR/reference/itv_accumulation.md).
-  It draws balanced sub-samples of `n` individuals per species, pools
-  them into one assemblage in a fixed trait space built exactly as in
+## intraitR 1.47.0
+
+- CORRECTION de `trait_space(remove_outliers = TRUE)` : une colonne
+  devenue constante une fois les individus aberrants retirés faisait
+  échouer [`prcomp()`](https://rdrr.io/r/stats/prcomp.html) (« cannot
+  rescale a constant/zero column ») ; elle est maintenant écartée avec
+  un avertissement. Les exemples n’ordonnent plus que les neuf ratios
+  (et non `quality`/`date`), et ceux
+  d’[`itv_accumulation()`](https://funtraits.github.io/intraitR/reference/itv_accumulation.md),
+  [`fd_accumulation()`](https://funtraits.github.io/intraitR/reference/fd_accumulation.md)
+  et
+  [`tpd_dissimilarity()`](https://funtraits.github.io/intraitR/reference/tpd_dissimilarity.md)
+  utilisent `scale_action = "pixels"` (6 spécimens T-26 sans barre
+  d’échelle). `R CMD check` :
+  [`fishmorph_db_connect()`](https://funtraits.github.io/intraitR/reference/fishmorph_db_connect.md)
+  documentée, `htmltools::` remplacé par `shiny::`.
+
+- CORRECTION de la vignette d’introduction (`intraitR-intro`), qui ne se
+  construisait pas (`build_vignettes = TRUE`) : six photographies T-26
+  sans barre d’echelle avaient des ratios NA et
   [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  (shared PCA machinery, with `n_axes`/`var_threshold` axis selection),
-  and recomputes each requested index, estimating the effort `n*` at
-  which the index stabilises. Functional dispersion (FDis), Rao’s
-  quadratic entropy and functional richness (FRic) are computed
-  directly; functional evenness (FEve) and divergence (FDiv) are
-  delegated to [`FD::dbFD()`](https://rdrr.io/pkg/FD/man/dbFD.html) when
-  the Suggested `FD` package is installed. Functional richness honours a
-  `method` argument (`"convexhull"`, `"dendrogram"`, `"tpd"`,
-  `"hypervolume"`), reusing the same richness engines and tuning
-  arguments as
-  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md).
-  As in
-  [`itv_accumulation()`](https://funtraits.github.io/intraitR/reference/itv_accumulation.md),
-  richness uses the accumulation/asymptote framing (with a guard that
-  rejects an implausible extrapolated asymptote) while the
-  dispersion/regularity indices use the convergence/precision framing.
-  Dedicated [`print()`](https://rdrr.io/r/base/print.html) and
-  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods;
-  parallelised via `future.apply`.
-
-- `load_t26_saudrune_landmarks(source = "repeatability")` no longer
-  errors with “duplicate ‘row.names’”: the repeatability table reuses
-  per-replicate `specimen` ids (e.g. `"T-26-0004_rep1"`) across the two
-  operators that redigitised it, so the operator label is now appended
-  to keep every digitisation uniquely identified. Dataset documentation
-  updated to the current T-26 data (four operators in `"operators"`; two
-  in `"repeatability"`).
-
-- New
-  [`tpd_dissimilarity()`](https://funtraits.github.io/intraitR/reference/tpd_dissimilarity.md):
-  intraspecific-variability-aware functional dissimilarity between
-  species, computed as `1 - overlap` of their Trait Probability Density
-  kernels (Carmona et al., 2016, 2019) via the Suggested `TPD` package.
-  Unlike a Euclidean distance between species means, it lets
-  within-species spread shape the distances (species whose individuals
-  overlap in trait space are treated as functionally closer). Returns a
-  species-by-species dissimilarity matrix (with its shared/non-shared
-  decomposition) as an `"intrait_tpd_dissim"` object with
-  [`print()`](https://rdrr.io/r/base/print.html),
-  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) (a heat map)
-  and [`as.dist()`](https://rdrr.io/r/stats/dist.html) methods, usable
-  directly for ordination, clustering, or distance-based diversity
-  indices.
-
-## intraitR 1.2.0
-
-- New
-  [`itv_accumulation()`](https://funtraits.github.io/intraitR/reference/itv_accumulation.md):
-  builds a rarefaction/accumulation curve of intraspecific trait
-  variability against the number of individuals sampled, and estimates
-  the sample size `n*` at which that variability stabilises – the
-  trait-based analogue of a species accumulation curve. For each
-  sub-sample size `n`, `n_perm` sub-samples of `n` individuals are drawn
-  without replacement per group and the metric is recomputed. The
-  meaning of “stabilises” adapts to the metric: for *dispersion* metrics
-  (`"variance"`, the multivariate trace of the trait covariance; `"sd"`;
-  `"cv"`) the sample estimator is unbiased, so the expected curve is
-  flat and `n*` is a *precision* threshold (smallest `n` at which the
-  resampling band’s relative half-width stays below `conv_tol`); for the
-  *accumulation* metric (`"range"`) the curve genuinely saturates and
-  `n*` is taken at a fraction (`asymptote_prop`) of a fitted
-  Michaelis-Menten or negative- exponential asymptote. Parallelised via
-  `future.apply` like
-  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)/[`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md),
-  with dedicated [`print()`](https://rdrr.io/r/base/print.html) and
-  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods. For
-  accumulation metrics the
-  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) method draws
-  a rarefaction/extrapolation curve: the observed portion solid, the
-  fitted saturating model extended in a dashed line beyond the sampled
-  range up to `n*` (controllable via `extrapolate`/`xmax`), and the
-  fitted asymptote as a horizontal reference. The fitted
-  half-saturation/ rate parameter is returned as a new `k` column of
-  `$summary`.
-
-## intraitR 1.1.0
-
-- [`plot_fishmorph_shapes()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_shapes.md)
-  gains per-specimen colouring: `color_by` (a metadata column name such
-  as `"operator"`/`"species"`, the special value `"specimen"` for one
-  colour per shape, or a grouping vector), the `operator = TRUE`
-  shortcut for `color_by = "operator"`, a custom `palette`, and a
-  `legend`. To keep overcrowded overlays legible, `max_colors` (default
-  `10`) reverts to the single `color` – with a message – when the
-  requested colouring would need more than that many distinct colours.
-
-- [`plot()`](https://rdrr.io/r/graphics/plot.default.html) for
-  [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md)
-  results now draws the mean (multivariate) %ITV reference line bold and
-  in colour, and labels it with its value, instead of the previous faint
-  dotted grey line.
-
-- **Breaking rename**: `morpho_space()` is now
-  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
-  and its output class `"intrait_morphospace"` is now
-  `"intrait_shapespace"` (with the corresponding
-  [`print()`](https://rdrr.io/r/base/print.html)/[`plot()`](https://rdrr.io/r/graphics/plot.default.html)
-  methods renamed accordingly). The term “morphological space” was
-  ambiguous for what is, specifically, the ordination of Procrustes
-  (GPA) shape coordinates; “shape space” names it unambiguously. Figure
-  titles now read “Shape space” instead of “Morphological space”. The
-  linear-ratio function
-  [`morpho_ratios()`](https://funtraits.github.io/intraitR/reference/morpho_ratios.md)
-  is unchanged, as it concerns classical morphometric ratios rather than
-  the shape space.
-
-- New function
-  [`exclude_specimens()`](https://funtraits.github.io/intraitR/reference/exclude_specimens.md):
-  removes one or more known-bad (e.g. mismeasured/mis-digitized)
-  specimens from an `"intrait_landmarks"` object (as returned by
-  [`read_tps()`](https://funtraits.github.io/intraitR/reference/read_tps.md),
-  [`read_landmarks_csv()`](https://funtraits.github.io/intraitR/reference/read_landmarks_csv.md),
-  [`read_landmarks_xlsx()`](https://funtraits.github.io/intraitR/reference/read_landmarks_xlsx.md),
-  or
-  [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md))
-  or a raw landmark array, right after loading, so every downstream step
-  ([`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md),
-  [`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md),
-  [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md),
-  …) simply never sees it – rather than repeating an ad hoc
-  [`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html)
-  on derived output
-  (`segments`/`ratios`/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md))
-  at every stage of a pipeline, which is easy to apply inconsistently
-  and, in the case of a typo/formatting mismatch (e.g. a leading zero),
-  can silently filter out nothing at all. `coords`, `scale`, and
-  `metadata` are filtered consistently by specimen name; any
-  pre-existing per-specimen audit-trail attribute
-  (`standardization_log`, `correction_log`, `corrected`,
-  `orientation_log`) is filtered the same way, so it never refers to a
-  specimen no longer in the data. Every exclusion is recorded, with an
-  optional `reason`, in a `$removed_specimens` data.frame that
-  accumulates across successive calls (mirroring
-  [`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md)’s
-  own `remove_outliers`/`$removed_outliers`), and is now surfaced by
-  [`print.intrait_landmarks()`](https://funtraits.github.io/intraitR/reference/print.intrait_landmarks.md).
-  Explicitly errors, rather than silently doing the wrong thing, for an
-  `"intrait_gpa"` object (Procrustes alignment is computed jointly
-  across all specimens, so deleting a row after the fact does not undo
-  its effect on the consensus shape) or an unknown specimen name (a typo
-  no longer just matches, and removes, nothing).
-
-- [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md)’s
-  pipeline is now also available as two separate functions, for
-  workflows that want to inspect or use its value-preserving
-  standardization on its own before deciding whether its value-changing
-  correction is appropriate:
-  [`standardize_geometry()`](https://funtraits.github.io/intraitR/reference/standardize_geometry.md)
-  performs steps 1-3 only (isotropic rescale, scale-bar repositioning,
-  rotation to a horizontal axis anchored at `Y = 0.5`) and, because
-  these are all rigid/ isotropic transforms, never changes any FISHMORPH
-  segment or ratio value;
-  [`correct_geometry_conventions()`](https://funtraits.github.io/intraitR/reference/correct_geometry_conventions.md)
-  performs step 4 only (active correction of landmarks still violating
-  the five geometric-scatter conventions once the axis is horizontal),
-  and does change values, so it requires already-standardized input (the
-  output of
-  [`standardize_geometry()`](https://funtraits.github.io/intraitR/reference/standardize_geometry.md)
-  or
-  [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md)).
-  [`standardize_geometry()`](https://funtraits.github.io/intraitR/reference/standardize_geometry.md)
-  gains an `orient` argument (default `TRUE`) that calls
-  [`standardize_orientation()`](https://funtraits.github.io/intraitR/reference/standardize_orientation.md)
-  first, internalizing the manual chaining earlier versions of this
-  package’s documentation already recommended
-  (`fish %>% standardize_orientation() %>% standardize_geometry(orient = FALSE)`
-  is equivalent to the default `standardize_geometry(fish)`).
-  [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md)
-  itself is unaffected and remains the same one-call pipeline as before,
-  with identical messages, warnings, and numerical output (implemented
-  by extracting the shared per-specimen geometry math into internal
-  helpers, `.geometry_standardize_one()`/ `.geometry_correct_one()`,
-  reused by all three functions, so its orchestration/messaging code is
-  untouched) – confirmed equivalent to
-  `standardize_geometry(landmarks, ..., orient = FALSE)` followed by
-  [`correct_geometry_conventions()`](https://funtraits.github.io/intraitR/reference/correct_geometry_conventions.md)
-  (see `test-standardize_geometry.R`’s reproduction test).
-
-- [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
-  gains a `landmarks` argument: the same `"intrait_landmarks"`
-  object/array originally passed to
-  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md).
-  A missing or zero-length scale bar (landmarks 20-21) makes every one
-  of
-  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)’s
-  11 measurements `NA` for that specimen, since the pixel-to-centimetre
-  conversion factor is a single per-specimen scalar applied to all of
-  them – which previously also made all nine ratios `NA` for that
-  specimen, even when every anatomical landmark (1-19) was perfectly
-  digitized. Because a ratio is always (segment / segment) computed
-  *within* the same specimen, the unknown/missing scale factor cancels
-  out of the division exactly, so `landmarks` lets these nine ratios
-  (only – not the absolute segments, nor `MBl`) be recomputed directly
-  from raw pixel-space landmark distances instead. Only applied to
-  specimens whose `segments` row is entirely `NA` (the missing-scale-bar
-  signature); a specimen with just one missing anatomical landmark, or a
-  single `geometry_check`-flagged segment, is left untouched, since
-  mixing pixel-space and calibrated values for the same specimen would
-  defeat that quality control. New internal helper
-  `.fishmorph_pixel_segments()` (`R/utils-internal.R`) extracts the
-  shared pixel-distance geometry engine out of
-  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
-  (a pure refactor, no behaviour change there) so both functions compute
-  the same 11 raw measurements identically.
-
-- Fixed a bug where the `expect_equal()` reference value in two
-  [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
-  regression tests (`method = "impute_mean"` and `"impute_group_mean"`)
-  was computed from the column/group mean *including* the very point
-  about to be deleted and imputed, rather than excluding it as
-  [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
-  itself does (`mean(x, na.rm = TRUE)` computed *after* the value is set
-  to `NA`). This was a test-only defect, caught by a real
-  `devtools::test()` run;
-  [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)’s
-  own imputation logic was unaffected.
-
-- Fixed a bug where
+  les refusait. La vignette utilise `scale_action = "pixels"` (ratios
+  exacts, mesures en pixels) et l’explique. Et
   [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  could crash with a cryptic
-  `Error in while (stopCriterion(...)) : missing value where TRUE/FALSE needed`
-  under `na_action = "missforest"` (and could otherwise silently corrupt
-  the ordination under any `na_action`) if a trait column contained a
-  non-finite value (`Inf`/`-Inf`), typically from a ratio with a
-  zero-length denominator segment (e.g. a degenerate or duplicated
-  landmark; see
-  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)/[`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)).
-  `Inf`/`-Inf` are not detected by
-  [`is.na()`](https://rdrr.io/r/base/NA.html)/[`anyNA()`](https://rdrr.io/r/base/NA.html),
-  so such a value used to pass straight through every `na_action`
-  unimputed;
-  [`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html)’s
-  internal convergence check then computed `Inf - Inf = NaN`, crashing
-  its `while()` loop.
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  now checks for non-finite trait values unconditionally, before any
-  missing-value handling, and stops with an informative error naming the
-  offending column(s) and row(s), regardless of `na_action`.
+  y recevait toute la table : la DATE et la QUALITE de la photographie
+  entraient dans l’ordination comme des traits (11 “traits”) ; elle
+  recoit maintenant les 9 ratios.
 
-- [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)
-  gains a `composition` argument: a communities x species matrix
-  (presence/absence or abundance; only presence is used) giving the
-  species composition of one or more communities/sites. When supplied,
-  the same centroid-based-reference-vs- bootstrap-distribution principle
-  used for the whole species pool is repeated independently for each
-  community, restricted to that community’s own species, using the same
-  shared PCA space and method-specific auxiliary quantities (kernel
-  bandwidth/grid) so results stay comparable across communities. Results
-  are returned in a new `$communities` data.frame (`community`,
-  `n_species`, `fd_obs`, `fd_expected`, `fd_sd`, `ses` – Standardized
-  Effect Size, `(fd_obs - fd_expected) / fd_sd` – and `p_value`) and a
-  new `$community_boot` list of the raw per-community bootstrap vectors,
-  in addition to the unchanged whole-pool `fd_ref`/`fd_boot` outputs.
-  [`print()`](https://rdrr.io/r/base/print.html) now reports a
-  per-community summary when present, and
-  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) gains a
-  `type = c("pool", "communities")` argument: `"communities"` draws a
-  dot (“forest”) plot of `ses` per community, coloured by significance –
-  chosen over a per-community histogram grid (impractical for more than
-  a handful of communities) or a raw obs-vs-expected scatter (not
-  directly comparable across communities with different species
-  richness, unlike `ses`). Species-column matching is defensive against
-  a mismatch between `composition`’s column names and `groups`’s species
-  labels: duplicated column names now error immediately (rather than
-  silently using the first match), and unmatched columns are reported by
-  name, not just by count, to make a spelling/case/whitespace mismatch
-  easy to spot. Fixed a bug where a genuine `""` species label (e.g. an
-  unresolved/ unidentified specimen, as can occur in real field data)
-  caused `composition[, matched_sp]` to fail with “subscript out of
-  bounds” – `[`-indexing never matches a `""`-named column even when one
-  exists (see [`?Extract`](https://rdrr.io/r/base/Extract.html)); column
-  selection now goes through
-  [`match()`](https://rdrr.io/r/base/match.html) instead (the same fix
-  already used in
-  [`group_colors()`](https://funtraits.github.io/intraitR/reference/group_colors.md)’s
-  own `""`-label handling). `plot(type = "communities")` now always
-  keeps `SES = 0` (the dashed reference line and every point’s
-  connecting segment) inside the plotted x-range, even when every
-  community’s `ses` sits far from 0 relative to their own spread –
-  previously the x-axis limits were computed only from `range(ses)`,
-  which could push 0 off-screen and silently truncate the reference
-  line/segments at the plot edge.
+- AIDE : deux vignettes jumelles,
+  [`vignette("apps-workflow")`](https://funtraits.github.io/intraitR/articles/apps-workflow.md)
+  (anglais) et
+  [`vignette("apps-workflow-fr")`](https://funtraits.github.io/intraitR/articles/apps-workflow-fr.md)
+  (francais) – presentation du package et marche a suivre a travers les
+  applications : page d’accueil, hub (Setup, Select, Digitize, Results
+  et ses filtres), digitizer (points, prediction, raccourcis, files new
+  / correct / repeat, controles), analyses et export du projet
+  reproductible, applications de FishInTrait, equivalents en console,
+  depannage. Dans *Articles* du site pkgdown. Menu *? Help* (EN / FR)
+  dans le hub, la page d’accueil et l’application d’analyses.
 
-- [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
-  gains three statistical imputation methods alongside the existing
-  geometric-morphometric `"tps"`/`"regression"`: `"impute_mean"`,
-  `"impute_group_mean"`, and `"missforest"`, mirroring
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)’s
-  `na_action` options but applied directly to raw landmark coordinates
-  rather than derived traits. `"impute_mean"` replaces a missing
-  coordinate with its column mean across all specimens;
-  `"impute_group_mean"` uses the within-group mean instead (new `groups`
-  argument, auto-detected from `landmarks$metadata$species` when
-  available; falls back to the overall mean, with a warning, for a group
-  entirely missing that coordinate); `"missforest"` uses
-  [`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html)
-  across all landmark coordinates jointly, with `groups` as an optional
-  auxiliary predictor (new `missforest_ntree`/ `missforest_maxiter`
-  arguments). These treat each coordinate as an ordinary numeric
-  variable and ignore shape covariation, so `"tps"`/`"regression"`
-  remain preferable whenever enough complete specimens are available;
-  the statistical options are meant for exploratory use or when too few
-  complete configurations remain for
-  [`geomorph::estimate.missing()`](https://rdrr.io/pkg/geomorph/man/estimate.missing.html)
-  to work reliably.
+- [`read_digitizer_workbook()`](https://funtraits.github.io/intraitR/reference/read_digitizer_workbook.md)
+  (exportee) : lit une feuille du classeur du digitizer avec TOUS ses
+  points jusqu’a 25, a leur position (charnieres 22/24/25 comprises, 23
+  absent = NA) ; c’est le lecteur des analyses et du tableau des traits
+  du hub.
 
-- New function
-  [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md):
-  derives phylogenetic ordination axes from a tree
-  ([`ape::drop.tip()`](https://rdrr.io/pkg/ape/man/drop.tip.html) +
-  [`ape::cophenetic.phylo()`](https://rdrr.io/pkg/ape/man/cophenetic.phylo.html) +
-  [`ape::pcoa()`](https://rdrr.io/pkg/ape/man/pcoa.html), with optional
-  [`phytools::force.ultrametric()`](https://rdrr.io/pkg/phytools/man/force.ultrametric.html)
-  coercion and Cailliez/Lingoes negative-eigenvalue correction),
-  returning a `species` + `PCoA1..k` `data.frame` deliberately shaped to
-  be passed directly as `traits` to \[trait_space()\]. This lets a
-  phylogenetic space be built with the exact same ordination/bootstrap
-  machinery already used for morphological trait spaces
-  (\[bootstrap_functional_space()\], \[species_sensitivity()\]), so
-  functional and phylogenetic diversity loss can be compared using the
-  same statistics. Deliberately scoped to the generic tree-to-axes step
-  only: taxonomic name resolution, tree sourcing, and external
-  trait/occurrence data assembly are considered out of scope and are
-  left to the user’s own data-preparation code. Adds `ape` and
-  `phytools` to `Suggests`.
+- HUB, PAGE *4. Results* : la selection se fait par MENUS DEROULANTS
+  (vide = tout) au lieu des quatre boutons de portee : dossiers (sites),
+  sous-dossiers (dates, limites aux dossiers choisis), especes,
+  PROVENANCE (campaign, museum, … ; `literature`) et, quand la
+  litterature est choisie, ETUDES. Chaque choix affiche ses effectifs ;
+  une ligne resume la selection (photographies, mesurees, especes,
+  enregistrements de litterature, par provenance). *This sub-folder* et
+  *Clear the filters* ; *Only the photographs selected in 2. Select*
+  remplace la portee *Selection*.
 
-- New `na_action`/`method` option, `"missforest_phylo"`, added
-  everywhere `"missforest"` was already available –
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
-  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md),
-  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md),
-  and
-  [`impute_landmarks()`](https://funtraits.github.io/intraitR/reference/impute_landmarks.md)
-  – augmenting
-  [`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html)’s
-  predictors with phylogenetic PCoA axes (\[phylo_pcoa()\]) computed
-  from a `tree` (a user-supplied
-  [`ape::phylo`](https://rdrr.io/pkg/ape/man/read.tree.html) object, or,
-  by default, the package’s own newly bundled
-  [`load_fishmorph_phylogeny()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylogeny.md)
-  tree), matched to each row’s `groups` (species) label. This lets
-  imputation borrow information from phylogenetically related species,
-  not just from correlations among traits/coordinates and the raw
-  species factor, as in plain `"missforest"`. Matching is robust to
-  whether species labels use a space, underscore, or dot as the
-  genus/species separator (new internal `.canon_species_name()` helper),
-  since the bundled tree’s tip labels use the `"Genus.species"`
-  convention. Phylogenetic augmentation is designed to never turn a
-  working `"missforest"` call into a hard error: if no `groups`/`tree`
-  is available, fewer than 3 species can be matched to the tree, or the
-  `ape` package is missing, `"missforest_phylo"` falls back to plain
-  `"missforest"` (no phylogenetic predictors) with an explanatory
-  [`warning()`](https://rdrr.io/r/base/warning.html) rather than
-  stopping. New shared arguments `tree` (default `NULL`, meaning “use
-  the bundled phylogeny”) and `missforest_phylo_k` (default `10`, the
-  number of phylogenetic PCoA axes used as auxiliary predictors) added
-  alongside the existing `missforest_ntree`/ `missforest_maxiter`.
+- Provenance : la table des especes du hub accepte une colonne `source`
+  (ou `data_source`, `provenance`) ;
+  [`measure_queue()`](https://funtraits.github.io/intraitR/reference/measure_queue.md)
+  la rend (colonne `source`). Nouvel argument
+  `launch_measure_hub(literature = )` : des enregistrements de traits
+  SANS photographie (jeux publies), offerts sous la provenance
+  `literature` ; ils entrent dans le tableau Traits et dans les analyses
+  fondees sur les ratios, jamais dans les tableaux de points, la forme
+  ou l’erreur de mesure.
 
-- New function
-  [`load_fishmorph_phylogeny()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylogeny.md)
-  and bundled data file
-  `inst/extdata/Phylogeny/FishMORPH_Phylogeny.rds`: loads the package’s
-  default phylogenetic tree (an
-  [`ape::phylo`](https://rdrr.io/pkg/ape/man/read.tree.html) object,
-  10,705 tips) used as the default `tree` for `"missforest_phylo"`
-  (above) and available directly as input to
-  [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md).
-  **Provenance note**: the exact source/citation of this tree has not
-  been independently verified in this package’s documentation; users
-  relying on it for publication should confirm and cite its original
-  source themselves (e.g. the phylogeny associated with the FISHMORPH
-  trait database, Brosse et al.
+- Analyses (`launch_intrait_analyses(literature = )`,
+  `write_analysis_project(literature = )`) : les enregistrements de
+  litterature rejoignent les ratios (provenance dans le tableau 1,
+  filtre *Provenance*, `analysis_params(sources = )`) ; projet sans
+  landmarks possible (litterature seule). CHOIX DES RATIOS
+  (`analysis_params(ratios = )`, cases a cocher) avec, par provenance et
+  par etude, le % d’enregistrements portant chaque ratio : LUIZ2022 n’a
+  pas PFv (0 %), donc AUCUN de ses 4 302 enregistrements n’entre avec
+  les neuf ratios ; decocher PFv les fait entrer (16 especes sur la
+  campagne de test). Le rapport dit quels ratios ont ete ecartes et
+  demande de le justifier ; tous les “nine ratios” deviennent le nombre
+  de ratios utilises. Citations du rapport corrigees (“with the
+  itv_index function \[@…\]” : le prefixe sans reference n’etait pas
+  reconnu par pandoc).
 
-  2021. rather than citing
-        [`?load_fishmorph_phylogeny`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylogeny.md).
+- NOUVELLE APPLICATION D’ANALYSES :
+  [`launch_intrait_analyses()`](https://funtraits.github.io/intraitR/reference/launch_intrait_analyses.md),
+  ouverte depuis l’onglet *4. Results* du hub (bouton *Analyses -\>
+  reproducible project (.zip)*) sur les photographies mesurees de la
+  portee choisie, ou seule sur un classeur du digitizer. Onglets Donnees
+  (echantillon, espece avec au moins n individus, sites, corrections),
+  Traits (9 ratios par espece, CV), Espace des traits (+ test de
+  dispersion par permutation, Holm), FISHMORPH (projection, part de
+  l’espace global), ITV (partition inter/intra, emboitee par site ;
+  courbes de rarefaction et n\*), Forme (GPA, espace des formes,
+  disparite), Erreur de mesure (feuille `bias`).
 
-- [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md)
-  bug fix: species-name matching between `species`/`tree` only
-  normalised spaces and underscores (`gsub(" ", "_", ...)`), so it
-  silently failed to match any species against a tree using
-  dot-separated tip labels (`"Genus.species"`), as the newly bundled
-  [`load_fishmorph_phylogeny()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylogeny.md)
-  tree does. Matching now goes through the same `.canon_species_name()`
-  helper used by `"missforest_phylo"` (above), collapsing runs of
-  spaces, dots, and underscores to a single underscore before
-  comparison; matched species are consequently returned in this
-  canonical underscore form.
+- EXPORT EN PROJET REPRODUCTIBLE :
+  [`write_analysis_project()`](https://funtraits.github.io/intraitR/reference/write_analysis_project.md)
+  (et l’onglet *Export*) ecrit l’analyse avec l’architecture des papiers
+  publies –
+  `scripts/00_START ... 01_DATA ... 02_ANALYSIS ... 03_FIGURE ... 04_SUPP ... 05_STAT`,
+  `utils/` (dont `parameters.R`, seul endroit des parametres),
+  `data/raw|processed`, `data/metadata.csv`, `results/figures|tables`,
+  `run_all.R`, `README.md`, `.Rproj`, `.gitignore`, `session_info.txt` –
+  puis EXECUTE ses propres scripts (processus R separe) : les tableaux,
+  les figures et le rapport `manuscript/Methods_Results.docx` (Methodes
+  et Resultats seulement, chiffres lus dans `results/tables`, references
+  en `.bib`, style Ecology Letters) sont ceux qu’on obtient en relancant
+  le projet. Zippe.
+  [`analysis_params()`](https://funtraits.github.io/intraitR/reference/analysis_params.md)
+  donne les parametres et leurs valeurs par defaut. Verifie de bout en
+  bout sur la campagne (554 specimens, 8 especes) : le projet tourne en
+  ~20 s et l’echantillon analyse des scripts est identique a celui de
+  l’application.
 
-- [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md)
-  bug fix: step 1’s isotropic rescale to `[0, 1]` left an
-  `intrait_landmarks` object’s `$scale` element (real-world units per
-  digitization pixel, see
-  [`read_tps()`](https://funtraits.github.io/intraitR/reference/read_tps.md))
-  uncorrected, silently making
-  [`linear_distances()`](https://funtraits.github.io/intraitR/reference/linear_distances.md)/[`morpho_ratios()`](https://funtraits.github.io/intraitR/reference/morpho_ratios.md)
-  return wrong real-world distances from the rescaled coordinates
-  afterwards (the visual, on-screen size of every specimen is
-  intentionally equalized by this step, but each specimen’s true,
-  individual real-world size must still be recoverable downstream).
-  `$scale` is now divided by the same per-specimen `scale_factor`
-  applied to the coordinates, so real-world distances computed before
-  and after
-  [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md)
-  are now identical;
-  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
-  was never affected, since it always re-derives its own
-  pixel-to-real-world factor fresh from the scale bar’s current length
-  rather than trusting a stored value. A new
-  [`message()`](https://rdrr.io/r/base/message.html) reports how many
-  specimens’ `$scale` was updated this way.
+- CORRECTION. Le tableau des traits du hub ne lisait que les points 1 a
+  22 : les charnieres 24 et 25 d’un poisson courbe etaient ignorees et
+  sa longueur standard (donc BEl et PFs) sous-estimee. Les points sont
+  maintenant lus jusqu’a 25, a leur position (le point 23, souvent
+  absent du classeur, reste NA).
 
-- [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md):
-  the digitization scale bar (landmarks 20-21) is now drawn as a solid,
-  filled bar with its own border (not two triangle point markers, nor a
-  thin open line), placed lower down near the plot’s origin, with its
-  caption placed directly below it rather than above. The caption is now
-  built automatically as `"1 <unit> = <length>"` (e.g. `"1 cm = 3.2"`),
-  where `<length>` is that specimen’s own digitized scale-bar length,
-  rather than the previous fixed `"scale (1 cm)"` text. The
-  `scale_label` argument is replaced by `scale_unit` (default `"cm"`,
-  matching the FISHMORPH protocol’s standard 1 cm calibration segment),
-  letting users specify the real-world unit a data set was actually
-  digitized against (e.g. `"mm"`, `"dm"`, `"m"`, or any other label);
-  set `scale_unit = NULL` to omit the caption entirely (the bar itself
-  is still drawn). This is a breaking change for any code calling
-  `plot_fishmorph_points(..., scale_label = ...)`.
+- Documentation : FISHMORPH est dans *Global Ecology and Biogeography*
+  30(12), pas 30(11) ; titre corrige de de Bello et al. (2011)
+  ([`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md)).
 
-- New
-  [`plot_correlation_circle()`](https://funtraits.github.io/intraitR/reference/plot_correlation_circle.md):
-  draws the classical correlation circle (variable factor map) of a
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  ordination – each trait as an arrow to its Pearson correlation with
-  the two plotted axes, inside a unit circle, with an optional inner
-  circle at radius `sqrt(0.5)` marking the conventional “well
-  represented” threshold. Unlike a plot of raw `loadings`, arrow length
-  is directly comparable across traits and meaningful regardless of
-  `method` (`"pca"`/`"pcoa"`) or `scale`. Drawn without a surrounding
-  box: tick values run along the `y = 0`/`x = 0` reference lines through
-  the origin, each labelled with its axis name only (e.g. `"PC1"`), in a
-  small italic font, just outside the circle and centred on its own
-  reference line.
+- `zip` en Suggests.
 
-- [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)
-  gains a `method` argument for the functional-richness measure computed
-  in the PCA-based trait space: `"convexhull"` (default, unchanged
-  behaviour: n-dimensional convex-hull volume via
-  [`geometry::convhulln()`](https://rdrr.io/pkg/geometry/man/convhulln.html)),
-  `"dendrogram"` (total branch length of a UPGMA functional dendrogram,
-  Petchey & Gaston 2002 – needs no extra Suggested package), `"tpd"`
-  (Trait Probability Density richness via the `TPD` package, Carmona et
-  al. 2019), and `"hypervolume"` (Gaussian-kernel hypervolume via the
-  `hypervolume` package, Blonder et al. 2014, 2018). For
-  `"tpd"`/`"hypervolume"`, the kernel bandwidth (and, for `"tpd"`, the
-  evaluation grid) is computed once from the full individual-level data
-  and reused, unchanged, for the centroid-based reference and every
-  bootstrap draw, so richness values stay comparable across draws; new
-  `dendrogram_linkage`, `tpd_alpha`, `tpd_bw_factor`, `tpd_n_divisions`,
-  `hv_bw_method`, `hv_samples_per_point` arguments tune these. `TPD` and
-  `hypervolume` are new Suggested dependencies, only required when their
-  respective `method` is used.
-  [`print()`](https://rdrr.io/r/base/print.html)/[`plot()`](https://rdrr.io/r/graphics/plot.default.html)
-  methods for `"intrait_bootstrap_fspace"` now report which `method` was
-  used.
-  [`plot.intrait_bootstrap_fspace()`](https://funtraits.github.io/intraitR/reference/print.intrait_bootstrap_fspace.md)
-  also drops the previous FD_ref text annotation above the histogram in
-  favour of marking `fd_ref` (red) and the bootstrap mean `fd_boot_mean`
-  (blue) directly on the x-axis, each with a matching dashed vertical
-  line.
-
-- [`species_sensitivity()`](https://funtraits.github.io/intraitR/reference/species_sensitivity.md)
-  gains the same `method` argument (and matching
-  `dendrogram_linkage`/`tpd_*`/`hv_*` tuning arguments) as
-  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md),
-  for computing the species-level sensitivity index with `"convexhull"`
-  (default), `"dendrogram"`, `"tpd"`, or `"hypervolume"` functional
-  richness instead of only convex-hull volume.
-  [`print()`](https://rdrr.io/r/base/print.html)/[`plot()`](https://rdrr.io/r/graphics/plot.default.html)
-  methods report which `method` was used.
-
-- New
-  [`compare_functional_richness()`](https://funtraits.github.io/intraitR/reference/compare_functional_richness.md):
-  runs
-  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)
-  once per requested `method` (`"convexhull"`, `"dendrogram"`, `"tpd"`,
-  `"hypervolume"`; all four by default) on the same data and tabulates
-  the results side by side (`fd_ref`, `fd_boot_mean`, `pct_diff`,
-  `p_value`, `significant`), for methodological triangulation across
-  richness measures. A method whose package is missing, or that
-  otherwise errors, is recorded as a skipped row rather than failing the
-  whole comparison. Optional `seed` argument pairs the bootstrap draws
-  across methods. Has dedicated
-  [`print()`](https://rdrr.io/r/base/print.html) (summary table +
-  agreement count) and
-  [`plot()`](https://rdrr.io/r/graphics/plot.default.html)
-  (dot-and-whisker comparison, one row per method) methods.
-
-- Fixed group/species colours not staying consistent between
-  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)
-  and
-  [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
-  built from the same dataset: colours were previously derived from each
-  call’s own `nlevels(groups)`/position within its *observed* factor
-  levels, so the same species could get a different colour whenever the
-  two objects happened to retain a different subset of species after
-  their own upstream missing-data or outlier filtering. Colours are now
-  looked up by label from a session-persistent cache, so a given species
-  always gets the same colour once assigned, regardless of which other
-  species are present in a later call. New
-  [`reset_group_colors()`](https://funtraits.github.io/intraitR/reference/reset_group_colors.md)
-  clears this cache (e.g. before an unrelated dataset, or for full
-  reproducibility irrespective of call history).
-
-- New
-  [`plot_fishmorph_shapes()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_shapes.md):
-  overlays the landmark points and body outline (the same FISHMORPH
-  outline path used by
-  [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md))
-  of every specimen in a given species, or of an explicit vector of
-  individuals, on a single figure – no landmark numbers, measurement
-  segments, eye, or internal reference lines – for a fast visual read of
-  shape variability across many specimens at once. By default
-  (`align = TRUE`) each specimen is independently centred on its own
-  centroid and rescaled to unit centroid size (translation and scale
-  only, no rotation) before being drawn, so the overlay compares shape
-  rather than raw digitization position/size; set `align = FALSE` for
-  already-comparable coordinates
-  (e.g. [`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md)
-  output). Axis tick labels use
-  [`grDevices::axisTicks()`](https://rdrr.io/r/grDevices/axisTicks.html)
-  (the same “round numbers” computation behind R’s own default axes)
-  rather than evenly spaced raw fractions of the data range, since that
-  range is data-driven here and generally not already round – unlike
-  [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)’s
-  fixed `[0, 1]` convention, whose quarter increments are round by
-  construction.
-
-- Fixed a crash (“attempt to use zero-length variable name”) in
-  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)/[`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
-  whenever a group level was an empty string `""` (e.g. an unresolved
-  species identification stored as `""` rather than `NA` in the source
-  data): the session-level colour cache previously stored one colour per
-  group by [`assign()`](https://rdrr.io/r/base/assign.html)ing an
-  environment variable named after the raw label, which errors on `""`.
-  Colours are now stored in a single named vector instead, which has no
-  such restriction; `""` is now treated like any other distinct label.
-
-- Fixed a follow-on bug from the `""`-label fix above: the colour
-  cache’s own lookup, `cache[uniq]`, relied on `[`’s character-name
-  matching, which R documents as never matching a `""` index to a `""`
-  name even when that name is genuinely present
-  ([`?Extract`](https://rdrr.io/r/base/Extract.html): “Neither empty
-  (’’) nor NA indices match any names, not even empty nor missing
-  names.”). A `""`-labelled group was therefore still assigned `NA`
-  instead of its cached colour on lookup, even though storage worked
-  correctly. Lookup now uses
-  [`match()`](https://rdrr.io/r/base/match.html), which has no such
-  exception.
-
-- New
-  [`group_colors()`](https://funtraits.github.io/intraitR/reference/group_colors.md):
-  returns the exact group/species colours
-  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)/[`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
-  use (or would use), as a `group`/`color` `data.frame`, in the same
-  order as their own legend – for building a single shared legend across
-  several panels (e.g. `par(mfrow = c(2, 2))`, each plotted with
-  `legend = FALSE`) without reimplementing or guessing at the underlying
-  colour assignment. Accepts either an object with a `$groups` element
-  (e.g.
-  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  output) or a raw label vector.
-
-- Fixed a bug in
-  [`group_colors()`](https://funtraits.github.io/intraitR/reference/group_colors.md)
-  where passing a list without a `$groups` element (anything other than
-  the intended
-  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  output or a raw label vector) silently used the list itself as if it
-  were the label vector instead of raising the documented “no `groups`
-  element” error.
-
-## intraitR 1.0.0
-
-First stable release. Functionally identical to 0.13.0, promoted to
-1.0.0 after the first real (non-static) validation of the package: the
-maintainer ran `devtools::test()` on an actual R installation for the
-first time in this project’s history (every prior version was validated
-only by manual code reading, independent Python reimplementation of the
-statistical logic, and static analysis, for lack of an R interpreter in
-the authoring environment).
-
-Result: **465 tests passed, 0 failures**, 5 expected warnings, and 6
-expected skips (all environment-dependent negative-path tests, e.g.
-“package already installed, cannot test the missing-package error” or
-“cannot run the interactive digitizer non-interactively”). Only one
-issue surfaced, and it was in a test, not in the package:
-
-- **Fixed `test-trait_disparity.R`’s regression test** for the
-  exactly-2-groups permutation reshape fix (see 0.13.0 below). `%in%`
-  binds *tighter* than `/` in R’s operator precedence
-  ([`?Syntax`](https://rdrr.io/r/base/Syntax.html)), so
-  `x %in% ((0:5) + 1) / 6` parsed as `(x %in% ((0:5) + 1)) / 6` instead
-  of the intended `x %in% (((0:5) + 1) / 6)` — silently turning the
-  assertion into `FALSE / 6 = 0`, which then failed `expect_true()`
-  regardless of whether
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
-  itself was correct. Fixed by parenthesising the denominator
-  explicitly.
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)’s
-  own logic was not at fault: its other tests, including a real
-  statistical power check, already passed under this same test run.
-
-No changes to any exported function’s behaviour, arguments, or return
-values relative to 0.13.0.
-
-## intraitR 0.13.0
-
-- **`background_image` overlay** for
-  [`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md)
-  and
-  [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
-  (closing the long-pending image-overlay task). Both functions gain
-  `background_image` (a path to a `.jpg`/`.jpeg` or `.png` photograph of
-  the specimen) and `flip_y` (default `TRUE`) arguments: the photograph
-  is drawn as a background layer, sized to its full pixel extent, with
-  the digitized landmarks plotted on top, for visual quality control
-  (e.g. spotting a landmark placed off the body outline). Requires the
-  `jpeg` package for `.jpg`/`.jpeg` files or `png` for `.png` files
-  (both newly Suggested, neither installed by default); a clear error is
-  raised if the relevant package is missing. `tools` (for
-  [`tools::file_ext()`](https://rdrr.io/r/tools/fileutils.html),
-  dispatching on the file extension) is now declared in `DESCRIPTION`’s
-  `Imports`. Only meaningful for the original, un-aligned digitized
-  coordinates: a warning is issued if `background_image` is combined
-  with an `"intrait_gpa"` (Procrustes-aligned) object, since the
-  photograph will not line up with aligned coordinates. New internal
-  helpers `.read_background_image()`, `.draw_background_image()`, and
-  `.background_image_dims()` in `R/utils-internal.R`.
-- **Parallelization**:
-  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md),
-  [`species_sensitivity()`](https://funtraits.github.io/intraitR/reference/species_sensitivity.md),
-  and
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
-  now distribute their independent resampling loops (bootstrap draws,
-  per-individual sensitivity replacements, and label permutations,
-  respectively) across worker processes via the (Suggested)
-  `future.apply` package, through a new internal `.papply()` helper that
-  falls back to a plain [`vapply()`](https://rdrr.io/r/base/lapply.html)
-  when `future.apply` is not installed or no
-  [`future::plan()`](https://future.futureverse.org/reference/plan.html)
-  has been set — i.e. purely opt-in, with identical results either way
-  (reproducible across workers via `future.seed = TRUE`, L’Ecuyer-CMRG
-  streams). See the new “Performance on large data sets” section of the
-  README for details, including a note on convex-hull complexity in
-  higher dimensions (McMullen, 1970). While refactoring
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)’s
-  permutation loop, fixed a latent shape bug where reshaping the loop’s
-  output with [`t()`](https://rdrr.io/r/base/t.html) would have silently
-  corrupted p-values for the common exactly-two-groups case (a plain
-  vector, not a matrix, is returned by
-  [`vapply()`](https://rdrr.io/r/base/lapply.html)/`future_vapply()`
-  when `FUN.VALUE` has length 1, and
-  [`t()`](https://rdrr.io/r/base/t.html) of a vector produces a `1 x n`
-  matrix, not `n x 1`); replaced with an explicit
-  `matrix(..., byrow = TRUE)` reshape that handles both cases correctly,
-  with a new regression test.
-- **CRAN-readiness audit**: added missing `@return`/`\value`
-  documentation to 17 exported
-  [`print()`](https://rdrr.io/r/base/print.html)/[`plot()`](https://rdrr.io/r/graphics/plot.default.html)/[`summary()`](https://rdrr.io/r/base/summary.html)
-  methods that lacked one (an `R CMD check --as-cran` NOTE), spanning
-  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md),
-  [`detect_outliers()`](https://funtraits.github.io/intraitR/reference/detect_outliers.md),
-  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md),
-  [`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md),
-  [`intraspecific_variability()`](https://funtraits.github.io/intraitR/reference/intraspecific_variability.md),
-  [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md),
-  [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md),
-  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
-  [`read_tps()`](https://funtraits.github.io/intraitR/reference/read_tps.md),
-  [`species_sensitivity()`](https://funtraits.github.io/intraitR/reference/species_sensitivity.md),
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md),
-  and
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md).
-  Fixed
-  [`plot.intrait_digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md),
-  which — unlike every other
-  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) method in the
-  package — did not explicitly return `invisible(x)`.
-- **Infrastructure**: added a `pkgdown` site configuration
-  (`_pkgdown.yml`, with a thematic reference index) and two new GitHub
-  Actions workflows, `pkgdown.yaml` (builds and deploys the site to
-  `gh-pages` on pushes to the default branch) and `test-coverage.yaml`
-  (runs
-  [`covr::package_coverage()`](http://covr.r-lib.org/reference/package_coverage.md)
-  and uploads results to Codecov; requires a `CODECOV_TOKEN` repository
-  secret to actually upload). Status badges added to `README.md`.
-
-## intraitR 0.12.0
-
-- **[`species_sensitivity()`](https://funtraits.github.io/intraitR/reference/species_sensitivity.md)**
-  (new function). Implements the “species-level sensitivity index” of
-  Bertrand (2026): for each species, its centroid (in the same
-  `n_axes`-dimensional PCA space as
-  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md))
-  is replaced, one individual at a time, by that individual’s own
-  position, with every other species held fixed at its centroid; each
-  replacement’s convex-hull volume is expressed as a percent change
-  relative to the unmodified centroid-based reference (`fd_ref`). Per
-  species, this yields a mean effect (`mean_dFD`, `mu_k` in
-  Bertrand, 2026) and a min-max range, exposed both as a `summary` table
-  and a full `individual`-level long table. Unlike
-  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md),
-  this index is exact and deterministic (no resampling, no significance
-  test): every replacement is a single, reproducible recomputation. Has
-  [`print()`](https://rdrr.io/r/base/print.html) (top species by
-  `|mean_dFD|`, 12 by default, matching Bertrand, 2026’s figure) and
-  [`plot()`](https://rdrr.io/r/graphics/plot.default.html)
-  (dot-and-range plot reproducing the report’s Fig. 7 style, species
-  names italicised and abbreviated by default) methods. Demonstrated in
-  `demo(pipeline_T26_saudrune)`, Section 11. Requires the `geometry`
-  package, as
-  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)
-  does.
-- **Internal refactor**: the `x`/`groups` resolution, preprocessing,
-  PCA, and `n_axes` selection logic shared by
-  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)
-  and the new
-  [`species_sensitivity()`](https://funtraits.github.io/intraitR/reference/species_sensitivity.md)
-  was extracted into a single internal helper, `.fspace_pca_scores()`
-  (`R/utils-internal.R`), together with `.group_centroids()`;
-  [`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)’s
-  own behaviour and error messages are unchanged (verified by re-reading
-  the refactored code path line by line, since this package still cannot
-  be executed in this environment – see below).
-
-## intraitR 0.11.1
-
-- Fixed `devtools::document()` warnings surfaced by the user immediately
-  after 0.11.0: several `@noRd` (internal, undocumented-on-purpose)
-  helpers in `R/utils-internal.R` – `.plot_ordination()`,
-  `.covariance_ellipse()`, `.kde2d()`, `.abbreviate_species_name()` –
-  were cross-referenced using markdown link syntax (e.g. `[.kde2d()]`),
-  which roxygen2 can never resolve for a function with no generated
-  `.Rd` page, producing a permanent “Could not resolve link to topic”
-  warning on every `document()` run. Replaced with plain code-formatted
-  text (e.g. `` `.kde2d()` ``), which was always the intent (pointing a
-  reader at the helper’s name, not producing a clickable cross-reference
-  that cannot exist). The one warning that will *not* recur
-  (`bootstrap_functional_space` in `.convex_hull_volume()`’s doc) was,
-  per roxygen2’s own message, a transient first-run artifact: that link
-  target is a normal, exported, documented function and resolves
-  correctly starting on the next `document()` call. No code behaviour
-  changed.
-
-## intraitR 0.11.0
-
-- **[`bootstrap_functional_space()`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)**
-  (new function). Implements the “bootstrap-based functional space
-  estimate” of Bertrand (2026, M2 internship report supervised by A.
-  Toussaint and S. Brosse): for `n_boot` bootstrap “communities”, one
-  individual is drawn at random per species and the n-dimensional
-  convex-hull volume (functional richness) of these points is computed
-  (`fd_boot`), and compared to a centroid-based reference volume
-  (`fd_ref`, each species replaced by its mean position). A fresh PCA is
-  performed internally (on as many axes as needed to reach a variance
-  threshold, or a user-specified `n_axes`; Bertrand, 2026, used 8 axes
-  for 98% of variance), and convex-hull volumes are computed with
-  [`geometry::convhulln()`](https://rdrr.io/pkg/geometry/man/convhulln.html)
-  (new Suggested dependency, gated with the same
-  [`requireNamespace()`](https://rdrr.io/r/base/ns-load.html) pattern as
-  `missForest` for `trait_space(na_action = "missforest")`). Reports a
-  one-sided significance test of whether `fd_ref` sits unusually low
-  relative to the bootstrap distribution. The source report describes a
-  “one-sided permutation test” without fully specifying its scheme; a
-  label-permutation design (reassigning species labels to individuals,
-  as in
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md))
-  was implemented and then simulation-tested before being rejected: it
-  collapses every permuted centroid toward the global mean while
-  permuted single-individual draws keep the data’s full spread, so the
-  resulting null was found to be uninformative regardless of whether
-  real intraspecific variability is present, which does not match
-  Bertrand (2026)’s reported result. The shipped implementation instead
-  uses the bootstrap distribution itself as the null (a standard
-  bootstrap percentile p-value), verified by simulation to correctly
-  stay non-significant when intraspecific variability is negligible and
-  to detect a strong, real effect when it is not (see
-  [`?bootstrap_functional_space`](https://funtraits.github.io/intraitR/reference/bootstrap_functional_space.md)
-  for the full reasoning). Has
-  [`print()`](https://rdrr.io/r/base/print.html) and
-  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods;
-  demonstrated in `demo(pipeline_T26_saudrune)`, Section 10.
-- **Ordination plot improvements**
-  ([`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md),
-  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md),
-  via the shared internal `.plot_ordination()`): new `legend_title`,
-  `legend_italic`, and `abbreviate_species` arguments
-  (e.g. `legend_title = "Species", legend_italic = TRUE, abbreviate_species = TRUE`
-  renders `"Barbatula barbatula"` as italic *B. barbatula* in the
-  legend, used throughout `demo(pipeline_T26_saudrune)` and the
-  vignette); axis ticks are now short and point inward
-  (`par(tcl = 0.3)`); the qualitative colour palette was replaced with a
-  higher-contrast, curated 10-colour set (falling back to
-  [`hcl.colors()`](https://rdrr.io/r/grDevices/palettes.html) beyond 10
-  groups); and axis limits are now computed from the group
-  ellipses/hulls/density contours in addition to the raw points, so this
-  geometry is never clipped at the plot box edge (previously possible
-  whenever a group’s dispersion ellipse extended beyond its own points,
-  which is the rule rather than the exception). Unused factor levels in
-  `groups` are now dropped defensively before colouring/legending.
-
-## intraitR 0.10.1
-
-- **`species` argument** added to
-  [`load_t26_saudrune()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune.md).
-  The `"operators"`/`"repeatability"` landmark tables are keyed by
-  `code` only (species identity lives in the separate
-  `"identifications"` table by design: a landmark measurement does not
-  need a species, and identifications can be revised independently of
-  the coordinates), so `species` was never a column of those two tables
-  and its absence is not a regression. `species = TRUE` restores
-  convenient access by left-joining `species`/`id_status` from
-  `"identifications"` via `code`. Implemented with a vectorised
-  [`match()`](https://rdrr.io/r/base/match.html) lookup (new internal
-  helper `.join_species()` in `R/utils-internal.R`), not
-  [`merge()`](https://rdrr.io/r/base/merge.html), specifically because
-  the long-format tables have many rows sharing the same `code` (one per
-  landmark, and per operator/replicate):
-  [`match()`](https://rdrr.io/r/base/match.html) preserves the original
-  row order by construction, removing any need to verify a duplicate-key
-  join’s ordering behaviour. Modular by design, matching the existing
-  `operator` argument’s convention: a no-op (with a warning) if
-  `dataset` has no `code` column, and a harmless no-op on
-  `"identifications"` itself.
-
-## intraitR 0.10.0
-
-- **Operator anonymisation (T-26 Saudrune data).** The `operator` column
-  and `specimen` identifiers of `load_t26_saudrune("operators")` /
-  `load_t26_saudrune("repeatability")` no longer contain the real names
-  of the two field digitizers; they are replaced with anonymous labels
-  (`"Operator_1"`, `"Operator_2"`), consistently across both tables
-  (matched case-insensitively against the original spreadsheets, where
-  the same person was recorded with different capitalisation in each).
-  Operator identity is not itself a biological variable of interest, so
-  nothing about the package’s statistical results changes.
-  `data-raw/t26_saudrune_prepare.R` documents the anonymisation step for
-  full provenance. Note: this fixes the *shipped data*; if the package’s
-  git history has ever been pushed publicly with an earlier version of
-  these files, the real names may still be recoverable from that
-  history, which is outside what this in-place data fix can address (git
-  history rewriting is a separate, deliberate operation the maintainer
-  should consider if that applies).
-- **`operator` argument** added to
-  [`load_t26_saudrune()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune.md)
-  and
-  [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md),
-  restricting the returned rows/specimens to one or more (anonymous)
-  operators. This is the natural way to build **two separate functional
-  trait spaces**, one per operator, to check whether downstream results
-  (e.g. [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
-  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md))
-  are sensitive to who did the digitizing. Modular by design: on a table
-  with no `operator` column, `operator` is ignored with a warning and
-  all rows are returned, rather than raising an error.
-- **`style = "density"`** added to
-  [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
-  and
-  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md):
-  a non-parametric kernel-density contour (highest-density-region
-  construction, Hyndman 1996) per group, as an alternative to the
-  parametric bivariate-normal “spider” ellipse — useful when a group’s
-  points are visibly skewed or multimodal (as can happen with real
-  digitization data). Implemented with a small, dependency-free
-  bivariate Gaussian kernel density estimator (the same formula
-  underlying
-  [`MASS::kde2d()`](https://rdrr.io/pkg/MASS/man/kde2d.html)), so no new
-  package dependency is introduced.
-- **Legend placement overhauled.**
-  [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md),
-  [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md),
-  [`plot.intrait_itv()`](https://funtraits.github.io/intraitR/reference/plot.intrait_itv.md),
-  and
-  [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
-  all gained a `legend_position` argument, defaulting to `"outside"`:
-  the group/measurement legend is now drawn just outside the plot box
-  (in the margin) by default, so it no longer risks overlapping data
-  points or bars, whatever corner they happen to cluster in. Any
-  standard
-  [`graphics::legend()`](https://rdrr.io/r/graphics/legend.html)
-  position keyword (e.g. `"topright"`) can still be passed to recover
-  the previous, inside-the-box placement.
-
-## intraitR 0.9.4
-
-- Completed the 0.9.3 fix, which was itself incomplete. 0.9.3 added the
-  correct inner assignment (`expect_message(x <- f(...), regexp)`) to
-  the three regression tests but left the pre-existing *outer*
-  assignment in place as well
-  (`x <- expect_message(x <- f(...), regexp)`); the outer assignment
-  executes after the quosure and unconditionally overwrites `x` with
-  `expect_message()`’s own return value, silently discarding the correct
-  one just captured by the inner assignment. This reproduced exactly the
-  same failures as 0.9.2, which is why re-running `devtools::test()`
-  after 0.9.3 still failed identically. The outer assignment has now
-  been removed from `test-trait_space.R`, `test-itv_index.R`, and
-  `test-trait_disparity.R`, matching the pattern already used correctly
-  elsewhere in the same test files (e.g. `test-trait_space.R`’s
-  `na_action = "omit"` tests).
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
-  [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md),
-  and
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
-  themselves are unchanged. As before, this development environment has
-  no R installation available to verify with an actual
-  `devtools::test()` run; please re-run locally to confirm.
-
-## intraitR 0.9.3
-
-- Fixed three regression tests (`test-trait_space.R`,
-  `test-itv_index.R`, `test-trait_disparity.R`, all added in 0.9.0 for
-  the NA/unresolved-`groups` fix) that used the pattern
-  `x <- expect_message(f(...), regexp)`, which does not reliably capture
-  `f()`’s return value in testthat (it can return the captured message
-  condition instead). Corrected to the idiom already used elsewhere in
-  the suite, `expect_message(x <- f(...), regexp)` (assignment *inside*
-  the call). This was a test-only defect: confirmed by running
-  `devtools::test()` under a real R installation for the first time
-  (previous validation in this development environment relied on static
-  code review and an independent Python re-implementation, R itself not
-  being available); the underlying
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)/[`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md)/
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
-  NA-handling logic added in 0.9.0 was unaffected and is unchanged here;
-  only the three test files were edited. This development environment
-  still has no R installation available to the assistant, so this fix
-  (like all preceding R code in this package) has been verified by
-  careful manual trace of the R semantics involved, not by re-running
-  `devtools::test()` directly; please re-run the full suite locally to
-  confirm before relying on it.
-
-## intraitR 0.9.2
-
-- Added an `exclude_landmarks` argument to
-  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md),
-  allowing one or more landmark indices to be dropped from the
-  per-landmark bias decomposition (`landmark_individual`, `by_landmark`,
-  and all downstream aggregates). This is intended for landmarks that
-  are not homologous biological points and so are not meaningfully
-  comparable to the others in a landmark-by-landmark decomposition —
-  most notably the embedded scale-bar calibration points (landmarks
-  20-21) of the FISHMORPH digitization scheme, which encode a fixed 1 cm
-  real-world distance rather than a body landmark.
-  `demo/pipeline_T26_saudrune.R` and the manuscript’s real-data
-  validation (Section 4.5) now call
-  `digitization_error(..., exclude_landmarks = c(20, 21))` on the T-26
-  repeatability trial accordingly; the resulting community-level bias
-  estimate (now computed over the 19 anatomical landmarks only) and the
-  ranking of least/most precise landmarks are both revised in the
-  manuscript relative to 0.9.1, where the scale bar’s placement was
-  incorrectly pooled with genuine anatomical landmark bias.
-
-## intraitR 0.9.1
-
-- Added
-  [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md),
-  which loads the real T-26 Saudrune data (see 0.9.0, below) directly as
-  an object of class `"intrait_landmarks"`, in exactly the same format
-  returned by
-  [`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md)
-  (`coords`, `scale = NULL`, and a `metadata` data.frame with
-  `specimen`, `individual`, `species`, `population`, `replicate`). This
-  makes the real data set a drop-in replacement for the simulated one,
-  and the runnable `@examples` of
-  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md),
-  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md),
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
-  [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md),
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md),
-  and
-  [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
-  now use it instead of
-  [`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md).
-  [`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md)
-  itself is unchanged and remains available for teaching, testing, and
-  the one demonstration (nested population structure in
-  [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md))
-  that the real, single-site T-26 survey cannot illustrate honestly.
-
-## intraitR 0.9.0
-
-- Added the package’s first **real** (non-simulated) data set:
-  `T26_Saudrune`, a 279-fish landmark data set from an electric-fishing
-  survey of the Saudrune (Adour-Garonne basin, France, 21 April 2026),
-  covering 8 freshwater fish species (dominated by *Gobio occitaniae*
-  and *Squalius cephalus*), digitized on the 21-landmark FISHMORPH
-  scheme by two independent operators, plus a dedicated intra-operator
-  repeatability trial (25 individuals x 9-10 replicate digitizations).
-  Accessible via the new
-  [`load_t26_saudrune()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune.md)
-  function
-  ([`?load_t26_saudrune`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune.md));
-  raw spreadsheets and photographs are not distributed with the package,
-  only the cleaned, analysis-ready tables (see
-  `data-raw/t26_saudrune_prepare.R` for the full, transparent
-  cleaning/QC pipeline, including every excluded specimen and why).
-- Added `demo/pipeline_T26_saudrune.R`
-  (`demo("pipeline_T26_saudrune")`), a complete worked pipeline running
-  every stage of the intraitR workflow on this real data set: import,
-  Generalised Procrustes Analysis, digitization quality control
-  (including a worked illustration of why
-  [`detect_outliers()`](https://funtraits.github.io/intraitR/reference/detect_outliers.md)
-  should be run within, not across, taxonomically distinct species),
-  FISHMORPH linear measurements and ratios, functional trait space,
-  [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md),
-  [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md),
-  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md),
-  and
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md).
-- Species identifications in `T26_Saudrune` are exposed with an explicit
-  `id_status` field (`"curated"`, `"preliminary"`, or `"unresolved"`),
-  since a small number of AI-vision-assisted calls have not yet been
-  manually audited; per the data owner’s instruction, this release does
-  not attempt to resolve or correct them.
-- **Bug fix**, found precisely because of the above:
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
-  [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md),
-  and
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
-  previously mishandled a `groups` vector containing `NA` (e.g. a
-  specimen with an unresolved identification but otherwise-complete
-  trait values, as in `T26_Saudrune`). In
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md)
-  this was a real correctness bug, not just an edge case:
-  `Xmat[g == lv, ]` with an `NA` entry in `g` inserts an `NA`-valued row
-  into the subset for *every* group level (since `NA == lv` is `NA`, not
-  `FALSE`), turning every group’s dispersion into `NA`.
-  [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md)/[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  instead silently treated the `NA` label as its own size-1
-  pseudo-group. All three functions now drop rows with a
-  missing/unresolved `groups` value up front, with an explicit
-  [`message()`](https://rdrr.io/r/base/message.html).
-
-## intraitR 0.8.0
-
-- Added
-  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md),
-  a new function quantifying hierarchical digitization (operator) error
-  from repeated landmark placement, implementing the protocol developed
-  by L. Boutic (2026, unpublished internship report, CRBE / INTRAIT
-  project, supervised by A. Toussaint) to quantify operator bias in
-  freshwater fish landmark digitization from French Guiana. For each
-  landmark and individual, the dispersion of repeated digitizations
-  around their consensus position is normalised by a reference distance
-  (by default, the mean inter-landmark distance between two anchor
-  landmarks per species, exactly as in the original protocol;
-  `standard_length_mm` and centroid size are also available as
-  alternative, individual-level normalizations, the latter addressing a
-  methodological improvement suggested in the original report’s
-  discussion) and aggregated hierarchically from landmark to individual,
-  species, and overall community bias. Includes
-  [`print()`](https://rdrr.io/r/base/print.html) and
-  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods (the
-  latter reproducing the report’s by-landmark boxplot, ordered by
-  increasing median bias). This complements the existing
-  [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
-  (Bailey & Byrnes, 1990 / Procrustes ANOVA approach):
+- CORRECTION (signalee par Aurele). Erreur de mesure : une photographie
+  de la feuille `bias` numerisee UNE seule fois faisait echouer
   [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md)
-  is deliberately GPA-free and landmark-by-landmark, to directly flag
-  which specific landmarks need a stricter operational definition,
-  whereas
-  [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
-  gives an overall, rotation/scale-invariant repeatability estimate.
+  (“Every individual must have at least 2 digitization replicates”),
+  donc l’onglet, et dans le projet exporte le script `04_SUPP` arretait
+  toute la chaine `run_all.R`. Ces photographies sont maintenant
+  ecartees et nommees (onglet et journal du projet) ; une erreur de
+  placement non calculable n’empeche plus le tableau %ME / R ; sans deux
+  photographies repetees, l’etape est sautee avec un message.
 
-## intraitR 0.7.5
+- Page d’accueil du hub, *Upload photographs into a new folder* : une
+  photographie IDENTIQUE (octet pour octet, quel que soit son nom) a une
+  photo deja presente sous le dossier parent, ou envoyee deux fois dans
+  le meme envoi, n’est plus copiee ; une fenetre liste lesquelles et a
+  quoi elles correspondent. Comparaison des tailles d’abord, MD5
+  seulement pour les tailles egales : un gros dossier ne coute qu’un
+  listage.
 
-- Fixed stale package-level help (`man/intraitR-package.Rd`,
-  [`?intraitR`](https://funtraits.github.io/intraitR/reference/intraitR-package.md)):
-  its “Useful links” section still hard-coded the old
-  `aureletoussaint/intraitR` URLs, because this file is generated by
-  roxygen2 from `DESCRIPTION`’s `URL`/`BugReports` fields and had not
-  been regenerated since those fields were updated to
-  `FunTraits/intraitR` in 0.7.3. Fixed directly in the generated `.Rd`
-  file; running `devtools::document()` again will now also regenerate it
-  correctly from the (already-correct) `DESCRIPTION`.
+## intraitR 1.46.0
 
-## intraitR 0.7.4
+- Hub, pre-passe automatique : case *Hinges 22/24* COCHEE par defaut
+  (axe brise 1-22-24-2, poissons courbes) ; les charnieres predites
+  arrivent en `predicted` dans le digitizer. Un dossier deja pre-passe
+  sans charnieres est retraite.
+  [`batch_landmarks()`](https://funtraits.github.io/intraitR/reference/batch_landmarks.md)
+  garde `hinges = FALSE` par defaut.
 
-- Fixed a real `R CMD check` WARNING found by the maintainer:
-  `demo/00Index` separated the demo name and description with two
-  spaces, but “Writing R Extensions” requires a tab or at least three
-  spaces, which was silently treated as missing/empty index information.
-- Fixed a real `R CMD check` NOTE (“Non-standard files/directories found
-  at top level”): `GITHUB_SETUP.md` and the leftover local testing
-  artefacts `specimens.tps`/`P5180033.jpg` are now excluded from the
-  built package via `.Rbuildignore` (they were already excluded from git
-  via `.gitignore`, which does not affect `R CMD build`/`check`).
-- The remaining NOTE (“checking for future file timestamps … unable to
-  verify current time”) is not a package issue: it means the checking
-  machine could not reach a time-verification service over the network,
-  and is unrelated to any file in this package.
+- Les MODELES DE PREDICTION se distribuent hors du package (7 reseaux
+  ONNX, ~290 Mo : trop lourds pour le package et pour l’historique git)
+  :
 
-## intraitR 0.7.3
+  - [`pack_mlmorph_models()`](https://funtraits.github.io/intraitR/reference/pack_mlmorph_models.md)
+    (mainteneur) : extrait d’un dossier ml_morph ce que la prediction
+    utilise – reseaux global, fin, regle, periode de la regle et les
+    trois affinages regionaux, leurs parametres, le repere canonique –
+    en un zip avec manifeste (md5 de chaque fichier) ; les checkpoints
+    d’entrainement (`*.pt`) et les jeux de donnees restent.
+    `package_dir =` inscrit la version et la somme de controle dans
+    `R/mlmorph_models.R` : une version d’intraitR predit TOUJOURS avec
+    la meme version des modeles (reproductibilite).
+  - [`install_mlmorph_models()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_models.md)
+    : telecharge le zip de la release GitHub `models-v<version>` (ou un
+    zip local / un miroir), verifie le zip et chaque fichier, installe
+    dans le dossier utilisateur d’intraitR. Une fois par machine.
+    [`mlmorph_models_dir()`](https://funtraits.github.io/intraitR/reference/mlmorph_models_dir.md),
+    [`mlmorph_models_info()`](https://funtraits.github.io/intraitR/reference/mlmorph_models_info.md).
+  - [`install_mlmorph_python()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_python.md)
+    : environnement Python (numpy, pandas, opencv, pillow, onnxruntime)
+    dans le dossier utilisateur d’intraitR.
+  - Detection automatique : le dossier ml_morph local reste prioritaire,
+    puis les modeles installes ; meme chose pour Python
+    (`~/.venv_mlmorph`, puis l’environnement installe). Page de
+    demarrage du hub : etat des modeles et de Python, boutons
+    d’installation (en arriere-plan).
+  - Verifie de bout en bout : les 7 modeles reels empaquetes (zip de 287
+    Mo), installes, puis
+    [`batch_landmarks()`](https://funtraits.github.io/intraitR/reference/batch_landmarks.md)
+    sur deux photos T-26 sans aucun dossier ml_morph (2e etage et regle
+    compris, 1,6 s/photo).
 
-- Repository moved to <https://github.com/FunTraits/intraitR>; `URL`,
-  `BugReports` (`DESCRIPTION`), `inst/CITATION`, and the
-  `remotes::install_github()` example in `README.md` updated
-  accordingly.
-- Added a standard GitHub Actions `R CMD check` workflow
-  (`.github/workflows/R-CMD-check.yaml`, Linux release/devel/oldrel,
-  macOS, Windows).
-- `.gitignore` extended to exclude `.DS_Store` and two local testing
-  artefacts that are not part of the package source.
+- Hub, Results \> Progress : le tableau ne recouvre plus le graphique
+  quand il y a des donnees (contenu des onglets hors de la mise en page
+  « remplissante », et correction generale dans
+  [`Rfishmorph::app_theme()`](https://rdrr.io/pkg/Rfishmorph/man/app_theme.html)).
+  Graphique refait : legende au-dessus des barres (dedans, elle les
+  cachait), compte « mesurees / total » au bout de chaque barre, hauteur
+  proportionnelle au nombre d’especes, italique pour les seuls binomes,
+  couleurs du theme.
 
-## intraitR 0.7.2
+- [`launch_measure_hub()`](https://funtraits.github.io/intraitR/reference/launch_measure_hub.md)
+  SANS ARGUMENT : une page de demarrage choisit le dossier des photos
+  (explorateur de dossiers cote R, avec raccourcis Home, Bureau,
+  Documents, OneDrive / iCloud, disques ; nombre de photos affiche en
+  naviguant) ou y CHARGE des photos dans un nouveau dossier (copiees,
+  les originaux intacts) ; les especes (inconnues, un dossier par
+  espece, ou une table CSV / Excel verifiee contre les photos) ; ou sont
+  enregistrees les mesures (classeur et journal proposes a cote des
+  photos, etat du journal existant) ; operateur, regle, noms des deux
+  niveaux de dossiers, dossier ml-morph. Les SESSIONS RECENTES (8, dans
+  le dossier utilisateur d’intraitR) se rouvrent en un clic, et l’appel
+  equivalent en console est affiche. *Open* lance le hub dans le meme
+  onglet (meme port, la page se recharge seule) ; sur l’accueil du hub,
+  *Open another folder* y revient. Les arguments donnes en console
+  restent verifies avant tout lancement.
 
-- Test suite only: two `test-itv_index.R` failures reported by
-  `devtools::test()` were bugs in the tests, not in
-  [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md)
-  itself.
-  1.  Hand-computed-precision tests compared unrounded expected values
-      against
-      [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md)’s
-      default `digits = 4`-rounded percentages with a tolerance too
-      tight for that rounding (rounding a small percentage shifts its
-      *relative* difference far more than a large one) — fixed by
-      passing `digits = 12` in those tests. (2) A FISHMORPH test called
-      [`nlevels()`](https://rdrr.io/r/base/nlevels.html) directly on
-      `fish$metadata$species`, a plain character vector rather than a
-      factor, which always returns 0 — fixed by wrapping it in
-      [`factor()`](https://rdrr.io/r/base/factor.html) first.
-      [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md)’s
-      own code was unaffected by either issue.
+- NOUVEAU
+  [`accept_batch_landmarks()`](https://funtraits.github.io/intraitR/reference/accept_batch_landmarks.md)
+  : enregistre dans le journal les points d’une pre-passe
+  [`batch_landmarks()`](https://funtraits.github.io/intraitR/reference/batch_landmarks.md)
+  SANS les relire. Photos signalees par la pre-passe exclues (sauf
+  `include_flagged = TRUE`), photo deja mesuree jamais ecrasee, planches
+  exclues ; conventions du digitizer appliquees (profondeurs, points
+  derives, LM23). Rien n’est maquille : chaque point reste
+  `"predicted"`, l’entree `reviewed = "no"`, `app_version` dit d’ou elle
+  vient. Le classeur est mis a jour en GARDANT ses autres feuilles
+  (bias, bias_summary…) et son schema de colonnes ; `dry_run = TRUE`
+  pour voir.
 
-## intraitR 0.7.1
+- Hub, onglet Digitize : bouton *Accept the pre-pass without review*
+  sous *Stop the digitizer*. Une boite d’avertissement dit ce qui sera
+  enregistre (photos sans drapeau), ce qui est exclu (photos signalees,
+  par drapeau ; deja mesurees ; planches), avec une case pour inclure
+  les photos signalees. Refuse tant que le digitizer ou la pre-passe
+  tournent. Apres coup : rafraichissement et enregistrement dans la base
+  (FishInTrait).
 
-- Bug fix: `itv_index(nested = ...)` incorrectly errored (“Each level of
-  `nested` must belong to a single level of `groups`”) whenever
-  population labels were reused identically across species — which is
-  exactly what
-  [`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md)/[`simulate_fish_landmarks()`](https://funtraits.github.io/intraitR/reference/simulate_fish_landmarks.md)
-  do (`population` is `"Pop_1"`/`"Pop_2"` for every species), and is
-  common in real data too. Found by the maintainer running the
-  `itv_nested` vignette/help example verbatim. Fixed: `nested` levels no
-  longer need to be globally unique; each *combination* of `groups` and
-  `nested` is now automatically treated as a distinct population (via
-  `interaction(groups, nested)`), exactly as the nesting operator in
-  `aov(y ~ Error(groups/nested))` would handle it. The strict “must
-  belong to a single group” validation and its error were removed as no
-  longer necessary.
+- Hub : page d’ACCUEIL (premier onglet). Ce qu’il reste a mesurer
+  (titre, barre d’avancement, nombre de dossiers concernes), ou sont les
+  photos, le dernier enregistrement (code, espece, operateur, il y a
+  combien de temps) ; bouton *Resume* qui ouvre le dossier du dernier
+  enregistrement (ou le premier ou il reste du travail), filtre sur les
+  photos a mesurer ; liste des dossiers avec leur avancement (un clic
+  ouvre le dossier dans Select) ; derniers enregistrements ; les quatre
+  etapes en liens ; les autres applications. Illustration : un profil de
+  poisson et ses landmarks, poses un a un a l’ouverture (aucune
+  animation si le systeme demande moins de mouvement).
 
-## intraitR 0.7.0
+- Digitizer : VRAI Undo / Redo (Ctrl+Z / Cmd+Z, Ctrl+Maj+Z / Cmd+Maj+Z,
+  boutons *Undo* / *Redo*). Chaque modification des points (clic,
+  prediction, regle qui realigne les voisins, Mark NA, Validate, segment
+  nul) est une etape ; Undo remet tout l’etat d’avant – un point predit
+  deplace revient a sa place, avec les points que les regles avaient
+  bouges. L’ancien *Undo* effacait seulement le dernier point pose.
+  Historique par photographie (et par individu d’une planche), jusqu’a
+  200 etapes ; un enregistrement n’est pas annule (le journal est en
+  ajout seul).
 
-- New function
-  [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md):
-  decomposes total trait variance into an interspecific (between-group,
-  e.g. between-species) component and an intraspecific trait variability
-  (ITV) component, following the variance-partitioning approach of
-  Violle et al. (2012) and de Bello et al. (2011)
-  (`%ITV = 100 x SS_within / SS_total`). Accepts an optional `nested`
-  grouping factor (e.g. population within species) to further split the
-  ITV component into between-population and within-population (residual)
-  parts, following the within-/among-population distinction used in ITV
-  meta-analyses (Siefert et al., 2015); this nested decomposition is
-  exact for any design, including unbalanced group and population sizes.
-  Returns both a per-trait breakdown and a multivariate summary
-  aggregated across (optionally standardised) traits, with dedicated
-  print and stacked-bar-chart plot methods.
+- Theme commun
+  [`Rfishmorph::app_theme()`](https://rdrr.io/pkg/Rfishmorph/man/app_theme.html)
+  dans le hub et le digitizer (qui garde son accent bleu) ; le digitizer
+  a une vraie barre de titre. Les couleurs ecrites en dur dans les
+  styles passent par les variables du theme. Requiert Rfishmorph \>=
+  0.19.0.
 
-## intraitR 0.6.1
+- Site pkgdown : 15 fonctions exportees manquaient a l’index de
+  reference (hub, journal, base DuckDB,
+  [`batch_landmarks()`](https://funtraits.github.io/intraitR/reference/batch_landmarks.md),
+  [`impute_traits()`](https://funtraits.github.io/intraitR/reference/impute_traits.md)…),
+  ce qui faisait echouer la construction du site ; nouvelle section
+  *Measurement hub and digitization*.
 
-- New demo, `demo("na_handling", package = "intraitR")`: simulates a
-  FISHMORPH data set, deletes a known set of trait values, and compares
-  `"impute_mean"`, `"impute_group_mean"`, and `"missforest"` by RMSE
-  against the true (deleted) values, alongside `"omit"` and the default
-  `"fail"` behaviour of
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md).
+- CORRECTION. `impute_traits(method = "impute_group_mean")` (et
+  `.apply_na_action()`) n’imputait RIEN quand les groupes etaient un
+  vecteur de caracteres – le cas de
+  [`impute_traits()`](https://funtraits.github.io/intraitR/reference/impute_traits.md)
+  et de `FishInTrait::fit_build_space()` : la boucle parcourait
+  `levels(groups)`, qui vaut `NULL` sur un caractere, et le message
+  annoncait “imputed 0”. Les autres methodes (missForest par defaut)
+  n’etaient pas touchees.
 
-## intraitR 0.6.0
+- CORRECTION. Digitizer FISHMORPH :
+  [`openxlsx::read.xlsx()`](https://rdrr.io/pkg/openxlsx/man/read.xlsx.html)
+  supprime par defaut les colonnes et lignes entierement vides. Une
+  colonne vide (LM12 jamais saisi, colonnes de charniere 24-25 avant la
+  premiere sauvegarde) decalait toutes les colonnes suivantes :
+  `quality_score`, `reviewed`, `collapse_rules` relus dans la mauvaise
+  colonne, points non mesurables perdus au rechargement.
+  `skipEmptyCols/skipEmptyRows = FALSE`.
 
-- [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  gains `na_action = "missforest"`: nonparametric random-forest
-  imputation of missing trait values via
-  [`missForest::missForest()`](https://rdrr.io/pkg/missForest/man/missForest.html)
-  (Stekhoven & Bühlmann, 2012), using `groups` (when supplied) as an
-  auxiliary predictor. Unlike `"impute_mean"`/ `"impute_group_mean"`,
-  this exploits correlations among traits and is generally preferable
-  once more than a few values are missing. Reports the number of values
-  imputed and the out-of-bag normalised RMSE via
-  [`message()`](https://rdrr.io/r/base/message.html). Requires the (new,
-  `Suggests`-only) `missForest` package; results are stochastic unless
-  [`set.seed()`](https://rdrr.io/r/base/Random.html) is called
-  beforehand. New arguments `missforest_ntree` (default `100`) and
-  `missforest_maxiter` (default `10`) control the underlying random
-  forests.
+- TESTS. Les 6 tests en echec depuis plusieurs versions sont corriges (5
+  par la correction ci-dessus, 1 donnee de test incoherente). Nouveau
+  `test-app-digitizer.R` : le digitizer joue sans navigateur
+  ([`shiny::testServer()`](https://rdrr.io/pkg/shiny/man/testServer.html))
+  – Entree valide + enregistre + photo suivante, bouton Validate sans
+  enregistrement, refus d’un enregistrement vide, bouton Save qui ecrit
+  le classeur. withr en Suggests.
 
-## intraitR 0.5.1
-
-- Bug fix:
+- CORRECTION IMPORTANTE. `.xlsx_sheet_names()` renvoyait une liste VIDE
+  pour les classeurs ecrits par writexl comme par openxlsx
+  ([`readLines()`](https://rdrr.io/r/base/readLines.html) sur une
+  connexion [`unz()`](https://rdrr.io/r/base/connections.html) perd la
+  derniere ligne sans fin de ligne, et `workbook.xml` tient en deux
+  lignes). Les deux protections ajoutees apres l’incident du 23/10
+  (1.42.1) ne se declenchaient donc jamais :
+  [`write_xlsx_atomic()`](https://funtraits.github.io/intraitR/reference/write_xlsx_atomic.md)
+  ne refusait pas de detruire des feuilles et
   [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-  called
-  [`geomorph::digitize2d()`](https://rdrr.io/pkg/geomorph/man/digitize2d.html)
-  with an incorrect argument name (`image.list`, which does not exist in
-  `geomorph`) instead of the actual argument name, `filelist`, causing
-  an immediate “unused argument” error on every call. Found by the
-  maintainer testing against a real photograph. Fixed by using
-  `filelist`, and the `...` documentation corrected from a non-existent
-  `MultCurvatures` argument to the real `scale`/`MultScale`/`verbose`
-  arguments of
-  [`geomorph::digitize2d()`](https://rdrr.io/pkg/geomorph/man/digitize2d.html).
+  ne refusait pas un classeur FISHMORPH. Lecture binaire desormais ;
+  trouve par un test.
 
-## intraitR 0.5.0
+- CORRECTION. Deux sessions de journal ouvertes dans la meme seconde
+  produisaient les memes identifiants d’enregistrement (le nom de
+  fichier recevait un suffixe, pas l’identifiant de session) ; la
+  consolidation pouvait alors melanger deux enregistrements.
 
-- New function
-  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md):
-  a convenience wrapper around
-  [`geomorph::digitize2d()`](https://rdrr.io/pkg/geomorph/man/digitize2d.html)
-  for point-and-click digitization of landmarks directly from specimen
-  photographs, following either the fixed 21/22-point FISHMORPH scheme
-  (`scheme = "fishmorph"`) or a user-specified number of generic
-  landmarks (`scheme = "generic"`). Digitized coordinates are written to
-  a `tpsDig` file and immediately re-read with
-  [`read_tps()`](https://funtraits.github.io/intraitR/reference/read_tps.md),
-  so the result is a ready-to-use `"intrait_landmarks"` object. Requires
-  an interactive graphics device; stops with an informative error rather
-  than hanging when called non-interactively (e.g. in scripts, knitted
-  vignettes, or automated tests).
+- NOUVEAU
+  [`launch_measure_hub()`](https://funtraits.github.io/intraitR/reference/launch_measure_hub.md)
+  : le hub de mesure, sur n’importe quel dossier de photos
+  (sous-dossiers sur deux niveaux, ex. site/date ou espece). 1. Setup
+  ; 2. Select : galerie avec espece et etat mesure, tableau des especes,
+  selection libre ; 3. Digitize : pre-passe
+  [`batch_landmarks()`](https://funtraits.github.io/intraitR/reference/batch_landmarks.md)
+  optionnelle (regle oui/non) puis
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  sur exactement la selection, dans un processus R d’arriere-plan
+  (callr) ;
 
-## intraitR 0.4.0
+  4.  Results : avancement, landmarks + statuts (journal), traits
+      FISHMORPH (sans regle : ratios valides, segments en pixels), photo
+      annotee, bouton *Remeasure* (cette photo seule, mode `correct`).
+      Bouton *Finish* : rend la console et renvoie la selection et les
+      traits. Especes : nom du dossier (`species = "folder"`) ou table
+      photo/species. `traits_fun` permet a une couche de gestion
+      (FishInTrait) de brancher son propre calcul de traits.
 
-- New function
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md):
-  tests whether groups (e.g. species) differ in the multivariate
-  dispersion of their functional traits, using a permutation test on
-  trait variance (the trace of the group’s trait covariance matrix),
-  computed on the full standardised trait matrix built by
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  (i.e. not truncated to the two plotting axes). This complements
-  [`intraspecific_variability()`](https://funtraits.github.io/intraitR/reference/intraspecific_variability.md),
-  which reports shape disparity and univariate coefficients of variation
-  but does not test for group differences in multivariate trait
-  dispersion. Accepts either an `"intrait_traitspace"` object or a raw
-  trait table with `groups`.
-- [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  now returns an additional (previously internal) element `X`, the
-  standardised trait matrix actually analysed (post log-transformation
-  and removal of constant columns, centred/scaled as requested), used by
-  [`trait_disparity()`](https://funtraits.github.io/intraitR/reference/trait_disparity.md).
-  This is an additive change and does not affect any existing use of
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)’s
-  output.
-- [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  gains an `na_action` argument (`"fail"` (default, unchanged
-  behaviour), `"omit"`, `"impute_mean"`, or `"impute_group_mean"`) for
-  handling missing values in the numeric trait columns, instead of
-  always erroring. `"omit"` and both imputation modes report, via
-  [`message()`](https://rdrr.io/r/base/message.html), how many rows were
-  dropped or values imputed, so the operation is never silent.
-- New function
-  [`detect_outliers()`](https://funtraits.github.io/intraitR/reference/detect_outliers.md):
-  a quality-control screen for landmark digitization errors, flagging
-  specimens whose Procrustes distance to the sample consensus shape
-  exceeds a robust (median + `threshold` x MAD) cut-off, in the spirit
-  of
-  [`geomorph::plotOutliers()`](https://rdrr.io/pkg/geomorph/man/plotOutliers.html).
-  Includes a diagnostic plot and a ranked table of the most atypical
-  specimens.
+- Hub : point d’entree d’une session. `launch_measure_hub(apps = )`
+  ouvre d’autres applications Shiny, chacune dans son processus R et son
+  onglet : boutons de l’onglet Select (`place = "select"`), boutons sur
+  une photo (`"photo"` : loupe de la galerie et onglet Annotated
+  photograph, code de la photo passe en argument, avertissement
+  optionnel si elle est deja mesuree), menu *Apps* (`"menu"`). Par
+  defaut l’espace FISHMORPH
+  ([`Rfishmorph::launch_fishmorph_space()`](https://rdrr.io/pkg/Rfishmorph/man/launch_fishmorph_space.html)).
+  Photos et especes relues quand une de ces applications se ferme ;
+  `species` peut etre une fonction. Le bouton Remeasure devient *Correct
+  the points in the digitizer*. Images de la galerie rechargees quand le
+  fichier change (recadrage).
 
-## intraitR 0.3.0
+- NOUVEAU `retract_landmarks(journal_dir, photo, row_key, xlsx_path)` :
+  une photo redevient “non mesuree”. Le journal reste en ajout seul : un
+  enregistrement de retrait (`mode = "retracted"`) est ajoute pour
+  chaque cle vivante de la photo (individus d’une planche, repetitions)
+  ;
+  [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
+  laisse ces cles de cote (sauf `history = TRUE`), donc le digitizer ne
+  les ressuscite pas en reconstruisant le classeur ; les lignes sont
+  aussi retirees du classeur (ecriture atomique). Une nouvelle mesure de
+  la cle remplace le retrait.
 
-- [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  gains a `log_transform` argument (default `TRUE`): numeric traits are
-  `log10(x + 1)`-transformed before centring/scaling and ordination,
-  standard practice for ratio-type functional traits that are bounded at
-  zero and often right-skewed (the `+ 1` accommodates traits that
-  legitimately equal 0 under the Villéger et al., 2010, exception rules
-  implemented in
-  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)).
-  Set `log_transform = FALSE` to disable. This does not apply to, and is
-  not used by,
-  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md),
-  which ordinates Procrustes shape coordinates rather than trait ratios.
-- [`plot.intrait_shapespace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_shapespace.md)
-  and
-  [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md)
-  gain a `style` argument (`"spider"`, `"hull"`, or `"none"`), replacing
-  the previous `convex_hull` logical. The new default,
-  `style = "spider"`, displays each group as its individual points,
-  dashed segments linking every point to its group mean, the group mean
-  itself, and a `ellipse_level` (default 95%) dispersion ellipse under a
-  bivariate-normal approximation — the classical “spider”/“star” plot
-  used to depict group structure in ordination diagrams.
-  `style = "hull"` reproduces the previous convex-hull display.
+- Hub : une application connectee peut demander `close_digitizer = TRUE`
+  (le digitizer ouvert est ferme d’abord) ; quand l’image d’une photo a
+  change pendant qu’une application etait ouverte dessus, ses
+  predictions de pre-saisie automatique sont retirees.
 
-## intraitR 0.2.2
+- Hub : une application sur photo peut declarer `photo_query` : deja
+  ouverte, elle recoit la photo suivante par son URL, dans le meme
+  onglet, au lieu d’etre relancee ; le hub surveille les images du
+  dossier courant tant qu’elle est ouverte (pre-saisie perimee retiree,
+  galerie redessinee).
 
-- [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)’s
-  “fewer than two numeric columns” error message now reads “… at least
-  two numeric columns after removing constant (zero-variance) columns.”
-  (kept the original wording intact so downstream code/tests matching on
-  “at least two numeric columns” still work) instead of a reworded
-  message that accidentally broke that match.
-- Test suite: warnings that are an expected, documented side effect of
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  (dropping non-numeric/constant columns) are now suppressed with
-  [`suppressWarnings()`](https://rdrr.io/r/base/warning.html) in the
-  tests that don’t specifically test for them, and a dedicated test
-  asserts both warnings are raised when expected.
+- VITESSE.
+  [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
+  vectorisee (une matrice remplie par index au lieu d’un petit tableau
+  par enregistrement) : resultat identique
+  ([`identical()`](https://rdrr.io/r/base/identical.html) sur un journal
+  de campagne et un journal de cas limites), 4,0 s -\> 0,5 s pour 1 500
+  specimens ;
+  [`landmark_journal_qc()`](https://funtraits.github.io/intraitR/reference/landmark_journal_qc.md)
+  1,6 -\> 0,4 s.
+  [`landmark_journal_read()`](https://funtraits.github.io/intraitR/reference/landmark_journal_read.md)
+  garde en cache les fichiers deja lus (ils sont en ajout seul : seul
+  celui de la session en cours change). Le hub lit le journal une fois
+  par changement et en derive file, controle et tableaux ; vignettes de
+  galerie generees a la demande et mises en cache
+  (`tools::R_user_dir("intraitR", "cache")`) au lieu des images en
+  pleine resolution.
 
-## intraitR 0.2.1
+- Digitizer : affichage CANEVAS par defaut (`display = "canvas"`, ancien
+  affichage `"plot"` conserve). La photo est dessinee dans le navigateur
+  : R envoie l’image une fois, puis apres chaque clic seulement les
+  formes de la superposition (points, segments, guides, controles),
+  quelques Ko au lieu d’un PNG du panneau refait par R. Zoom a la
+  molette (au curseur) et deplacement (clic droit glisse) dans le
+  navigateur, sans aller-retour. La superposition est le MEME code pour
+  les deux affichages (rejoue avec des fonctions d’enregistrement), et
+  le clic envoie `input$click` en pixels de l’image comme avant :
+  regles, statuts et enregistrement inchanges.
 
-Bug fixes found by `devtools::test()` on a real R installation:
+- Ce qui est enregistre, et quand, toujours visible. Digitizer : bouton
+  *Write the workbook now* dans la barre principale et pastille “LM…
+  recorded at hh:mm:ss – workbook up to date / N save(s) to write” (le
+  journal est ecrit a chaque *Save & next* ; le classeur suit). Hub :
+  bouton *Save to the database* et etat (nombre mesure, dernier
+  landmark, classeur) dans la barre ; `launch_measure_hub(sync_fun = )`
+  : l’enregistrement propre a la couche de gestion, lance par le bouton,
+  a la fermeture du digitizer et a *Finish*.
 
-- [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  now drops constant (zero-variance) numeric columns automatically, with
-  a warning, instead of erroring inside
-  [`stats::prcomp()`](https://rdrr.io/r/stats/prcomp.html)/[`stats::cmdscale()`](https://rdrr.io/r/stats/cmdscale.html)
-  (“cannot rescale a constant/zero column to unit variance”). This most
-  commonly occurred when incidental numeric metadata carried over from
-  [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
+- Digitizer : *Validate points* (bleu) a cote de *Save & next* ; touche
+  ENTREE = valider les points a l’ecran + Save & next (le controle des
+  conventions s’applique toujours et son dialogue arrete la sequence ;
+  la touche est sans effet dans un champ de saisie ou quand un dialogue
+  est ouvert).
+
+- Digitizer (campagnes) : bouton *Write the flip into the file* (onglet
+  Display), comme pour la cible FISHMORPH : la photo est reecrite telle
+  qu’affichee, a pleine resolution ; l’original est copie une fois dans
+  `_original_photos/` a cote du classeur (hors de l’arborescence des
+  photos, que le hub parcourt) ; si la photo etait deja enregistree, un
+  avertissement demande de refaire Save & next.
+  [`measure_queue()`](https://funtraits.github.io/intraitR/reference/measure_queue.md)
+  ignore les dossiers `_originaux/` et `_original_photos/`.
+
+- Hub : vignettes sans etiquette d’orientation EXIF (le navigateur les
+  tournait ; elles montrent maintenant la grille brute, comme le
+  digitizer).
+
+- NOUVEAU
+  [`measure_queue()`](https://funtraits.github.io/intraitR/reference/measure_queue.md)
+  : la table du hub (photos, espece, etat mesure).
+
+- callr, DT, httpuv en Suggests (hub uniquement).
+
+- Digitizer : bouton *Finish* (a cote du titre) : ecrit le classeur,
+  ferme l’app et rend la console R
+  ([`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
   /
-  [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
-  (e.g. a digitization `replicate` counter that is constant when
-  `n_replicates = 1`) was passed to
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  unfiltered.
-- [`summary_traits()`](https://funtraits.github.io/intraitR/reference/summary_traits.md)
-  and
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  now check for “no usable numeric columns” before warning about dropped
-  non-numeric columns, instead of emitting a spurious warning right
-  before erroring.
-- Fixed unit tests in `test-fishmorph_ratios.R` that compared rounded
-  output (default `digits = 4`) against un-rounded expected values for
-  ratios with repeating decimals (`REs`, `RMl`).
+  [`digitize_fishmorph_reference()`](https://funtraits.github.io/intraitR/reference/digitize_fishmorph_reference.md)
+  renvoient le chemin du classeur). Lance depuis le hub FishInTrait, il
+  termine proprement le processus d’arriere-plan.
 
-## intraitR 0.2.0
+## intraitR 1.45.0
 
-- Implements the FISHMORPH digitization and trait protocol of Brosse et
-  al. (2021, Global Ecology and Biogeography): a fixed scheme of 21
-  (optionally
-  22. landmarks per specimen (snout, caudal fin basis, body depth, head
-      depth, eye position/diameter, mouth, pectoral fin, caudal peduncle
-      and caudal fin depth, plus an embedded scale bar and an optional
-      body-curvature correction point).
-- [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
-  computes the 11 linear measurements of the protocol (`Bl`, `Bd`, `Hd`,
-  `Eh`, `Mo`, `PFi`, `PFl`, `Ed`, `Jl`, `CPd`, `CFd`) directly from
-  digitized points, automatically converting pixel units to centimetres
-  using an embedded scale bar, and applying the optional body-curvature
-  correction for standard length.
-- [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
-  computes the 9 unitless FISHMORPH ratios (`BEl`, `VEp`, `REs`, `OGp`,
-  `RMl`, `BLs`, `PFv`, `PFs`, `CPt`) from these measurements, optionally
-  adds maximum body length (`MBl`), and implements the special-case
-  rules of Villeger et al. (2010) for species without a visible caudal
-  fin, with a ventrally positioned mouth, or without pectoral fins.
-- [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
-  builds a generic functional trait space (PCA or PCoA) from any numeric
-  trait table, with group convex-hull plotting;
-  [`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)
-  now shares its plotting code with
-  [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md).
-- [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
-  visualises the 21/22-point digitization scheme on a specimen,
-  following the colour scheme of the original protocol figure.
-- [`simulate_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/simulate_fishmorph_points.md)
-  generates simulated multi-species landmark data following the
-  FISHMORPH point scheme, for examples, teaching and testing of the
-  functions above.
+- Digitizer : CORRECTION. Deplacer un point de repere du cadre (1, 2, 3
+  ou une charniere) apres ‘Auto’ / ‘Predict’ relancait le pre-placement
+  sur les proportions medianes FISHMORPH et ecrasait TOUTE la
+  prediction. Desormais seuls les points encore a leur position de
+  graine suivent ; les points predits ou places restent ou ils sont, et
+  seules les regles d’alignement liees au point deplace sont
+  reappliquees (partenaire perpendiculaire, points ventraux derives, axe
+  de la tete). Les curseurs de graine ne touchent plus non plus a une
+  prediction. Le bouton ‘Re-seed’ repart toujours de zero.
 
-## intraitR 0.1.0
+- `digitize_landmarks(photo_dir = )` accepte aussi un VECTEUR de
+  fichiers image : seules ces photos forment la file (une selection
+  faite avant, par ex. une espece d’une date). Noms de fichier distincts
+  exiges (le nom est le code specimen) ; le dossier de la premiere tient
+  lieu de `photo_dir`.
 
-- Initial release.
-- Landmark import from TPS files
-  ([`read_tps()`](https://funtraits.github.io/intraitR/reference/read_tps.md))
-  and generic long-format CSV files
-  ([`read_landmarks_csv()`](https://funtraits.github.io/intraitR/reference/read_landmarks_csv.md)).
-- Generalised Procrustes Analysis wrapper
-  ([`gpa_fish()`](https://funtraits.github.io/intraitR/reference/gpa_fish.md))
-  built on
-  [`geomorph::gpagen()`](https://rdrr.io/pkg/geomorph/man/gpagen.html).
-- Linear inter-landmark distances
-  ([`linear_distances()`](https://funtraits.github.io/intraitR/reference/linear_distances.md))
-  and classical fish morphometric ratios
-  ([`morpho_ratios()`](https://funtraits.github.io/intraitR/reference/morpho_ratios.md)).
-- Shape space construction and plotting
-  ([`shape_space()`](https://funtraits.github.io/intraitR/reference/shape_space.md)).
-- Allometry correction
-  ([`correct_allometry()`](https://funtraits.github.io/intraitR/reference/correct_allometry.md)).
-- Intraspecific morphological variability, combining shape disparity
-  ([`geomorph::morphol.disparity()`](https://rdrr.io/pkg/geomorph/man/morphol.disparity.html))
-  and coefficients of variation of linear traits
-  ([`intraspecific_variability()`](https://funtraits.github.io/intraitR/reference/intraspecific_variability.md)).
-- Measurement error / repeatability analysis for replicated
-  digitization, both for univariate traits (ANOVA-based percent
-  measurement error and repeatability, Bailey & Byrnes 1990) and for
-  shape data (Procrustes ANOVA, Fruciano 2016) via
-  [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md).
-- Landmark configuration plotting
-  ([`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md))
-  and trait summary tables
-  ([`summary_traits()`](https://funtraits.github.io/intraitR/reference/summary_traits.md)).
-- Simulated example data set `fish_landmarks` and generator function
-  [`simulate_fish_landmarks()`](https://funtraits.github.io/intraitR/reference/simulate_fish_landmarks.md).
+- `options(intraitR.background = TRUE)` leve le garde
+  [`interactive()`](https://rdrr.io/r/base/interactive.html) pour un
+  lanceur qui fait tourner l’app dans un processus R d’arriere-plan (le
+  hub de mesure de FishInTrait, via callr), avec
+  `launch.browser = FALSE` et un `port`.
+
+- `batch_landmarks(ruler = TRUE, ruler_mm = 10)` : on declare si les
+  photos portent une regle. `TRUE` (defaut, comportement inchange) : la
+  regle (20-21) est detectee par le reseau `mlmorph_run_ruler`
+  (`mm_per_px`, `bl_mm`) et une photo sans regle lisible est signalee
+  `règle` ; un avertissement previent si ce reseau est absent. `FALSE` :
+  aucune detection, aucun drapeau `règle`, mesures en pixels. Le choix
+  est trace par photo dans la colonne `ruler` de `summary.csv` ;
+  [`read_batch_landmarks()`](https://funtraits.github.io/intraitR/reference/read_batch_landmarks.md)
+  met `ruler = TRUE` pour les lots anterieurs. `ruler_mm` (distance
+  20-21) n’etait pas transmis jusqu’ici : 10 mm etait impose. La doc,
+  qui disait la regle non detectee, est corrigee.
+
+## intraitR 1.44.0
+
+### Fusion des digitizers, etape 4 : la base FISHMORPH rejoint la mesure
+
+- NOUVEAU (deplaces de Rfishmorph, qui ne mesure plus) :
+  [`fishmorph_build_db()`](https://funtraits.github.io/intraitR/reference/fishmorph_build_db.md),
+  [`fishmorph_validate()`](https://funtraits.github.io/intraitR/reference/fishmorph_validate.md),
+  [`fishmorph_db_connect()`](https://funtraits.github.io/intraitR/reference/fishmorph_db_connect.md).
+  La base DuckDB est construite depuis le journal COMMUN
+  (`consolidate_landmarks(long = TRUE)`), qui relit les journaux de
+  l’ancien digitizer comme ceux de
+  [`digitize_fishmorph_reference()`](https://funtraits.github.io/intraitR/reference/digitize_fishmorph_reference.md).
+  Vocabulaire des statuts : celui du journal (“placed” devient “clicked”
+  ; la vue `v_specimen_qc` garde `n_placed` comme alias de `n_clicked`,
+  les requetes existantes fonctionnent). DBI et duckdb en Suggests.
+- NOUVEAU
+  [`write_workbook_atomic()`](https://funtraits.github.io/intraitR/reference/write_workbook_atomic.md)
+  : ecriture atomique d’un classeur openxlsx edite en place (remplace
+  [`Rfishmorph::fm_save_workbook_atomic()`](https://rdrr.io/pkg/Rfishmorph/man/Rfishmorph-defunct.html),
+  utilise par FishInTrait).
+- `inst/MEMO_requetes_db.md` (requetes SQL sur la base) vient de
+  Rfishmorph.
+- Les scripts Python ml-morph n’existent plus qu’ici (`inst/mlmorph/`).
+
+## intraitR 1.43.0
+
+### Fusion des digitizers, etape 3b : la cible FISHMORPH est complete
+
+[`digitize_fishmorph_reference()`](https://funtraits.github.io/intraitR/reference/digitize_fishmorph_reference.md)
+fait desormais tout ce que faisait
+[`Rfishmorph::launch_fishmorph_digitizer()`](https://rdrr.io/pkg/Rfishmorph/man/Rfishmorph-defunct.html).
+
+- Page **New species** (onglet a cote de “Digitize”) : choisir une
+  photo, la nommer (pre-rempli depuis le nom de fichier, forme du binome
+  verifiee), la CADRER (rotations 90 degres, miroirs, recadrage a la
+  souris, “Reset”), puis l’ajouter : copie dans le dossier des nouvelles
+  photos sous `Genus_species.jpg` (suffixe 2, 3… si l’espece y est deja
+  ; un PNG reste PNG), fichier fourni conserve dans `_originaux/`, file
+  “new” reconstruite et specimen ouvert aussitot. Rien n’est ecrit dans
+  le classeur avant le premier “Save & next”.
+- **Verification FishBase** (via
+  [`Rfishmorph::validate_species_names()`](https://rdrr.io/pkg/Rfishmorph/man/validate_species_names.html),
+  qui garde la taxonomie) : signale nom accepte / synonyme / non resolu,
+  ne bloque jamais ; bouton separe pour adopter le nom accepte.
+- **Write the flip into the file** (onglet Display) : ecrit la photo
+  telle qu’affichee, en PLEINE RESOLUTION (l’original est relu : l’image
+  a l’ecran est reduite), original copie une fois dans `_originaux/`,
+  selecteurs remis a None, points inchanges.
+- Tests des fonctions d’integration (rotation, miroir, recadrage,
+  binome, nommage, ecriture avec sauvegarde unique de l’original).
+
+## intraitR 1.42.1
+
+### Correctif de securite : un classeur n’est plus ecrase par un autre format
+
+- INCIDENT du 23/10/2026 :
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  lance avec le classeur de reference FISHMORPH comme `xlsx_path` l’a
+  REECRIT en classeur de campagne (`measurements`, `bias`,
+  `bias_summary`), ses trois feuilles disparaissant. Restaure a
+  l’identique depuis son `.prev.xlsx` (MD5 verifie) ; les deux versions
+  sont conservees dans `_backups/fishmorph_restore_20261023/`.
+- [`write_xlsx_atomic()`](https://funtraits.github.io/intraitR/reference/write_xlsx_atomic.md)
+  refuse desormais d’ecraser un classeur qui contient des feuilles qu’il
+  n’ecrit pas (erreur qui les nomme, fichier intact) ; argument
+  `drop_sheets = TRUE` pour le faire volontairement. Protege aussi
+  `consolidate_landmarks(xlsx_path =)`.
+- [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  refuse de demarrer sur un classeur qui n’est pas un classeur de
+  campagne, et oriente vers
+  [`digitize_fishmorph_reference()`](https://funtraits.github.io/intraitR/reference/digitize_fishmorph_reference.md)
+  quand c’est un classeur FISHMORPH.
+- L’app affiche la vraie raison d’un echec d’ecriture du classeur.
+- [`digitize_fishmorph_reference()`](https://funtraits.github.io/intraitR/reference/digitize_fishmorph_reference.md)
+  : `new_sheet` vaut par defaut `New_specimen` (le nom des classeurs
+  FISHMORPH) ; une feuille au nom approchant est reconnue au lieu d’en
+  creer une nouvelle ; le dossier photo est trouve avec ou sans accents
+  (“Photos utilisees” / “Photos utilisees” accentue) ; un dossier photo
+  qui ne correspond a aucune espece est signale.
+
+## intraitR 1.42.0
+
+### Fusion des digitizers, etape 3a : la cible FISHMORPH dans l’app d’intraitR
+
+- NOUVEAU
+  [`digitize_fishmorph_reference()`](https://funtraits.github.io/intraitR/reference/digitize_fishmorph_reference.md)
+  : l’app de
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  ouverte sur le classeur de reference FISHMORPH. Remplace
+  [`Rfishmorph::launch_fishmorph_digitizer()`](https://rdrr.io/pkg/Rfishmorph/man/Rfishmorph-defunct.html)
+  (memes arguments, memes feuilles, memes files `reconstruct` /
+  `correct` / `new`, memes cles de journal : le nom d’espece, ou le nom
+  de fichier pour une nouvelle photo – l’historique d’une espece
+  continue d’un outil a l’autre).
+- File `reconstruct` : une fois l’axe place, les points sont amorces aux
+  proportions MESUREES de l’espece (ses segments publies ; Eh2/Mo2/PFi2
+  pour les hauteurs) au lieu des medianes. `seed_configuration()` gagne
+  l’argument `ratios` (defaut : medianes, rien ne change pour la
+  campagne).
+- Tout le reste est celui de l’app de campagne : conventions verifiees a
+  l’enregistrement, regles de points confondus, prediction ml-morph et
+  “Auto”, statuts par point, journal commun, note de qualite commune.
+- `R/digitizer_fishmorph.R` : lecture/ecriture du classeur (feuilles
+  `Global_segments`, `Global_Landmark`, `new_specimens` de la copie de
+  travail, editee en place via openxlsx, ecriture atomique), fonctions
+  photo/espece reprises a l’identique de Rfishmorph. `openxlsx` en
+  Suggests.
+- Le lancement est factorise (`.run_digitizer_app()`) entre les deux
+  lanceurs.
+- Pas encore portes (etape 3b) : la page “New species”, l’ecriture du
+  retournement dans le fichier photo, la verification FishBase.
+
+## intraitR 1.41.0
+
+### Une seule echelle de qualite (CHANGEMENT DE CONVENTION)
+
+Les deux digitizers notaient la saisie a l’envers : intraitR `quality`,
+1 = tres bon .. 5 = mauvais (defaut 3) ; Rfishmorph `quality_score`, 1 =
+inutilisable .. 5 = excellent, avec “Not scored”. L’echelle commune est
+desormais celle de Rfishmorph, sous son nom.
+
+- App : choix “Not scored” (defaut, cellule vide) puis 1..5 ; 5 =
+  excellent. La note et la case “Checked” sont remises a zero a chaque
+  specimen (elles suivaient l’operateur d’un poisson au suivant) et
+  rechargees avec une saisie rouverte.
+- Journal et classeur : colonne `quality_score` (meme position que
+  l’ancienne `quality` dans l’en-tete du journal). Le NOM de colonne dit
+  l’echelle : une ancienne `quality` est convertie a la lecture,
+  `quality_score = 6 - quality` (journaux par
+  [`landmark_journal_read()`](https://funtraits.github.io/intraitR/reference/landmark_journal_read.md),
+  classeur de campagne a sa relecture par l’app et par
+  [`import_legacy_landmarks()`](https://funtraits.github.io/intraitR/reference/import_legacy_landmarks.md)).
+  Rien n’est reecrit sur disque ; le classeur passe a `quality_score` a
+  sa prochaine ecriture.
+- [`landmark_journal_append()`](https://funtraits.github.io/intraitR/reference/landmark_journal_append.md)
+  : l’argument `quality` devient `quality_score`.
+- Jeu de donnees T-26 livre : sa colonne `quality` reste sur l’ancienne
+  echelle (documente) ; 491 specimens sur 494 y portent 3, l’ancienne
+  valeur par defaut, c’est-a-dire “non note”.
+
+## intraitR 1.40.0
+
+### Fusion des digitizers, etape 2 : un seul journal
+
+- [`landmark_journal_read()`](https://funtraits.github.io/intraitR/reference/landmark_journal_read.md)
+  relit aussi les journaux ecrits par
+  [`Rfishmorph::launch_fishmorph_digitizer()`](https://rdrr.io/pkg/Rfishmorph/man/Rfishmorph-defunct.html),
+  traduits a la volee (les fichiers ne sont jamais reecrits) :
+  `quality_score` -\> `quality`, `collapse` -\> `collapse_rules`,
+  `reviewed` TRUE/FALSE -\> “yes”/“no”, statut “placed” -\> “clicked”.
+  Colonnes alignees par NOM (les journaux FISHMORPH ont insere des
+  colonnes au milieu de leur en-tete au fil des versions). Verifie sur
+  les 121 journaux FISHMORPH lisibles : 73 163 points, 3 181
+  enregistrements, 2 800 especes, aucune ligne perdue.
+- **Correctif** : un fichier de journal illisible (typiquement un
+  fichier OneDrive/iCloud non telecharge) etait ignore EN SILENCE, et
+  ses specimens disparaissaient de la consolidation. Il est toujours
+  ignore, mais un avertissement le nomme. 14 journaux FISHMORPH sont
+  dans ce cas sur la machine de reference le 23/10/2026.
+- Nouvelle colonne de journal `species` (en fin d’en-tete) et argument
+  `species` de
+  [`landmark_journal_append()`](https://funtraits.github.io/intraitR/reference/landmark_journal_append.md),
+  pour la cible FISHMORPH.
+- [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
+  : nouveaux arguments `long`, `drop_na_points` (defaut `TRUE` ; sans
+  effet sur les journaux intraitR, ou un point “na” n’a jamais de
+  coordonnees) et `status_columns` ; accepte un journal deja lu ;
+  colonne `species` ; `n_validated` aussi dans le resultat vide.
+- NOUVEAU (portes de Rfishmorph) :
+  [`landmark_journal_status()`](https://funtraits.github.io/intraitR/reference/landmark_journal_status.md),
+  [`landmark_journal_history()`](https://funtraits.github.io/intraitR/reference/landmark_journal_history.md),
+  [`landmark_journal_qc()`](https://funtraits.github.io/intraitR/reference/landmark_journal_qc.md).
+
+## intraitR 1.39.0
+
+### Fusion des digitizers, etape 1 : le noyau commun entre dans le package
+
+Objectif : UNE application de numerisation dans intraitR, avec deux
+cibles – la campagne
+([`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md))
+et le classeur de reference FISHMORPH
+([`digitize_fishmorph_reference()`](https://funtraits.github.io/intraitR/reference/digitize_fishmorph_reference.md),
+qui remplacera
+[`Rfishmorph::launch_fishmorph_digitizer()`](https://rdrr.io/pkg/Rfishmorph/man/Rfishmorph-defunct.html)).
+
+- Le noyau du digitizer (schema des 25 points, ordres de saisie, mise en
+  page du classeur de campagne, conventions FISHMORPH verifiees a
+  l’enregistrement : axe brise, points extremes 3/4, ordre de l’oeil,
+  points confondus ; geometrie d’amorcage ; lecture/retournement des
+  images) quitte `inst/shiny/landmarking_app/app.R` pour
+  `R/digitizer_core.R`, **a l’identique** (79 definitions, ~1 130
+  lignes). L’app les importe sous les memes noms au demarrage : aucun
+  changement de comportement.
+- Les tests prennent ces fonctions dans le namespace au lieu d’analyser
+  le texte de `app.R` ; nouveau test : le noyau est complet et l’app ne
+  le redefinit pas.
+
+## intraitR 1.38.0
+
+### Dedoublonnage avec Rfishmorph : la visualisation de l’espace FISHMORPH part dans Rfishmorph
+
+Partage des roles : intraitR MESURE (numerisation, landmarks, segments,
+ratios, erreur de mesure) et analyse l’ITV ; Rfishmorph detient la
+reference FISHMORPH et VISUALISE son espace. Necessite Rfishmorph \>=
+0.17.0.
+
+- [`plotly_fishmorph()`](https://rdrr.io/pkg/Rfishmorph/man/plotly_fishmorph.html),
+  [`plot_fishmorph_density()`](https://rdrr.io/pkg/Rfishmorph/man/plot_fishmorph_density.html),
+  [`max_pair_distance()`](https://rdrr.io/pkg/Rfishmorph/man/max_pair_distance.html),
+  [`group_colors()`](https://rdrr.io/pkg/Rfishmorph/man/group_colors.html)
+  et
+  [`reset_group_colors()`](https://rdrr.io/pkg/Rfishmorph/man/reset_group_colors.html)
+  sont desormais implementes dans Rfishmorph et **reexportes** ici : les
+  appels [`intraitR::...`](https://rdrr.io/r/base/dots.html) (scripts,
+  FishInTrait) restent valides sans modification.
+- [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
+  appelle
+  [`Rfishmorph::project_fishmorph()`](https://rdrr.io/pkg/Rfishmorph/man/project_fishmorph.html)
+  (projection unique) puis ajoute
+  [`itv_proportion()`](https://funtraits.github.io/intraitR/reference/itv_proportion.md).
+  Le resultat est de classe
+  `c("intrait_fishmorph_projection", "fishmorph_projection")` ; memes
+  champs qu’avant. Le trace passe par
+  [`Rfishmorph::plot.fishmorph_projection()`](https://rdrr.io/pkg/Rfishmorph/man/plot.fishmorph_projection.html)
+  (memes arguments ; la methode `plot.intrait_fishmorph_projection()`
+  est supprimee) ; [`print()`](https://rdrr.io/r/base/print.html)
+  affiche le resume Rfishmorph puis le bloc ITV.
+- Moteur de trace des ordinations (`trait_space`, `shape_space`,
+  `itv_accumulation`, `species_sensitivity`,
+  `bootstrap_functional_space`) : delegue a Rfishmorph
+  (`fm_plot_ordination()`, `fm_group_palette()`,
+  `fm_abbreviate_species()`). Il n’existe plus qu’un cache de couleurs
+  par session : une espece a la meme couleur dans les figures intraitR
+  et Rfishmorph (il y en avait deux, donc parfois deux couleurs).
+- Bilan : ~2 300 lignes de code R (net) et ~375 lignes de tests en moins
+  dans intraitR ; le code et ses tests vivent dans Rfishmorph.
+
+## intraitR 1.37.0
+
+### Landmarking tout automatique (sans clic)
+
+- Bouton **« Auto (no clicks) »** dans
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  : un reseau GLOBAL (`ml_morph/train_global.py`,
+  `mlmorph_run_global/model.onnx`) localise le museau (LM1), la base de
+  la caudale (LM2) et le cote dorsal sur la photo entiere (puis sur un
+  recadrage zoome du poisson) ; le modele choisi place ensuite les
+  autres points dans le repere canonique. Un point deja clique garde la
+  priorite ; LM1/LM2 detectes restent “predicted” (non verifies) tant
+  qu’ils ne sont pas recliques. Worker : `--auto`.
+- NOUVEAU
+  [`batch_landmarks()`](https://funtraits.github.io/intraitR/reference/batch_landmarks.md)
+  /
+  [`read_batch_landmarks()`](https://funtraits.github.io/intraitR/reference/read_batch_landmarks.md)
+  : meme chaine sur tout un dossier de photos, sans les ouvrir
+  (`ml_morph/batch_auto.py`, ~0,3 s/photo sur CPU). Sorties :
+  `landmarks_long.csv`, `landmarks_wide.csv`, `summary.csv` (drapeaux
+  `instable`, `dorsal`, `petit`, `bord`, `confiance` et score de risque)
+  et planche de controle `qc/index.html` triee par risque. Rien n’est
+  ecrit dans le journal ; la regle (20-21) n’est pas detectee
+  (coordonnees en pixels). Une seule espece/poisson par photo pour
+  l’instant.
+- Localisation verifiee (plusieurs candidats museau/caudale, chaque
+  couple verifie par le modele fin ; planches : detection puis
+  masquage). Reseau global final (20 epoques). Bloc test, points 4-19,
+  mediane % de Bl : campagne 1,14 (= chaine cliquee 1,14), FISHMORPH
+  1,66 (cliquee 1,58). `batch_landmarks(max_fish = )` pour les planches
+  ; drapeau `plusieurs`. Details : `ml_morph/README.md`.
+- Charnieres 22 et 24 placees par le modele fin (`cnn` a 21 sorties,
+  `train_cnn.py --hinges`) : l’axe brise 1-22-24-2 suit les poissons
+  courbes et les conventions s’appliquent segment par segment ; statut
+  “predicted”, une charniere cliquee est conservee. Points 3-19 :
+  campagne 0,99 % de Bl, FISHMORPH 1,56. Redressement des poissons
+  courbes : option experimentale `--straighten` du worker, desactivee
+  par defaut.
+- 2e etage a haute resolution (`ml_morph/train_refine.py`) : tete,
+  pectorale et caudale reaffinees automatiquement apres le modele fin.
+  Erreur sur les traits (variance, % de l’ITV, chaine automatique) : BEl
+  26 -\> 14, CPt 76 -\> 34, PFs 104 -\> 65, RMl 208 -\> 101, OGp 76 -\>
+  53 ; aucun trait degrade.
+- Nouveau statut de point **“validated”** et bouton **« Validate points
+  »** : les points encore “predicted” ou “seeded” que l’operateur a
+  regardes et acceptes sans les deplacer passent a “validated” (journal
+  ; un point reclique redevient “clicked”, un point reecrit par le
+  modele redevient “predicted”). A l’entrainement
+  (`build_combined_dataset.py`), ils servent d’etiquettes avec un poids
+  de 0,5 et ne sont jamais utilises pour evaluer un modele (effaces des
+  blocs val/test). `landmark_journal` : vocabulaire et compteur
+  `n_validated`.
+- Echelle automatique : quand la regle (20-21) n’est pas cliquee, «
+  Predict » et « Auto » la placent sur la regle (reseaux `ruler` et
+  `ruler_period` + analyse spectrale des graduations,
+  `ml_morph/ruler_scale.py`), statut “predicted”. Bloc test : ecart
+  median 1,0 % a l’echelle cliquee (repetabilite humaine 1,4 %) ; photos
+  sans regle rejetees.
+  [`batch_landmarks()`](https://funtraits.github.io/intraitR/reference/batch_landmarks.md)
+  : colonnes `mm_per_px`, `scale_quality`, `bl_mm`, drapeaux `regle` /
+  `echelle`.
+- Case **« Hinges 22/24 (curved fish) »** (decochee par defaut) :
+  demande au modele de placer aussi les charnieres 22/24 (statut
+  “predicted”), a utiliser au cas par cas sur les poissons courbes ;
+  `batch_landmarks(hinges = TRUE)`.
+- `digitize_landmarks(batch = <dossier de batch_landmarks()>)` : dans la
+  file “new”, une photo traitee par lot arrive DEJA POINTEE (19 points,
+  tous au statut “predicted”, LM1 et LM2 compris, avec les conventions
+  FISHMORPH appliquees) ; le point actif est LM20 (regle).
+  `batch_order = "risk"` (defaut) place en tete les photos signalees,
+  par risque decroissant ; une notification rappelle les drapeaux de la
+  photo. Ne s’applique pas aux planches (`individuals_per_photo > 1`).
+- Correctif : apres le bouton « Auto », LM1/LM2 detectes sont
+  journalises “predicted” (et non “clicked”) tant qu’ils ne sont pas
+  recliques.
+
+## intraitR 1.36.0
+
+### Prediction : un modele entraine sur la campagne
+
+- NOUVEAU MODELE PAR DEFAUT `cnn` : reseau de neurones a cartes de
+  chaleur (ResNet-18 pre-entraine ImageNet + decodeur pyramidal,
+  soft-argmax ; `ml_morph/train_cnn.py`), exporte en ONNX
+  (`mlmorph_run_cnn/model.onnx`). Meme repere canonique et meme worker
+  que les modeles dlib : le worker reconnait un fichier `.onnx` et
+  l’execute avec onnxruntime (a installer une fois :
+  `~/.venv_mlmorph/bin/pip install onnxruntime`) ; chaque point recoit
+  une confiance (colonne `conf`). Bloc test (points 3-19, % de Bl) :
+  campagne 1,03 (dlib `combined` 1,40), FISHMORPH 1,61 (dlib 2,48) ;
+  meilleur sur 71 % et 78 % des specimens (Wilcoxon apparie p \< 1e-15).
+  Les modeles dlib restent proposes dans la liste.
+
+- Modele dlib `combined` : un seul modele ml-morph entraine sur la
+  campagne INTRAIT ET sur FISHMORPH (5 730 especes). Bloc test, points
+  3-19 : campagne mediane 1,40 % de Bl, FISHMORPH 2,48 % ; sans perte
+  face au modele `campaign` sur les specimens jamais vus par les deux
+  (1,44 vs 1,49 %, p = 0,59). Details : `ml_morph/README.md`. Repere
+  canonique plus compact (Bl = 500 px), lu par le worker dans
+  `canon_params.txt`.
+
+- CORRECTIF. Placer la regle (LM20, LM21) deplacait des points
+  anatomiques : le clic propageait les conventions (8/9/11 re-derives,
+  paires de hauteur re-equerrees) sans re-imposer la verticale de
+  l’oeil, si bien qu’apres une prediction LM8 bougeait et LM6 restait
+  hors de la verticale 5-13-7-14-6. Les points d’echelle ne propagent
+  plus rien, et, avec « Auto constraints » coche, les conventions sont
+  appliquees en entier une fois juste apres « Predict » (elles ne
+  l’etaient qu’en mode pin) : ce qui est affiche apres la prediction est
+  ce qui sera enregistre.
+
+- Le worker lit la box dlib dans `canon_params.txt` quand le jeu la
+  declare (`box_w`, `box_h`) au lieu de la recalculer sur les TPS : la
+  boucle d’apprentissage (`ml_morph/update_combined.py`) fige la box, et
+  la recalculer sur un jeu modifie decalait le cadre de prediction de
+  celui de l’entrainement. Sans ces cles, comportement inchange.
+
+- CORRECTIF (worker). `predict_new_image.py` lit l’image SANS appliquer
+  l’orientation EXIF (`cv2.IMREAD_IGNORE_ORIENTATION`), comme
+  [`jpeg::readJPEG()`](https://rdrr.io/pkg/jpeg/man/readJPEG.html) dans
+  l’app : 33 photographies preparees de la campagne portent une rotation
+  EXIF (valeur 8), sur lesquelles la prediction tombait dans un autre
+  repere. Meme worker que Rfishmorph 0.15.0.
+
+- Apres « Predict », la selection passe directement au premier point de
+  la regle encore manquant (LM20, puis LM21), en vue entiere pour que la
+  regle soit a l’ecran ; si la regle est deja placee, la revue commence
+  comme avant au premier point anatomique.
+
+- [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  propose un troisieme modele, `campaign`
+  (`ml_morph/mlmorph_run_campaign/predictor.dat`, 19 landmarks
+  anatomiques), entraine sur le classeur de la campagne INTRAIT (5
+  sites, 80 especes ; 1 570 specimens lisibles : 1 102 train / 230 val /
+  238 test, partition par photographie, stratifiee par espece). Il est
+  liste en premier dans « Predictor model » et detecte par
+  `.resolve_mlmorph_dir()`.
+
+- Le worker `inst/mlmorph/predict_new_image.py` lit desormais
+  `<dataset>/canon_params.txt` (ecrit par
+  `ml_morph/build_campaign_dataset.py`) : `target_len`, facteurs de
+  recadrage, et `refine`. Le modele `campaign` est entraine dans une
+  fenetre centree sur le MILIEU de LM1-LM2 – les deux points cliques –
+  et declare `refine=0` : la passe de recentrage sur le barycentre
+  predit, qui ne peut pas corriger une translation de la box (point
+  fixe), decalait toute la configuration de ~70 px (erreur mediane 9,7 %
+  de Bl au lieu de 1,1 % sur le bloc test). Sans `canon_params.txt`
+  (modeles `app` et `aligned`), le comportement historique est inchange.
+
+- Validation sur le bloc test (jamais vu), via le worker de l’app, clics
+  LM1-LM2-LM3 : voir
+  `ml_morph/mlmorph_run_campaign/validation_summary.csv`.
+
+## intraitR 1.35.0
+
+### Un seul corpus T-26 : celui de l’application
+
+- RUPTURE. Les quatre tables ImageJ de juillet (`operators`,
+  `repeatability`, `identifications`, `qc_log` ; codes `T-26-0001`,
+  operateurs `Operator_N`) ne sont plus livrees.
+  [`load_t26_saudrune()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune.md)
+  ne connait plus que `"landmarks"` (defaut), `"specimens"`,
+  `"repeatability"` et `"qc_log"`, et
+  [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
+  que `"landmarks"` et `"repeatability"`. Les anciennes valeurs
+  (`"campaign"`, `"operators"`, `"identifications"`,
+  `"campaign_identifications"`, `"campaign_renames"`,
+  `"campaign_qc_log"`) sont des erreurs de
+  [`match.arg()`](https://rdrr.io/r/base/match.arg.html).
+- POURQUOI. Deux corpus du meme ruisseau cohabitaient sous deux schemas
+  de points (21 et 25), deux conventions de codes et deux nomenclatures
+  ; les exemples et la demo melaient les deux. Le package illustre le
+  protocole qu’il implemente –
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  – et rien d’autre.
+- CE QUI CHANGE DANS LES TABLES. Les tables `campaign*` de 1.34.0 ne se
+  joignaient plus entre elles (landmarks en `uid`, identifications en
+  anciens codes a espece : zero code commun). Elles sont regenerees en
+  une seule passe par `data-raw/t26_campaign_prepare.R`, qui lit
+  `measurements/landmarks.xlsx` (plus `landmarks_rehashed.xlsx`), prend
+  l’identite dans `export/specimens.csv`, la determination courante dans
+  `export/determinations.csv` et les codes d’espece injectifs dans
+  `export/taxa.csv`. 494 specimens (396 photographies a un poisson + 98
+  individus de plaques `_iK`, deux dates de peche), 7 especes, 25 points
+  par specimen (le point 25, reserve, est NA partout) ; 7
+  enregistrements `_iK` doublant le code nu de leur photographie (meme
+  poisson numerise deux fois) sont exclus et journalises dans
+  `"qc_log"`. `"specimens"` remplace `"campaign_identifications"` et
+  porte `uid`, `individual`, `n_landmarks`, `reviewed`, `confidence`,
+  `determined_by`, `digitized`.
+- NOUVEAU. `"repeatability"` est desormais la feuille `bias` du
+  digitizer : l’essai de re-numerisation en aveugle (mode `repeat`),
+  identifiants `<code>_<operateur>_rep<N>` ; 17 individus x 3 passes a
+  ce jour, un operateur.
+  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md)
+  et
+  [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
+  y trouvent leur exemple reel ;
+  [`operator_disagreement()`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md)
+  attend un second operateur (son exemple est conditionne au nombre
+  d’operateurs).
+- `species = TRUE` joint `species` et `species_code` (plus `id_status`,
+  qui n’existait que dans le pilote ImageJ). La nomenclature est celle
+  de la campagne (*Gobio gobio*, *Leuciscus burdigalensis*).
+- Exemples
+  ([`correct_landmarks()`](https://funtraits.github.io/intraitR/reference/correct_landmarks.md),
+  [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md),
+  [`correct_geometry()`](https://funtraits.github.io/intraitR/reference/correct_geometry.md),
+  [`exclude_specimens()`](https://funtraits.github.io/intraitR/reference/exclude_specimens.md),
+  [`operator_disagreement()`](https://funtraits.github.io/intraitR/reference/operator_disagreement.md),
+  [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md)),
+  `demo(pipeline_T26_saudrune)`, README, vignette, tests et
+  `_pkgdown.yml` reecrits sur ce seul corpus ; plus aucun identifiant de
+  specimen code en dur dans la documentation.
+- Taille : `inst/extdata/T26_Saudrune` passe de 3,4 Mo a 0,28 Mo.
+
+### Corrections
+
+- [`reconcile_photo_names()`](https://funtraits.github.io/intraitR/reference/reconcile_photo_names.md)
+  : une ligne numerisee avant l’existence des colonnes `img_w`/`img_h`
+  n’a rien qui contredise le cadre ; la verification du cadre ne
+  s’applique que lorsque la ligne a enregistre ses dimensions. Jusqu’ici
+  une telle ligne finissait en `frame_changed` et n’etait jamais
+  re-clee, ce qui annulait le cas retroactif que la provenance sert.
+- Tests remis au niveau du code (ils n’avaient pas ete relances depuis
+  1.31) :
+  [`phylo_pcoa()`](https://rdrr.io/pkg/Rfishmorph/man/phylo_pcoa.html)
+  renvoie `fishmorph_phylopcoa` (reexport de Rfishmorph) ; le schema de
+  la feuille `measurements` compte 23 colonnes de metadonnees
+  (`reviewed`, `reviewed_by`, `review_date`, `collapse_rules`,
+  `photo_hash`) ; `apply_collapse()` depend de `project_mid()` ; les
+  info-bulles de
+  [`plotly_fishmorph()`](https://rdrr.io/pkg/Rfishmorph/man/plotly_fishmorph.html)
+  portent deux lignes de distances par defaut
+  (`hover_distances = TRUE`).
+
+## intraitR 1.34.0
+
+### Le journal ne se deverse plus dans le classeur d’un autre dossier
+
+- Le journal est en ajout seul et couvre tout le projet : il garde
+  chaque enregistrement sous le code sous lequel il a ete sauve, pour
+  tous les dossiers. Les reinjecter tous dans le classeur d’UN dossier
+  formait une boucle. Un enregistrement dont la photographie n’est pas
+  la ne peut etre ni revu, ni re-mesure, ni reconcilie : son ancien nom
+  ne correspond a aucun fichier, aucune empreinte, aucune provenance. Il
+  revenait en `frame_changed` ou `ambiguous` a CHAQUE lancement, etait
+  vide ou re-cle, ecrit – et le journal, qui n’oublie rien, le remettait
+  au lancement suivant. Sur T-26 : 49 enregistrements regenerant 37 + 12
+  avertissements, execution apres execution, avec des compteurs qui
+  decroissaient sans jamais atteindre zero.
+- La reinjection est desormais conditionnee a la photographie :
+  `photo_file` doit designer un fichier du dossier ouvert. Le filet de
+  securite reste ou il sert – une ecriture du classeur qui a echoue pour
+  les specimens en cours – et le reste de l’histoire du projet demeure
+  au journal, pour la session qui ouvrira SON dossier. Aucun
+  enregistrement n’est supprime ; il n’est simplement pas recopie dans
+  un classeur qui n’en a pas l’usage.
+- Une note discrete indique combien d’enregistrements ont ete retenus,
+  et pourquoi rien n’est attendu de l’operateur a leur sujet.
+
+### Tout doute renvoie le specimen en file d’attente
+
+- Trois constats de la reconciliation veulent dire la meme chose pour
+  l’operateur – *ces coordonnees ne valent plus contre cette image* – et
+  ils etaient traites de trois facons. Le recadrage (`image_changed`)
+  vidait les coordonnees et remettait le poisson dans la file « new ».
+  Le changement de cadre (`frame_changed`) et l’ambiguite (`ambiguous`)
+  se contentaient d’un avertissement, et laissaient la ligne dans la
+  file « correct ».
+- Un avertissement se lit une fois puis disparait ; la file d’attente
+  est ce qui reste a l’ecran le lendemain. Sur la campagne T-26, cela
+  signifiait une file annoncant « plus rien a faire » avec 42 + 12
+  specimens a reprendre.
+- Les trois cas vident desormais les coordonnees et renvoient le
+  specimen dans la file. Quelques poissons de plus a mesurer coutent un
+  apres-midi ; une file qui ment coute la campagne.
+- Pour une ambiguite, les DEUX entrees repartent, pas seulement la ligne
+  examinee : le constat est « cette image existe sous plusieurs noms
+  avec des coordonnees differentes », et n’en requeuer qu’une laisserait
+  l’autre paraitre terminee.
+- Rien n’est perdu. La ligne est conservee, seules les coordonnees sont
+  mises a NA, et le journal en ajout seul garde chaque configuration :
+  [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
+  et « Rebuild from the journal » la restituent.
+- Le compteur `pending` compte enfin les lignes touchees et non « 1 »
+  par categorie.
+
+### Une ligne au cadre change est re-clee avant d’etre remise en file
+
+- [`reconcile_photo_names()`](https://funtraits.github.io/intraitR/reference/reconcile_photo_names.md)
+  SIGNALE un changement de cadre, il ne renomme pas : la ligne garde le
+  code et le nom de fichier sous lesquels elle a ete numerisee. Depuis
+  la migration UID ceux-ci ne designent plus rien sur le disque
+  (`GOBOCC_010_AT.jpeg` est devenu `..._0016.jpeg`).
+- Vider ses coordonnees la sortait donc de la file « correct » sans
+  jamais la faire entrer dans la file « new » – celle-ci etant
+  construite a partir des PHOTOGRAPHIES du dossier, aucune ne repond a
+  l’ancien nom. Sur T-26 la file annoncait 34 la ou il en restait 45 :
+  11 specimens etaient invisibles, les autres lignes orphelines pointant
+  sur des poissons deja re-mesures sous leur nouveau nom.
+- La ligne est desormais re-clee sur `photo_file_new`, le fichier
+  effectivement apparie, en conservant le suffixe `_iK` / `_repN` – il
+  nomme un poisson dans une photographie, pas la photographie.
+- La moitie eteinte d’une ambiguite est desormais SUPPRIMEE au moment ou
+  l’ambiguite est constatee – et seulement si sa contrepartie vivante
+  est presente. Sans coordonnees et sans photographie a son nom, elle ne
+  pouvait plus etre atteinte ; et elle ne pouvait pas non plus etre
+  nettoyee plus tard, puisque effacer son hash est precisement ce qui
+  empeche l’execution suivante de la reconnaitre comme ambigue. C’est le
+  seul instant ou la preuve existe.

@@ -168,27 +168,28 @@ hypervolumes. Methods in Ecology and Evolution, 9(2), 305-319.
 # \donttest{
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
+#> Warning: 6 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. Use scale_action = "pixels" to measure them in pixels instead (the 9 unitless ratios are unaffected), or see fishmorph_ratios()'s `landmarks` argument to recover those ratios from an existing cm table.
 ratios <- fishmorph_ratios(segments)
-ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
-#> Warning: Dropping non-numeric column(s) from the ordination: individual, population, operator
-#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
-#> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
+traits <- ratios[, c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")]
+ts <- trait_space(traits, groups = fish$metadata$species, na_action = "omit")
+#> na_action = "omit": removing 6 row(s) out of 494 with missing values.
+#> flag_outliers: 10 specimen(s) flagged as within-group outlier(s) across 2 group(s) (Gobio gobio, Lepomis gibbosus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
+#> flag_outliers: 1 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
 
 # method = "dendrogram" needs no extra Suggested package
 ss_dendro <- species_sensitivity(ts, method = "dendrogram", n_axes = 2)
 ss_dendro
 #> <intrait_species_sensitivity> (method = "dendrogram")
-#>   2 PCA axes retained (53.4% of variance), 7 species, FD_ref = 7.234
+#>   2 PCA axes retained (49.7% of variance), 7 species, FD_ref = 16.72
 #>   Top 7 species by |mean %change in functional richness|:
-#>                  species   n mean_dFD            range_dFD
-#>      Barbatula barbatula  38  +17.43%   [-7.57%, +259.19%]
-#>        Phoxinus phoxinus  71  +15.19%   [-9.31%, +182.46%]
-#>         Gobio occitaniae 396  +14.39% [-12.15%, +1105.02%]
-#>        Squalius cephalus 174  +14.27%   [-1.01%, +410.53%]
-#>  Leuciscus burdigalensis  25   +9.19%    [+0.83%, +26.61%]
-#>        Perca fluviatilis  34   +6.30%   [-11.07%, +46.14%]
-#>         Lepomis gibbosus   5   +5.51%    [-9.58%, +22.73%]
+#>                  species   n mean_dFD          range_dFD
+#>      Barbatula barbatula  17   +8.65% [-11.65%, +46.32%]
+#>        Perca fluviatilis  20   +3.20%  [-0.50%, +10.35%]
+#>        Squalius cephalus 126   +2.89%  [-4.98%, +26.70%]
+#>            Barbus barbus  29   +1.95%   [-2.99%, +9.04%]
+#>         Lepomis gibbosus   9   +1.24%  [-7.58%, +22.33%]
+#>  Leuciscus burdigalensis   4   +1.20%  [-6.03%, +15.02%]
+#>              Gobio gobio 283   +0.78% [-12.07%, +36.48%]
 plot(ss_dendro)
 
 
@@ -197,15 +198,15 @@ if (requireNamespace("geometry", quietly = TRUE)) {
   ss
 }
 #> <intrait_species_sensitivity> (method = "convexhull")
-#>   2 PCA axes retained (53.4% of variance), 7 species, FD_ref = 2.488
+#>   2 PCA axes retained (49.7% of variance), 7 species, FD_ref = 10.89
 #>   Top 7 species by |mean %change in functional richness|:
-#>                  species   n mean_dFD            range_dFD
-#>      Barbatula barbatula  38  +19.70%  [-21.07%, +334.06%]
-#>        Squalius cephalus 174  +14.87%   [+0.00%, +621.74%]
-#>         Gobio occitaniae 396  +13.95% [-19.68%, +1383.96%]
-#>        Phoxinus phoxinus  71  +11.97%  [-19.56%, +182.93%]
-#>  Leuciscus burdigalensis  25   +7.91%    [+0.00%, +28.27%]
-#>         Lepomis gibbosus   5   +6.33%   [-26.84%, +40.23%]
-#>        Perca fluviatilis  34   +6.03%   [-22.10%, +57.88%]
+#>                  species   n mean_dFD          range_dFD
+#>        Squalius cephalus 126   +7.78%  [+0.00%, +67.90%]
+#>      Barbatula barbatula  17   +4.58% [-16.84%, +43.55%]
+#>        Perca fluviatilis  20   +4.47%  [+0.00%, +19.04%]
+#>              Gobio gobio 283   +3.98% [-25.85%, +97.40%]
+#>            Barbus barbus  29   +2.24%  [+0.00%, +21.18%]
+#>  Leuciscus burdigalensis   4   +2.14% [-16.51%, +39.43%]
+#>         Lepomis gibbosus   9   -0.00% [-11.21%, +16.42%]
 # }
 ```

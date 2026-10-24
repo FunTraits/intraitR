@@ -37,7 +37,7 @@ downstream (see Details)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -495,7 +495,7 @@ Systematic Biology, 41(4), 471-482.</p>
 <span class="r-in"><span><span class="co"># biological landmark, and should be excluded from the bias</span></span></span>
 <span class="r-in"><span><span class="co"># decomposition (they can still be examined separately if desired, but</span></span></span>
 <span class="r-in"><span><span class="co"># should not be pooled with anatomical landmarks in by_landmark/global):</span></span></span>
-<span class="r-in"><span><span class="va">fish_fm</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span>source <span class="op">=</span> <span class="st">"repeatability"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fish_fm</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="st">"repeatability"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">derr_fm</span> <span class="op">&lt;-</span> <span class="fu">digitization_error</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">fish_fm</span>,</span></span>
 <span class="r-in"><span>  individual <span class="op">=</span> <span class="va">fish_fm</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">individual</span>,</span></span>
@@ -504,25 +504,29 @@ Systematic Biology, 41(4), 471-482.</p>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Unequal numbers of digitization replicates across individuals; bias estimates for individuals with fewer replicates will be noisier.</span>
 <span class="r-in"><span><span class="va">derr_fm</span><span class="op">$</span><span class="va">by_landmark</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    landmark n_individuals mean_bias_pct median_bias_pct sd_bias_pct</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1         5            25        0.0927          0.0836      0.0340</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2        13            25        0.0996          0.0903      0.0402</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3        14            25        0.1049          0.0993      0.0344</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4         7            25        0.1246          0.1162      0.0436</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5         6            25        0.1315          0.1178      0.0514</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6         9            25        0.1521          0.1368      0.0546</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7        11            25        0.1663          0.1428      0.1021</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8        18            25        0.1591          0.1439      0.0808</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9        10            25        0.1926          0.1561      0.1499</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10        8            25        0.1799          0.1609      0.0636</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11       19            25        0.2017          0.1849      0.0787</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12        1            25        0.1853          0.1862      0.0644</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13        2            25        0.2733          0.2121      0.1349</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14       15            25        0.2555          0.2270      0.1055</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15       12            25        0.4310          0.2655      0.4559</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16       16            25        0.2943          0.2855      0.1322</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17       17            25        0.2967          0.2953      0.1073</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18        4            25        0.8756          0.7955      0.5148</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19        3            25        0.8799          0.8245      0.5101</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1         7            17        0.0598          0.0555      0.0281</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2        13            17        0.0939          0.0759      0.0484</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3         1            17        0.1002          0.0862      0.0592</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4         5            17        0.1042          0.0945      0.0447</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5        19            17        0.2216          0.1095      0.3915</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6        14            17        0.1028          0.1125      0.0505</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7        23            17        0.1690          0.1551      0.0881</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8        15            17        0.1885          0.1570      0.1472</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9        10            17        0.1812          0.1719      0.0876</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10        6            17        0.2188          0.1828      0.1463</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11        2            17        0.2140          0.1923      0.1345</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12       11            17        0.1777          0.1998      0.1010</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13        8            17        0.2938          0.2171      0.1848</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14       17            17        0.2392          0.2214      0.1282</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15       12            17        0.5885          0.2555      0.9726</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16       16            17        0.3130          0.2947      0.1451</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17        9            17        0.3018          0.2990      0.1526</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18       18            17        0.5885          0.4310      0.5104</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19        4            17        0.5506          0.5474      0.2571</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20        3            17        0.4897          0.5736      0.2884</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21       22            17        0.6663          0.6094      0.3715</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22       24            17        0.8775          0.6363      0.7775</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23       25            17           NaN              NA          NA</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># level = "segments": does raw-landmark digitization noise survive into</span></span></span>
 <span class="r-in"><span><span class="co"># the 11 linear FISHMORPH measurements? (mixes body-landmark placement</span></span></span>
@@ -531,19 +535,20 @@ Systematic Biology, 41(4), 471-482.</p>
 <span class="r-in"><span>  <span class="va">fish_fm</span>, individual <span class="op">=</span> <span class="va">fish_fm</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">individual</span>, level <span class="op">=</span> <span class="st">"segments"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Unequal numbers of digitization replicates across individuals; bias estimates for individuals with fewer replicates will be noisier.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>4 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. Use scale_action = "pixels" to measure them in pixels instead (the 9 unitless ratios are unaffected), or see fishmorph_ratios()'s `landmarks` argument to recover those ratios from an existing cm table.</span>
 <span class="r-in"><span><span class="va">derr_seg</span><span class="op">$</span><span class="va">by_segment</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    segment n_individuals mean_bias_pct median_bias_pct sd_bias_pct</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1       Bl            25        0.8227          0.7374      0.4190</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      CFd            25        0.9518          0.8088      0.4743</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3       Bd            25        0.9995          0.9101      0.4003</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4       Hd            25        1.0817          1.0067      0.3496</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5       Eh            25        1.2951          1.2771      0.5264</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6      CPd            25        1.4863          1.3922      0.5542</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7       Mo            25        1.6123          1.4095      0.7269</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8      PFl            25        2.8275          2.1001      2.1797</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9      PFi            25        2.8269          2.4606      1.4327</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10      Ed            25        2.8284          2.4914      1.3657</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11      Jl            25        4.9409          4.7549      1.9794</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1       Bl            17        0.9691          0.7687      0.6854</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2       Bd            17        1.0084          0.8114      0.7868</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      CFd            17        1.0296          0.8174      0.7186</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4       Eh            17        1.1182          0.8326      0.8484</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5       Hd            17        2.2297          1.2854      1.7735</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      CPd            17        1.7976          1.6074      1.0292</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7       Mo            17        1.8202          1.6616      1.0264</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8      PFi            17        2.3004          2.1108      1.4475</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9      PFl            17        2.5309          2.3108      1.1194</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10      Jl            17        3.1476          3.3010      2.0395</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11      Ed            17        5.0029          3.9543      3.1328</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># level = "ratios": the 9 dimensionless ratios cancel out any per-</span></span></span>
 <span class="r-in"><span><span class="co"># replicate scale-bar noise, isolating body-shape digitization error --</span></span></span>
@@ -552,17 +557,18 @@ Systematic Biology, 41(4), 471-482.</p>
 <span class="r-in"><span>  <span class="va">fish_fm</span>, individual <span class="op">=</span> <span class="va">fish_fm</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">individual</span>, level <span class="op">=</span> <span class="st">"ratios"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Unequal numbers of digitization replicates across individuals; bias estimates for individuals with fewer replicates will be noisier.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>4 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. Use scale_action = "pixels" to measure them in pixels instead (the 9 unitless ratios are unaffected), or see fishmorph_ratios()'s `landmarks` argument to recover those ratios from an existing cm table.</span>
 <span class="r-in"><span><span class="va">derr_rat</span><span class="op">$</span><span class="va">by_ratio</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ratio n_individuals mean_bias_pct median_bias_pct sd_bias_pct</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1   BEl            25        0.4935          0.4988      0.1256</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2   BLs            25        0.8618          0.8081      0.2304</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3   VEp            25        1.0740          1.0086      0.3675</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4   OGp            25        1.3485          1.2575      0.4138</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5   CPt            25        1.3057          1.3167      0.5832</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6   PFs            25        2.6786          1.6868      2.2987</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7   REs            25        2.7127          2.2737      1.4285</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8   PFv            25        2.6025          2.2920      1.3109</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9   RMl            25        4.8902          4.6114      1.8582</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1   BEl            17        0.7724          0.6460      0.4775</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2   VEp            17        1.0940          1.0745      0.5822</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3   BLs            17        1.4891          1.1437      0.9212</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4   PFv            17        1.6201          1.5491      1.0583</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5   PFs            17        1.8933          1.7705      1.1344</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6   OGp            17        1.9307          1.8731      1.1398</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7   CPt            17        2.1072          2.2676      1.2272</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8   REs            17        4.2274          3.0572      2.8086</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9   RMl            17        3.9262          4.2017      2.0438</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

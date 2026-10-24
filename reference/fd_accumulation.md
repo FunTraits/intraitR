@@ -258,30 +258,34 @@ Science, 16(5), 533-540.
 ## Examples
 
 ``` r
-fish <- simulate_fishmorph_points(n_per_species = 25, n_replicates = 1)
-ratios <- fishmorph_ratios(fishmorph_segments(fish))
+# The T-26 campaign: 494 fish of seven species, digitized once each.
+# Sampling effort is exactly what an accumulation curve is about, and it is
+# very unequal here -- 288 Gobio gobio against 4 Leuciscus burdigalensis --
+# which is the situation the curve exists to diagnose.
+fish <- load_t26_saudrune_landmarks()
+ratios <- fishmorph_ratios(fishmorph_segments(fish, scale_action = "pixels"))
+#> scale_action = "pixels": 6 specimen(s) have a zero-length or missing scale bar (points 20-21); their measurements are returned in PIXELS (scale_units == "px"), the other 488 in centimetres. The nine ratios are unaffected; absolute values are not comparable across the two units.
 # \donttest{
 acc <- fd_accumulation(
   ratios[, c("BEl", "VEp", "REs", "OGp")],
   groups = fish$metadata$species,
   indices = c("fric", "fdis", "rao"), n_perm = 30, min_n = 10, seed = 1
 )
-#> Rarefying 3 species, effort n = 2..25 individuals/species, in 4 PCA axes.
-#> Warning: NAs introduced by coercion to integer range
+#> Rarefying 5 species, effort n = 2..17 individuals/species, in 4 PCA axes.
 acc
 #> <intrait_fd_accumulation>
-#>   3 index/indices on 3 species, effort n = 2..25, 30 permutation(s)
+#>   3 index/indices on 5 species, effort n = 2..17, 30 permutation(s)
 #>   functional richness method = convexhull
 #> 
 #> -- Stabilisation effort n* per index --
 #>  index                                framing  v_full asymptote prop_reached  k
-#>   fric accumulation (no asymptote identified) 75.8800        NA           NA NA
-#>   fdis                            convergence  1.8679        NA           NA NA
-#>    rao                            convergence  2.6120        NA           NA NA
+#>   fric accumulation (no asymptote identified) 55.7137        NA           NA NA
+#>   fdis                            convergence  2.1503        NA           NA NA
+#>    rao                            convergence  3.0499        NA           NA NA
 #>  n_star
 #>      NA
-#>      18
-#>      19
+#>      16
+#>      13
 plot(acc)
 
 # }

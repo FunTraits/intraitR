@@ -235,8 +235,11 @@ Evolution, 27(4), 244-252.
 ## Examples
 
 ``` r
-fish <- simulate_fishmorph_points(n_per_species = 20, n_replicates = 1)
-ratios <- fishmorph_ratios(fishmorph_segments(fish))
+# The T-26 campaign: real specimens, and therefore genuinely unequal
+# sample sizes -- which is the question this function is asked.
+fish <- load_t26_saudrune_landmarks()
+ratios <- fishmorph_ratios(fishmorph_segments(fish, scale_action = "pixels"))
+#> scale_action = "pixels": 6 specimen(s) have a zero-length or missing scale bar (points 20-21); their measurements are returned in PIXELS (scale_units == "px"), the other 488 in centimetres. The nine ratios are unaffected; absolute values are not comparable across the two units.
 
 # multivariate trait variance: how many individuals until the
 # intraspecific-variability estimate converges (resampling band within
@@ -245,16 +248,20 @@ acc <- itv_accumulation(
   ratios[, c("BEl", "VEp", "REs")],
   groups = fish$metadata$species, n_perm = 30, seed = 1
 )
+#> Skipped 1 group(s) with fewer than 5 individuals (or too few distinct sub-sample sizes): Leuciscus burdigalensis.
 acc
 #> <intrait_itv_accumulation>
 #>   metric = variance (convergence), 30 permutation(s) per sub-sample size
 #>   n* = smallest n staying within 5% of the full-sample value
 #> 
 #> -- Stabilisation sample size per group/trait --
-#>      group        trait   metric     framing n_max v_full n_star
-#>  Species_A multivariate variance convergence    20 2.1867     20
-#>  Species_B multivariate variance convergence    20 2.4622     20
-#>  Species_C multivariate variance convergence    20 1.4311     19
+#>                group        trait   metric     framing n_max v_full n_star
+#>  Barbatula barbatula multivariate variance convergence    17 4.0593     17
+#>        Barbus barbus multivariate variance convergence    30 1.0111     30
+#>          Gobio gobio multivariate variance convergence   288 1.4171    263
+#>     Lepomis gibbosus multivariate variance convergence     9 0.3058      9
+#>    Perca fluviatilis multivariate variance convergence    20 1.5765     20
+#>    Squalius cephalus multivariate variance convergence   126 1.8399    116
 plot(acc)
 
 
@@ -264,24 +271,37 @@ acc_range <- itv_accumulation(
   ratios[, c("BEl", "VEp")], groups = fish$metadata$species,
   metric = "range", n_perm = 30, seed = 1
 )
+#> Skipped 1 group(s) with fewer than 5 individuals (or too few distinct sub-sample sizes): Leuciscus burdigalensis.
 acc_range
 #> <intrait_itv_accumulation>
 #>   metric = range (accumulation), 30 permutation(s) per sub-sample size
 #>   n* = n reaching 95% of the fitted michaelis asymptote
 #> 
 #> -- Stabilisation sample size per group/trait --
-#>      group trait metric      framing n_max v_full asymptote prop_reached n_star
-#>  Species_A   BEl  range accumulation    20 0.4726    0.5871       0.8049     83
-#>  Species_A   VEp  range accumulation    20 0.1496    0.1841       0.8125     94
-#>  Species_B   BEl  range accumulation    20 0.4213    0.5385       0.7824    105
-#>  Species_B   VEp  range accumulation    20 0.1568    0.2474       0.6337    223
-#>  Species_C   BEl  range accumulation    20 0.1951    0.2352       0.8295     75
-#>  Species_C   VEp  range accumulation    20 0.0756    0.0929       0.8140     73
-#>        k
-#>   4.3541
-#>   4.9303
-#>   5.5056
-#>  11.7302
-#>   3.9030
-#>   3.8328
+#>                group trait metric      framing n_max v_full asymptote
+#>  Barbatula barbatula   BEl  range accumulation    17 1.9703    2.5022
+#>  Barbatula barbatula   VEp  range accumulation    17 0.4249    0.5994
+#>        Barbus barbus   BEl  range accumulation    30 1.1242    1.3431
+#>        Barbus barbus   VEp  range accumulation    30 0.1564    0.1779
+#>          Gobio gobio   BEl  range accumulation   288 1.6591    1.6658
+#>          Gobio gobio   VEp  range accumulation   288 0.3932    0.4036
+#>     Lepomis gibbosus   BEl  range accumulation     9 0.4461    0.8484
+#>     Lepomis gibbosus   VEp  range accumulation     9 0.1240    0.4190
+#>    Perca fluviatilis   BEl  range accumulation    20 1.9059    2.3360
+#>    Perca fluviatilis   VEp  range accumulation    20 0.1694    0.1989
+#>    Squalius cephalus   BEl  range accumulation   126 1.9931    2.1224
+#>    Squalius cephalus   VEp  range accumulation   126 0.4367    0.4551
+#>  prop_reached n_star       k
+#>        0.7874     87  4.5470
+#>        0.7089    151  7.9472
+#>        0.8370    110  5.7651
+#>        0.8793     83  4.3306
+#>        0.9960    171  8.9975
+#>        0.9742    225 11.7935
+#>        0.5258    151  7.9190
+#>        0.2960    408 21.4223
+#>        0.8159    103  5.3841
+#>        0.8518     62  3.2378
+#>        0.9391    198 10.4176
+#>        0.9596    122  6.4011
 ```

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,9 +33,216 @@
     </div>
 
     <div class="section level2">
-      <h2 id="landmark-import-and-digitization">Landmark import and digitization<a class="anchor" aria-label="anchor" href="#landmark-import-and-digitization"></a></h2>
+      <h2 id="measurement-hub-and-digitization">Measurement hub and digitization<a class="anchor" aria-label="anchor" href="#measurement-hub-and-digitization"></a></h2>
 
-      <div class="section-desc"><p>Read landmark data from tpsDig files, generic spreadsheets, or an interactive digitizer; visualise a single configuration.</p></div>
+      <div class="section-desc"><p>The measurement session: a hub over a folder of photographs, an optional automatic pre-pass, the interactive digitizer (campaign photographs or the FISHMORPH reference workbook), and the append-only landmark journal that records every save.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="launch_measure_hub.html">launch_measure_hub()</a></code>
+
+        </dt>
+        <dd>Choose, digitize and check photographs: the measuring hub</dd>
+
+        <dt>
+
+          <code><a href="measure_queue.html">measure_queue()</a></code>
+
+        </dt>
+        <dd>Photographs of a folder, with their species and their measured state</dd>
+
+        <dt>
+
+          <code><a href="batch_landmarks.html">batch_landmarks()</a></code>
+
+        </dt>
+        <dd>Automatic landmarking of a batch of photographs (no clicks)</dd>
+
+        <dt>
+
+          <code><a href="accept_batch_landmarks.html">accept_batch_landmarks()</a></code>
+
+        </dt>
+        <dd>Record the predictions of an automatic pre-pass without reviewing them</dd>
+
+        <dt>
+
+          <code><a href="install_mlmorph_models.html">install_mlmorph_models()</a></code>
+
+        </dt>
+        <dd>Install the prediction models</dd>
+
+        <dt>
+
+          <code><a href="install_mlmorph_python.html">install_mlmorph_python()</a></code>
+
+        </dt>
+        <dd>A Python environment able to run the prediction models</dd>
+
+        <dt>
+
+          <code><a href="mlmorph_models_dir.html">mlmorph_models_dir()</a></code>
+
+        </dt>
+        <dd>Where the installed prediction models are</dd>
+
+        <dt>
+
+          <code><a href="mlmorph_models_info.html">mlmorph_models_info()</a></code>
+
+        </dt>
+        <dd>The prediction models installed on this machine</dd>
+
+        <dt>
+
+          <code><a href="pack_mlmorph_models.html">pack_mlmorph_models()</a></code>
+
+        </dt>
+        <dd>Package the prediction models for distribution</dd>
+
+        <dt>
+
+          <code><a href="read_batch_landmarks.html">read_batch_landmarks()</a></code>
+
+        </dt>
+        <dd>Read the output of <code><a href="../reference/batch_landmarks.html">batch_landmarks()</a></code></dd>
+
+        <dt>
+
+          <code><a href="digitize_landmarks.html">digitize_landmarks()</a></code>
+
+        </dt>
+        <dd>Launch the interactive ml-morph landmarking application</dd>
+
+        <dt>
+
+          <code><a href="digitize_fishmorph_reference.html">digitize_fishmorph_reference()</a></code>
+
+        </dt>
+        <dd>Digitize the FISHMORPH reference workbook</dd>
+
+        <dt>
+
+          <code><a href="landmark_journal_open.html">landmark_journal_open()</a></code>
+
+        </dt>
+        <dd>Open a session landmark journal (append-only)</dd>
+
+        <dt>
+
+          <code><a href="landmark_journal_append.html">landmark_journal_append()</a></code>
+
+        </dt>
+        <dd>Append one record (one digitization) to a landmark journal</dd>
+
+        <dt>
+
+          <code><a href="landmark_journal_read.html">landmark_journal_read()</a></code>
+
+        </dt>
+        <dd>Read and concatenate every journal in a directory</dd>
+
+        <dt>
+
+          <code><a href="landmark_journal_status.html">landmark_journal_status()</a></code>
+
+        </dt>
+        <dd>State of the journals in a directory</dd>
+
+        <dt>
+
+          <code><a href="landmark_journal_history.html">landmark_journal_history()</a></code>
+
+        </dt>
+        <dd>History of the records of one key</dd>
+
+        <dt>
+
+          <code><a href="landmark_journal_qc.html">landmark_journal_qc()</a></code>
+
+        </dt>
+        <dd>Quick quality control of the journals</dd>
+
+        <dt>
+
+          <code><a href="consolidate_landmarks.html">consolidate_landmarks()</a></code>
+
+        </dt>
+        <dd>Rebuild the landmark table from the journals</dd>
+
+        <dt>
+
+          <code><a href="retract_landmarks.html">retract_landmarks()</a></code>
+
+        </dt>
+        <dd>Retract the landmarks of a photograph (it goes back to "not measured")</dd>
+
+        <dt>
+
+          <code><a href="fishmorph_build_db.html">fishmorph_build_db()</a></code>
+
+        </dt>
+        <dd>Rebuild the DuckDB database from the journals</dd>
+
+        <dt>
+
+          <code><a href="fishmorph_validate.html">fishmorph_validate()</a></code>
+
+        </dt>
+        <dd>Structural AND morphometric control</dd>
+
+        <dt>
+
+          <code><a href="fishmorph_db_connect.html">fishmorph_db_connect()</a></code>
+
+        </dt>
+        <dd>Open the database (read-only by default)</dd>
+      </dl></div><div class="section level2">
+      <h2 id="analyses-exported-as-a-reproducible-project">Analyses exported as a reproducible project<a class="anchor" aria-label="anchor" href="#analyses-exported-as-a-reproducible-project"></a></h2>
+
+      <div class="section-desc"><p>The analysis part of the workflow on measured fishes, in an application opened from the hub, and its export as a project with the architecture of a published paper (numbered scripts, data, results, Methods and Results report), produced by running the project’s own scripts.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="launch_intrait_analyses.html">launch_intrait_analyses()</a></code>
+
+        </dt>
+        <dd>Analyses of measured fishes, exported as a reproducible project</dd>
+
+        <dt>
+
+          <code><a href="read_digitizer_workbook.html">read_digitizer_workbook()</a></code>
+
+        </dt>
+        <dd>Read a workbook of the digitizer, every landmark included</dd>
+
+        <dt>
+
+          <code><a href="write_analysis_project.html">write_analysis_project()</a></code>
+
+        </dt>
+        <dd>Write an analysis as a reproducible project (paper architecture)</dd>
+
+        <dt>
+
+          <code><a href="analysis_params.html">analysis_params()</a></code>
+
+        </dt>
+        <dd>Parameters of an analysis project</dd>
+      </dl></div><div class="section level2">
+      <h2 id="landmark-import">Landmark import<a class="anchor" aria-label="anchor" href="#landmark-import"></a></h2>
+
+      <div class="section-desc"><p>Read landmark data from tpsDig files, generic spreadsheets or earlier tools; photograph identity; atomic workbook writes; visualise a single configuration.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -72,38 +279,38 @@
 
         <dt>
 
-          <code><a href="digitize_landmarks.html">digitize_landmarks()</a></code>
+          <code><a href="import_legacy_landmarks.html">import_legacy_landmarks()</a></code>
 
         </dt>
-        <dd>Launch the interactive ml-morph landmarking application</dd>
+        <dd>Fold an earlier digitization into the workbook of the landmarking app</dd>
 
         <dt>
 
-          <code><a href="landmark_journal_open.html">landmark_journal_open()</a></code>
+          <code><a href="photo_hash.html">photo_hash()</a></code>
 
         </dt>
-        <dd>Open a session landmark journal (append-only)</dd>
+        <dd>Fingerprint of an image file</dd>
 
         <dt>
 
-          <code><a href="landmark_journal_append.html">landmark_journal_append()</a></code>
+          <code><a href="photo_hash_cached.html">photo_hash_cached()</a></code>
 
         </dt>
-        <dd>Append one record (one digitization) to a landmark journal</dd>
+        <dd>Fingerprint a batch of images, remembering the answer</dd>
 
         <dt>
 
-          <code><a href="landmark_journal_read.html">landmark_journal_read()</a></code>
+          <code><a href="reconcile_photo_names.html">reconcile_photo_names()</a></code>
 
         </dt>
-        <dd>Read and concatenate every journal in a directory</dd>
+        <dd>Match digitized specimens back to renamed photographs</dd>
 
         <dt>
 
-          <code><a href="consolidate_landmarks.html">consolidate_landmarks()</a></code>
+          <code><a href="photo_provenance_keys.html">photo_provenance_keys()</a></code>
 
         </dt>
-        <dd>Rebuild the landmark table from the journals</dd>
+        <dd>Provenance keys: which photographs came from the same original</dd>
 
         <dt>
 
@@ -111,6 +318,13 @@
 
         </dt>
         <dd>Write a workbook atomically</dd>
+
+        <dt>
+
+          <code><a href="write_workbook_atomic.html">write_workbook_atomic()</a></code>
+
+        </dt>
+        <dd>Write an openxlsx workbook atomically</dd>
 
         <dt>
 
@@ -237,7 +451,7 @@
 
         <dt>
 
-          <code><a href="fishmorph_segments.html">fishmorph_segments()</a></code>
+          <code><a href="fishmorph_segments.html">fishmorph_segments()</a></code> <code><a href="fishmorph_segments.html">print(<i>&lt;intrait_segments&gt;</i>)</a></code>
 
         </dt>
         <dd>Compute linear morphological measurements following the FISHMORPH protocol</dd>
@@ -248,6 +462,13 @@
 
         </dt>
         <dd>Compute the nine FISHMORPH unitless ecomorphological ratios</dd>
+
+        <dt>
+
+          <code><a href="impute_traits.html">impute_traits()</a></code>
+
+        </dt>
+        <dd>Impute missing trait values, and say which cells were invented</dd>
 
         <dt>
 
@@ -265,10 +486,10 @@
 
         <dt>
 
-          <code><a href="plot_fishmorph_density.html">plot_fishmorph_density()</a></code>
+          <code><a href="reexports.html">reexports</a></code> <code><a href="reexports.html">load_fishmorph_phylogeny</a></code> <code><a href="reexports.html">load_fishmorph_phylo_axes</a></code> <code><a href="reexports.html">phylo_pcoa</a></code> <code><a href="reexports.html">group_colors</a></code> <code><a href="reexports.html">reset_group_colors</a></code> <code><a href="reexports.html">max_pair_distance</a></code> <code><a href="reexports.html">plotly_fishmorph</a></code> <code><a href="reexports.html">plot_fishmorph_density</a></code>
 
         </dt>
-        <dd>Density curves of the FISHMORPH space, per functional axis and per ratio</dd>
+        <dd>Objects exported from other packages</dd>
       </dl></div><div class="section level2">
       <h2 id="functional-and-shape-space">Functional and shape space<a class="anchor" aria-label="anchor" href="#functional-and-shape-space"></a></h2>
 
@@ -302,10 +523,17 @@
 
         <dt>
 
-          <code><a href="project_fishmorph.html">project_fishmorph()</a></code> <code><a href="project_fishmorph.html">print(<i>&lt;intrait_fishmorph_projection&gt;</i>)</a></code> <code><a href="project_fishmorph.html">plot(<i>&lt;intrait_fishmorph_projection&gt;</i>)</a></code>
+          <code><a href="project_fishmorph.html">project_fishmorph()</a></code> <code><a href="project_fishmorph.html">print(<i>&lt;intrait_fishmorph_projection&gt;</i>)</a></code>
 
         </dt>
         <dd>Project specimens into the global FISHMORPH functional space</dd>
+
+        <dt>
+
+          <code><a href="reexports.html">reexports</a></code> <code><a href="reexports.html">load_fishmorph_phylogeny</a></code> <code><a href="reexports.html">load_fishmorph_phylo_axes</a></code> <code><a href="reexports.html">phylo_pcoa</a></code> <code><a href="reexports.html">group_colors</a></code> <code><a href="reexports.html">reset_group_colors</a></code> <code><a href="reexports.html">max_pair_distance</a></code> <code><a href="reexports.html">plotly_fishmorph</a></code> <code><a href="reexports.html">plot_fishmorph_density</a></code>
+
+        </dt>
+        <dd>Objects exported from other packages</dd>
 
         <dt>
 
@@ -397,20 +625,6 @@
 
         </dt>
         <dd>Print and plot an <code>"intrait_richness_comparison"</code> object</dd>
-
-        <dt>
-
-          <code><a href="group_colors.html">group_colors()</a></code>
-
-        </dt>
-        <dd>Look up the group/species colours used by the ordination plot methods</dd>
-
-        <dt>
-
-          <code><a href="reset_group_colors.html">reset_group_colors()</a></code>
-
-        </dt>
-        <dd>Reset the session-level group/species colour cache</dd>
       </dl></div><div class="section level2">
       <h2 id="phylogenetic-data-and-ordination">Phylogenetic data and ordination<a class="anchor" aria-label="anchor" href="#phylogenetic-data-and-ordination"></a></h2>
 
@@ -423,24 +637,10 @@
 
       <dl><dt>
 
-          <code><a href="load_fishmorph_phylogeny.html">load_fishmorph_phylogeny()</a></code>
+          <code><a href="reexports.html">reexports</a></code> <code><a href="reexports.html">load_fishmorph_phylogeny</a></code> <code><a href="reexports.html">load_fishmorph_phylo_axes</a></code> <code><a href="reexports.html">phylo_pcoa</a></code> <code><a href="reexports.html">group_colors</a></code> <code><a href="reexports.html">reset_group_colors</a></code> <code><a href="reexports.html">max_pair_distance</a></code> <code><a href="reexports.html">plotly_fishmorph</a></code> <code><a href="reexports.html">plot_fishmorph_density</a></code>
 
         </dt>
-        <dd>Bundled global fish phylogeny, ready to use with <code><a href="../reference/phylo_pcoa.html">phylo_pcoa()</a></code></dd>
-
-        <dt>
-
-          <code><a href="load_fishmorph_phylo_axes.html">load_fishmorph_phylo_axes()</a></code>
-
-        </dt>
-        <dd>Precomputed phylogenetic PCoA axes for the FISHMORPH species pool</dd>
-
-        <dt>
-
-          <code><a href="phylo_pcoa.html">phylo_pcoa()</a></code> <code><a href="phylo_pcoa.html">print(<i>&lt;intrait_phylopcoa&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Phylogenetic Principal Coordinates Analysis</dd>
+        <dd>Objects exported from other packages</dd>
       </dl></div><div class="section level2">
       <h2 id="intraspecific-variability-and-measurement-error">Intraspecific variability and measurement error<a class="anchor" aria-label="anchor" href="#intraspecific-variability-and-measurement-error"></a></h2>
 
@@ -560,7 +760,7 @@
       </dl></div><div class="section level2">
       <h2 id="real-data-t-la-saudrune">Real data: T-26 La Saudrune<a class="anchor" aria-label="anchor" href="#real-data-t-la-saudrune"></a></h2>
 
-      <div class="section-desc"><p>A real electrofishing landmark data set (Adour-Garonne basin, France), used throughout the package’s examples and <code>demo(pipeline_T26_saudrune)</code>.</p></div>
+      <div class="section-desc"><p>A real electrofishing landmark data set (Adour-Garonne basin, France) digitized with <code><a href="../reference/digitize_landmarks.html">digitize_landmarks()</a></code>, plus its blind repeat trial; used throughout the package’s examples and <code>demo(pipeline_T26_saudrune)</code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 

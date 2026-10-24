@@ -23,7 +23,7 @@ by their mean and a resampling quantile band."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -281,8 +281,11 @@ Evolution, 27(4), 244-252.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="simulate_fishmorph_points.html">simulate_fishmorph_points</a></span><span class="op">(</span>n_per_species <span class="op">=</span> <span class="fl">20</span>, n_replicates <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span><span class="op">)</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># The T-26 campaign: real specimens, and therefore genuinely unequal</span></span></span>
+<span class="r-in"><span><span class="co"># sample sizes -- which is the question this function is asked.</span></span></span>
+<span class="r-in"><span><span class="va">fish</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_t26_saudrune_landmarks.html">load_t26_saudrune_landmarks</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">ratios</span> <span class="op">&lt;-</span> <span class="fu"><a href="fishmorph_ratios.html">fishmorph_ratios</a></span><span class="op">(</span><span class="fu"><a href="fishmorph_segments.html">fishmorph_segments</a></span><span class="op">(</span><span class="va">fish</span>, scale_action <span class="op">=</span> <span class="st">"pixels"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> scale_action = "pixels": 6 specimen(s) have a zero-length or missing scale bar (points 20-21); their measurements are returned in PIXELS (scale_units == "px"), the other 488 in centimetres. The nine ratios are unaffected; absolute values are not comparable across the two units.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># multivariate trait variance: how many individuals until the</span></span></span>
 <span class="r-in"><span><span class="co"># intraspecific-variability estimate converges (resampling band within</span></span></span>
@@ -291,16 +294,20 @@ Evolution, 27(4), 244-252.</p>
 <span class="r-in"><span>  <span class="va">ratios</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"BEl"</span>, <span class="st">"VEp"</span>, <span class="st">"REs"</span><span class="op">)</span><span class="op">]</span>,</span></span>
 <span class="r-in"><span>  groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>, n_perm <span class="op">=</span> <span class="fl">30</span>, seed <span class="op">=</span> <span class="fl">1</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Skipped 1 group(s) with fewer than 5 individuals (or too few distinct sub-sample sizes): Leuciscus burdigalensis.</span>
 <span class="r-in"><span><span class="va">acc</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_itv_accumulation&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   metric = variance (convergence), 30 permutation(s) per sub-sample size</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   n* = smallest n staying within 5% of the full-sample value</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> -- Stabilisation sample size per group/trait --</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      group        trait   metric     framing n_max v_full n_star</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Species_A multivariate variance convergence    20 2.1867     20</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Species_B multivariate variance convergence    20 2.4622     20</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Species_C multivariate variance convergence    20 1.4311     19</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                group        trait   metric     framing n_max v_full n_star</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Barbatula barbatula multivariate variance convergence    17 4.0593     17</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Barbus barbus multivariate variance convergence    30 1.0111     30</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          Gobio gobio multivariate variance convergence   288 1.4171    263</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Lepomis gibbosus multivariate variance convergence     9 0.3058      9</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Perca fluviatilis multivariate variance convergence    20 1.5765     20</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Squalius cephalus multivariate variance convergence   126 1.8399    116</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">acc</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="itv_accumulation-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
@@ -310,26 +317,39 @@ Evolution, 27(4), 244-252.</p>
 <span class="r-in"><span>  <span class="va">ratios</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"BEl"</span>, <span class="st">"VEp"</span><span class="op">)</span><span class="op">]</span>, groups <span class="op">=</span> <span class="va">fish</span><span class="op">$</span><span class="va">metadata</span><span class="op">$</span><span class="va">species</span>,</span></span>
 <span class="r-in"><span>  metric <span class="op">=</span> <span class="st">"range"</span>, n_perm <span class="op">=</span> <span class="fl">30</span>, seed <span class="op">=</span> <span class="fl">1</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Skipped 1 group(s) with fewer than 5 individuals (or too few distinct sub-sample sizes): Leuciscus burdigalensis.</span>
 <span class="r-in"><span><span class="va">acc_range</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;intrait_itv_accumulation&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   metric = range (accumulation), 30 permutation(s) per sub-sample size</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   n* = n reaching 95% of the fitted michaelis asymptote</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> -- Stabilisation sample size per group/trait --</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      group trait metric      framing n_max v_full asymptote prop_reached n_star</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Species_A   BEl  range accumulation    20 0.4726    0.5871       0.8049     83</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Species_A   VEp  range accumulation    20 0.1496    0.1841       0.8125     94</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Species_B   BEl  range accumulation    20 0.4213    0.5385       0.7824    105</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Species_B   VEp  range accumulation    20 0.1568    0.2474       0.6337    223</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Species_C   BEl  range accumulation    20 0.1951    0.2352       0.8295     75</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Species_C   VEp  range accumulation    20 0.0756    0.0929       0.8140     73</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        k</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4.3541</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4.9303</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   5.5056</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  11.7302</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   3.9030</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   3.8328</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                group trait metric      framing n_max v_full asymptote</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Barbatula barbatula   BEl  range accumulation    17 1.9703    2.5022</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Barbatula barbatula   VEp  range accumulation    17 0.4249    0.5994</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Barbus barbus   BEl  range accumulation    30 1.1242    1.3431</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Barbus barbus   VEp  range accumulation    30 0.1564    0.1779</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          Gobio gobio   BEl  range accumulation   288 1.6591    1.6658</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          Gobio gobio   VEp  range accumulation   288 0.3932    0.4036</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Lepomis gibbosus   BEl  range accumulation     9 0.4461    0.8484</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Lepomis gibbosus   VEp  range accumulation     9 0.1240    0.4190</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Perca fluviatilis   BEl  range accumulation    20 1.9059    2.3360</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Perca fluviatilis   VEp  range accumulation    20 0.1694    0.1989</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Squalius cephalus   BEl  range accumulation   126 1.9931    2.1224</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Squalius cephalus   VEp  range accumulation   126 0.4367    0.4551</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  prop_reached n_star       k</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        0.7874     87  4.5470</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        0.7089    151  7.9472</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        0.8370    110  5.7651</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        0.8793     83  4.3306</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        0.9960    171  8.9975</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        0.9742    225 11.7935</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        0.5258    151  7.9190</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        0.2960    408 21.4223</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        0.8159    103  5.3841</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        0.8518     62  3.2378</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        0.9391    198 10.4176</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        0.9596    122  6.4011</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

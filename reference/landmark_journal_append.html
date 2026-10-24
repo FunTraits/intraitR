@@ -15,7 +15,7 @@ landmark_journal_read() then discards."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -66,9 +66,15 @@ rewritten, so an interruption can only truncate the last line, which
 <span>  target_sheet <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  img_w <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  img_h <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>  quality <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  quality_score <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  ruler_mm <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>  mm_per_px <span class="op">=</span> <span class="cn">NA</span></span>
+<span>  mm_per_px <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  photo_hash <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  reviewed <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  reviewed_by <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  review_date <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  collapse_rules <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  species <span class="op">=</span> <span class="cn">NA</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -104,8 +110,42 @@ without a finite coordinate are recorded as <code>"na"</code> whatever is passed
 metadata, recycled over the points.</p></dd>
 
 
-<dt id="arg-img-w-img-h-quality-ruler-mm-mm-per-px">img_w, img_h, quality, ruler_mm, mm_per_px<a class="anchor" aria-label="anchor" href="#arg-img-w-img-h-quality-ruler-mm-mm-per-px"></a></dt>
+<dt id="arg-img-w-img-h-ruler-mm-mm-per-px">img_w, img_h, ruler_mm, mm_per_px<a class="anchor" aria-label="anchor" href="#arg-img-w-img-h-ruler-mm-mm-per-px"></a></dt>
 <dd><p>Further record-level metadata.</p></dd>
+
+
+<dt id="arg-quality-score">quality_score<a class="anchor" aria-label="anchor" href="#arg-quality-score"></a></dt>
+<dd><p>Score of the entry, 1 (unusable) to 5 (excellent);
+<code>NA</code> when not scored. (Until intraitR 1.40.0 this was <code>quality</code>, on the
+reversed scale.)</p></dd>
+
+
+<dt id="arg-photo-hash">photo_hash<a class="anchor" aria-label="anchor" href="#arg-photo-hash"></a></dt>
+<dd><p>Optional MD5 of the image FILE, as returned by
+<code><a href="photo_hash.html">photo_hash()</a></code>. This is the identity a rename cannot change: a specimen
+re-determined, and therefore renamed, is matched back to its own
+measurements on this column rather than on <code>photo_file</code>.</p></dd>
+
+
+<dt id="arg-reviewed-reviewed-by-review-date">reviewed, reviewed_by, review_date<a class="anchor" aria-label="anchor" href="#arg-reviewed-reviewed-by-review-date"></a></dt>
+<dd><p>Optional review of the ENTRY as a
+whole – whether anyone has looked at it, who, and when. <code>quality_score</code> says how
+good the entry is; these say whether the judgement has been made at all,
+which is a different statement: a specimen can be checked AND poor, and
+that is the state a re-photographing list is built from.</p></dd>
+
+
+<dt id="arg-collapse-rules">collapse_rules<a class="anchor" aria-label="anchor" href="#arg-collapse-rules"></a></dt>
+<dd><p>Optional character string listing the coincidence
+rules DECLARED on the specimen, separated by <code>";"</code> (for example
+<code>"Mo;Hd6"</code>). A declared zero is a measurement, and recording only the
+geometry it produced leaves a reader unable to tell it from an accidental
+coincidence.</p></dd>
+
+
+<dt id="arg-species">species<a class="anchor" aria-label="anchor" href="#arg-species"></a></dt>
+<dd><p>Optional species name (<code>"Genus species"</code>), recorded by the
+FISHMORPH reference target, whose <code>row_key</code> is the species itself.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -122,7 +162,7 @@ to write.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"journal_demo2"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">jr</span> <span class="op">&lt;-</span> <span class="fu"><a href="landmark_journal_open.html">landmark_journal_open</a></span><span class="op">(</span><span class="va">d</span>, operator <span class="op">=</span> <span class="st">"AT"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Session journal: /tmp/Rtmp4iyaek/journal_demo2/landmarks_AT_20260727T151212Z.tsv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Session journal: /tmp/RtmpgJS8xD/journal_demo2/landmarks_AT_20261024T184944Z.tsv</span>
 <span class="r-in"><span><span class="va">P</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>X <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">60</span><span class="op">)</span>, Y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">22</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">landmark_journal_append</span><span class="op">(</span><span class="va">jr</span>, row_key <span class="op">=</span> <span class="st">"fish_01"</span>, coords <span class="op">=</span> <span class="va">P</span>, points <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span>,</span></span>
 <span class="r-in"><span>                        specimen <span class="op">=</span> <span class="st">"fish_01"</span>, individual <span class="op">=</span> <span class="st">"fish_01"</span><span class="op">)</span></span></span>

@@ -9,16 +9,7 @@ standard way to show how much of the global morphospace a group's
 intraspecific trait variation (ITV) occupies relative to the entire
 diversity of fishes, on axes defined once by the reference alone (so the
 space does not move when specimens are added or removed, and separate
-studies remain comparable).
-Draws the reference database as a background layer – by default a
-kernel-density heatmap of the whole FISHMORPH morphospace – with the
-projected specimens on top of it, grouped/coloured by species, in any of
-the display styles shared with plot.intrait_traitspace(). The
-background can equivalently (or additionally) be shown as the raw
-reference point cloud, and the focal species' own positions in the
-reference database can be marked, to see how a group's projected
-intraspecific trait variation (ITV) sits relative to its single
-database point."><meta property="og:description" content="Builds a fixed functional trait space by Principal Component Analysis of
+studies remain comparable)."><meta property="og:description" content="Builds a fixed functional trait space by Principal Component Analysis of
 a reference database of FISHMORPH ecomorphological ratios (typically the
 full FISHMORPH database of Brosse et al. 2021, ~9,000 species), then
 places new specimens – e.g. the individuals of a few focal species,
@@ -28,16 +19,7 @@ standard way to show how much of the global morphospace a group's
 intraspecific trait variation (ITV) occupies relative to the entire
 diversity of fishes, on axes defined once by the reference alone (so the
 space does not move when specimens are added or removed, and separate
-studies remain comparable).
-Draws the reference database as a background layer – by default a
-kernel-density heatmap of the whole FISHMORPH morphospace – with the
-projected specimens on top of it, grouped/coloured by species, in any of
-the display styles shared with plot.intrait_traitspace(). The
-background can equivalently (or additionally) be shown as the raw
-reference point cloud, and the focal species' own positions in the
-reference database can be marked, to see how a group's projected
-intraspecific trait variation (ITV) sits relative to its single
-database point."></head><body>
+studies remain comparable)."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -45,7 +27,7 @@ database point."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -84,22 +66,14 @@ intraspecific trait variation (ITV) occupies relative to the entire
 diversity of fishes, on axes defined once by the reference alone (so the
 space does not move when specimens are added or removed, and separate
 studies remain comparable).</p>
-<p>Draws the reference database as a background layer – by default a
-kernel-density heatmap of the whole FISHMORPH morphospace – with the
-projected specimens on top of it, grouped/coloured by species, in any of
-the display styles shared with <code><a href="plot.intrait_traitspace.html">plot.intrait_traitspace()</a></code>. The
-background can equivalently (or additionally) be shown as the raw
-reference point cloud, and the focal species' own positions <em>in the
-reference database</em> can be marked, to see how a group's projected
-intraspecific trait variation (ITV) sits relative to its single
-database point.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">project_fishmorph</span><span class="op">(</span></span>
 <span>  <span class="va">specimens</span>,</span>
-<span>  <span class="va">reference</span>,</span>
+<span>  reference <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  source <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  traits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"REs"</span>, <span class="st">"VEp"</span>, <span class="st">"RMl"</span>, <span class="st">"OGp"</span>, <span class="st">"BEl"</span>, <span class="st">"BLs"</span>, <span class="st">"PFv"</span>, <span class="st">"PFs"</span>, <span class="st">"CPt"</span><span class="op">)</span>,</span>
 <span>  groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  select_species <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -114,33 +88,7 @@ database point.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'intrait_fishmorph_projection'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># S3 method for class 'intrait_fishmorph_projection'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
-<span>  <span class="va">x</span>,</span>
-<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"hull"</span>, <span class="st">"spider"</span>, <span class="st">"density"</span>, <span class="st">"points"</span><span class="op">)</span>,</span>
-<span>  reference_density <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  reference_points <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  itv_reference <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  arrows <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  arrow_scale <span class="op">=</span> <span class="fl">0.8</span>,</span>
-<span>  arrow_col <span class="op">=</span> <span class="st">"grey20"</span>,</span>
-<span>  background <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  background_col <span class="op">=</span> <span class="st">"grey75"</span>,</span>
-<span>  density_probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">0.99</span><span class="op">)</span>,</span>
-<span>  density_palette <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  select_species <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  select_specimens <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  ellipse_level <span class="op">=</span> <span class="fl">0.95</span>,</span>
-<span>  density_level <span class="op">=</span> <span class="fl">0.95</span>,</span>
-<span>  legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  legend_position <span class="op">=</span> <span class="st">"outside"</span>,</span>
-<span>  legend_title <span class="op">=</span> <span class="st">"Species"</span>,</span>
-<span>  legend_italic <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  abbreviate_species <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  <span class="va">...</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -162,7 +110,21 @@ either a <code>data.frame</code>/<code>matrix</code> with (at least) the <code>t
 or a single string giving the path to a delimited file to read (a
 <code>;</code>-separated, <code>.</code>-decimal file such as the shipped <code>fishmorph_data.csv</code>
 is read with <code><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">utils::read.csv2()</a></code>; a <code>,</code>-separated file with
-<code><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">utils::read.csv()</a></code>). One row per reference species.</p></dd>
+<code><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">utils::read.csv()</a></code>). One row per reference species. <code>NULL</code> (default)
+asks <span class="pkg">Rfishmorph</span> for its bundled table – see <code>source</code> – which is
+the only way to guarantee that intraitR and Rfishmorph are looking at the
+same species pool. intraitR ships no copy of the FISHMORPH table on
+purpose: two copies on disk is exactly how the two diverge unnoticed.</p></dd>
+
+
+<dt id="arg-source">source<a class="anchor" aria-label="anchor" href="#arg-source"></a></dt>
+<dd><p>Which FISHMORPH measurement campaign to load when <code>reference</code>
+is <code>NULL</code>: <code>"segment"</code> (the published table, ratios from the eleven
+segments) or <code>"landmark"</code> (ratios recomputed from the landmark
+re-digitization, covering only the digitized species). <code>NULL</code> (default)
+follows <code>getOption("fishmorph.source", "segment")</code>, which
+<code><a href="https://rdrr.io/pkg/Rfishmorph/man/set_fishmorph_source.html" class="external-link">Rfishmorph::set_fishmorph_source()</a></code> sets for a whole session. Requires
+<span class="pkg">Rfishmorph</span>; ignored when <code>reference</code> is supplied.</p></dd>
 
 
 <dt id="arg-traits">traits<a class="anchor" aria-label="anchor" href="#arg-traits"></a></dt>
@@ -251,116 +213,12 @@ are always dropped (with a message) before the space is built.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Further arguments passed to <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">graphics::plot()</a></code> (for the
-<code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method) or currently unused (for <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>).</p></dd>
-
-
-<dt id="arg-style">style<a class="anchor" aria-label="anchor" href="#arg-style"></a></dt>
-<dd><p>Character, one of <code>"hull"</code> (default; per-species convex hull
-= the ITV footprint), <code>"spider"</code> (dispersion ellipse + spokes to the
-centroid), <code>"density"</code> (per-species kernel-density contour of the
-projected specimens), or <code>"points"</code> (the projected points only, no
-per-group geometry). Note this is the <em>foreground</em> per-species geometry
-and is independent of <code>reference_density</code>, which controls the
-<em>background</em> reference heatmap.</p></dd>
-
-
-<dt id="arg-reference-density">reference_density<a class="anchor" aria-label="anchor" href="#arg-reference-density"></a></dt>
-<dd><p>Logical, draw the reference database's
-distribution as a filled kernel-density heatmap (a white-to-red
-gradient with a few nested highest-density-region contour lines) behind
-the projected specimens – the recommended way to show a ~9,000-species
-morphospace, which is unreadable as raw points. Defaults to <code>TRUE</code>.</p></dd>
-
-
-<dt id="arg-reference-points">reference_points<a class="anchor" aria-label="anchor" href="#arg-reference-points"></a></dt>
-<dd><p>Logical, draw the reference database species as a
-light background point cloud (the previous default display). Can be
-combined with <code>reference_density</code>. Defaults to <code>FALSE</code>.</p></dd>
-
-
-<dt id="arg-itv-reference">itv_reference<a class="anchor" aria-label="anchor" href="#arg-itv-reference"></a></dt>
-<dd><p>Logical, mark the focal species' <em>own</em> entries in
-the reference database – i.e. the FISHMORPH points of exactly the
-species for which projected ITV is shown – as filled circles coloured
-to match their species, so the single database morphotype can be
-compared with the spread of the projected individuals. Requires the
-projection to carry reference species labels (<code>x$global_species</code>, added
-by <code>project_fishmorph()</code>); species with no matching reference row are
-skipped with a warning. Defaults to <code>FALSE</code>.</p></dd>
-
-
-<dt id="arg-arrows">arrows<a class="anchor" aria-label="anchor" href="#arg-arrows"></a></dt>
-<dd><p>Logical, overlay the trait <em>loadings</em> (the PCA variable
-contributions stored in <code>x$loadings</code>) as a biplot: one arrow per trait,
-drawn from the origin in the direction of that trait's loading on the
-two plotted axes, with the trait name at the arrow tip. This turns the
-score plot into a standard PCA biplot, showing which morphological
-ratios drive each axis and hence how a group's position in the
-morphospace should be read ecomorphologically (e.g. an ITV footprint
-stretched along the body-elongation arrow varies mostly in body shape).
-The arrows are a purely visual overlay and do not change the ordination.
-Defaults to <code>FALSE</code>.</p></dd>
-
-
-<dt id="arg-arrow-scale">arrow_scale<a class="anchor" aria-label="anchor" href="#arg-arrow-scale"></a></dt>
-<dd><p>Numeric in <code>(0, 1]</code>, how far the longest loading arrow
-reaches, as a fraction of the distance from the origin to the nearest
-plot edge; all arrows are scaled by this same factor so their relative
-lengths and directions are preserved. Loadings are unit-scaled vectors
-with no natural size in score units, so this is a display choice only.
-Smaller values keep the arrows clear of the outer points; larger values
-make short loadings more legible. Only used when <code>arrows = TRUE</code>.
-Defaults to <code>0.8</code>.</p></dd>
-
-
-<dt id="arg-arrow-col">arrow_col<a class="anchor" aria-label="anchor" href="#arg-arrow-col"></a></dt>
-<dd><p>Colour of the loading arrows and their trait labels (when
-<code>arrows = TRUE</code>). Defaults to <code>"grey20"</code>.</p></dd>
-
-
-<dt id="arg-background">background<a class="anchor" aria-label="anchor" href="#arg-background"></a></dt>
-<dd><p>Logical master switch: when <code>FALSE</code>, no reference
-background layer of any kind is drawn (overrides <code>reference_density</code>,
-<code>reference_points</code> and <code>itv_reference</code>). Defaults to <code>TRUE</code>.</p></dd>
-
-
-<dt id="arg-background-col">background_col<a class="anchor" aria-label="anchor" href="#arg-background-col"></a></dt>
-<dd><p>Colour of the reference point cloud (when
-<code>reference_points = TRUE</code>). Defaults to <code>"grey75"</code>.</p></dd>
-
-
-<dt id="arg-density-probs">density_probs<a class="anchor" aria-label="anchor" href="#arg-density-probs"></a></dt>
-<dd><p>Numeric vector of coverage probabilities for the
-reference heatmap's highest-density-region contour lines. Defaults to
-<code>c(0.25, 0.5, 0.99)</code>.</p></dd>
-
-
-<dt id="arg-density-palette">density_palette<a class="anchor" aria-label="anchor" href="#arg-density-palette"></a></dt>
-<dd><p>Optional character vector of colours for the
-reference heatmap gradient (low to high density). <code>NULL</code> (default) uses
-a white-to-dark-red ColorBrewer YlOrRd ramp.</p></dd>
-
-
-<dt id="arg-ellipse-level-density-level">ellipse_level, density_level<a class="anchor" aria-label="anchor" href="#arg-ellipse-level-density-level"></a></dt>
-<dd><p>Coverage probabilities for the
-<code>"spider"</code> ellipse and <code>"density"</code> contour respectively. Default
-<code>0.95</code>.</p></dd>
-
-
-<dt id="arg-legend">legend<a class="anchor" aria-label="anchor" href="#arg-legend"></a></dt>
-<dd><p>Logical, draw a species legend. Defaults to <code>TRUE</code>.</p></dd>
-
-
-<dt id="arg-legend-position-legend-title-legend-italic-abbreviate-species">legend_position, legend_title, legend_italic, abbreviate_species<a class="anchor" aria-label="anchor" href="#arg-legend-position-legend-title-legend-italic-abbreviate-species"></a></dt>
-<dd><p>Legend controls, as in <code><a href="plot.intrait_traitspace.html">plot.intrait_traitspace()</a></code>; defaults here are
-tuned for species names (<code>legend_title = "Species"</code>, italic,
-abbreviated binomials).</p></dd>
+<dd><p>Currently unused.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>"intrait_fishmorph_projection"</code>, a list with
+    <p>An object of class <code>c("intrait_fishmorph_projection", "fishmorph_projection")</code>, a list with
 elements <code>scores</code> (data.frame of projected specimen scores on the two
 axes), <code>global_scores</code> (data.frame of the reference species' own scores
 on the same axes, for the background cloud), <code>global_species</code> (character
@@ -379,25 +237,24 @@ components), <code>specimen_traits</code> (the transformed specimen traits, anal
 scale), <code>trait_ranges_reference</code> (per-trait reference envelope),
 <code>reference_traits</code> (the full reference trait matrix on the analysis scale,
 one row per reference species – used e.g. by
-<code><a href="plot_fishmorph_density.html">plot_fishmorph_density()</a></code> to draw the reference trait distributions),
+<code><a href="https://rdrr.io/pkg/Rfishmorph/man/plot_fishmorph_density.html" class="external-link">Rfishmorph::plot_fishmorph_density()</a></code> to draw the reference trait distributions),
 <code>volume_dims</code>, and <code>itv_proportion</code> – an <code>"intrait_itv_proportion"</code>
 object (see <code><a href="itv_proportion.html">itv_proportion()</a></code>) giving the ITV-to-global proportion per
-trait and per functional volume, pooled and per species. Has dedicated
-<code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> methods.</p>
+trait and per functional volume, pooled and per species. Has a <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>
+method (which adds the ITV summary); plotting is done by
+<code><a href="https://rdrr.io/pkg/Rfishmorph/man/plot.fishmorph_projection.html" class="external-link">Rfishmorph::plot.fishmorph_projection()</a></code>.</p>
 <p><code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> invisibly returns <code>x</code>.</p>
-<p><code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> invisibly returns <code>x</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>In the <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method, <code>select_species</code>/<code>select_specimens</code> restrict
-<em>this plot</em> to a subset of the already-projected species or specimen
-identifiers, without recomputing the space (the reference background is
-unchanged); <code>NULL</code> (default) plots everything projected. When
-<code>itv_reference = TRUE</code>, the reference points marked follow the same
-selection: only the focal species still shown after
-<code>select_species</code>/<code>select_specimens</code> are matched against the reference
-database (matching is case-insensitive and treats spaces and underscores
-as equivalent, so <code>"Squalius cephalus"</code> and <code>"Squalius_cephalus"</code> match).</p>
+    <p>The projection itself is computed by <code><a href="https://rdrr.io/pkg/Rfishmorph/man/project_fishmorph.html" class="external-link">Rfishmorph::project_fishmorph()</a></code>,
+which owns the FISHMORPH space and its figures; this function calls it and
+adds what is specific to intraitR, the intraspecific-variability analysis
+(<code><a href="itv_proportion.html">itv_proportion()</a></code>). The result is therefore both an
+<code>"intrait_fishmorph_projection"</code> and a <code>"fishmorph_projection"</code>: it is
+drawn by Rfishmorph's <a href="https://rdrr.io/pkg/Rfishmorph/man/plot.fishmorph_projection.html" class="external-link">plot()</a>
+method, <code><a href="https://rdrr.io/pkg/Rfishmorph/man/plotly_fishmorph.html" class="external-link">Rfishmorph::plotly_fishmorph()</a></code> and <code><a href="https://rdrr.io/pkg/Rfishmorph/man/plot_fishmorph_density.html" class="external-link">Rfishmorph::plot_fishmorph_density()</a></code> (re-exported
+from Rfishmorph), which show the ITV results when present.</p>
     </div>
     <div class="section level2">
     <h2 id="scale-of-the-reference-vs-the-specimens">Scale of the reference vs the specimens<a class="anchor" aria-label="anchor" href="#scale-of-the-reference-vs-the-specimens"></a></h2>
@@ -422,12 +279,15 @@ on different scales (e.g. a raw reference: <code>reference_prelogged = FALSE</co
     <p>Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
 Tedesco, P. A., &amp; Villeger, S. (2021). FISHMORPH: A global database on
 morphological traits of freshwater fishes. Global Ecology and
-Biogeography, 30(11), 2330-2336.</p>
+Biogeography, 30(12), 2330-2336.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="fishmorph_ratios.html">fishmorph_ratios()</a></code>, <code><a href="trait_space.html">trait_space()</a></code>,
-<code>plot.intrait_fishmorph_projection()</code></p></div>
+    <div class="dont-index"><p><code><a href="https://rdrr.io/pkg/Rfishmorph/man/project_fishmorph.html" class="external-link">Rfishmorph::project_fishmorph()</a></code> (the projection itself),
+<code><a href="https://rdrr.io/pkg/Rfishmorph/man/plot.fishmorph_projection.html" class="external-link">Rfishmorph::plot.fishmorph_projection()</a></code> (the static figure and its
+options), <code><a href="https://rdrr.io/pkg/Rfishmorph/man/plotly_fishmorph.html" class="external-link">Rfishmorph::plotly_fishmorph()</a></code> (the same figure as an
+interactive widget), <code><a href="https://rdrr.io/pkg/Rfishmorph/man/plot_fishmorph_density.html" class="external-link">Rfishmorph::plot_fishmorph_density()</a></code>,
+<code><a href="itv_proportion.html">itv_proportion()</a></code>, <code><a href="fishmorph_ratios.html">fishmorph_ratios()</a></code>, <code><a href="trait_space.html">trait_space()</a></code></p></div>
     </div>
 
     <div class="section level2">
@@ -456,6 +316,9 @@ Biogeography, 30(11), 2330-2336.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span>  <span class="co"># overlay the trait loadings as biplot arrows:</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">proj</span>, style <span class="op">=</span> <span class="st">"hull"</span>, arrows <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="co"># the same figure, interactive (hover a point for its identity/traits):</span></span></span>
+<span class="r-in"><span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"plotly"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/pkg/Rfishmorph/man/plotly_fishmorph.html" class="external-link">plotly_fishmorph</a></span><span class="op">(</span><span class="va">proj</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>

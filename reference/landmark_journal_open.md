@@ -53,8 +53,8 @@ carrying the journal `path`, the `operator` and the `session_id`.
 ``` r
 d <- file.path(tempdir(), "journal_demo")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/Rtmp4iyaek/journal_demo/landmarks_AT_20260727T151212Z.tsv
+#> Session journal: /tmp/RtmpgJS8xD/journal_demo/landmarks_AT_20261024T184945Z.tsv
 basename(jr$path)
-#> [1] "landmarks_AT_20260727T151212Z.tsv"
+#> [1] "landmarks_AT_20261024T184945Z.tsv"
 unlink(d, recursive = TRUE)
 ```

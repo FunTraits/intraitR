@@ -13,23 +13,13 @@ occupies relative to the entire diversity of fishes, on axes defined
 once by the reference alone (so the space does not move when specimens
 are added or removed, and separate studies remain comparable).
 
-Draws the reference database as a background layer – by default a
-kernel-density heatmap of the whole FISHMORPH morphospace – with the
-projected specimens on top of it, grouped/coloured by species, in any of
-the display styles shared with
-[`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md).
-The background can equivalently (or additionally) be shown as the raw
-reference point cloud, and the focal species' own positions *in the
-reference database* can be marked, to see how a group's projected
-intraspecific trait variation (ITV) sits relative to its single database
-point.
-
 ## Usage
 
 ``` r
 project_fishmorph(
   specimens,
-  reference,
+  reference = NULL,
+  source = NULL,
   traits = c("REs", "VEp", "RMl", "OGp", "BEl", "BLs", "PFv", "PFs", "CPt"),
   groups = NULL,
   select_species = NULL,
@@ -45,32 +35,6 @@ project_fishmorph(
 
 # S3 method for class 'intrait_fishmorph_projection'
 print(x, ...)
-
-# S3 method for class 'intrait_fishmorph_projection'
-plot(
-  x,
-  style = c("hull", "spider", "density", "points"),
-  reference_density = TRUE,
-  reference_points = FALSE,
-  itv_reference = FALSE,
-  arrows = FALSE,
-  arrow_scale = 0.8,
-  arrow_col = "grey20",
-  background = TRUE,
-  background_col = "grey75",
-  density_probs = c(0.25, 0.5, 0.99),
-  density_palette = NULL,
-  select_species = NULL,
-  select_specimens = NULL,
-  ellipse_level = 0.95,
-  density_level = 0.95,
-  legend = TRUE,
-  legend_position = "outside",
-  legend_title = "Species",
-  legend_italic = TRUE,
-  abbreviate_species = TRUE,
-  ...
-)
 ```
 
 ## Arguments
@@ -95,7 +59,22 @@ plot(
   [`utils::read.csv2()`](https://rdrr.io/r/utils/read.table.html); a
   `,`-separated file with
   [`utils::read.csv()`](https://rdrr.io/r/utils/read.table.html)). One
-  row per reference species.
+  row per reference species. `NULL` (default) asks Rfishmorph for its
+  bundled table – see `source` – which is the only way to guarantee that
+  intraitR and Rfishmorph are looking at the same species pool. intraitR
+  ships no copy of the FISHMORPH table on purpose: two copies on disk is
+  exactly how the two diverge unnoticed.
+
+- source:
+
+  Which FISHMORPH measurement campaign to load when `reference` is
+  `NULL`: `"segment"` (the published table, ratios from the eleven
+  segments) or `"landmark"` (ratios recomputed from the landmark
+  re-digitization, covering only the digitized species). `NULL`
+  (default) follows `getOption("fishmorph.source", "segment")`, which
+  [`Rfishmorph::set_fishmorph_source()`](https://rdrr.io/pkg/Rfishmorph/man/set_fishmorph_source.html)
+  sets for a whole session. Requires Rfishmorph; ignored when
+  `reference` is supplied.
 
 - traits:
 
@@ -188,118 +167,12 @@ plot(
 
 - ...:
 
-  Further arguments passed to
-  [`graphics::plot()`](https://rdrr.io/r/graphics/plot.default.html)
-  (for the [`plot()`](https://rdrr.io/r/graphics/plot.default.html)
-  method) or currently unused (for
-  [`print()`](https://rdrr.io/r/base/print.html)).
-
-- style:
-
-  Character, one of `"hull"` (default; per-species convex hull = the ITV
-  footprint), `"spider"` (dispersion ellipse + spokes to the centroid),
-  `"density"` (per-species kernel-density contour of the projected
-  specimens), or `"points"` (the projected points only, no per-group
-  geometry). Note this is the *foreground* per-species geometry and is
-  independent of `reference_density`, which controls the *background*
-  reference heatmap.
-
-- reference_density:
-
-  Logical, draw the reference database's distribution as a filled
-  kernel-density heatmap (a white-to-red gradient with a few nested
-  highest-density-region contour lines) behind the projected specimens –
-  the recommended way to show a ~9,000-species morphospace, which is
-  unreadable as raw points. Defaults to `TRUE`.
-
-- reference_points:
-
-  Logical, draw the reference database species as a light background
-  point cloud (the previous default display). Can be combined with
-  `reference_density`. Defaults to `FALSE`.
-
-- itv_reference:
-
-  Logical, mark the focal species' *own* entries in the reference
-  database – i.e. the FISHMORPH points of exactly the species for which
-  projected ITV is shown – as filled circles coloured to match their
-  species, so the single database morphotype can be compared with the
-  spread of the projected individuals. Requires the projection to carry
-  reference species labels (`x$global_species`, added by
-  `project_fishmorph()`); species with no matching reference row are
-  skipped with a warning. Defaults to `FALSE`.
-
-- arrows:
-
-  Logical, overlay the trait *loadings* (the PCA variable contributions
-  stored in `x$loadings`) as a biplot: one arrow per trait, drawn from
-  the origin in the direction of that trait's loading on the two plotted
-  axes, with the trait name at the arrow tip. This turns the score plot
-  into a standard PCA biplot, showing which morphological ratios drive
-  each axis and hence how a group's position in the morphospace should
-  be read ecomorphologically (e.g. an ITV footprint stretched along the
-  body-elongation arrow varies mostly in body shape). The arrows are a
-  purely visual overlay and do not change the ordination. Defaults to
-  `FALSE`.
-
-- arrow_scale:
-
-  Numeric in `(0, 1]`, how far the longest loading arrow reaches, as a
-  fraction of the distance from the origin to the nearest plot edge; all
-  arrows are scaled by this same factor so their relative lengths and
-  directions are preserved. Loadings are unit-scaled vectors with no
-  natural size in score units, so this is a display choice only. Smaller
-  values keep the arrows clear of the outer points; larger values make
-  short loadings more legible. Only used when `arrows = TRUE`. Defaults
-  to `0.8`.
-
-- arrow_col:
-
-  Colour of the loading arrows and their trait labels (when
-  `arrows = TRUE`). Defaults to `"grey20"`.
-
-- background:
-
-  Logical master switch: when `FALSE`, no reference background layer of
-  any kind is drawn (overrides `reference_density`, `reference_points`
-  and `itv_reference`). Defaults to `TRUE`.
-
-- background_col:
-
-  Colour of the reference point cloud (when `reference_points = TRUE`).
-  Defaults to `"grey75"`.
-
-- density_probs:
-
-  Numeric vector of coverage probabilities for the reference heatmap's
-  highest-density-region contour lines. Defaults to
-  `c(0.25, 0.5, 0.99)`.
-
-- density_palette:
-
-  Optional character vector of colours for the reference heatmap
-  gradient (low to high density). `NULL` (default) uses a
-  white-to-dark-red ColorBrewer YlOrRd ramp.
-
-- ellipse_level, density_level:
-
-  Coverage probabilities for the `"spider"` ellipse and `"density"`
-  contour respectively. Default `0.95`.
-
-- legend:
-
-  Logical, draw a species legend. Defaults to `TRUE`.
-
-- legend_position, legend_title, legend_italic, abbreviate_species:
-
-  Legend controls, as in
-  [`plot.intrait_traitspace()`](https://funtraits.github.io/intraitR/reference/plot.intrait_traitspace.md);
-  defaults here are tuned for species names (`legend_title = "Species"`,
-  italic, abbreviated binomials).
+  Currently unused.
 
 ## Value
 
-An object of class `"intrait_fishmorph_projection"`, a list with
+An object of class
+`c("intrait_fishmorph_projection", "fishmorph_projection")`, a list with
 elements `scores` (data.frame of projected specimen scores on the two
 axes), `global_scores` (data.frame of the reference species' own scores
 on the same axes, for the background cloud), `global_species` (character
@@ -319,32 +192,34 @@ diversity the projected ITV occupies: `scores_all`/`global_scores_all`
 `trait_ranges_reference` (per-trait reference envelope),
 `reference_traits` (the full reference trait matrix on the analysis
 scale, one row per reference species – used e.g. by
-[`plot_fishmorph_density()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_density.md)
+[`Rfishmorph::plot_fishmorph_density()`](https://rdrr.io/pkg/Rfishmorph/man/plot_fishmorph_density.html)
 to draw the reference trait distributions), `volume_dims`, and
 `itv_proportion` – an `"intrait_itv_proportion"` object (see
 [`itv_proportion()`](https://funtraits.github.io/intraitR/reference/itv_proportion.md))
 giving the ITV-to-global proportion per trait and per functional volume,
-pooled and per species. Has dedicated
-[`print()`](https://rdrr.io/r/base/print.html) and
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods.
+pooled and per species. Has a
+[`print()`](https://rdrr.io/r/base/print.html) method (which adds the
+ITV summary); plotting is done by
+[`Rfishmorph::plot.fishmorph_projection()`](https://rdrr.io/pkg/Rfishmorph/man/plot.fishmorph_projection.html).
 
 [`print()`](https://rdrr.io/r/base/print.html) invisibly returns `x`.
 
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html) invisibly
-returns `x`.
-
 ## Details
 
-In the [`plot()`](https://rdrr.io/r/graphics/plot.default.html) method,
-`select_species`/`select_specimens` restrict *this plot* to a subset of
-the already-projected species or specimen identifiers, without
-recomputing the space (the reference background is unchanged); `NULL`
-(default) plots everything projected. When `itv_reference = TRUE`, the
-reference points marked follow the same selection: only the focal
-species still shown after `select_species`/`select_specimens` are
-matched against the reference database (matching is case-insensitive and
-treats spaces and underscores as equivalent, so `"Squalius cephalus"`
-and `"Squalius_cephalus"` match).
+The projection itself is computed by
+[`Rfishmorph::project_fishmorph()`](https://rdrr.io/pkg/Rfishmorph/man/project_fishmorph.html),
+which owns the FISHMORPH space and its figures; this function calls it
+and adds what is specific to intraitR, the intraspecific-variability
+analysis
+([`itv_proportion()`](https://funtraits.github.io/intraitR/reference/itv_proportion.md)).
+The result is therefore both an `"intrait_fishmorph_projection"` and a
+`"fishmorph_projection"`: it is drawn by Rfishmorph's
+[plot()](https://rdrr.io/pkg/Rfishmorph/man/plot.fishmorph_projection.html)
+method,
+[`Rfishmorph::plotly_fishmorph()`](https://rdrr.io/pkg/Rfishmorph/man/plotly_fishmorph.html)
+and
+[`Rfishmorph::plot_fishmorph_density()`](https://rdrr.io/pkg/Rfishmorph/man/plot_fishmorph_density.html)
+(re-exported from Rfishmorph), which show the ITV results when present.
 
 ## Scale of the reference vs the specimens
 
@@ -369,13 +244,20 @@ raw reference: `reference_prelogged = FALSE`).
 Brosse, S., Charpin, N., Su, G., Toussaint, A., Herrera-R, G. A.,
 Tedesco, P. A., & Villeger, S. (2021). FISHMORPH: A global database on
 morphological traits of freshwater fishes. Global Ecology and
-Biogeography, 30(11), 2330-2336.
+Biogeography, 30(12), 2330-2336.
 
 ## See also
 
+[`Rfishmorph::project_fishmorph()`](https://rdrr.io/pkg/Rfishmorph/man/project_fishmorph.html)
+(the projection itself),
+[`Rfishmorph::plot.fishmorph_projection()`](https://rdrr.io/pkg/Rfishmorph/man/plot.fishmorph_projection.html)
+(the static figure and its options),
+[`Rfishmorph::plotly_fishmorph()`](https://rdrr.io/pkg/Rfishmorph/man/plotly_fishmorph.html)
+(the same figure as an interactive widget),
+[`Rfishmorph::plot_fishmorph_density()`](https://rdrr.io/pkg/Rfishmorph/man/plot_fishmorph_density.html),
+[`itv_proportion()`](https://funtraits.github.io/intraitR/reference/itv_proportion.md),
 [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md),
-[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
-`plot.intrait_fishmorph_projection()`
+[`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md)
 
 ## Examples
 
@@ -404,6 +286,9 @@ if (file.exists(ref_path)) {
 
   # overlay the trait loadings as biplot arrows:
   plot(proj, style = "hull", arrows = TRUE)
+
+  # the same figure, interactive (hover a point for its identity/traits):
+  if (requireNamespace("plotly", quietly = TRUE)) plotly_fishmorph(proj)
 }
 # }
 ```

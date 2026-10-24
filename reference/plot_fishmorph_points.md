@@ -55,16 +55,17 @@ plot_fishmorph_points(
   [`load_t26_saudrune_landmarks()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune_landmarks.md)
   this is identical to the `code` column). This is useful when
   `landmarks` holds one row per specimen/operator or specimen/replicate
-  combination (e.g. `load_t26_saudrune_landmarks("operators")`, with two
-  rows per fish, one per operator) and it is more natural to look a fish
-  up by its code than by the exact specimen identifier. If `individual`
-  matches more than one specimen (e.g. two operators, or several
-  replicate digitizations), all matches are plotted side by side in a
-  single figure (one panel per specimen, titled with its own specimen
-  identifier) so they can be compared visually; `background_image` is
-  then ignored (with a warning), since a single photograph cannot be
-  assumed to apply to every match. Requires `landmarks$metadata` to have
-  an `individual` column. Defaults to `NULL` (use `specimen` instead).
+  combination (e.g. `load_t26_saudrune_landmarks("repeatability")`, with
+  several rows per fish, one per pass) and it is more natural to look a
+  fish up by its code than by the exact specimen identifier. If
+  `individual` matches more than one specimen (e.g. two operators, or
+  several replicate digitizations), all matches are plotted side by side
+  in a single figure (one panel per specimen, titled with its own
+  specimen identifier) so they can be compared visually;
+  `background_image` is then ignored (with a warning), since a single
+  photograph cannot be assumed to apply to every match. Requires
+  `landmarks$metadata` to have an `individual` column. Defaults to
+  `NULL` (use `specimen` instead).
 
 - labels:
 
@@ -284,19 +285,19 @@ fish <- load_t26_saudrune_landmarks()
 plot_fishmorph_points(fish, specimen = 1)
 
 
-# look a fish up by its code rather than by specimen/operator: the raw
-# operator-level data has two rows (one per operator) per fish, so both
-# digitizations are plotted side by side for comparison
-fish_ops <- load_t26_saudrune_landmarks("operators")
-one_code <- fish_ops$metadata$individual[1]
-plot_fishmorph_points(fish_ops, individual = one_code)
+# look a fish up by its code rather than by specimen/replicate: the repeat
+# trial has several rows (one per pass) per fish, so every digitization is
+# plotted side by side for comparison
+fish_rep <- load_t26_saudrune_landmarks("repeatability")
+one_code <- fish_rep$metadata$individual[1]
+plot_fishmorph_points(fish_rep, individual = one_code)
 
 
 # if some specimens appear upside down or mirrored left-right, fix the
 # underlying coordinates (not just the display) for every specimen at
 # once, using landmarks that are always present and in the same role:
 fish_oriented <- standardize_orientation(fish)
-#> standardize_orientation(): 1006 of 1036 specimen(s) mirrored (234 horizontally, 1004 vertically) to a consistent head-left, belly-down orientation.
+#> standardize_orientation(): 494 of 494 specimen(s) mirrored (0 horizontally, 494 vertically) to a consistent head-left, belly-down orientation.
 plot_fishmorph_points(fish_oriented, specimen = 1)
 
 
@@ -308,19 +309,20 @@ plot_fishmorph_points(fish, specimen = 1, outline = FALSE)
 # points estimated by impute_landmarks() are highlighted in red:
 # \donttest{
 fish_imputed <- impute_landmarks(fish)
-#> Warning: 23 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
-#> impute_landmarks(): estimated 304 missing anatomical landmark coordinate(s) using method = "tps".
+#> Warning: 6 specimen(s) have a missing scale bar landmark (20 or 21); these cannot be estimated from shape covariation (they are not homologous shape landmarks) and are left as NA -- see fishmorph_segments()'s "zero-length or missing scale bar" warning.
+#> impute_landmarks(): no missing anatomical landmark (1-19) found; nothing to impute.
 plot_fishmorph_points(fish_imputed, specimen = 1)
 
 # }
 
 # points fixed by correct_landmarks() are highlighted in blue:
+spec <- fish$metadata$specimen[1]
 fish_fixed <- correct_landmarks(
-  fish, specimen = "T-26-0010_Operator_1",
+  fish, specimen = spec,
   points = c(9, 8, 11, 4), correct = 11, axis = "y"
 )
-#> correct_landmarks(): specimen 'T-26-0010_Operator_1', landmark(s) 11: y set to 1664.167 (median of point(s) 4, 8, 9).
-plot_fishmorph_points(fish_fixed, specimen = "T-26-0010_Operator_1")
+#> correct_landmarks(): specimen 'SAUDRUNESUDTOULOUSE_20260427_0001', landmark(s) 11: y set to 441.859 (median of point(s) 4, 8, 9).
+plot_fishmorph_points(fish_fixed, specimen = spec)
 
 
 # landmarks implicated in a failed check_geometry() convention are

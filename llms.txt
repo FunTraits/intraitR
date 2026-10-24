@@ -150,10 +150,9 @@ non-numeric triggers a warning naming the offending column(s), and
 resolve conflicting or uncertain identifications – do that in R first if
 your identification sheet needs it). It is the generalised, reusable
 version of the private cleaning script originally written to import the
-real T-26 Saudrune field data (`data-raw/t26_saudrune_prepare.R`),
-usable directly on a new field season or survey with its own
-column-naming convention and landmark count. Requires the `readxl`
-package (Suggested, not installed by default).
+earlier T-26 Saudrune field data, usable directly on a new field season
+or survey with its own column-naming convention and landmark count.
+Requires the `readxl` package (Suggested, not installed by default).
 
 ### Digitization error (`digitization_error()`)
 
@@ -241,10 +240,8 @@ fish_fixed    <- correct_geometry(fish_oriented)
 
 # visually compare a specimen before/after geometry correction, with any
 # flagged convention highlighted in orange:
-plot_fishmorph_points(fish_oriented, specimen = "T-26-0024_Operator_1",
-                       geometry_check = geom_check)
-plot_fishmorph_points(fish_fixed, specimen = "T-26-0024_Operator_1",
-                       geometry_check = geom_check)
+plot_fishmorph_points(fish_oriented, specimen = 1, geometry_check = geom_check)
+plot_fishmorph_points(fish_fixed, specimen = 1, geometry_check = geom_check)
 
 segments_fixed <- fishmorph_segments(fish_fixed)
 ratios_fixed   <- fishmorph_ratios(segments_fixed)
@@ -404,12 +401,19 @@ for a full walkthrough.
 
 Beyond simulated examples, `intraitR` ships a real landmark data set
 from an electric-fishing survey of the Saudrune (Adour-Garonne basin,
-France): 279 fish from 8 species, digitized by two independent operators
-on the FISHMORPH scheme, plus a 25-fish x 9-10-replicate intra-operator
-repeatability trial. See
+France): 494 fish of 7 species photographed on two dates (27 April and
+18 May 2026) and digitized with
+[`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+on the 25-point scheme, plus a blind repeat trial (the digitizer’s
+repeat mode: the same fish re-digitized several times) for
+[`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md)
+/
+[`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md).
+See
 [`?load_t26_saudrune`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune.md)
-for the data and `demo("pipeline_T26_saudrune")` for a complete worked
-pipeline (import, GPA, quality control, FISHMORPH traits, trait space,
+for the four tables and `demo("pipeline_T26_saudrune")` for a complete
+worked pipeline (import, quality control, FISHMORPH traits, trait space,
+shape space,
 [`itv_index()`](https://funtraits.github.io/intraitR/reference/itv_index.md),
 [`measurement_error()`](https://funtraits.github.io/intraitR/reference/measurement_error.md),
 [`digitization_error()`](https://funtraits.github.io/intraitR/reference/digitization_error.md),
@@ -418,8 +422,9 @@ applied to it end to end.
 
 ``` r
 
-ops <- load_t26_saudrune("operators")
-lm  <- read_landmarks_csv(ops)
+lm   <- load_t26_saudrune()                  # long landmark table
+spec <- load_t26_saudrune("specimens")       # one row per fish: species, quality, scale
+rep  <- load_t26_saudrune("repeatability")   # the repeat trial
 ```
 
 For the FISHMORPH-specific workflow,
@@ -436,35 +441,22 @@ fish <- load_t26_saudrune_landmarks()
 fishmorph_ratios(fishmorph_segments(fish))
 ```
 
-Operator identity is anonymised in the shipped data (`"Operator_1"`,
-`"Operator_2"` rather than the real names recorded in the field
-spreadsheets). Both loaders take an `operator` argument to restrict to a
-single operator’s digitizations — the natural way to build **two
-separate functional trait spaces**, one per operator, and check whether
-results are sensitive to who did the digitizing:
+Identity follows the campaign’s own rule: a specimen is its photograph
+(`SAUDRUNESUDTOULOUSE_20260427_0001`, with `_iK` for the K-th fish of a
+multi-fish plate), never its species. The landmark tables carry `code`,
+not `species`; the current determination lives in the separate
+`"specimens"` table and can be revised without touching a coordinate.
+Pass `species = TRUE` to join `species`/`species_code` back by `code`:
 
 ``` r
 
-fish_op1 <- load_t26_saudrune_landmarks(operator = "Operator_1")
-fish_op2 <- load_t26_saudrune_landmarks(operator = "Operator_2")
+lm <- load_t26_saudrune(species = TRUE)
+table(lm$species[lm$landmark == 1])
 ```
 
-`operator` is modular: passed to a table with no `operator` column, it
-is ignored with a warning (all rows are returned) rather than raising an
-error.
-
-`load_t26_saudrune("operators")` and `"repeatability"` are landmark
-tables keyed by `code`, not by species — species identity lives in the
-separate `"identifications"` table by design (a landmark measurement
-never needs to know a species, and identifications can be revised
-independently of the coordinates). Pass `species = TRUE` to join
-`species`/`id_status` back onto either table by `code`:
-
-``` r
-
-ops <- load_t26_saudrune("operators", species = TRUE)
-table(ops$species)
-```
+Both loaders take an `operator` argument (labels are the digitizer’s
+operator initials, `"AT"` so far); passed to a table with no `operator`
+column it is ignored with a warning rather than raising an error.
 
 ## Citation
 
@@ -479,10 +471,108 @@ GPL-3. See `LICENSE.md`.
 
 # Package index
 
-## Landmark import and digitization
+## Measurement hub and digitization
 
-Read landmark data from tpsDig files, generic spreadsheets, or an
-interactive digitizer; visualise a single configuration.
+The measurement session: a hub over a folder of photographs, an optional
+automatic pre-pass, the interactive digitizer (campaign photographs or
+the FISHMORPH reference workbook), and the append-only landmark journal
+that records every save.
+
+- [`launch_measure_hub()`](https://funtraits.github.io/intraitR/reference/launch_measure_hub.md)
+  : Choose, digitize and check photographs: the measuring hub
+
+- [`measure_queue()`](https://funtraits.github.io/intraitR/reference/measure_queue.md)
+  : Photographs of a folder, with their species and their measured state
+
+- [`batch_landmarks()`](https://funtraits.github.io/intraitR/reference/batch_landmarks.md)
+  : Automatic landmarking of a batch of photographs (no clicks)
+
+- [`accept_batch_landmarks()`](https://funtraits.github.io/intraitR/reference/accept_batch_landmarks.md)
+  : Record the predictions of an automatic pre-pass without reviewing
+  them
+
+- [`install_mlmorph_models()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_models.md)
+  : Install the prediction models
+
+- [`install_mlmorph_python()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_python.md)
+  : A Python environment able to run the prediction models
+
+- [`mlmorph_models_dir()`](https://funtraits.github.io/intraitR/reference/mlmorph_models_dir.md)
+  : Where the installed prediction models are
+
+- [`mlmorph_models_info()`](https://funtraits.github.io/intraitR/reference/mlmorph_models_info.md)
+  : The prediction models installed on this machine
+
+- [`pack_mlmorph_models()`](https://funtraits.github.io/intraitR/reference/pack_mlmorph_models.md)
+  : Package the prediction models for distribution
+
+- [`read_batch_landmarks()`](https://funtraits.github.io/intraitR/reference/read_batch_landmarks.md)
+  :
+
+  Read the output of
+  [`batch_landmarks()`](https://funtraits.github.io/intraitR/reference/batch_landmarks.md)
+
+- [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  : Launch the interactive ml-morph landmarking application
+
+- [`digitize_fishmorph_reference()`](https://funtraits.github.io/intraitR/reference/digitize_fishmorph_reference.md)
+  : Digitize the FISHMORPH reference workbook
+
+- [`landmark_journal_open()`](https://funtraits.github.io/intraitR/reference/landmark_journal_open.md)
+  : Open a session landmark journal (append-only)
+
+- [`landmark_journal_append()`](https://funtraits.github.io/intraitR/reference/landmark_journal_append.md)
+  : Append one record (one digitization) to a landmark journal
+
+- [`landmark_journal_read()`](https://funtraits.github.io/intraitR/reference/landmark_journal_read.md)
+  : Read and concatenate every journal in a directory
+
+- [`landmark_journal_status()`](https://funtraits.github.io/intraitR/reference/landmark_journal_status.md)
+  : State of the journals in a directory
+
+- [`landmark_journal_history()`](https://funtraits.github.io/intraitR/reference/landmark_journal_history.md)
+  : History of the records of one key
+
+- [`landmark_journal_qc()`](https://funtraits.github.io/intraitR/reference/landmark_journal_qc.md)
+  : Quick quality control of the journals
+
+- [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
+  : Rebuild the landmark table from the journals
+
+- [`retract_landmarks()`](https://funtraits.github.io/intraitR/reference/retract_landmarks.md)
+  : Retract the landmarks of a photograph (it goes back to "not
+  measured")
+
+- [`fishmorph_build_db()`](https://funtraits.github.io/intraitR/reference/fishmorph_build_db.md)
+  : Rebuild the DuckDB database from the journals
+
+- [`fishmorph_validate()`](https://funtraits.github.io/intraitR/reference/fishmorph_validate.md)
+  : Structural AND morphometric control
+
+- [`fishmorph_db_connect()`](https://funtraits.github.io/intraitR/reference/fishmorph_db_connect.md)
+  : Open the database (read-only by default)
+
+## Analyses exported as a reproducible project
+
+The analysis part of the workflow on measured fishes, in an application
+opened from the hub, and its export as a project with the architecture
+of a published paper (numbered scripts, data, results, Methods and
+Results report), produced by running the project’s own scripts.
+
+- [`launch_intrait_analyses()`](https://funtraits.github.io/intraitR/reference/launch_intrait_analyses.md)
+  : Analyses of measured fishes, exported as a reproducible project
+- [`read_digitizer_workbook()`](https://funtraits.github.io/intraitR/reference/read_digitizer_workbook.md)
+  : Read a workbook of the digitizer, every landmark included
+- [`write_analysis_project()`](https://funtraits.github.io/intraitR/reference/write_analysis_project.md)
+  : Write an analysis as a reproducible project (paper architecture)
+- [`analysis_params()`](https://funtraits.github.io/intraitR/reference/analysis_params.md)
+  : Parameters of an analysis project
+
+## Landmark import
+
+Read landmark data from tpsDig files, generic spreadsheets or earlier
+tools; photograph identity; atomic workbook writes; visualise a single
+configuration.
 
 - [`read_tps()`](https://funtraits.github.io/intraitR/reference/read_tps.md)
   :
@@ -499,23 +589,27 @@ interactive digitizer; visualise a single configuration.
   : Import predicted landmarks from an ml-morph / landmarking-app
   measure table
 
-- [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
-  : Launch the interactive ml-morph landmarking application
+- [`import_legacy_landmarks()`](https://funtraits.github.io/intraitR/reference/import_legacy_landmarks.md)
+  : Fold an earlier digitization into the workbook of the landmarking
+  app
 
-- [`landmark_journal_open()`](https://funtraits.github.io/intraitR/reference/landmark_journal_open.md)
-  : Open a session landmark journal (append-only)
+- [`photo_hash()`](https://funtraits.github.io/intraitR/reference/photo_hash.md)
+  : Fingerprint of an image file
 
-- [`landmark_journal_append()`](https://funtraits.github.io/intraitR/reference/landmark_journal_append.md)
-  : Append one record (one digitization) to a landmark journal
+- [`photo_hash_cached()`](https://funtraits.github.io/intraitR/reference/photo_hash_cached.md)
+  : Fingerprint a batch of images, remembering the answer
 
-- [`landmark_journal_read()`](https://funtraits.github.io/intraitR/reference/landmark_journal_read.md)
-  : Read and concatenate every journal in a directory
+- [`reconcile_photo_names()`](https://funtraits.github.io/intraitR/reference/reconcile_photo_names.md)
+  : Match digitized specimens back to renamed photographs
 
-- [`consolidate_landmarks()`](https://funtraits.github.io/intraitR/reference/consolidate_landmarks.md)
-  : Rebuild the landmark table from the journals
+- [`photo_provenance_keys()`](https://funtraits.github.io/intraitR/reference/photo_provenance_keys.md)
+  : Provenance keys: which photographs came from the same original
 
 - [`write_xlsx_atomic()`](https://funtraits.github.io/intraitR/reference/write_xlsx_atomic.md)
   : Write a workbook atomically
+
+- [`write_workbook_atomic()`](https://funtraits.github.io/intraitR/reference/write_workbook_atomic.md)
+  : Write an openxlsx workbook atomically
 
 - [`plot_landmarks()`](https://funtraits.github.io/intraitR/reference/plot_landmarks.md)
   : Plot a single landmark configuration
@@ -575,18 +669,28 @@ et al., 2021) 11-measurement/9-ratio protocol.
 - [`morpho_ratios()`](https://funtraits.github.io/intraitR/reference/morpho_ratios.md)
   : Compute classical fish morphometric ratios
 - [`fishmorph_segments()`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
+  [`print(`*`<intrait_segments>`*`)`](https://funtraits.github.io/intraitR/reference/fishmorph_segments.md)
   : Compute linear morphological measurements following the FISHMORPH
   protocol
 - [`fishmorph_ratios()`](https://funtraits.github.io/intraitR/reference/fishmorph_ratios.md)
   : Compute the nine FISHMORPH unitless ecomorphological ratios
+- [`impute_traits()`](https://funtraits.github.io/intraitR/reference/impute_traits.md)
+  : Impute missing trait values, and say which cells were invented
 - [`plot_fishmorph_points()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_points.md)
   : Plot a specimen following the FISHMORPH point digitization scheme
 - [`plot_fishmorph_shapes()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_shapes.md)
   : Overlay the body shape of every specimen in a species or a set of
   individuals
-- [`plot_fishmorph_density()`](https://funtraits.github.io/intraitR/reference/plot_fishmorph_density.md)
-  : Density curves of the FISHMORPH space, per functional axis and per
-  ratio
+- [`reexports`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`load_fishmorph_phylogeny`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`load_fishmorph_phylo_axes`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`phylo_pcoa`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`group_colors`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`reset_group_colors`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`max_pair_distance`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`plotly_fishmorph`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`plot_fishmorph_density`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  : Objects exported from other packages
 
 ## Functional and shape space
 
@@ -606,8 +710,18 @@ functional richness.
 
 - [`project_fishmorph()`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
   [`print(`*`<intrait_fishmorph_projection>`*`)`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
-  [`plot(`*`<intrait_fishmorph_projection>`*`)`](https://funtraits.github.io/intraitR/reference/project_fishmorph.md)
   : Project specimens into the global FISHMORPH functional space
+
+- [`reexports`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`load_fishmorph_phylogeny`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`load_fishmorph_phylo_axes`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`phylo_pcoa`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`group_colors`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`reset_group_colors`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`max_pair_distance`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`plotly_fishmorph`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`plot_fishmorph_density`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  : Objects exported from other packages
 
 - [`itv_proportion()`](https://funtraits.github.io/intraitR/reference/itv_proportion.md)
   [`print(`*`<intrait_itv_proportion>`*`)`](https://funtraits.github.io/intraitR/reference/itv_proportion.md)
@@ -666,13 +780,6 @@ functional richness.
 
   Print and plot an `"intrait_richness_comparison"` object
 
-- [`group_colors()`](https://funtraits.github.io/intraitR/reference/group_colors.md)
-  : Look up the group/species colours used by the ordination plot
-  methods
-
-- [`reset_group_colors()`](https://funtraits.github.io/intraitR/reference/reset_group_colors.md)
-  : Reset the session-level group/species colour cache
-
 ## Phylogenetic data and ordination
 
 A bundled reference phylogeny and a phylogenetic PCoA ordination
@@ -680,18 +787,16 @@ producing axes directly usable as `traits` in
 [`trait_space()`](https://funtraits.github.io/intraitR/reference/trait_space.md),
 for comparing functional and phylogenetic diversity loss.
 
-- [`load_fishmorph_phylogeny()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylogeny.md)
-  :
-
-  Bundled global fish phylogeny, ready to use with
-  [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md)
-
-- [`load_fishmorph_phylo_axes()`](https://funtraits.github.io/intraitR/reference/load_fishmorph_phylo_axes.md)
-  : Precomputed phylogenetic PCoA axes for the FISHMORPH species pool
-
-- [`phylo_pcoa()`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md)
-  [`print(`*`<intrait_phylopcoa>`*`)`](https://funtraits.github.io/intraitR/reference/phylo_pcoa.md)
-  : Phylogenetic Principal Coordinates Analysis
+- [`reexports`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`load_fishmorph_phylogeny`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`load_fishmorph_phylo_axes`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`phylo_pcoa`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`group_colors`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`reset_group_colors`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`max_pair_distance`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`plotly_fishmorph`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  [`plot_fishmorph_density`](https://funtraits.github.io/intraitR/reference/reexports.md)
+  : Objects exported from other packages
 
 ## Intraspecific variability and measurement error
 
@@ -758,8 +863,10 @@ and quantify measurement and digitization error from replicated data.
 
 ## Real data: T-26 La Saudrune
 
-A real electrofishing landmark data set (Adour-Garonne basin, France),
-used throughout the package’s examples and
+A real electrofishing landmark data set (Adour-Garonne basin, France)
+digitized with
+[`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md),
+plus its blind repeat trial; used throughout the package’s examples and
 `demo(pipeline_T26_saudrune)`.
 
 - [`load_t26_saudrune()`](https://funtraits.github.io/intraitR/reference/load_t26_saudrune.md)
@@ -778,3 +885,7 @@ used throughout the package’s examples and
 
 - [Introduction to
   intraitR](https://funtraits.github.io/intraitR/articles/intraitR-intro.md):
+- [From photographs to a paper: the intraitR apps, step by
+  step](https://funtraits.github.io/intraitR/articles/apps-workflow.md):
+- [Des photographies à l'article : les applications d'intraitR, pas à
+  pas](https://funtraits.github.io/intraitR/articles/apps-workflow-fr.md):

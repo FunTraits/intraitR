@@ -109,48 +109,49 @@ analysis of variance. Austral Ecology, 26(1), 32-46.
 ``` r
 fish <- load_t26_saudrune_landmarks()
 segments <- fishmorph_segments(fish)
-#> Warning: 23 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. See fishmorph_ratios()'s `landmarks` argument to still recover the 9 unitless ratios for these specimens directly from pixel-space distances.
+#> Warning: 6 specimen(s) have a zero-length or missing scale bar (points 20-21); their segments will be NA. Use scale_action = "pixels" to measure them in pixels instead (the 9 unitless ratios are unaffected), or see fishmorph_ratios()'s `landmarks` argument to recover those ratios from an existing cm table.
 ratios <- fishmorph_ratios(segments)
-ts <- trait_space(ratios, groups = fish$metadata$species, na_action = "omit")
-#> Warning: Dropping non-numeric column(s) from the ordination: individual, population, operator
-#> na_action = "omit": removing 293 row(s) out of 1036 with missing values.
-#> flag_outliers: 31 specimen(s) flagged as within-group outlier(s) across 4 group(s) (Barbatula barbatula, Gobio occitaniae, Phoxinus phoxinus, Squalius cephalus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
+traits <- ratios[, c("BEl", "VEp", "REs", "OGp", "RMl", "BLs", "PFv", "PFs", "CPt")]
+ts <- trait_space(traits, groups = fish$metadata$species, na_action = "omit")
+#> na_action = "omit": removing 6 row(s) out of 494 with missing values.
+#> flag_outliers: 10 specimen(s) flagged as within-group outlier(s) across 2 group(s) (Gobio gobio, Lepomis gibbosus); this only flags candidates for review (e.g. with plot_landmarks()/plot_fishmorph_points()), nothing was removed automatically. Set remove_outliers = TRUE to exclude them from the ordination, or see $outlier_screen for details.
+#> flag_outliers: 1 group(s) have fewer than outlier_min_n = 5 specimens and were not screened (distance still reported, flagged = NA).
 # \donttest{
 td <- trait_disparity(ts, iter = 199)
 td
 #> <intrait_disparity> (199 permutations)
 #> -- Trait variance (dispersion) by group --
-#>     Barbatula barbatula        Gobio occitaniae        Lepomis gibbosus 
-#>                 12.5272                  9.8045                  3.2810 
-#> Leuciscus burdigalensis       Perca fluviatilis       Phoxinus phoxinus 
-#>                  3.1341                  6.1294                  7.1644 
+#>     Barbatula barbatula           Barbus barbus             Gobio gobio 
+#>                 10.1972                  4.3759                  5.9461 
+#>        Lepomis gibbosus Leuciscus burdigalensis       Perca fluviatilis 
+#>                  2.1658                  3.9887                  9.8138 
 #>       Squalius cephalus 
-#>                  7.9265 
+#>                  7.3011 
 #> 
 #> -- Pairwise absolute differences (lower triangle) / p-values (upper triangle) --
-#>                         Barbatula barbatula Gobio occitaniae Lepomis gibbosus
-#> Barbatula barbatula                      NA           0.6750           0.1450
-#> Gobio occitaniae                     2.7227               NA           0.2900
-#> Lepomis gibbosus                     9.2462           6.5235               NA
-#> Leuciscus burdigalensis              9.3932           6.6705           0.1469
-#> Perca fluviatilis                    6.3978           3.6751           2.8484
-#> Phoxinus phoxinus                    5.3629           2.6402           3.8833
-#> Squalius cephalus                    4.6007           1.8780           4.6455
-#>                         Leuciscus burdigalensis Perca fluviatilis
-#> Barbatula barbatula                      0.2000            0.2300
-#> Gobio occitaniae                         0.2750            0.5450
-#> Lepomis gibbosus                         0.9700            0.4450
-#> Leuciscus burdigalensis                      NA            0.4800
-#> Perca fluviatilis                        2.9953                NA
-#> Phoxinus phoxinus                        4.0303            1.0349
-#> Squalius cephalus                        4.7924            1.7971
-#>                         Phoxinus phoxinus Squalius cephalus
-#> Barbatula barbatula                0.3600             0.385
-#> Gobio occitaniae                   0.6500             0.790
-#> Lepomis gibbosus                   0.4100             0.375
-#> Leuciscus burdigalensis            0.4850             0.365
-#> Perca fluviatilis                  0.7650             0.695
-#> Phoxinus phoxinus                      NA             0.845
-#> Squalius cephalus                  0.7621                NA
+#>                         Barbatula barbatula Barbus barbus Gobio gobio
+#> Barbatula barbatula                      NA        0.0050      0.0150
+#> Barbus barbus                        5.8213            NA      0.2400
+#> Gobio gobio                          4.2511        1.5702          NA
+#> Lepomis gibbosus                     8.0314        2.2101      3.7803
+#> Leuciscus burdigalensis              6.2085        0.3872      1.9574
+#> Perca fluviatilis                    0.3834        5.4379      3.8677
+#> Squalius cephalus                    2.8961        2.9252      1.3550
+#>                         Lepomis gibbosus Leuciscus burdigalensis
+#> Barbatula barbatula               0.0100                  0.0900
+#> Barbus barbus                     0.3750                  0.9500
+#> Gobio gobio                       0.0650                  0.5950
+#> Lepomis gibbosus                      NA                  0.6400
+#> Leuciscus burdigalensis           1.8229                      NA
+#> Perca fluviatilis                 7.6480                  5.8251
+#> Squalius cephalus                 5.1353                  3.3124
+#>                         Perca fluviatilis Squalius cephalus
+#> Barbatula barbatula                0.8550             0.090
+#> Barbus barbus                      0.0050             0.020
+#> Gobio gobio                        0.0200             0.065
+#> Lepomis gibbosus                   0.0050             0.030
+#> Leuciscus burdigalensis            0.1100             0.365
+#> Perca fluviatilis                      NA             0.095
+#> Squalius cephalus                  2.5127                NA
 # }
 ```

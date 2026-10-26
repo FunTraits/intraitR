@@ -1,5 +1,19 @@
 # Changelog
 
+## intraitR 1.47.1
+
+- CORRECTION de
+  [`launch_measure_hub()`](https://funtraits.github.io/intraitR/reference/launch_measure_hub.md),
+  qui s’interrompait au démarrage (« attempt to set an attribute on NULL
+  », [`stats::setNames`](https://rdrr.io/r/stats/setNames.html)) lorsque
+  les photographies n’avaient aucune espèce – hub lancé sans `species`,
+  ou espèces non encore déterminées – ou que le dossier était vide :
+  [`names()`](https://rdrr.io/r/base/names.html) d’une table d’effectifs
+  vide vaut `NULL`, et les listes de filtres de la page *Results*
+  (dossiers, sous-dossiers, espèces, provenances, études) en étaient
+  construites. Elles sont désormais simplement vides. Même correction
+  pour la liste des espèces de l’application d’analyses.
+
 ## intraitR 1.47.0
 
 - CORRECTION de `trait_space(remove_outliers = TRUE)` : une colonne

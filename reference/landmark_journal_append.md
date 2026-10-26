@@ -120,7 +120,7 @@ write.
 ``` r
 d <- file.path(tempdir(), "journal_demo2")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/RtmpgJS8xD/journal_demo2/landmarks_AT_20261024T184944Z.tsv
+#> Session journal: /tmp/RtmpwneMMD/journal_demo2/landmarks_AT_20261026T083947Z.tsv
 P <- cbind(X = c(10, 60), Y = c(20, 22))
 landmark_journal_append(jr, row_key = "fish_01", coords = P, points = 1:2,
                         specimen = "fish_01", individual = "fish_01")

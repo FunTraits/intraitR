@@ -42,13 +42,13 @@ with `history = TRUE` for the coordinates of every pass.
 ``` r
 d <- file.path(tempdir(), "journal_history_demo")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/RtmpgJS8xD/journal_history_demo/landmarks_AT_20261024T184944Z.tsv
+#> Session journal: /tmp/RtmpwneMMD/journal_history_demo/landmarks_AT_20261026T083948Z.tsv
 landmark_journal_append(jr, "fish_01", cbind(c(10, 60), c(20, 22)), 1:2)
 landmark_journal_append(jr, "fish_01", cbind(c(11, 60), c(20, 23)), 1:2)
 landmark_journal_history(d, "fish_01")
 #>                   record_id                timestamp operator mode row_key
-#> 1 AT_20261024T184944Z-00001 2026-10-24T18:49:44.977Z       AT      fish_01
-#> 2 AT_20261024T184944Z-00002 2026-10-24T18:49:44.979Z       AT      fish_01
+#> 1 AT_20261026T083948Z-00001 2026-10-26T08:39:48.102Z       AT      fish_01
+#> 2 AT_20261026T083948Z-00002 2026-10-26T08:39:48.104Z       AT      fish_01
 #>   specimen species photo_file n_points n_clicked n_seeded n_predicted
 #> 1                                    2         2        0           0
 #> 2                                    2         2        0           0

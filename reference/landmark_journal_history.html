@@ -13,7 +13,7 @@ what and when."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -84,13 +84,13 @@ FISHMORPH reference target). <code>NULL</code> (default) summarises every key.</
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"journal_history_demo"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">jr</span> <span class="op">&lt;-</span> <span class="fu"><a href="landmark_journal_open.html">landmark_journal_open</a></span><span class="op">(</span><span class="va">d</span>, operator <span class="op">=</span> <span class="st">"AT"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Session journal: /tmp/RtmpgJS8xD/journal_history_demo/landmarks_AT_20261024T184944Z.tsv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Session journal: /tmp/RtmpwneMMD/journal_history_demo/landmarks_AT_20261026T083948Z.tsv</span>
 <span class="r-in"><span><span class="fu"><a href="landmark_journal_append.html">landmark_journal_append</a></span><span class="op">(</span><span class="va">jr</span>, <span class="st">"fish_01"</span>, <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">60</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">22</span><span class="op">)</span><span class="op">)</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="landmark_journal_append.html">landmark_journal_append</a></span><span class="op">(</span><span class="va">jr</span>, <span class="st">"fish_01"</span>, <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">11</span>, <span class="fl">60</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">23</span><span class="op">)</span><span class="op">)</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">landmark_journal_history</span><span class="op">(</span><span class="va">d</span>, <span class="st">"fish_01"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                   record_id                timestamp operator mode row_key</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 AT_20261024T184944Z-00001 2026-10-24T18:49:44.977Z       AT      fish_01</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 AT_20261024T184944Z-00002 2026-10-24T18:49:44.979Z       AT      fish_01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 AT_20261026T083948Z-00001 2026-10-26T08:39:48.102Z       AT      fish_01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 AT_20261026T083948Z-00002 2026-10-26T08:39:48.104Z       AT      fish_01</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   specimen species photo_file n_points n_clicked n_seeded n_predicted</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1                                    2         2        0           0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2                                    2         2        0           0</span>

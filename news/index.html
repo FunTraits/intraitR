@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +33,10 @@
       <small>Source: <a href="https://github.com/FunTraits/intraitR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.47.1" id="intraitr-1471">intraitR 1.47.1<a class="anchor" aria-label="anchor" href="#intraitr-1471"></a></h2>
+<ul><li>CORRECTION de <code><a href="../reference/launch_measure_hub.html">launch_measure_hub()</a></code>, qui s’interrompait au démarrage (« attempt to set an attribute on NULL », <code><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">stats::setNames</a></code>) lorsque les photographies n’avaient aucune espèce – hub lancé sans <code>species</code>, ou espèces non encore déterminées – ou que le dossier était vide : <code><a href="https://rdrr.io/r/base/names.html" class="external-link">names()</a></code> d’une table d’effectifs vide vaut <code>NULL</code>, et les listes de filtres de la page <em>Results</em> (dossiers, sous-dossiers, espèces, provenances, études) en étaient construites. Elles sont désormais simplement vides. Même correction pour la liste des espèces de l’application d’analyses.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.47.0" id="intraitr-1470">intraitR 1.47.0<a class="anchor" aria-label="anchor" href="#intraitr-1470"></a></h2>
 <ul><li><p>CORRECTION de <code>trait_space(remove_outliers = TRUE)</code> : une colonne devenue constante une fois les individus aberrants retirés faisait échouer <code><a href="https://rdrr.io/r/stats/prcomp.html" class="external-link">prcomp()</a></code> (« cannot rescale a constant/zero column ») ; elle est maintenant écartée avec un avertissement. Les exemples n’ordonnent plus que les neuf ratios (et non <code>quality</code>/<code>date</code>), et ceux d’<code><a href="../reference/itv_accumulation.html">itv_accumulation()</a></code>, <code><a href="../reference/fd_accumulation.html">fd_accumulation()</a></code> et <code><a href="../reference/tpd_dissimilarity.html">tpd_dissimilarity()</a></code> utilisent <code>scale_action = "pixels"</code> (6 spécimens T-26 sans barre d’échelle). <code>R CMD check</code> : <code><a href="../reference/fishmorph_db_connect.html">fishmorph_db_connect()</a></code> documentée, <code>htmltools::</code> remplacé par <code>shiny::</code>.</p></li>

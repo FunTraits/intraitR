@@ -1334,6 +1334,11 @@ server <- function(input, output, session) {
   })
   lit_wanted <- reactive("literature" %in% input$res_source)
   count_lab <- function(v, n) sprintf("%s (%d)", v, n)
+  # the values of a table of counts, never NULL: names() of an EMPTY table is
+  # NULL, and stats::setNames(NULL, ...) fails ("attempt to set an attribute on
+  # NULL") -- no photograph with a species (launched without `species`), an
+  # empty folder, no study in the literature
+  tab_values <- function(tb) names(tb) %||% character(0)
 
   observe({                             # choices follow the photographs
     q <- all_q(); req(q)
@@ -1341,16 +1346,16 @@ server <- function(input, output, session) {
     keep <- function(id, ch) {          # keep what is still offered
       cur <- isolate(input[[id]]); intersect(cur, ch)
     }
-    st <- table(q$site)
-    updateSelectizeInput(session, "res_sites", choices = stats::setNames(names(st),
-                         count_lab(names(st), as.integer(st))), selected = keep("res_sites", names(st)))
+    st <- table(q$site); v <- tab_values(st)
+    updateSelectizeInput(session, "res_sites", choices = stats::setNames(v,
+                         count_lab(v, as.integer(st))), selected = keep("res_sites", v))
     sp <- c(q$species[!is.na(q$species)], if (!is.null(lit)) lit$species)
-    sp_t <- sort(table(sp), decreasing = TRUE)
-    updateSelectizeInput(session, "res_species", choices = stats::setNames(names(sp_t),
-                         count_lab(names(sp_t), as.integer(sp_t))), selected = keep("res_species", names(sp_t)),
+    sp_t <- sort(table(sp), decreasing = TRUE); v <- tab_values(sp_t)
+    updateSelectizeInput(session, "res_species", choices = stats::setNames(v,
+                         count_lab(v, as.integer(sp_t))), selected = keep("res_species", v),
                          server = TRUE)
-    so <- table(src_label(q$source))
-    ch <- stats::setNames(names(so), sprintf("%s (%d photographs)", names(so), as.integer(so)))
+    so <- table(src_label(q$source)); v <- tab_values(so)
+    ch <- stats::setNames(v, sprintf("%s (%d photographs)", v, as.integer(so)))
     if (!is.null(lit) && nrow(lit))
       ch <- c(ch, stats::setNames("literature", sprintf("literature (%d records, no photograph)", nrow(lit))))
     updateSelectizeInput(session, "res_source", choices = ch, selected = keep("res_source", ch))
@@ -1358,20 +1363,20 @@ server <- function(input, output, session) {
   observe({                             # sub-folders of the chosen folders
     q <- all_q(); req(q)
     if (length(input$res_sites)) q <- q[q$site %in% input$res_sites, , drop = FALSE]
-    dt <- table(q$date)
+    dt <- table(q$date); v <- tab_values(dt)
     lab <- if (length(unique(q$site)) > 1)
-      vapply(names(dt), function(d) paste(sort(unique(q$site[q$date == d])), collapse = ", "), "") else ""
+      vapply(v, function(d) paste(sort(unique(q$site[q$date == d])), collapse = ", "), "") else ""
     updateSelectizeInput(session, "res_dates",
-                         choices = stats::setNames(names(dt), sprintf("%s (%d)%s", names(dt), as.integer(dt),
+                         choices = stats::setNames(v, sprintf("%s (%d)%s", v, as.integer(dt),
                                                     if (length(lab) > 1) paste0(" \u2014 ", lab) else "")),
-                         selected = intersect(isolate(input$res_dates), names(dt)))
+                         selected = intersect(isolate(input$res_dates), v))
   })
   output$res_studies_ui <- renderUI({
     if (!lit_wanted()) return(NULL)
-    st <- table(lit_all()$study_id %||% character(0))
+    st <- table(lit_all()$study_id %||% character(0)); v <- tab_values(st)
     selectizeInput("res_studies", "Studies (literature)", multiple = TRUE,
-                   choices = stats::setNames(names(st), count_lab(names(st), as.integer(st))),
-                   selected = intersect(isolate(input$res_studies), names(st)),
+                   choices = stats::setNames(v, count_lab(v, as.integer(st))),
+                   selected = intersect(isolate(input$res_studies), v),
                    options = list(placeholder = "all studies", plugins = list("remove_button")))
   })
   observeEvent(input$res_here, {

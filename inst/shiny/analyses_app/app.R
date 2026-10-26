@@ -265,8 +265,9 @@ server <- function(input, output, session) {
   })
   output$species_ui <- renderUI({
     t <- sp_counts()
+    v <- names(t) %||% character(0)   # names() of an empty table is NULL (no species)
     selectizeInput("species", "Species (empty = all)", multiple = TRUE,
-                   choices = stats::setNames(names(t), sprintf("%s (%d)", names(t), as.integer(t))),
+                   choices = stats::setNames(v, sprintf("%s (%d)", v, as.integer(t))),
                    options = list(placeholder = "all species with enough individuals"))
   })
   output$sites_ui <- renderUI({

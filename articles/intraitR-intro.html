@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -139,10 +139,11 @@ a <code>bias_summary</code> sheet quantifying them), backed by an
 append-only journal that survives a crash. A trained ml-morph model can
 propose the 19 FISHMORPH landmarks from a few clicks per specimen, which
 are then reviewed and corrected. It requires a live interactive session
-(and, for the prediction step only, an external ml-morph resource
-directory with the trained predictor and a <code>dlib</code>-enabled
-Python environment), so it cannot be run inside this vignette, but the
-intended usage is:</p>
+(and, for the prediction step only, the models and the Python
+environment installed once per machine with
+<code><a href="../reference/install_mlmorph_models.html">install_mlmorph_models()</a></code> and
+<code><a href="../reference/install_mlmorph_python.html">install_mlmorph_python()</a></code>), so it cannot be run inside this
+vignette, but the intended usage is:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Digitize a folder of photographs into one workbook:</span></span>
 <span><span class="fu"><a href="../reference/digitize_landmarks.html">digitize_landmarks</a></span><span class="op">(</span></span>
@@ -648,28 +649,28 @@ in the plot above:</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; -- Pairwise absolute differences (lower triangle) / p-values (upper triangle) --</span></span>
 <span><span class="co">#&gt;                         Barbatula barbatula Barbus barbus Gobio gobio</span></span>
-<span><span class="co">#&gt; Barbatula barbatula                      NA        0.0050      0.0150</span></span>
-<span><span class="co">#&gt; Barbus barbus                        5.6924            NA      0.1750</span></span>
+<span><span class="co">#&gt; Barbatula barbatula                      NA        0.0050      0.0050</span></span>
+<span><span class="co">#&gt; Barbus barbus                        5.6924            NA      0.2100</span></span>
 <span><span class="co">#&gt; Gobio gobio                          4.2303        1.4621          NA</span></span>
 <span><span class="co">#&gt; Lepomis gibbosus                     8.0395        2.3471      3.8092</span></span>
 <span><span class="co">#&gt; Leuciscus burdigalensis              6.2112        0.5189      1.9810</span></span>
 <span><span class="co">#&gt; Perca fluviatilis                    0.3809        5.3115      3.8493</span></span>
 <span><span class="co">#&gt; Squalius cephalus                    2.9003        2.7921      1.3300</span></span>
 <span><span class="co">#&gt;                         Lepomis gibbosus Leuciscus burdigalensis</span></span>
-<span><span class="co">#&gt; Barbatula barbatula               0.0100                  0.0900</span></span>
-<span><span class="co">#&gt; Barbus barbus                     0.3850                  0.8900</span></span>
-<span><span class="co">#&gt; Gobio gobio                       0.0800                  0.5800</span></span>
-<span><span class="co">#&gt; Lepomis gibbosus                      NA                  0.6350</span></span>
+<span><span class="co">#&gt; Barbatula barbatula               0.0050                  0.1000</span></span>
+<span><span class="co">#&gt; Barbus barbus                     0.3200                  0.9150</span></span>
+<span><span class="co">#&gt; Gobio gobio                       0.0800                  0.5700</span></span>
+<span><span class="co">#&gt; Lepomis gibbosus                      NA                  0.5800</span></span>
 <span><span class="co">#&gt; Leuciscus burdigalensis           1.8283                      NA</span></span>
 <span><span class="co">#&gt; Perca fluviatilis                 7.6586                  5.8303</span></span>
 <span><span class="co">#&gt; Squalius cephalus                 5.1392                  3.3109</span></span>
 <span><span class="co">#&gt;                         Perca fluviatilis Squalius cephalus</span></span>
-<span><span class="co">#&gt; Barbatula barbatula                0.8800             0.115</span></span>
-<span><span class="co">#&gt; Barbus barbus                      0.0050             0.015</span></span>
-<span><span class="co">#&gt; Gobio gobio                        0.0150             0.060</span></span>
-<span><span class="co">#&gt; Lepomis gibbosus                   0.0050             0.030</span></span>
-<span><span class="co">#&gt; Leuciscus burdigalensis            0.0950             0.320</span></span>
-<span><span class="co">#&gt; Perca fluviatilis                      NA             0.105</span></span>
+<span><span class="co">#&gt; Barbatula barbatula                0.8900             0.085</span></span>
+<span><span class="co">#&gt; Barbus barbus                      0.0050             0.035</span></span>
+<span><span class="co">#&gt; Gobio gobio                        0.0150             0.080</span></span>
+<span><span class="co">#&gt; Lepomis gibbosus                   0.0100             0.025</span></span>
+<span><span class="co">#&gt; Leuciscus burdigalensis            0.1150             0.370</span></span>
+<span><span class="co">#&gt; Perca fluviatilis                      NA             0.140</span></span>
 <span><span class="co">#&gt; Squalius cephalus                  2.5194                NA</span></span></code></pre></div>
 <p>[bootstrap_functional_space()] asks a related but different question:
 does representing species by real individuals, rather than by their
@@ -686,8 +687,8 @@ not installed by default):</p>
 <span><span class="co">#&gt; &lt;intrait_bootstrap_fspace&gt; (method = "convexhull")</span></span>
 <span><span class="co">#&gt;   2 PCA axes retained (49.8% of variance), 7 species</span></span>
 <span><span class="co">#&gt;   Centroid-based reference richness (FD_ref): 11.08</span></span>
-<span><span class="co">#&gt;   Bootstrap richness (FD_boot, 100 draws): mean = 14.33, SD = 4.677, 5-95% = [7.94, 21.82]</span></span>
-<span><span class="co">#&gt;   Difference (mean FD_boot - FD_ref): 3.253 (one-sided bootstrap p = 0.2673)</span></span>
+<span><span class="co">#&gt;   Bootstrap richness (FD_boot, 100 draws): mean = 15.06, SD = 4.396, 5-95% = [9.495, 24.8]</span></span>
+<span><span class="co">#&gt;   Difference (mean FD_boot - FD_ref): 3.987 (one-sided bootstrap p = 0.1584)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">bf</span><span class="op">)</span></span></code></pre></div>
 <p><img src="intraitR-intro_files/figure-html/unnamed-chunk-21-1.png" class="r-plt" alt="" width="576"></p>
 <p>[species_sensitivity()] then asks <em>which</em> species drive that
@@ -728,8 +729,8 @@ itself be assessed:</p>
 <span><span class="co">#&gt; &lt;intrait_richness_comparison&gt;</span></span>
 <span><span class="co">#&gt;   2 method(s) requested, 2 succeeded</span></span>
 <span><span class="co">#&gt;      method status fd_ref fd_boot_mean pct_diff p_value significant</span></span>
-<span><span class="co">#&gt;  dendrogram     ok   16.9        19.98   +18.2%  0.2376       FALSE</span></span>
-<span><span class="co">#&gt;  convexhull     ok  11.08        14.32   +29.2%  0.2673       FALSE</span></span>
+<span><span class="co">#&gt;  dendrogram     ok   16.9         19.3   +14.2%  0.2277       FALSE</span></span>
+<span><span class="co">#&gt;  convexhull     ok  11.08        14.46   +30.6%  0.2178       FALSE</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   0/2 method(s) agree that individual-based richness significantly</span></span>
 <span><span class="co">#&gt;   exceeds the centroid-based reference (p &lt; 0.05).</span></span>

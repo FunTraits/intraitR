@@ -1,5 +1,21 @@
 # Changelog
 
+## intraitR 1.47.2
+
+- AIDE : la documentation de
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)
+  (arguments `python` et `mlmorph_dir`, section *Details*) et la
+  vignette d’introduction disaient encore qu’il fallait un Python avec
+  `dlib` et un dossier ml-morph externe. Les modèles distribués sont au
+  format ONNX :
+  [`install_mlmorph_models()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_models.md)
+  et
+  [`install_mlmorph_python()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_python.md)
+  (`numpy`, `pandas`, `opencv-python-headless`, `pillow`, `onnxruntime`)
+  suffisent, une fois par ordinateur ; `dlib` ne sert plus qu’aux
+  anciens prédicteurs `.dat`. Ni Python ni les modèles ne sont
+  nécessaires pour placer les points à la main.
+
 ## intraitR 1.47.1
 
 - CORRECTION de

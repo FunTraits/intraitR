@@ -76,13 +76,13 @@ image, no longer fall on the fish.
 ``` r
 d <- file.path(tempdir(), "retract_demo")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/RtmpwneMMD/retract_demo/landmarks_AT_20261026T084001Z.tsv
+#> Session journal: /tmp/RtmppTw9hg/retract_demo/landmarks_AT_20261026T095309Z.tsv
 landmark_journal_append(jr, "fish_01", cbind(c(10, 20), c(5, 6)), 1:2,
                         specimen = "fish_01", photo_file = "fish_01.jpg")
 nrow(consolidate_landmarks(d))          # 1
 #> [1] 1
 retract_landmarks(d, photo = "fish_01")
-#> Session journal: /tmp/RtmpwneMMD/retract_demo/landmarks_runner_20261026T084001Z.tsv
+#> Session journal: /tmp/RtmppTw9hg/retract_demo/landmarks_runner_20261026T095309Z.tsv
 #> 1 measurement(s) retracted: fish_01.
 nrow(consolidate_landmarks(d))          # 0
 #> [1] 0

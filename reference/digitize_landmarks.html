@@ -25,7 +25,7 @@ points are reviewed and corrected by hand, quality-scored, and saved."></head><b
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -197,14 +197,15 @@ every earlier version, and never a silent guess.</p></dd>
 
 <dt id="arg-mlmorph-dir">mlmorph_dir<a class="anchor" aria-label="anchor" href="#arg-mlmorph-dir"></a></dt>
 <dd><p>Path to the ml-morph resource directory holding the
-trained predictor(s) (<code>mlmorph_run_campaign/predictor.dat</code>,
-<code>mlmorph_run_app/predictor.dat</code>, <code>mlmorph_run_aligned/predictor.dat</code>),
-the matching dataset (<code>mlmorph_dataset_campaign/</code>, ...), the aligned dataset
-(<code>mlmorph_dataset_aligned/</code>) and, optionally, a Python virtual environment
-(<code>.venv_mlmorph/</code>). <code>NULL</code> (default) auto-detects it from the
-<code>INTRAITR_MLMORPH_DIR</code> environment variable, then from <code>ml_morph/</code>,
-<code>../ml_morph/</code> and the working directory. The app runs without a
-predictor; only the prediction step is then disabled.</p></dd>
+prediction models: the ONNX models distributed with the package
+(<code>mlmorph_run_global/model.onnx</code>, <code>mlmorph_run_cnn/model.onnx</code>, ...) or
+older <code>dlib</code> predictors (<code>mlmorph_run_campaign/predictor.dat</code>, ...) with
+their datasets (<code>mlmorph_dataset_aligned/</code>, ...), and, optionally, a
+Python virtual environment (<code>.venv_mlmorph/</code>). <code>NULL</code> (default)
+auto-detects it from the <code>INTRAITR_MLMORPH_DIR</code> environment variable, then
+from <code>ml_morph/</code>, <code>../ml_morph/</code> and the working directory, then the
+models installed by <code><a href="install_mlmorph_models.html">install_mlmorph_models()</a></code>. The app runs without a
+model; only the prediction step is then disabled.</p></dd>
 
 
 <dt id="arg-predictor">predictor<a class="anchor" aria-label="anchor" href="#arg-predictor"></a></dt>
@@ -214,10 +215,13 @@ offer first in the app's model selector.</p></dd>
 
 <dt id="arg-python">python<a class="anchor" aria-label="anchor" href="#arg-python"></a></dt>
 <dd><p>Optional path to (or name of) the Python interpreter running
-the prediction worker; it needs <code>numpy</code>, <code>opencv-python</code> and <code>dlib</code>
-(typically <code>.venv_mlmorph</code>). <code>NULL</code> (default) resolves it from
+the prediction worker. The distributed (ONNX) models need <code>numpy</code>,
+<code>pandas</code>, <code>opencv-python-headless</code>, <code>pillow</code> and <code>onnxruntime</code>, which
+<code><a href="install_mlmorph_python.html">install_mlmorph_python()</a></code> installs once per machine; <code>dlib</code> is needed
+only by old <code>.dat</code> predictors. <code>NULL</code> (default) resolves it from
 <code>INTRAITR_MLMORPH_PY</code>/<code>PY</code>, then <code>~/.venv_mlmorph/bin/python</code>, then
-<code>.venv_mlmorph/</code> inside <code>mlmorph_dir</code>, then <code>python3</code> on the search path.</p></dd>
+<code>.venv_mlmorph/</code> inside <code>mlmorph_dir</code>, then the environment created by
+<code><a href="install_mlmorph_python.html">install_mlmorph_python()</a></code>, then <code>python3</code> on the search path.</p></dd>
 
 
 <dt id="arg-batch">batch<a class="anchor" aria-label="anchor" href="#arg-batch"></a></dt>
@@ -279,10 +283,11 @@ FishInTrait measuring hub does, with <code>callr</code>) sets
 <p>The Shiny application is shipped inside the package
 (<code>system.file("shiny/landmarking_app", package = "intraitR")</code>) together with
 its Python worker (<code>system.file("mlmorph", package = "intraitR")</code>). The
-heavier ml-morph assets – the trained predictor(s), the aligned training
-set, the Python environment with <code>dlib</code> – are <em>not</em> bundled (they are large
-and platform-specific) and must live in an external directory located via
-<code>mlmorph_dir</code>.</p>
+prediction models and the Python environment are <em>not</em> bundled (they are
+large and platform-specific): install them once per machine with
+<code><a href="install_mlmorph_models.html">install_mlmorph_models()</a></code> and <code><a href="install_mlmorph_python.html">install_mlmorph_python()</a></code>, or point
+<code>mlmorph_dir</code> to an ml-morph directory of your own. Neither is needed to
+digitize by hand.</p>
 <p>The session configuration is handed to the app through the
 <code>intraitR.digitizer</code> option (and the <code>INTRAITR_MLMORPH_*</code> environment
 variables for the ml-morph paths); both are set for the duration of the call

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +33,10 @@
       <small>Source: <a href="https://github.com/FunTraits/intraitR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.47.2" id="intraitr-1472">intraitR 1.47.2<a class="anchor" aria-label="anchor" href="#intraitr-1472"></a></h2>
+<ul><li>AIDE : la documentation de <code><a href="../reference/digitize_landmarks.html">digitize_landmarks()</a></code> (arguments <code>python</code> et <code>mlmorph_dir</code>, section <em>Details</em>) et la vignette d’introduction disaient encore qu’il fallait un Python avec <code>dlib</code> et un dossier ml-morph externe. Les modèles distribués sont au format ONNX : <code><a href="../reference/install_mlmorph_models.html">install_mlmorph_models()</a></code> et <code><a href="../reference/install_mlmorph_python.html">install_mlmorph_python()</a></code> (<code>numpy</code>, <code>pandas</code>, <code>opencv-python-headless</code>, <code>pillow</code>, <code>onnxruntime</code>) suffisent, une fois par ordinateur ; <code>dlib</code> ne sert plus qu’aux anciens prédicteurs <code>.dat</code>. Ni Python ni les modèles ne sont nécessaires pour placer les points à la main.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.47.1" id="intraitr-1471">intraitR 1.47.1<a class="anchor" aria-label="anchor" href="#intraitr-1471"></a></h2>
 <ul><li>CORRECTION de <code><a href="../reference/launch_measure_hub.html">launch_measure_hub()</a></code>, qui s’interrompait au démarrage (« attempt to set an attribute on NULL », <code><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">stats::setNames</a></code>) lorsque les photographies n’avaient aucune espèce – hub lancé sans <code>species</code>, ou espèces non encore déterminées – ou que le dossier était vide : <code><a href="https://rdrr.io/r/base/names.html" class="external-link">names()</a></code> d’une table d’effectifs vide vaut <code>NULL</code>, et les listes de filtres de la page <em>Results</em> (dossiers, sous-dossiers, espèces, provenances, études) en étaient construites. Elles sont désormais simplement vides. Même correction pour la liste des espèces de l’application d’analyses.</li>

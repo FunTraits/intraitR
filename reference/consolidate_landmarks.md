@@ -90,7 +90,7 @@ records.
 ``` r
 d <- file.path(tempdir(), "journal_demo4")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/RtmpwneMMD/journal_demo4/landmarks_AT_20261026T083824Z.tsv
+#> Session journal: /tmp/RtmppTw9hg/journal_demo4/landmarks_AT_20261026T095139Z.tsv
 P <- cbind(c(10, 60), c(20, 22))
 landmark_journal_append(jr, "fish_01", P, 1:2, specimen = "fish_01",
                         individual = "fish_01", target_sheet = "measurements")

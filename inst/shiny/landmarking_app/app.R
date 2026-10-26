@@ -27,10 +27,11 @@
 ##     records and atomically (temporary file + rename). Losing it costs
 ##     nothing: intraitR::consolidate_landmarks() rebuilds it from the journals.
 ##
-## Requires: a Python environment (.venv_mlmorph) with dlib/opencv, a trained
-## predictor (mlmorph_run_*/predictor.dat) and the aligned training set
-## (mlmorph_dataset_aligned) inside the ml-morph directory, for the OPTIONAL
-## prediction step. See ml_morph/README.md.
+## Requires, for the OPTIONAL prediction step only: the models
+## (intraitR::install_mlmorph_models(), ONNX; or an ml-morph directory with
+## older dlib predictors mlmorph_run_*/predictor.dat + mlmorph_dataset_aligned)
+## and a Python environment with onnxruntime/opencv
+## (intraitR::install_mlmorph_python(); dlib only for the .dat predictors).
 ##
 ## R dependencies: shiny, jpeg, png, writexl (readxl to resume from a workbook;
 ## magick for images whose real format does not match their extension; bslib

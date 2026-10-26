@@ -82,10 +82,10 @@ repeated digitizations, and a `bias_summary` sheet quantifying them),
 backed by an append-only journal that survives a crash. A trained ml-morph
 model can propose the 19 FISHMORPH landmarks from a few clicks per
 specimen, which are then reviewed and corrected. It requires a live
-interactive session (and, for the prediction step only, an external
-ml-morph resource directory with the trained predictor and a
-`dlib`-enabled Python environment), so it cannot be run inside this
-vignette, but the intended usage is:
+interactive session (and, for the prediction step only, the models and
+the Python environment installed once per machine with
+`install_mlmorph_models()` and `install_mlmorph_python()`), so it cannot be
+run inside this vignette, but the intended usage is:
 
 ```{r, eval = FALSE}
 # Digitize a folder of photographs into one workbook:

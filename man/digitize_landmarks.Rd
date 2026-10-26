@@ -105,23 +105,27 @@ before the column existed stays in the \code{"new"} queue -- the behaviour of
 every earlier version, and never a silent guess.}
 
 \item{mlmorph_dir}{Path to the ml-morph resource directory holding the
-trained predictor(s) (\code{mlmorph_run_campaign/predictor.dat},
-\code{mlmorph_run_app/predictor.dat}, \code{mlmorph_run_aligned/predictor.dat}),
-the matching dataset (\verb{mlmorph_dataset_campaign/}, ...), the aligned dataset
-(\verb{mlmorph_dataset_aligned/}) and, optionally, a Python virtual environment
-(\verb{.venv_mlmorph/}). \code{NULL} (default) auto-detects it from the
-\code{INTRAITR_MLMORPH_DIR} environment variable, then from \verb{ml_morph/},
-\verb{../ml_morph/} and the working directory. The app runs without a
-predictor; only the prediction step is then disabled.}
+prediction models: the ONNX models distributed with the package
+(\code{mlmorph_run_global/model.onnx}, \code{mlmorph_run_cnn/model.onnx}, ...) or
+older \code{dlib} predictors (\code{mlmorph_run_campaign/predictor.dat}, ...) with
+their datasets (\verb{mlmorph_dataset_aligned/}, ...), and, optionally, a
+Python virtual environment (\verb{.venv_mlmorph/}). \code{NULL} (default)
+auto-detects it from the \code{INTRAITR_MLMORPH_DIR} environment variable, then
+from \verb{ml_morph/}, \verb{../ml_morph/} and the working directory, then the
+models installed by \code{\link[=install_mlmorph_models]{install_mlmorph_models()}}. The app runs without a
+model; only the prediction step is then disabled.}
 
 \item{predictor}{Optional path to a specific trained predictor (\code{.dat}) to
 offer first in the app's model selector.}
 
 \item{python}{Optional path to (or name of) the Python interpreter running
-the prediction worker; it needs \code{numpy}, \code{opencv-python} and \code{dlib}
-(typically \code{.venv_mlmorph}). \code{NULL} (default) resolves it from
+the prediction worker. The distributed (ONNX) models need \code{numpy},
+\code{pandas}, \code{opencv-python-headless}, \code{pillow} and \code{onnxruntime}, which
+\code{\link[=install_mlmorph_python]{install_mlmorph_python()}} installs once per machine; \code{dlib} is needed
+only by old \code{.dat} predictors. \code{NULL} (default) resolves it from
 \code{INTRAITR_MLMORPH_PY}/\code{PY}, then \verb{~/.venv_mlmorph/bin/python}, then
-\verb{.venv_mlmorph/} inside \code{mlmorph_dir}, then \code{python3} on the search path.}
+\verb{.venv_mlmorph/} inside \code{mlmorph_dir}, then the environment created by
+\code{\link[=install_mlmorph_python]{install_mlmorph_python()}}, then \code{python3} on the search path.}
 
 \item{batch}{Optional output folder of \code{\link[=batch_landmarks]{batch_landmarks()}} (or the list it
 returns). In the "new" queue, a photograph found there arrives with its 19
@@ -182,10 +186,11 @@ The workbook is read back into an \code{"intrait_landmarks"} object with
 The Shiny application is shipped inside the package
 (\code{system.file("shiny/landmarking_app", package = "intraitR")}) together with
 its Python worker (\code{system.file("mlmorph", package = "intraitR")}). The
-heavier ml-morph assets -- the trained predictor(s), the aligned training
-set, the Python environment with \code{dlib} -- are \emph{not} bundled (they are large
-and platform-specific) and must live in an external directory located via
-\code{mlmorph_dir}.
+prediction models and the Python environment are \emph{not} bundled (they are
+large and platform-specific): install them once per machine with
+\code{\link[=install_mlmorph_models]{install_mlmorph_models()}} and \code{\link[=install_mlmorph_python]{install_mlmorph_python()}}, or point
+\code{mlmorph_dir} to an ml-morph directory of your own. Neither is needed to
+digitize by hand.
 
 The session configuration is handed to the app through the
 \code{intraitR.digitizer} option (and the \verb{INTRAITR_MLMORPH_*} environment

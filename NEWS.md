@@ -1,3 +1,14 @@
+# intraitR 1.47.2
+
+* AIDE : la documentation de `digitize_landmarks()` (arguments `python` et
+  `mlmorph_dir`, section *Details*) et la vignette d'introduction disaient
+  encore qu'il fallait un Python avec `dlib` et un dossier ml-morph externe.
+  Les modèles distribués sont au format ONNX : `install_mlmorph_models()` et
+  `install_mlmorph_python()` (`numpy`, `pandas`, `opencv-python-headless`,
+  `pillow`, `onnxruntime`) suffisent, une fois par ordinateur ; `dlib` ne sert
+  plus qu'aux anciens prédicteurs `.dat`. Ni Python ni les modèles ne sont
+  nécessaires pour placer les points à la main.
+
 # intraitR 1.47.1
 
 * CORRECTION de `launch_measure_hub()`, qui s'interrompait au démarrage

@@ -69,14 +69,15 @@
 #'   in memory, are written when the session ends or on demand, and are in the
 #'   journal in any case. `1` writes after every specimen. Defaults to `10`.
 #' @param mlmorph_dir Path to the ml-morph resource directory holding the
-#'   trained predictor(s) (`mlmorph_run_campaign/predictor.dat`,
-#'   `mlmorph_run_app/predictor.dat`, `mlmorph_run_aligned/predictor.dat`),
-#'   the matching dataset (`mlmorph_dataset_campaign/`, ...), the aligned dataset
-#'   (`mlmorph_dataset_aligned/`) and, optionally, a Python virtual environment
-#'   (`.venv_mlmorph/`). `NULL` (default) auto-detects it from the
-#'   `INTRAITR_MLMORPH_DIR` environment variable, then from `ml_morph/`,
-#'   `../ml_morph/` and the working directory. The app runs without a
-#'   predictor; only the prediction step is then disabled.
+#'   prediction models: the ONNX models distributed with the package
+#'   (`mlmorph_run_global/model.onnx`, `mlmorph_run_cnn/model.onnx`, ...) or
+#'   older `dlib` predictors (`mlmorph_run_campaign/predictor.dat`, ...) with
+#'   their datasets (`mlmorph_dataset_aligned/`, ...), and, optionally, a
+#'   Python virtual environment (`.venv_mlmorph/`). `NULL` (default)
+#'   auto-detects it from the `INTRAITR_MLMORPH_DIR` environment variable, then
+#'   from `ml_morph/`, `../ml_morph/` and the working directory, then the
+#'   models installed by [install_mlmorph_models()]. The app runs without a
+#'   model; only the prediction step is then disabled.
 #' @param provenance Where to find the record of which source image became
 #'   which specimen, used to match back photographs renamed BEFORE `photo_hash`
 #'   was recorded (see *A specimen renamed is not a specimen rediscovered*).
@@ -99,10 +100,13 @@
 #'   batch flagged first in the "new" queue, by decreasing risk; `"photo"`
 #'   keeps the folder order.
 #' @param python Optional path to (or name of) the Python interpreter running
-#'   the prediction worker; it needs `numpy`, `opencv-python` and `dlib`
-#'   (typically `.venv_mlmorph`). `NULL` (default) resolves it from
+#'   the prediction worker. The distributed (ONNX) models need `numpy`,
+#'   `pandas`, `opencv-python-headless`, `pillow` and `onnxruntime`, which
+#'   [install_mlmorph_python()] installs once per machine; `dlib` is needed
+#'   only by old `.dat` predictors. `NULL` (default) resolves it from
 #'   `INTRAITR_MLMORPH_PY`/`PY`, then `~/.venv_mlmorph/bin/python`, then
-#'   `.venv_mlmorph/` inside `mlmorph_dir`, then `python3` on the search path.
+#'   `.venv_mlmorph/` inside `mlmorph_dir`, then the environment created by
+#'   [install_mlmorph_python()], then `python3` on the search path.
 #' @param sheets Named character vector giving the three sheet names. Defaults
 #'   to `c(measurements = "measurements", bias = "bias", summary =
 #'   "bias_summary")`.
@@ -133,10 +137,11 @@
 #' The Shiny application is shipped inside the package
 #' (`system.file("shiny/landmarking_app", package = "intraitR")`) together with
 #' its Python worker (`system.file("mlmorph", package = "intraitR")`). The
-#' heavier ml-morph assets -- the trained predictor(s), the aligned training
-#' set, the Python environment with `dlib` -- are *not* bundled (they are large
-#' and platform-specific) and must live in an external directory located via
-#' `mlmorph_dir`.
+#' prediction models and the Python environment are *not* bundled (they are
+#' large and platform-specific): install them once per machine with
+#' [install_mlmorph_models()] and [install_mlmorph_python()], or point
+#' `mlmorph_dir` to an ml-morph directory of your own. Neither is needed to
+#' digitize by hand.
 #'
 #' The session configuration is handed to the app through the
 #' `intraitR.digitizer` option (and the `INTRAITR_MLMORPH_*` environment

@@ -1,5 +1,9 @@
 # Changelog
 
+## intraitR 1.47.3
+
+- Modèles de prédiction v2
+
 ## intraitR 1.47.2
 
 - AIDE : la documentation de

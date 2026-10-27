@@ -46,7 +46,7 @@ later digitization of the same key simply supersedes the retraction."></head><bo
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Retract the landmarks of a photograph (it goes back to "not measured")</h1>
-      <small class="dont-index">Source: <a href="https://github.com/FunTraits/intraitR/blob/models-v2/R/landmark_journal.R" class="external-link"><code>R/landmark_journal.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/FunTraits/intraitR/blob/main/R/landmark_journal.R" class="external-link"><code>R/landmark_journal.R</code></a></small>
       <div class="d-none name"><code>retract_landmarks.Rd</code></div>
     </div>
 
@@ -123,13 +123,13 @@ longer fall on the fish.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"retract_demo"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">jr</span> <span class="op">&lt;-</span> <span class="fu"><a href="landmark_journal_open.html">landmark_journal_open</a></span><span class="op">(</span><span class="va">d</span>, operator <span class="op">=</span> <span class="st">"AT"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Session journal: /tmp/RtmpFjKqwk/retract_demo/landmarks_AT_20261027T065942Z.tsv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Session journal: /tmp/Rtmp5ODxC1/retract_demo/landmarks_AT_20261027T211344Z.tsv</span>
 <span class="r-in"><span><span class="fu"><a href="landmark_journal_append.html">landmark_journal_append</a></span><span class="op">(</span><span class="va">jr</span>, <span class="st">"fish_01"</span>, <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">6</span><span class="op">)</span><span class="op">)</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">2</span>,</span></span>
 <span class="r-in"><span>                        specimen <span class="op">=</span> <span class="st">"fish_01"</span>, photo_file <span class="op">=</span> <span class="st">"fish_01.jpg"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="fu"><a href="consolidate_landmarks.html">consolidate_landmarks</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span><span class="op">)</span>          <span class="co"># 1</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1</span>
 <span class="r-in"><span><span class="fu">retract_landmarks</span><span class="op">(</span><span class="va">d</span>, photo <span class="op">=</span> <span class="st">"fish_01"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Session journal: /tmp/RtmpFjKqwk/retract_demo/landmarks_runner_20261027T065942Z.tsv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Session journal: /tmp/Rtmp5ODxC1/retract_demo/landmarks_runner_20261027T211344Z.tsv</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> 1 measurement(s) retracted: fish_01.</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="fu"><a href="consolidate_landmarks.html">consolidate_landmarks</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span><span class="op">)</span>          <span class="co"># 0</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0</span>

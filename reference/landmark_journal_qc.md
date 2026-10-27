@@ -42,12 +42,12 @@ A `data.frame`, one row per key: `row_key`, `specimen`, `species`,
 ``` r
 d <- file.path(tempdir(), "journal_qc_demo")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/RtmpraTv6S/journal_qc_demo/landmarks_AT_20261027T065629Z.tsv
+#> Session journal: /tmp/RtmpFjKqwk/journal_qc_demo/landmarks_AT_20261027T065930Z.tsv
 landmark_journal_append(jr, "fish_01", cbind(c(10, 60), c(20, 22)), 1:2,
                         status = c("1" = "clicked", "2" = "seeded"))
 landmark_journal_qc(d, expect = 1:3)
 #>   row_key specimen species photo_file                timestamp n_missing
-#> 1 fish_01                             2026-10-27T06:56:29.342Z         1
+#> 1 fish_01                             2026-10-27T06:59:30.597Z         1
 #>   missing n_seeded seeded n_adjusted adjusted n_na has_scale
 #> 1       3        1      2          0             0     FALSE
 unlink(d, recursive = TRUE)

@@ -7,7 +7,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/FunTraits/intraitR/blob/main/inst/CITATION)
+[`inst/CITATION`](https://github.com/FunTraits/intraitR/blob/models-v2/inst/CITATION)
 
 Toussaint A (2026). *intraitR: Morphological Trait Analysis Toolkit for
 Freshwater Fish*. R package version 1.47.3,

@@ -667,7 +667,7 @@ td
 #> 
 #> -- Pairwise absolute differences (lower triangle) / p-values (upper triangle) --
 #>                         Barbatula barbatula Barbus barbus Gobio gobio
-#> Barbatula barbatula                      NA        0.0050      0.0100
+#> Barbatula barbatula                      NA        0.0150      0.0200
 #> Barbus barbus                        5.6924            NA      0.2250
 #> Gobio gobio                          4.2303        1.4621          NA
 #> Lepomis gibbosus                     8.0395        2.3471      3.8092
@@ -675,20 +675,20 @@ td
 #> Perca fluviatilis                    0.3809        5.3115      3.8493
 #> Squalius cephalus                    2.9003        2.7921      1.3300
 #>                         Lepomis gibbosus Leuciscus burdigalensis
-#> Barbatula barbatula               0.0100                  0.1500
-#> Barbus barbus                     0.3600                  0.9100
-#> Gobio gobio                       0.0950                  0.6250
-#> Lepomis gibbosus                      NA                  0.7100
+#> Barbatula barbatula               0.0150                  0.1000
+#> Barbus barbus                     0.2500                  0.8650
+#> Gobio gobio                       0.0500                  0.5500
+#> Lepomis gibbosus                      NA                  0.6250
 #> Leuciscus burdigalensis           1.8283                      NA
 #> Perca fluviatilis                 7.6586                  5.8303
 #> Squalius cephalus                 5.1392                  3.3109
 #>                         Perca fluviatilis Squalius cephalus
-#> Barbatula barbatula                0.8450             0.070
-#> Barbus barbus                      0.0150             0.030
-#> Gobio gobio                        0.0150             0.035
-#> Lepomis gibbosus                   0.0050             0.025
-#> Leuciscus burdigalensis            0.1500             0.430
-#> Perca fluviatilis                      NA             0.095
+#> Barbatula barbatula                0.8500             0.070
+#> Barbus barbus                      0.0100             0.055
+#> Gobio gobio                        0.0100             0.065
+#> Lepomis gibbosus                   0.0050             0.020
+#> Leuciscus burdigalensis            0.1150             0.360
+#> Perca fluviatilis                      NA             0.090
 #> Squalius cephalus                  2.5194                NA
 ```
 
@@ -708,8 +708,8 @@ bf
 #> <intrait_bootstrap_fspace> (method = "convexhull")
 #>   2 PCA axes retained (49.8% of variance), 7 species
 #>   Centroid-based reference richness (FD_ref): 11.08
-#>   Bootstrap richness (FD_boot, 100 draws): mean = 14.51, SD = 4.361, 5-95% = [8.058, 21.91]
-#>   Difference (mean FD_boot - FD_ref): 3.429 (one-sided bootstrap p = 0.2079)
+#>   Bootstrap richness (FD_boot, 100 draws): mean = 14.01, SD = 4.472, 5-95% = [7.476, 22.2]
+#>   Difference (mean FD_boot - FD_ref): 2.933 (one-sided bootstrap p = 0.2673)
 plot(bf)
 ```
 
@@ -759,8 +759,8 @@ cmp
 #> <intrait_richness_comparison>
 #>   2 method(s) requested, 2 succeeded
 #>      method status fd_ref fd_boot_mean pct_diff p_value significant
-#>  dendrogram     ok   16.9        20.27   +20.0%  0.1683       FALSE
-#>  convexhull     ok  11.08        15.16   +36.8%  0.1881       FALSE
+#>  dendrogram     ok   16.9        19.06   +12.8%  0.2475       FALSE
+#>  convexhull     ok  11.08        14.95   +34.9%  0.3267       FALSE
 #> 
 #>   0/2 method(s) agree that individual-based richness significantly
 #>   exceeds the centroid-based reference (p < 0.05).

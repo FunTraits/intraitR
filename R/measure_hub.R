@@ -481,7 +481,7 @@ launch_measure_hub <- function(photo_dir = NULL, xlsx_path = NULL, journal_dir =
     cfg <- .hub_cfg(args)
     .hub_recent_add(args)
     old <- options(intraitR.hub = cfg)
-    res <- tryCatch(do.call(shiny::runApp, c(list(
+    res <- tryCatch(do.call(shiny::startApp, c(list(
       system.file("shiny", "measure_hub", package = "intraitR"),
       launch.browser = browser, port = port), dots)),
       finally = options(old))

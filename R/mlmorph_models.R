@@ -18,9 +18,9 @@
 
 # Set by pack_mlmorph_models(package_dir = ) when a model bundle is published.
 .MLMORPH_MODELS <- list(
-  version = "1",
-  file    = "intraitR_models_v1.zip",
-  md5     = "732e2504fe8eb04890e04e43ec525a80",
+  version = "2",
+  file    = "intraitR_models_v2.zip",
+  md5     = "bcd02c72585d0b365551f1f6928e610c",
   size_mb = 286.6,
   repo    = "FunTraits/intraitR"
 )

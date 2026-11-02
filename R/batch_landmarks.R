@@ -62,7 +62,8 @@
 #' @param redo Process every photograph again.
 #' @param mlmorph_dir,python As in [digitize_landmarks()]: the ml-morph folder
 #'   (`NULL` auto-detects it) and the Python interpreter (`NULL`:
-#'   `INTRAITR_MLMORPH_PY`, `~/.venv_mlmorph/bin/python`, then `python3`).
+#'   `INTRAITR_MLMORPH_PY`, `~/.venv_mlmorph`, the environment of
+#'   [install_mlmorph_python()], then `python3`; see [digitize_landmarks()]).
 #' @return Invisibly, a list: `summary` (one row per fish: `photo`,
 #'   `individual`, `ruler`, dimensions, standard length in pixels `bl_px`,
 #'   `score`, `flags`, `risk`, and with a ruler `mm_per_px`, `bl_mm`), `landmarks` (long: `photo`, `individual`, `landmark`,
@@ -96,6 +97,9 @@ batch_landmarks <- function(photos, out_dir, recursive = FALSE, qc = TRUE,
   if (!nzchar(script)) script <- file.path(ml, "batch_auto.py")
   if (!file.exists(script)) stop("batch_auto.py not found.", call. = FALSE)
   py <- .batch_python(python, ml)
+  if (!.python_runs(py))
+    stop("No Python interpreter that runs on this computer. Run ",
+         "intraitR::install_mlmorph_python() once, or give `python =`.", call. = FALSE)
   if (ruler && !file.exists(file.path(ml, "mlmorph_run_ruler", "model.onnx")))
     warning("`ruler = TRUE` but no ruler network (mlmorph_run_ruler/model.onnx): ",
             "the ruler is not detected and measurements stay in pixels.", call. = FALSE)
@@ -144,14 +148,8 @@ read_batch_landmarks <- function(out_dir) {
   list(summary = S[order(-S$risk), , drop = FALSE], landmarks = L, out_dir = out_dir)
 }
 
-.batch_python <- function(python, ml) {
-  cand <- c(if (is.null(python)) "" else python, Sys.getenv("INTRAITR_MLMORPH_PY", ""), Sys.getenv("PY", ""),
-            path.expand("~/.venv_mlmorph/bin/python"),
-            file.path(ml, ".venv_mlmorph", "bin", "python"),
-            .mlmorph_venv_python())            # install_mlmorph_python()
-  cand <- cand[nzchar(cand) & file.exists(cand)]
-  if (length(cand)) cand[1] else "python3"
-}
+## Kept under this name: the start page of the hub calls it.
+.batch_python <- function(python, ml) .mlmorph_python(python, ml)
 
 #' Record the predictions of an automatic pre-pass without reviewing them
 #'

@@ -74,3 +74,22 @@ test_that("without a published bundle, install says so", {
   skip_if(!is.na(intraitR:::.MLMORPH_MODELS$version))
   expect_error(install_mlmorph_models(), "names no published model bundle")
 })
+
+test_that(".venv_python_path() follows the operating system", {
+  p <- intraitR:::.venv_python_path("env")
+  if (.Platform$OS.type == "windows") expect_equal(p, file.path("env", "Scripts", "python.exe"))
+  else expect_equal(p, file.path("env", "bin", "python"))
+})
+
+test_that("a python that exists but does not run is skipped", {
+  # what a .venv_mlmorph synchronised from another system leaves behind
+  ml <- tempfile("ml_"); on.exit(unlink(ml, recursive = TRUE), add = TRUE)
+  fake <- intraitR:::.venv_python_path(file.path(ml, ".venv_mlmorph"))
+  dir.create(dirname(fake), recursive = TRUE); writeLines("not a program", fake)
+  expect_false(intraitR:::.python_runs(fake))
+  expect_false(intraitR:::.python_runs(""))
+  withr::local_envvar(INTRAITR_MLMORPH_PY = "", PY = "")
+  expect_false(identical(intraitR:::.mlmorph_python(NULL, ml), fake))
+  expect_warning(py <- intraitR:::.mlmorph_python(fake, ml), "does not run")
+  expect_false(identical(py, fake))
+})

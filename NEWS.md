@@ -1,3 +1,18 @@
+# intraitR 1.47.4
+
+* CORRECTION (Windows) : le prédicteur échouait avec « Batch failed » et
+  l'avertissement `'.../ml_morph/.venv_mlmorph/bin/python' not found`. Le
+  dossier ml-morph synchronisé (OneDrive/iCloud) contenait le venv créé sur
+  Mac, dont le `bin/python` existe pour `file.exists()` mais ne s'exécute pas
+  sous Windows. La recherche de l'interpréteur (`batch_landmarks()`,
+  `digitize_landmarks()`, page de démarrage du hub) passe par une seule
+  fonction interne, `.mlmorph_python()`, qui (i) cherche `Scripts/python.exe`
+  sous Windows et `bin/python` ailleurs, (ii) ne retient qu'un interpréteur
+  qui démarre réellement (`python --version`), (iii) essaie en dernier
+  `python3`, `python` puis `py`. `batch_landmarks()` s'arrête désormais avec
+  un message clair (lancer `install_mlmorph_python()`) au lieu de
+  « Batch failed ».
+
 # intraitR 1.47.3
 
 * Modèles de prédiction v2 

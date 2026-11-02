@@ -57,7 +57,8 @@ clicked for training, predicted hinges bias the derived points.}
 
 \item{mlmorph_dir, python}{As in \code{\link[=digitize_landmarks]{digitize_landmarks()}}: the ml-morph folder
 (\code{NULL} auto-detects it) and the Python interpreter (\code{NULL}:
-\code{INTRAITR_MLMORPH_PY}, \verb{~/.venv_mlmorph/bin/python}, then \code{python3}).}
+\code{INTRAITR_MLMORPH_PY}, \verb{~/.venv_mlmorph}, the environment of
+\code{\link[=install_mlmorph_python]{install_mlmorph_python()}}, then \code{python3}; see \code{\link[=digitize_landmarks]{digitize_landmarks()}}).}
 }
 \value{
 Invisibly, a list: \code{summary} (one row per fish: \code{photo},

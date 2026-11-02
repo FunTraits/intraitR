@@ -316,7 +316,46 @@ install_mlmorph_python <- function(python = NULL, force = FALSE) {
 }
 .mlmorph_venv_dir <- function() file.path(tools::R_user_dir("intraitR", "data"), "python")
 .mlmorph_venv_python <- function(must_exist = TRUE) {
-  p <- if (.Platform$OS.type == "windows") file.path(.mlmorph_venv_dir(), "Scripts", "python.exe")
-       else file.path(.mlmorph_venv_dir(), "bin", "python")
+  p <- .venv_python_path(.mlmorph_venv_dir())
   if (must_exist && !file.exists(p)) "" else p
+}
+
+## Interpreter of a virtual environment for THIS operating system:
+## <env>/Scripts/python.exe on Windows, <env>/bin/python elsewhere.
+.venv_python_path <- function(env) {
+  if (.Platform$OS.type == "windows") file.path(env, "Scripts", "python.exe")
+  else file.path(env, "bin", "python")
+}
+
+## TRUE when `py` actually starts. file.exists() is not enough: a virtual
+## environment made on another system and copied or synchronised (OneDrive,
+## iCloud...) leaves a bin/python that exists but cannot run here, and on
+## Windows `python3` may be only the Microsoft Store alias.
+.python_runs <- function(py) {
+  if (!nzchar(py)) return(FALSE)
+  st <- suppressWarnings(tryCatch(system2(py, "--version", stdout = FALSE, stderr = FALSE),
+                                  error = function(e) 1L))
+  identical(as.integer(st), 0L)
+}
+
+## The Python interpreter of the prediction worker: `python`, then
+## INTRAITR_MLMORPH_PY / PY, then ~/.venv_mlmorph, then .venv_mlmorph inside the
+## ml-morph folder, then the environment of install_mlmorph_python(), then
+## python3 / python / py on the search path. The first one that RUNS is kept;
+## "python3" when none does (the caller then reports the failure).
+.mlmorph_python <- function(python = NULL, ml = "") {
+  given <- if (is.null(python)) "" else python
+  cand <- c(given, Sys.getenv("INTRAITR_MLMORPH_PY", ""), Sys.getenv("PY", ""),
+            .venv_python_path(path.expand("~/.venv_mlmorph")),
+            if (length(ml) && !is.na(ml) && nzchar(ml)) .venv_python_path(file.path(ml, ".venv_mlmorph")),
+            .mlmorph_venv_python())
+  cand <- unique(cand[nzchar(cand)])
+  for (p in cand) {
+    if ((file.exists(p) || p == given) && .python_runs(p)) return(p)
+    if (p == given) warning("`python` does not run on this computer: ", p,
+                            " -- looking for another interpreter.", call. = FALSE)
+  }
+  for (p in Sys.which(c("python3", "python", "py")))
+    if (nzchar(p) && .python_runs(p)) return(unname(p))
+  "python3"
 }

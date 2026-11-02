@@ -190,12 +190,10 @@ ML <- {
 ## Python interpreter: INTRAITR_MLMORPH_PY (launcher), then PY, then
 ## ~/.venv_mlmorph (outside any cloud-synced folder), then the local venv, then
 ## python3 on the search path.
-.py_cand  <- c(Sys.getenv("INTRAITR_MLMORPH_PY", ""), Sys.getenv("PY", ""),
-               path.expand("~/.venv_mlmorph/bin/python"),
-               file.path(ML, ".venv_mlmorph", "bin", "python"),
-               ## the environment made by intraitR::install_mlmorph_python()
-               tryCatch(intraitR:::.mlmorph_venv_python(), error = function(e) ""))
-PY        <- c(.py_cand[nzchar(.py_cand) & file.exists(.py_cand)], "python3")[1]
+## Resolved by intraitR (bin/python or Scripts/python.exe according to the
+## system; only an interpreter that starts is kept -- a venv synchronised from
+## another computer is skipped).
+PY        <- tryCatch(intraitR:::.mlmorph_python(NULL, ML), error = function(e) "python3")
 ## Python worker: the copy bundled in the package (passed by the launcher through
 ## INTRAITR_MLMORPH_WORKER) takes precedence over the one in the ml-morph folder.
 WORKER <- {

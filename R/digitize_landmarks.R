@@ -104,9 +104,13 @@
 #'   `pandas`, `opencv-python-headless`, `pillow` and `onnxruntime`, which
 #'   [install_mlmorph_python()] installs once per machine; `dlib` is needed
 #'   only by old `.dat` predictors. `NULL` (default) resolves it from
-#'   `INTRAITR_MLMORPH_PY`/`PY`, then `~/.venv_mlmorph/bin/python`, then
+#'   `INTRAITR_MLMORPH_PY`/`PY`, then `~/.venv_mlmorph`, then
 #'   `.venv_mlmorph/` inside `mlmorph_dir`, then the environment created by
-#'   [install_mlmorph_python()], then `python3` on the search path.
+#'   [install_mlmorph_python()], then `python3`/`python`/`py` on the search
+#'   path. In a virtual environment the interpreter is `bin/python`, or
+#'   `Scripts/python.exe` on Windows, and only an interpreter that actually
+#'   starts is kept: a `.venv_mlmorph` made on a Mac and synchronised to a
+#'   Windows computer (OneDrive, iCloud) is skipped.
 #' @param sheets Named character vector giving the three sheet names. Defaults
 #'   to `c(measurements = "measurements", bias = "bias", summary =
 #'   "bias_summary")`.

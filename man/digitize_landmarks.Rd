@@ -123,9 +123,13 @@ the prediction worker. The distributed (ONNX) models need \code{numpy},
 \code{pandas}, \code{opencv-python-headless}, \code{pillow} and \code{onnxruntime}, which
 \code{\link[=install_mlmorph_python]{install_mlmorph_python()}} installs once per machine; \code{dlib} is needed
 only by old \code{.dat} predictors. \code{NULL} (default) resolves it from
-\code{INTRAITR_MLMORPH_PY}/\code{PY}, then \verb{~/.venv_mlmorph/bin/python}, then
+\code{INTRAITR_MLMORPH_PY}/\code{PY}, then \verb{~/.venv_mlmorph}, then
 \verb{.venv_mlmorph/} inside \code{mlmorph_dir}, then the environment created by
-\code{\link[=install_mlmorph_python]{install_mlmorph_python()}}, then \code{python3} on the search path.}
+\code{\link[=install_mlmorph_python]{install_mlmorph_python()}}, then \code{python3}/\code{python}/\code{py} on the search
+path. In a virtual environment the interpreter is \verb{bin/python}, or
+\verb{Scripts/python.exe} on Windows, and only an interpreter that actually
+starts is kept: a \verb{.venv_mlmorph} made on a Mac and synchronised to a
+Windows computer (OneDrive, iCloud) is skipped.}
 
 \item{batch}{Optional output folder of \code{\link[=batch_landmarks]{batch_landmarks()}} (or the list it
 returns). In the "new" queue, a photograph found there arrives with its 19

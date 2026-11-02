@@ -2,6 +2,14 @@
 
 ## intraitR 1.47.4
 
+- Le choix de l’interpréteur préfère, parmi ceux qui démarrent, le
+  premier qui importe `numpy`, `cv2` et `onnxruntime` (un Python système
+  sans ces modules ne masque plus l’environnement
+  d’[`install_mlmorph_python()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_python.md)).
+  Les messages « Dépendance manquante » des scripts Python indiquent
+  [`intraitR::install_mlmorph_python()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_python.md)
+  au lieu d’une commande `pip` propre au Mac.
+
 - CORRECTION (Windows) : « Prediction failed … Image illisible » sur
   toute photographie dont le chemin contient un caractère non ASCII
   (dossier `Photos utilisées`) : sous Windows,

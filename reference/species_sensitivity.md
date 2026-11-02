@@ -207,6 +207,6 @@ if (requireNamespace("geometry", quietly = TRUE)) {
 #>              Gobio gobio 283   +3.98% [-25.85%, +97.40%]
 #>            Barbus barbus  29   +2.24%  [+0.00%, +21.18%]
 #>  Leuciscus burdigalensis   4   +2.14% [-16.51%, +39.43%]
-#>         Lepomis gibbosus   9   -0.00% [-11.21%, +16.42%]
+#>         Lepomis gibbosus   9   +0.00% [-11.21%, +16.42%]
 # }
 ```

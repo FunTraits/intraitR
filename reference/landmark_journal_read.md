@@ -49,7 +49,7 @@ it is converted on reading, `quality_score = 6 - quality`.
 ``` r
 d <- file.path(tempdir(), "journal_demo3")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/RtmpaAOtBt/journal_demo3/landmarks_AT_20261102T133021Z.tsv
+#> Session journal: /tmp/RtmpPTl7U7/journal_demo3/landmarks_AT_20261102T133803Z.tsv
 landmark_journal_append(jr, "fish_01", cbind(c(10, 60), c(20, 22)), 1:2,
                         specimen = "fish_01", individual = "fish_01")
 str(landmark_journal_read(d)[c("specimen", "landmark", "x", "y", "status")])

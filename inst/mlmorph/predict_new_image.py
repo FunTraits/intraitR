@@ -39,7 +39,7 @@ try:
     import cv2
     import build_mlmorph_xml as bx     # compute_fixed_dims, load_heights, parse_tps
 except ImportError as e:
-    sys.exit(f"Dépendance manquante ({e}). Activez le venv .venv_mlmorph.")
+    sys.exit(f"Dépendance manquante ({e}). Dans R, une fois par ordinateur : intraitR::install_mlmorph_python()")
 
 
 def imread_u(path, flags=None):
@@ -80,8 +80,8 @@ class CNNModel:
         try:
             import onnxruntime as ort
         except ImportError:
-            sys.exit("Dépendance manquante (onnxruntime) pour un modèle .onnx : "
-                     "~/.venv_mlmorph/bin/pip install onnxruntime")
+            sys.exit("Dépendance manquante (onnxruntime) pour un modèle .onnx. "
+                     "Dans R, une fois par ordinateur : intraitR::install_mlmorph_python()")
         self.p = json.load(open(os.path.join(os.path.dirname(path), "cnn_params.json")))
         self.sess = ort.InferenceSession(path, providers=["CPUExecutionProvider"])
 
@@ -105,7 +105,7 @@ class GlobalModel:
         try:
             import onnxruntime as ort
         except ImportError:
-            sys.exit("Dépendance manquante (onnxruntime) : ~/.venv_mlmorph/bin/pip install onnxruntime")
+            sys.exit("Dépendance manquante (onnxruntime). Dans R, une fois par ordinateur : intraitR::install_mlmorph_python()")
         self.p = json.load(open(os.path.join(os.path.dirname(path), "global_params.json")))
         self.sess = ort.InferenceSession(path, providers=["CPUExecutionProvider"])
 

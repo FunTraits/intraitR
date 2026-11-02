@@ -341,8 +341,9 @@ install_mlmorph_python <- function(python = NULL, force = FALSE) {
 ## The Python interpreter of the prediction worker: `python`, then
 ## INTRAITR_MLMORPH_PY / PY, then ~/.venv_mlmorph, then .venv_mlmorph inside the
 ## ml-morph folder, then the environment of install_mlmorph_python(), then
-## python3 / python / py on the search path. The first one that RUNS is kept;
-## "python3" when none does (the caller then reports the failure).
+## python3 / python / py on the search path. Among those that RUN, the first
+## one that imports numpy, cv2 and onnxruntime is kept (an interpreter given
+## explicitly is kept as it is); "python3" when none runs.
 .mlmorph_python <- function(python = NULL, ml = "") {
   given <- if (is.null(python)) "" else python
   cand <- c(given, Sys.getenv("INTRAITR_MLMORPH_PY", ""), Sys.getenv("PY", ""),
@@ -350,12 +351,29 @@ install_mlmorph_python <- function(python = NULL, force = FALSE) {
             if (length(ml) && !is.na(ml) && nzchar(ml)) .venv_python_path(file.path(ml, ".venv_mlmorph")),
             .mlmorph_venv_python())
   cand <- unique(cand[nzchar(cand)])
+  runs <- character()
   for (p in cand) {
-    if ((file.exists(p) || p == given) && .python_runs(p)) return(p)
-    if (p == given) warning("`python` does not run on this computer: ", p,
-                            " -- looking for another interpreter.", call. = FALSE)
+    if ((file.exists(p) || p == given) && .python_runs(p)) runs <- c(runs, p)
+    else if (p == given) warning("`python` does not run on this computer: ", p,
+                                 " -- looking for another interpreter.", call. = FALSE)
   }
+  ## an interpreter given explicitly (argument or environment variable) is
+  ## taken as it is; otherwise the search path comes last
+  if (length(runs) && runs[1] %in% c(given, Sys.getenv("INTRAITR_MLMORPH_PY", ""),
+                                      Sys.getenv("PY", ""))) return(runs[1])
   for (p in Sys.which(c("python3", "python", "py")))
-    if (nzchar(p) && .python_runs(p)) return(unname(p))
-  "python3"
+    if (nzchar(p) && .python_runs(p)) runs <- c(runs, unname(p))
+  runs <- unique(runs)
+  if (!length(runs)) return("python3")
+  ## first one with the prediction packages (a system Python without
+  ## onnxruntime must not hide the environment of install_mlmorph_python())
+  for (p in runs) if (.python_has_mlmorph(p)) return(p)
+  runs[1]
+}
+
+.python_has_mlmorph <- function(py) {
+  out <- suppressWarnings(tryCatch(system2(py, c("-c", shQuote(
+    "import numpy, cv2, onnxruntime; print('ok')")), stdout = TRUE, stderr = TRUE),
+    error = function(e) ""))
+  any(grepl("^ok$", out))
 }

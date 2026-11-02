@@ -1,5 +1,10 @@
 # intraitR 1.47.4
 
+* Windows : l'application de numérisation transmet au script de prédiction
+  une copie temporaire (nom ASCII) d'une photographie dont le chemin contient
+  des caractères non ASCII, et `PYTHONUTF8=1` / `PYTHONIOENCODING=utf-8` sont
+  fixés pour les scripts Python (application et `batch_landmarks()`).
+
 * Le choix de l'interpréteur préfère, parmi ceux qui démarrent, le premier qui
   importe `numpy`, `cv2` et `onnxruntime` (un Python système sans ces modules
   ne masque plus l'environnement d'`install_mlmorph_python()`). Les messages

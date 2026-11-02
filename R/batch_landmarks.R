@@ -117,6 +117,12 @@ batch_landmarks <- function(photos, out_dir, recursive = FALSE, qc = TRUE,
             if (ruler) c("--ruler-mm", ruler_mm) else "--no-ruler",
             if (recursive) "--recursive", if (qc) "--qc", if (redo) "--redo",
             if (hinges) "--hinges")
+  old_env <- Sys.getenv(c("PYTHONUTF8", "PYTHONIOENCODING"), unset = NA)
+  Sys.setenv(PYTHONUTF8 = "1", PYTHONIOENCODING = "utf-8")   # Windows: UTF-8 I/O
+  on.exit({
+    for (k in names(old_env))
+      if (is.na(old_env[[k]])) Sys.unsetenv(k) else do.call(Sys.setenv, as.list(old_env[k]))
+  }, add = TRUE)
   status <- system2(py, args)
   if (!identical(status, 0L) && !file.exists(file.path(out_dir, "summary.csv")))
     stop("Batch failed (see the messages above).", call. = FALSE)

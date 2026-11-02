@@ -194,6 +194,9 @@ ML <- {
 ## system; only an interpreter that starts is kept -- a venv synchronised from
 ## another computer is skipped).
 PY        <- tryCatch(intraitR:::.mlmorph_python(NULL, ML), error = function(e) "python3")
+## UTF-8 for the worker's messages, arguments and text files (Windows defaults
+## to the code page of the console otherwise).
+Sys.setenv(PYTHONUTF8 = "1", PYTHONIOENCODING = "utf-8")
 ## Python worker: the copy bundled in the package (passed by the launcher through
 ## INTRAITR_MLMORPH_WORKER) takes precedence over the one in the ml-morph folder.
 WORKER <- {
@@ -1937,7 +1940,13 @@ server <- function(input, output, session) {
   ## predictor would both degrade it and put its output in the wrong pixel
   ## frame. One extra decode at prediction time is a fair price.
   worker_path <- function() {
-    if (identical(rv$flip, "none")) return(rv$orig)
+    if (identical(rv$flip, "none")) {
+      ## A path with non-ASCII characters ("Photos utilisées") can be garbled
+      ## on the command line on Windows: the worker gets an ASCII temporary copy.
+      if (!grepl("[^ -~]", rv$orig)) return(rv$orig)
+      tf <- tempfile(fileext = paste0(".", tools::file_ext(rv$orig)))
+      return(if (isTRUE(file.copy(rv$orig, tf))) tf else rv$orig)
+    }
     full <- tryCatch(read_image(rv$orig), error = function(e) NULL)
     if (is.null(full)) return(rv$orig)
     if (length(dim(full)) == 2) full <- array(full, c(dim(full), 3))

@@ -109,7 +109,7 @@ def draw(img, fishes, flags, path, max_side=900):
             cv2.putText(v, f"i{ind}", (int(q[0, 0]) - 10, int(q[0, 1]) - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
     if flags:
         cv2.putText(v, " ".join(flags), (8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-    cv2.imwrite(path, v, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    W.imwrite_u(path, v, [cv2.IMWRITE_JPEG_QUALITY, 85])
 
 
 def write_index(out_dir, S):
@@ -180,7 +180,7 @@ def main():
 
     rows, lms, t0 = [], [], time.time()
     for k, f in enumerate(todo):
-        img = cv2.imread(f, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+        img = W.imread_u(f)
         if img is None:
             rows.append(dict(photo=os.path.abspath(f), photo_name=os.path.basename(f), individual=1,
                              ruler=a.has_ruler, flags="illisible", risk=9.0))
@@ -278,7 +278,7 @@ def main():
         for ph, g in S.groupby("photo"):
             out = os.path.join(a.out_dir, "qc", g.qc_name.iloc[0])
             if (ph in new or not os.path.exists(out)) and g.bl_px.notna().any():
-                img = cv2.imread(ph, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+                img = W.imread_u(ph)
                 Lp = L[L.photo == ph]
                 fishes = [(i, d.sort_values("landmark")[["X", "Y"]].to_numpy(float), list(d.sort_values("landmark").landmark))
                           for i, d in Lp.groupby("individual")]

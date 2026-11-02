@@ -40,6 +40,30 @@ try:
     import build_mlmorph_xml as bx     # compute_fixed_dims, load_heights, parse_tps
 except ImportError as e:
     sys.exit(f"Dépendance manquante ({e}). Activez le venv .venv_mlmorph.")
+
+
+def imread_u(path, flags=None):
+    """cv2.imread qui accepte les chemins non ASCII (« Photos utilisées ») :
+    sous Windows, cv2.imread() ne sait pas les ouvrir. On lit les octets avec
+    numpy puis on décode en mémoire. None si le fichier est illisible."""
+    if flags is None:
+        flags = cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION
+    try:
+        buf = np.fromfile(path, dtype=np.uint8)
+    except (OSError, ValueError):
+        return None
+    if buf.size == 0:
+        return None
+    return cv2.imdecode(buf, flags)
+
+
+def imwrite_u(path, img, params=None):
+    """cv2.imwrite pour un chemin non ASCII (même raison qu'imread_u)."""
+    ext = os.path.splitext(path)[1] or ".jpg"
+    ok, enc = cv2.imencode(ext, img, params or [])
+    if ok:
+        enc.tofile(path)
+    return bool(ok)
 try:
     import dlib                        # modèles .dat (régression par arbres)
 except ImportError:
@@ -630,7 +654,7 @@ def main():
     if args.refine is None:
         args.refine = cp.get("refine", "1") not in ("0", "false", "False")
 
-    img = cv2.imread(args.image, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+    img = imread_u(args.image)
     if img is None:
         sys.exit(f"Image illisible : {args.image}")
     auto_conf = None

@@ -2,6 +2,14 @@
 
 ## intraitR 1.47.4
 
+- CORRECTION (Windows) : « Prediction failed … Image illisible » sur
+  toute photographie dont le chemin contient un caractère non ASCII
+  (dossier `Photos utilisées`) : sous Windows,
+  `cv2.imread()`/`cv2.imwrite()` d’OpenCV n’ouvrent pas ces chemins.
+  `predict_new_image.py` et `batch_auto.py` lisent et écrivent désormais
+  les images par `numpy.fromfile()` + `cv2.imdecode()` (et
+  `cv2.imencode()` + `tofile()`), fonctions `imread_u()`/`imwrite_u()`.
+
 - CORRECTION (Windows) : le prédicteur échouait avec « Batch failed » et
   l’avertissement `'.../ml_morph/.venv_mlmorph/bin/python' not found`.
   Le dossier ml-morph synchronisé (OneDrive/iCloud) contenait le venv

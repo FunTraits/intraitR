@@ -2,6 +2,11 @@
 
 ## intraitR 1.47.4
 
+- [`install_mlmorph_python()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_python.md)
+  donne le code de sortie de Python quand les modules ne se chargent pas
+  et, sous Windows, signale la cause habituelle d’un plantage silencieux
+  d’`onnxruntime` (runtime Visual C++ trop ancien).
+
 - Windows : l’application de numérisation transmet au script de
   prédiction une copie temporaire (nom ASCII) d’une photographie dont le
   chemin contient des caractères non ASCII, et `PYTHONUTF8=1` /

@@ -309,8 +309,15 @@ install_mlmorph_python <- function(python = NULL, force = FALSE) {
   if (!identical(st, 0L)) stop("pip failed: see the messages above.", call. = FALSE)
   chk <- suppressWarnings(system2(py_env, c("-c", shQuote(
     "import numpy, pandas, cv2, PIL, onnxruntime; print('ok')")), stdout = TRUE, stderr = TRUE))
-  if (!any(grepl("^ok$", chk))) stop("The packages do not import: ", paste(chk, collapse = "\n"),
-                                     call. = FALSE)
+  if (!any(grepl("^ok$", chk)))
+    stop("The packages do not import (status ", attr(chk, "status") %||% "?", "): ",
+         paste(chk, collapse = "\n"),
+         if (.Platform$OS.type == "windows")
+           paste0("\nOn Windows a silent failure (status 5, access violation) when ",
+                  "importing onnxruntime comes from an old Visual C++ runtime ",
+                  "(MSVCP140.dll): install the latest Microsoft Visual C++ ",
+                  "Redistributable (x64), then run install_mlmorph_python() again."),
+         call. = FALSE)
   message("Python ready: ", py_env)
   invisible(py_env)
 }

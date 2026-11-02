@@ -25,7 +25,7 @@ points are reviewed and corrected by hand, quality-scored, and saved."></head><b
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -219,9 +219,13 @@ the prediction worker. The distributed (ONNX) models need <code>numpy</code>,
 <code>pandas</code>, <code>opencv-python-headless</code>, <code>pillow</code> and <code>onnxruntime</code>, which
 <code><a href="install_mlmorph_python.html">install_mlmorph_python()</a></code> installs once per machine; <code>dlib</code> is needed
 only by old <code>.dat</code> predictors. <code>NULL</code> (default) resolves it from
-<code>INTRAITR_MLMORPH_PY</code>/<code>PY</code>, then <code>~/.venv_mlmorph/bin/python</code>, then
+<code>INTRAITR_MLMORPH_PY</code>/<code>PY</code>, then <code>~/.venv_mlmorph</code>, then
 <code>.venv_mlmorph/</code> inside <code>mlmorph_dir</code>, then the environment created by
-<code><a href="install_mlmorph_python.html">install_mlmorph_python()</a></code>, then <code>python3</code> on the search path.</p></dd>
+<code><a href="install_mlmorph_python.html">install_mlmorph_python()</a></code>, then <code>python3</code>/<code>python</code>/<code>py</code> on the search
+path. In a virtual environment the interpreter is <code>bin/python</code>, or
+<code>Scripts/python.exe</code> on Windows, and only an interpreter that actually
+starts is kept: a <code>.venv_mlmorph</code> made on a Mac and synchronised to a
+Windows computer (OneDrive, iCloud) is skipped.</p></dd>
 
 
 <dt id="arg-batch">batch<a class="anchor" aria-label="anchor" href="#arg-batch"></a></dt>

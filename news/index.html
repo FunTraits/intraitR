@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +33,10 @@
       <small>Source: <a href="https://github.com/FunTraits/intraitR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.47.4" id="intraitr-1474">intraitR 1.47.4<a class="anchor" aria-label="anchor" href="#intraitr-1474"></a></h2>
+<ul><li>CORRECTION (Windows) : le prédicteur échouait avec « Batch failed » et l’avertissement <code>'.../ml_morph/.venv_mlmorph/bin/python' not found</code>. Le dossier ml-morph synchronisé (OneDrive/iCloud) contenait le venv créé sur Mac, dont le <code>bin/python</code> existe pour <code><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists()</a></code> mais ne s’exécute pas sous Windows. La recherche de l’interpréteur (<code><a href="../reference/batch_landmarks.html">batch_landmarks()</a></code>, <code><a href="../reference/digitize_landmarks.html">digitize_landmarks()</a></code>, page de démarrage du hub) passe par une seule fonction interne, <code>.mlmorph_python()</code>, qui (i) cherche <code>Scripts/python.exe</code> sous Windows et <code>bin/python</code> ailleurs, (ii) ne retient qu’un interpréteur qui démarre réellement (<code>python --version</code>), (iii) essaie en dernier <code>python3</code>, <code>python</code> puis <code>py</code>. <code><a href="../reference/batch_landmarks.html">batch_landmarks()</a></code> s’arrête désormais avec un message clair (lancer <code><a href="../reference/install_mlmorph_python.html">install_mlmorph_python()</a></code>) au lieu de « Batch failed ».</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.47.3" id="intraitr-1473">intraitR 1.47.3<a class="anchor" aria-label="anchor" href="#intraitr-1473"></a></h2>
 <ul><li>Modèles de prédiction v2</li>

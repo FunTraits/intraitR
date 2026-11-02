@@ -1,5 +1,25 @@
 # Changelog
 
+## intraitR 1.47.4
+
+- CORRECTION (Windows) : le prédicteur échouait avec « Batch failed » et
+  l’avertissement `'.../ml_morph/.venv_mlmorph/bin/python' not found`.
+  Le dossier ml-morph synchronisé (OneDrive/iCloud) contenait le venv
+  créé sur Mac, dont le `bin/python` existe pour
+  [`file.exists()`](https://rdrr.io/r/base/files.html) mais ne s’exécute
+  pas sous Windows. La recherche de l’interpréteur
+  ([`batch_landmarks()`](https://funtraits.github.io/intraitR/reference/batch_landmarks.md),
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md),
+  page de démarrage du hub) passe par une seule fonction interne,
+  `.mlmorph_python()`, qui (i) cherche `Scripts/python.exe` sous Windows
+  et `bin/python` ailleurs, (ii) ne retient qu’un interpréteur qui
+  démarre réellement (`python --version`), (iii) essaie en dernier
+  `python3`, `python` puis `py`.
+  [`batch_landmarks()`](https://funtraits.github.io/intraitR/reference/batch_landmarks.md)
+  s’arrête désormais avec un message clair (lancer
+  [`install_mlmorph_python()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_python.md))
+  au lieu de « Batch failed ».
+
 ## intraitR 1.47.3
 
 - Modèles de prédiction v2

@@ -94,8 +94,11 @@ batch_landmarks(
   As in
   [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md):
   the ml-morph folder (`NULL` auto-detects it) and the Python
-  interpreter (`NULL`: `INTRAITR_MLMORPH_PY`,
-  `~/.venv_mlmorph/bin/python`, then `python3`).
+  interpreter (`NULL`: `INTRAITR_MLMORPH_PY`, `~/.venv_mlmorph`, the
+  environment of
+  [`install_mlmorph_python()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_python.md),
+  then `python3`; see
+  [`digitize_landmarks()`](https://funtraits.github.io/intraitR/reference/digitize_landmarks.md)).
 
 ## Value
 

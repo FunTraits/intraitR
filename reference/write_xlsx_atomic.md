@@ -1,6 +1,6 @@
 # Write a workbook atomically
 
-[`writexl::write_xlsx()`](https://docs.ropensci.org/writexl//reference/write_xlsx.html)
+[`writexl::write_xlsx()`](https://docs.ropensci.org/writexl/reference/write_xlsx.html)
 overwrites its target in place: while it is being rewritten (seconds,
 for a workbook of several Mb) the file is in an intermediate state, and
 an interruption destroys it. This writes to a temporary file in the SAME
@@ -18,7 +18,7 @@ write_xlsx_atomic(x, path, keep_prev = TRUE, drop_sheets = FALSE)
 - x:
 
   A named list of `data.frame`s (one per sheet), as
-  [`writexl::write_xlsx()`](https://docs.ropensci.org/writexl//reference/write_xlsx.html)
+  [`writexl::write_xlsx()`](https://docs.ropensci.org/writexl/reference/write_xlsx.html)
   takes.
 
 - path:

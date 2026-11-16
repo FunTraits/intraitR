@@ -28,6 +28,13 @@ install_mlmorph_python(python = NULL, force = FALSE)
 
 Invisibly, the path of the environment's Python.
 
+## Details
+
+On Windows, `onnxruntime` needs a recent Microsoft Visual C++
+Redistributable (x64; `msvcp140.dll` 14.40 or later): with an older
+runtime it crashes on import (status 5, access violation). Install it
+first, e.g. `winget install --id Microsoft.VCRedist.2015+.x64 -e`.
+
 ## See also
 
 [`install_mlmorph_models()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_models.md)

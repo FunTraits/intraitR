@@ -37,14 +37,14 @@ messages.
 ``` r
 d <- file.path(tempdir(), "journal_status_demo")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/RtmpHL7dFE/journal_status_demo/landmarks_AT_20261102T140857Z.tsv
+#> Session journal: /tmp/RtmpdvESHc/journal_status_demo/landmarks_AT_20261116T062901Z.tsv
 landmark_journal_append(jr, "fish_01", cbind(c(10, 60), c(20, 22)), 1:2)
 landmark_journal_status(d)
-#> Directory: /tmp/RtmpHL7dFE/journal_status_demo
+#> Directory: /tmp/RtmpdvESHc/journal_status_demo
 #> 1 file(s), 1 record(s), 2 point(s) in total.
 #>                                file bytes n_lines n_records n_points
-#> 1 landmarks_AT_20261102T140857Z.tsv   438       2         1        2
+#> 1 landmarks_AT_20261116T062901Z.tsv   438       2         1        2
 #>                      start                      end
-#> 1 2026-11-02T14:08:57.465Z 2026-11-02T14:08:57.465Z
+#> 1 2026-11-16T06:29:01.419Z 2026-11-16T06:29:01.419Z
 unlink(d, recursive = TRUE)
 ```

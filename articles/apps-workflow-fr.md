@@ -47,6 +47,18 @@ intraitR::install_mlmorph_python()
 La page d’accueil indique si les modèles sont installés et propose ces
 deux installations par un bouton.
 
+**Sous Windows**, avant
+[`install_mlmorph_python()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_python.md)
+: installez Python 3 depuis python.org (cochez *Add python.exe to PATH*
+; évitez la version du Microsoft Store) et le **Microsoft Visual C++
+Redistributable (x64)** le plus récent, par exemple
+`winget install --id Microsoft.VCRedist.2015+.x64 -e` dans PowerShell.
+Avec un runtime Visual C++ plus ancien (`msvcp140.dll` antérieure à
+14.40), `onnxruntime` plante dès son chargement, sans message, et la
+prédiction échoue. Gardez l’environnement Python hors d’un dossier
+synchronisé (OneDrive, iCloud) : un environnement créé sur Mac ne
+fonctionne pas sous Windows, et inversement.
+
 **Photographies.** Un poisson (ou plusieurs, voir *plaques*) par
 photographie, en vue latérale, tête à gauche si possible, avec une
 **barre d’échelle** de longueur connue dans le plan du poisson. Le nom
@@ -292,6 +304,7 @@ write_analysis_project(fish, "mon_projet", params = analysis_params(min_n = 10))
 | Symptôme | Cause, remède |
 |----|----|
 | *Predict* indique qu’aucun modèle n’est disponible | [`install_mlmorph_models()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_models.md) puis [`install_mlmorph_python()`](https://funtraits.github.io/intraitR/reference/install_mlmorph_python.md), une fois par ordinateur |
+| Windows : *Prediction failed* avec le statut 5, ou « access violation » au chargement d’`onnxruntime` | runtime Visual C++ trop ancien : installez le Visual C++ Redistributable (x64) le plus récent, relancez R |
 | Un spécimen déjà mesuré réapparaît comme *new* | il a été enregistré dans un autre classeur ou journal : donnez toujours les mêmes `xlsx_path`, `journal_dir` et `operator` |
 | Erreur de mesure : « every individual must have at least 2 replicates » (anciennes versions) | une photographie de la feuille `bias` n’a été numérisée qu’une fois ; elle est maintenant écartée et nommée — numérisez-la une deuxième fois |
 | Des enregistrements de littérature jamais analysés | un rapport manque dans le jeu de données : voir le tableau de couverture de *1. Data* |

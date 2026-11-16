@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -145,6 +145,17 @@ functional space) and, for a campaign database,
 <span><span class="fu">intraitR</span><span class="fu">::</span><span class="fu"><a href="../reference/install_mlmorph_python.html">install_mlmorph_python</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>The start page shows whether the models are installed, and offers the
 same two installations with a button.</p>
+<p><strong>On Windows</strong>, before
+<code><a href="../reference/install_mlmorph_python.html">install_mlmorph_python()</a></code>: install Python 3 from python.org
+(tick <em>Add python.exe to PATH</em>; avoid the Microsoft Store
+version) and the latest <strong>Microsoft Visual C++ Redistributable
+(x64)</strong>, for instance
+<code>winget install --id Microsoft.VCRedist.2015+.x64 -e</code> in
+PowerShell. With an older Visual C++ runtime (<code>msvcp140.dll</code>
+below 14.40), <code>onnxruntime</code> crashes as soon as it is
+imported, without any message, and the prediction fails. Keep the Python
+environment out of a synchronised folder (OneDrive, iCloud): an
+environment made on a Mac does not run on Windows, and the reverse.</p>
 <p><strong>Photographs.</strong> One fish (or several, see
 <em>plates</em>) per photograph, lateral view, head to the left if
 possible, with a <strong>scale bar</strong> of known length in the plane
@@ -582,6 +593,13 @@ brings its records in — say so, and why, in the Methods.</p>
 <code><a href="../reference/install_mlmorph_python.html">install_mlmorph_python()</a></code>, once per computer</td>
 </tr>
 <tr class="even">
+<td>Windows: <em>Prediction failed</em> with status 5, or “access
+violation” when importing <code>onnxruntime</code>
+</td>
+<td>old Visual C++ runtime: install the latest Visual C++
+Redistributable (x64), restart R</td>
+</tr>
+<tr class="odd">
 <td>A specimen measured before reappears as <em>new</em>
 </td>
 <td>it was saved in another workbook or journal: always give the same
@@ -589,24 +607,24 @@ brings its records in — say so, and why, in the Methods.</p>
 <code>operator</code>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Measurement error: “every individual must have at least 2
 replicates” (older versions)</td>
 <td>a photograph of the <code>bias</code> sheet was digitized once; it
 is now left out and named — digitize it a second time</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Literature records never analysed</td>
 <td>a ratio is missing from the data set: see the coverage table of
 <em>1. Data</em>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Bl and BEl seem too low on curved fish</td>
 <td>place the hinges 22/24(/25) on the midline; standard length then
 follows the body</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>A workbook looks wrong</td>
 <td>rebuild it from the journal: <em>Rebuild from the journal</em> in
 the digitizer, or <code><a href="../reference/consolidate_landmarks.html">consolidate_landmarks()</a></code>

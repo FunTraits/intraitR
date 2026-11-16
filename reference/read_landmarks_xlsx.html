@@ -25,7 +25,7 @@ be joined in directly via species_file.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -216,8 +216,8 @@ should be normalised in <code>file</code>/<code>species_file</code> beforehand i
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">xlsx_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".xlsx"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">ident_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".xlsx"</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="fu">writexl</span><span class="fu">::</span><span class="fu"><a href="https://docs.ropensci.org/writexl//reference/write_xlsx.html" class="external-link">write_xlsx</a></span><span class="op">(</span><span class="va">wide</span>, <span class="va">xlsx_path</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="fu">writexl</span><span class="fu">::</span><span class="fu"><a href="https://docs.ropensci.org/writexl//reference/write_xlsx.html" class="external-link">write_xlsx</a></span><span class="op">(</span><span class="va">ident</span>, <span class="va">ident_path</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu">writexl</span><span class="fu">::</span><span class="fu"><a href="https://docs.ropensci.org/writexl/reference/write_xlsx.html" class="external-link">write_xlsx</a></span><span class="op">(</span><span class="va">wide</span>, <span class="va">xlsx_path</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu">writexl</span><span class="fu">::</span><span class="fu"><a href="https://docs.ropensci.org/writexl/reference/write_xlsx.html" class="external-link">write_xlsx</a></span><span class="op">(</span><span class="va">ident</span>, <span class="va">ident_path</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span>  <span class="va">lm</span> <span class="op">&lt;-</span> <span class="fu">read_landmarks_xlsx</span><span class="op">(</span></span></span>
 <span class="r-in"><span>    <span class="va">xlsx_path</span>, n_landmarks <span class="op">=</span> <span class="fl">3</span>, id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Code"</span>, <span class="st">"Utilisateur"</span><span class="op">)</span>,</span></span>

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,8 +34,14 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.47.5" id="intraitr-1475">intraitR 1.47.5<a class="anchor" aria-label="anchor" href="#intraitr-1475"></a></h2>
+<ul><li>NOUVEAU point confondu <code>Jl = 0</code> dans les applications de numérisation (<code><a href="../reference/digitize_landmarks.html">digitize_landmarks()</a></code> et <code><a href="../reference/digitize_fishmorph_reference.html">digitize_fishmorph_reference()</a></code>) : LM15 prend les coordonnées de LM1 (le museau ne bouge pas), donc <code>Jl = 0</code> et <code>RMl = 0</code>. Cocher <code>Mo = 0</code> coche aussi <code>Jl = 0</code> ; la règle reste décochable seule. Un spécimen enregistré avec <code>Mo</code> seul garde son LM15 quand il est rouvert.</li>
+</ul></div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.47.4" id="intraitr-1474">intraitR 1.47.4<a class="anchor" aria-label="anchor" href="#intraitr-1474"></a></h2>
-<ul><li><p><code><a href="../reference/install_mlmorph_python.html">install_mlmorph_python()</a></code> donne le code de sortie de Python quand les modules ne se chargent pas et, sous Windows, signale la cause habituelle d’un plantage silencieux d’<code>onnxruntime</code> (runtime Visual C++ trop ancien).</p></li>
+<ul><li><p>CORRECTION : la recherche de l’interpréteur Python des prédictions (lancée au démarrage de <code><a href="../reference/digitize_landmarks.html">digitize_landmarks()</a></code> et de <code><a href="../reference/digitize_fishmorph_reference.html">digitize_fishmorph_reference()</a></code>) impose un délai maximal à chaque interpréteur testé (10 s pour <code>--version</code>, 30 s pour l’import de <code>numpy</code>, <code>cv2</code> et <code>onnxruntime</code>). Un interpréteur qui ne répond pas est écarté au lieu de figer le lancement avant l’ouverture de l’application.</p></li>
+<li><p>AIDE : la vignette <em>apps-workflow</em> (anglais et français) et l’aide d’<code><a href="../reference/install_mlmorph_python.html">install_mlmorph_python()</a></code> décrivent les prérequis sous Windows (Python de python.org, Visual C++ Redistributable x64 récent, environnement hors dossier synchronisé) et le symptôme d’un runtime trop ancien.</p></li>
+<li><p><code><a href="../reference/install_mlmorph_python.html">install_mlmorph_python()</a></code> donne le code de sortie de Python quand les modules ne se chargent pas et, sous Windows, signale la cause habituelle d’un plantage silencieux d’<code>onnxruntime</code> (runtime Visual C++ trop ancien).</p></li>
 <li><p>Windows : l’application de numérisation transmet au script de prédiction une copie temporaire (nom ASCII) d’une photographie dont le chemin contient des caractères non ASCII, et <code>PYTHONUTF8=1</code> / <code>PYTHONIOENCODING=utf-8</code> sont fixés pour les scripts Python (application et <code><a href="../reference/batch_landmarks.html">batch_landmarks()</a></code>).</p></li>
 <li><p>Le choix de l’interpréteur préfère, parmi ceux qui démarrent, le premier qui importe <code>numpy</code>, <code>cv2</code> et <code>onnxruntime</code> (un Python système sans ces modules ne masque plus l’environnement d’<code><a href="../reference/install_mlmorph_python.html">install_mlmorph_python()</a></code>). Les messages « Dépendance manquante » des scripts Python indiquent <code><a href="../reference/install_mlmorph_python.html">intraitR::install_mlmorph_python()</a></code> au lieu d’une commande <code>pip</code> propre au Mac.</p></li>
 <li><p>CORRECTION (Windows) : « Prediction failed … Image illisible » sur toute photographie dont le chemin contient un caractère non ASCII (dossier <code>Photos utilisées</code>) : sous Windows, <code>cv2.imread()</code>/<code>cv2.imwrite()</code> d’OpenCV n’ouvrent pas ces chemins. <code>predict_new_image.py</code> et <code>batch_auto.py</code> lisent et écrivent désormais les images par <code>numpy.fromfile()</code> + <code>cv2.imdecode()</code> (et <code>cv2.imencode()</code> + <code>tofile()</code>), fonctions <code>imread_u()</code>/<code>imwrite_u()</code>.</p></li>

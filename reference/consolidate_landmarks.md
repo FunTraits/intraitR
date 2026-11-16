@@ -50,7 +50,7 @@ consolidate_landmarks(
 - xlsx_path:
 
   Optional path; when supplied, the result is also written there with
-  [`writexl::write_xlsx()`](https://docs.ropensci.org/writexl//reference/write_xlsx.html),
+  [`writexl::write_xlsx()`](https://docs.ropensci.org/writexl/reference/write_xlsx.html),
   one sheet per group of `target_sheet` (typically `measurements` and
   `bias`).
 
@@ -90,7 +90,7 @@ records.
 ``` r
 d <- file.path(tempdir(), "journal_demo4")
 jr <- landmark_journal_open(d, operator = "AT")
-#> Session journal: /tmp/RtmpHL7dFE/journal_demo4/landmarks_AT_20261102T140753Z.tsv
+#> Session journal: /tmp/RtmpdvESHc/journal_demo4/landmarks_AT_20261116T062813Z.tsv
 P <- cbind(c(10, 60), c(20, 22))
 landmark_journal_append(jr, "fish_01", P, 1:2, specimen = "fish_01",
                         individual = "fish_01", target_sheet = "measurements")

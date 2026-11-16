@@ -15,7 +15,7 @@ batch_landmarks() find this environment without python =."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,6 +70,13 @@ the old <code>.dat</code> predictors, is not installed). The applications and
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Invisibly, the path of the environment's Python.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>On Windows, <code>onnxruntime</code> needs a recent Microsoft Visual C++
+Redistributable (x64; <code>msvcp140.dll</code> 14.40 or later): with an older runtime
+it crashes on import (status 5, access violation). Install it first, e.g.
+<code>winget install --id Microsoft.VCRedist.2015+.x64 -e</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

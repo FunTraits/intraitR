@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">intraitR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.47.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -146,6 +146,18 @@ espace fonctionnel) et, pour une base de campagne,
 <span><span class="fu">intraitR</span><span class="fu">::</span><span class="fu"><a href="../reference/install_mlmorph_python.html">install_mlmorph_python</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>La page d’accueil indique si les modèles sont installés et propose
 ces deux installations par un bouton.</p>
+<p><strong>Sous Windows</strong>, avant
+<code><a href="../reference/install_mlmorph_python.html">install_mlmorph_python()</a></code> : installez Python 3 depuis
+python.org (cochez <em>Add python.exe to PATH</em> ; évitez la version
+du Microsoft Store) et le <strong>Microsoft Visual C++ Redistributable
+(x64)</strong> le plus récent, par exemple
+<code>winget install --id Microsoft.VCRedist.2015+.x64 -e</code> dans
+PowerShell. Avec un runtime Visual C++ plus ancien
+(<code>msvcp140.dll</code> antérieure à 14.40), <code>onnxruntime</code>
+plante dès son chargement, sans message, et la prédiction échoue. Gardez
+l’environnement Python hors d’un dossier synchronisé (OneDrive, iCloud)
+: un environnement créé sur Mac ne fonctionne pas sous Windows, et
+inversement.</p>
 <p><strong>Photographies.</strong> Un poisson (ou plusieurs, voir
 <em>plaques</em>) par photographie, en vue latérale, tête à gauche si
 possible, avec une <strong>barre d’échelle</strong> de longueur connue
@@ -592,6 +604,13 @@ session :</p>
 <code><a href="../reference/install_mlmorph_python.html">install_mlmorph_python()</a></code>, une fois par ordinateur</td>
 </tr>
 <tr class="even">
+<td>Windows : <em>Prediction failed</em> avec le statut 5, ou « access
+violation » au chargement d’<code>onnxruntime</code>
+</td>
+<td>runtime Visual C++ trop ancien : installez le Visual C++
+Redistributable (x64) le plus récent, relancez R</td>
+</tr>
+<tr class="odd">
 <td>Un spécimen déjà mesuré réapparaît comme <em>new</em>
 </td>
 <td>il a été enregistré dans un autre classeur ou journal : donnez
@@ -599,25 +618,25 @@ toujours les mêmes <code>xlsx_path</code>, <code>journal_dir</code> et
 <code>operator</code>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Erreur de mesure : « every individual must have at least 2
 replicates » (anciennes versions)</td>
 <td>une photographie de la feuille <code>bias</code> n’a été numérisée
 qu’une fois ; elle est maintenant écartée et nommée — numérisez-la une
 deuxième fois</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Des enregistrements de littérature jamais analysés</td>
 <td>un rapport manque dans le jeu de données : voir le tableau de
 couverture de <em>1. Data</em>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Bl et BEl semblent trop faibles sur des poissons courbés</td>
 <td>placez les charnières 22/24(/25) sur l’axe du corps ; la longueur
 standard suit alors le corps</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Un classeur paraît faux</td>
 <td>reconstruisez-le depuis le journal : <em>Rebuild from the
 journal</em> dans le digitizer, ou

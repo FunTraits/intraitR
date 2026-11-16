@@ -843,6 +843,14 @@ COLLAPSE_RULES <- list(
   Mo  = list(moves = list(c(9L, 1L), c(23L, 1L)),
              label = "Mo = 0 (mouth on the belly)",
              tip = "LM9 and LM23 take the coordinates of LM1: mouth height nil, OGp = 0"),
+  ## The jaw read against the snout: LM15 onto LM1, so Jl = 0 and RMl = 0. The
+  ## snout is the fixed point, as for `Mo`. Ticking `Mo` in the app ticks this
+  ## one too (a mouth on the belly usually has no measurable maxillary), but it
+  ## stays a rule of its own: it can be unticked, and a specimen saved with `Mo`
+  ## alone keeps its LM15 when it is reopened.
+  Jl  = list(moves = list(c(15L, 1L)),
+             label = "Jl = 0 (jaw tip on the snout)",
+             tip = "LM15 takes the coordinates of LM1: maxillary length nil, RMl = 0"),
   Hd6 = list(moves = list(c(6L, 8L), c(23L, 9L)),
              label = "LM6 = LM8 (head bottom on the belly)",
              tip = paste("LM6 takes the coordinates of LM8: the head ends on the",

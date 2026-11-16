@@ -278,11 +278,19 @@ test_that("a declared zero collapses its own segment and nothing else", {
   expect_equal(U[13, ], P[13, ])
   expect_equal(seg(U, 13, 14), unname(base[["Ed"]]))
 
+  # the jaw tip comes onto the snout, never the reverse: Jl = 0
+  J <- env$apply_collapse(P, "Jl")
+  expect_equal(seg(J, 1, 15), 0)
+  expect_equal(J[1, ], P[1, ])
+  expect_equal(seg(J, 1, 9), seg(P, 1, 9))              # Mo untouched
+  expect_identical(env$collapse_points("Jl"), 15L)
+
   # NOTHING is deleted: every landmark keeps a position, with every rule on
   V <- env$apply_collapse(P, names(env$COLLAPSE_RULES))
   for (i in c(1, 5, 6, 8, 9, 10, 11, 13)) expect_true(all(is.finite(V[i, ])))
-  expect_equal(c(seg(V, 1, 9), seg(V, 6, 8), seg(V, 10, 11), seg(V, 5, 13)),
-               c(0, 0, 0, 0))
+  expect_equal(c(seg(V, 1, 9), seg(V, 6, 8), seg(V, 10, 11), seg(V, 5, 13),
+                 seg(V, 1, 15)),
+               c(0, 0, 0, 0, 0))
 
   expect_setequal(env$collapse_points(c("Mo", "PFi")), c(9L, 23L, 10L))
   expect_equal(env$collapse_points(character(0)), integer(0))

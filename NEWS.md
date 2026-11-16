@@ -1,3 +1,11 @@
+# intraitR 1.47.5
+
+* NOUVEAU point confondu `Jl = 0` dans les applications de numérisation
+  (`digitize_landmarks()` et `digitize_fishmorph_reference()`) : LM15 prend
+  les coordonnées de LM1 (le museau ne bouge pas), donc `Jl = 0` et `RMl = 0`.
+  Cocher `Mo = 0` coche aussi `Jl = 0` ; la règle reste décochable seule. Un
+  spécimen enregistré avec `Mo` seul garde son LM15 quand il est rouvert.
+
 # intraitR 1.47.4
 
 * CORRECTION : la recherche de l'interpréteur Python des prédictions

@@ -2909,7 +2909,15 @@ server <- function(input, output, session) {
   ## Ticking a box applies it at once, unticking releases the point: it goes back
   ## to being derived by the conventions, which is what it was before.
   observeEvent(input$collapse, {
-    rv$collapse <- input$collapse %||% character(0)
+    sel <- input$collapse %||% character(0)
+    ## Ticking `Mo = 0` ticks `Jl = 0` with it (LM15 onto LM1). Only on the
+    ## operator's tick: a specimen reloaded with `Mo` declared alone keeps its
+    ## LM15, and `Jl` can be unticked afterwards without `Mo` coming back on it.
+    if ("Mo" %in% sel && !"Mo" %in% rv$collapse && !"Jl" %in% sel) {
+      sel <- c(sel, "Jl")
+      updateCheckboxGroupInput(session, "collapse", selected = sel)
+    }
+    rv$collapse <- sel
     if (is.null(rv$pred)) return()
     released <- setdiff(collapse_points(names(COLLAPSE_RULES)),
                         collapse_points(rv$collapse))

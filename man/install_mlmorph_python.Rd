@@ -21,6 +21,12 @@ installs what the prediction scripts import: \code{numpy}, \code{pandas},
 the old \code{.dat} predictors, is not installed). The applications and
 \code{\link[=batch_landmarks]{batch_landmarks()}} find this environment without \verb{python =}.
 }
+\details{
+On Windows, \code{onnxruntime} needs a recent Microsoft Visual C++
+Redistributable (x64; \code{msvcp140.dll} 14.40 or later): with an older runtime
+it crashes on import (status 5, access violation). Install it first, e.g.
+\verb{winget install --id Microsoft.VCRedist.2015+.x64 -e}.
+}
 \seealso{
 \code{\link[=install_mlmorph_models]{install_mlmorph_models()}}
 }

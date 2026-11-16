@@ -1,5 +1,17 @@
 # intraitR 1.47.4
 
+* CORRECTION : la recherche de l'interpréteur Python des prédictions
+  (lancée au démarrage de `digitize_landmarks()` et de
+  `digitize_fishmorph_reference()`) impose un délai maximal à chaque
+  interpréteur testé (10 s pour `--version`, 30 s pour l'import de `numpy`,
+  `cv2` et `onnxruntime`). Un interpréteur qui ne répond pas est écarté au lieu
+  de figer le lancement avant l'ouverture de l'application.
+
+* AIDE : la vignette *apps-workflow* (anglais et français) et l'aide
+  d'`install_mlmorph_python()` décrivent les prérequis sous Windows (Python de
+  python.org, Visual C++ Redistributable x64 récent, environnement hors dossier
+  synchronisé) et le symptôme d'un runtime trop ancien.
+
 * `install_mlmorph_python()` donne le code de sortie de Python quand les
   modules ne se chargent pas et, sous Windows, signale la cause habituelle
   d'un plantage silencieux d'`onnxruntime` (runtime Visual C++ trop ancien).

@@ -55,6 +55,15 @@ intraitR::install_mlmorph_python()
 The start page shows whether the models are installed, and offers the same two
 installations with a button.
 
+**On Windows**, before `install_mlmorph_python()`: install Python 3 from
+python.org (tick *Add python.exe to PATH*; avoid the Microsoft Store version)
+and the latest **Microsoft Visual C++ Redistributable (x64)**, for instance
+`winget install --id Microsoft.VCRedist.2015+.x64 -e` in PowerShell. With an
+older Visual C++ runtime (`msvcp140.dll` below 14.40), `onnxruntime` crashes as
+soon as it is imported, without any message, and the prediction fails. Keep the
+Python environment out of a synchronised folder (OneDrive, iCloud): an
+environment made on a Mac does not run on Windows, and the reverse.
+
 **Photographs.** One fish (or several, see *plates*) per photograph, lateral
 view, head to the left if possible, with a **scale bar** of known length in the
 plane of the fish. The file name without its extension becomes the specimen
@@ -277,6 +286,7 @@ write_analysis_project(fish, "my_project", params = analysis_params(min_n = 10))
 | Symptom | Cause, remedy |
 |---|---|
 | *Predict* says no model is available | `install_mlmorph_models()` then `install_mlmorph_python()`, once per computer |
+| Windows: *Prediction failed* with status 5, or "access violation" when importing `onnxruntime` | old Visual C++ runtime: install the latest Visual C++ Redistributable (x64), restart R |
 | A specimen measured before reappears as *new* | it was saved in another workbook or journal: always give the same `xlsx_path`, `journal_dir` and `operator` |
 | Measurement error: "every individual must have at least 2 replicates" (older versions) | a photograph of the `bias` sheet was digitized once; it is now left out and named — digitize it a second time |
 | Literature records never analysed | a ratio is missing from the data set: see the coverage table of *1. Data* |

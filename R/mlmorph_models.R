@@ -282,6 +282,11 @@ mlmorph_models_info <- function() {
 #' the old `.dat` predictors, is not installed). The applications and
 #' [batch_landmarks()] find this environment without `python =`.
 #'
+#' On Windows, `onnxruntime` needs a recent Microsoft Visual C++
+#' Redistributable (x64; `msvcp140.dll` 14.40 or later): with an older runtime
+#' it crashes on import (status 5, access violation). Install it first, e.g.
+#' `winget install --id Microsoft.VCRedist.2015+.x64 -e`.
+#'
 #' @param python The Python 3 used to create the environment (3.9 or later).
 #' @param force Recreate it even when it exists.
 #' @return Invisibly, the path of the environment's Python.
@@ -340,7 +345,10 @@ install_mlmorph_python <- function(python = NULL, force = FALSE) {
 ## Windows `python3` may be only the Microsoft Store alias.
 .python_runs <- function(py) {
   if (!nzchar(py)) return(FALSE)
-  st <- suppressWarnings(tryCatch(system2(py, "--version", stdout = FALSE, stderr = FALSE),
+  # timeout: an interpreter that hangs (cloud-synchronised environment, an
+  # import waiting on a download...) must not freeze the application at launch.
+  st <- suppressWarnings(tryCatch(system2(py, "--version", stdout = FALSE, stderr = FALSE,
+                                          timeout = 10),
                                   error = function(e) 1L))
   identical(as.integer(st), 0L)
 }
@@ -380,7 +388,8 @@ install_mlmorph_python <- function(python = NULL, force = FALSE) {
 
 .python_has_mlmorph <- function(py) {
   out <- suppressWarnings(tryCatch(system2(py, c("-c", shQuote(
-    "import numpy, cv2, onnxruntime; print('ok')")), stdout = TRUE, stderr = TRUE),
+    "import numpy, cv2, onnxruntime; print('ok')")), stdout = TRUE, stderr = TRUE,
+    timeout = 30),
     error = function(e) ""))
   any(grepl("^ok$", out))
 }
